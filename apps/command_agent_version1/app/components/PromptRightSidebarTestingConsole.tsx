@@ -54,7 +54,7 @@ function PromptRightSidebarTestingConsole(): JSX.Element {
 
 	return (
 		<div className={`bottom testing-console ${promptsContext.testingConsoleActiveClass} w-full rounded-b-xl overflow-y-auto`} style={{ height: `${String(height)}px` }}>
-			<div className="draggable w-full sticky top-0 left-0 z-20 h-[6px] bg-[#e5e7eb]" onMouseDown={handleMouseDown} />
+			<div className="draggable w-full sticky top-0 left-0 z-20 bg-[#e5e7eb]" onMouseDown={handleMouseDown} />
 			<div className="p-4 flex items-center justify-between bg-white sticky top-0 z-10">
 				<div className="font-medium select-none">Testing Console</div>
 				<div className="flex gap-4 items-center">
@@ -93,7 +93,7 @@ function PromptRightSidebarTestingConsole(): JSX.Element {
 						<div key={tab.id} className={`tab-link-panel ${activeTab === index ? "active" : ""}`} style={{ display: activeTab === index ? "block" : "none" }}>
 							{!promptsContext.file && (
 								<div className="prompt-input-container prompt-textarea-container p-[5px] no-margin">
-									<SimpleTextarea style={{ height: `${String(height - 122)}px` }} className="textarea-in-tab" useCommonStyling value={tab.value} onChange={value => { handleTabValueChange(index, value); }} placeholder='{ "video_url": "https://example.com/tutorial.mp4" }' />
+									<SimpleTextarea style={{ height: `${String(height - 131)}px` }} className="textarea-in-tab" useCommonStyling value={tab.value} onChange={value => { handleTabValueChange(index, value); }} placeholder='{ "video_url": "https://example.com/tutorial.mp4" }' />
 								</div>
 							)}
 							{!promptsContext.file ? undefined : (
