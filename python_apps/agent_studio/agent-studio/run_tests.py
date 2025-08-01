@@ -107,6 +107,16 @@ def run_tests_with_coverage():
     return run_command(cmd, "All Tests with Coverage")
 
 
+def run_workflow_tests():
+    cmd = ["python", "-m", "pytest", "tests/workflows/", "-v", "--tb=short"]
+    return run_command(cmd, "Workflow Tests")
+
+
+def run_analytics_only_tests():
+    cmd = ["python", "-m", "pytest", "tests/analytics/", "-v", "--tb=short"]
+    return run_command(cmd, "Analytics Tests (Unit)")
+
+
 def run_quick_tests():
     print("\n🚀 Running Quick Test Suite (Critical Tests Only)")
     print("=" * 60)
@@ -128,13 +138,29 @@ def run_quick_tests():
 
 def main():
     parser = argparse.ArgumentParser(description="Agent Studio Test Runner")
-    parser.add_argument("--analytics", action="store_true", help="Run analytics tests only")
+    parser.add_argument(
+        "--analytics", action="store_true", help="Run analytics tests only"
+    )
     parser.add_argument("--demo", action="store_true", help="Run demo tests only")
-    parser.add_argument("--tools", action="store_true", help="Run tool storage tests only")
-    parser.add_argument("--functional", action="store_true", help="Run functional tests only")
-    parser.add_argument("--integration", action="store_true", help="Run integration tests only")
+    parser.add_argument(
+        "--tools", action="store_true", help="Run tool storage tests only"
+    )
+    parser.add_argument(
+        "--functional", action="store_true", help="Run functional tests only"
+    )
+    parser.add_argument(
+        "--integration", action="store_true", help="Run integration tests only"
+    )
     parser.add_argument("--unit", action="store_true", help="Run unit tests only")
-    parser.add_argument("--coverage", action="store_true", help="Run all tests with coverage")
+    parser.add_argument(
+        "--coverage", action="store_true", help="Run all tests with coverage"
+    )
+    parser.add_argument(
+        "--workflows", action="store_true", help="Run workflow tests only"
+    )
+    parser.add_argument(
+        "--analytics-unit", action="store_true", help="Run analytics unit tests only"
+    )
     parser.add_argument("--quick", action="store_true", help="Run quick test suite")
     parser.add_argument("--all", action="store_true", help="Run all tests (default)")
 
@@ -144,6 +170,8 @@ def main():
     print("=" * 60)
     print("Available test categories:")
     print("  📊 Analytics Tests - API endpoint tests for analytics")
+    print("  📈 Analytics Unit Tests - Unit tests for analytics components")
+    print("  🔄 Workflow Tests - Workflow API and async tests")
     print("  🎭 Demo Tests - API endpoint tests for demo functionality")
     print("  🔧 Tool Tests - Tool storage, registry, and API tests")
     print("  🧪 Functional Tests - All API and feature tests")
@@ -156,6 +184,10 @@ def main():
 
     if args.analytics:
         success, _ = run_analytics_tests()
+    elif args.analytics_unit:
+        success, _ = run_analytics_only_tests()
+    elif args.workflows:
+        success, _ = run_workflow_tests()
     elif args.demo:
         success, _ = run_demo_tests()
     elif args.tools:

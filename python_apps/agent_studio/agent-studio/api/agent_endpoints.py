@@ -6,11 +6,11 @@ import json
 import asyncio
 from typing import List, Optional, Dict, Any
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timedelta
 from data_classes import PromptObject
 
 
@@ -459,6 +459,133 @@ def execute_agent(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error executing agent: {str(e)}")
+
+
+async def _execute_agent_background(
+    execution_id: str,
+    agent_id: uuid.UUID,
+    execution_request: AgentExecutionRequest,
+):
+    """
+    Background task to execute an agent asynchronously.
+    Updates execution status throughout the process.
+    """
+    from services.execution_manager import execution_manager
+    from db.database import get_db
+    
+    try:
+        # Update status to running
+        execution_manager.update_execution(execution_id, status="running", current_step="Initializing agent")
+        
+        # Get database session
+        db = next(get_db())
+        
+        try:
+            # Get the agent from database
+            db_agent = crud.get_agent(db=db, agent_id=agent_id)
+            if db_agent is None:
+                execution_manager.update_execution(
+                    execution_id, 
+                    status="failed", 
+                    error="Agent not found"
+                )
+                return
+
+            # Check if agent is available for execution
+            if not db_agent.available_for_deployment:
+                execution_manager.update_execution(
+                    execution_id, 
+                    status="failed", 
+                    error="Agent is not available for execution"
+                )
+                return
+
+            execution_manager.update_execution(execution_id, current_step="Creating agent instance", progress=0.2)
+            
+            # Create an agent instance from the database record
+            agent_instance = _create_agent_instance_from_db(db, db_agent)
+
+            execution_manager.update_execution(execution_id, current_step="Executing agent", progress=0.4)
+            
+            # Execute the agent
+            result = agent_instance.execute(
+                query=execution_request.query,
+                session_id=execution_request.session_id,
+                user_id=execution_request.user_id,
+                chat_history=execution_request.chat_history,
+                enable_analytics=execution_request.enable_analytics,
+            )
+
+            execution_manager.update_execution(execution_id, current_step="Processing results", progress=0.8)
+            
+            # Format the result
+            response_data = {
+                "status": "success",
+                "response": result,
+                "agent_id": str(agent_id),
+                "execution_id": execution_id,
+                "timestamp": datetime.now().isoformat(),
+            }
+            
+            # Update execution as completed
+            execution_manager.update_execution(
+                execution_id, 
+                status="completed", 
+                progress=1.0,
+                current_step="Completed",
+                result=response_data
+            )
+            
+        finally:
+            db.close()
+
+    except Exception as e:
+        # Update execution as failed
+        execution_manager.update_execution(
+            execution_id, 
+            status="failed", 
+            error=str(e)
+        )
+
+
+@router.post("/{agent_id}/execute/async")
+async def execute_agent_async(
+    agent_id: uuid.UUID,
+    execution_request: AgentExecutionRequest,
+    background_tasks: BackgroundTasks,
+):
+    """
+    Execute a specific agent asynchronously with 202 response.
+    Returns immediately with execution_id for status polling.
+    """
+    from services.execution_manager import execution_manager, AsyncExecutionResponse
+    
+    # Create execution record
+    execution_id = execution_manager.create_execution(
+        execution_type="agent",
+        agent_id=str(agent_id),
+        session_id=execution_request.session_id,
+        user_id=execution_request.user_id,
+        query=execution_request.query,
+        estimated_duration=10  # Rough estimate for agents
+    )
+    
+    # Queue the background task
+    background_tasks.add_task(
+        _execute_agent_background,
+        execution_id=execution_id,
+        agent_id=agent_id,
+        execution_request=execution_request
+    )
+    
+    return AsyncExecutionResponse(
+        execution_id=execution_id,
+        status="accepted",
+        type="agent",
+        estimated_completion_time=datetime.now() + timedelta(seconds=10),
+        status_url=f"/api/executions/{execution_id}/status",
+        timestamp=datetime.now()
+    )
 
 
 @router.post("/{agent_id}/execute/stream")

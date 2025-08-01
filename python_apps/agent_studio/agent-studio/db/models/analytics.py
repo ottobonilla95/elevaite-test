@@ -90,6 +90,89 @@ class WorkflowMetrics(Base):
     user_satisfaction_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # 1-5 scale
     task_completion_rate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # 0-1 scale
 
+class WorkflowExecution(Base):
+    """Complete workflow execution records with full tracing capability"""
+    __tablename__ = "workflow_executions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    execution_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    workflow_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("workflows.workflow_id"), nullable=True)
+    agent_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("agents.agent_id"), nullable=True)
+    execution_type: Mapped[str] = mapped_column(String, nullable=False)  # 'agent' or 'workflow'
+    status: Mapped[str] = mapped_column(String, nullable=False)  # 'queued', 'running', 'completed', 'failed', 'cancelled'
+    progress: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # 0.0 to 1.0
+    current_step: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    
+    # Input/Output data
+    query: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    input_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    result: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tools_called: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    
+    # Timing
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    estimated_completion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    
+    # User/Session info
+    session_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    user_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    
+    # Workflow tracing data
+    current_step_index: Mapped[int] = mapped_column(Integer, default=0)
+    total_steps: Mapped[int] = mapped_column(Integer, default=0)
+    execution_path: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)  # List of agents executed in order
+    branch_decisions: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # Decision points and outcomes
+    
+    # Relationships
+    workflow = relationship("Workflow", foreign_keys=[workflow_id])
+    agent = relationship("Agent", foreign_keys=[agent_id])
+    steps = relationship("WorkflowExecutionStep", back_populates="execution", cascade="all, delete-orphan")
+
+    __table_args__ = (UniqueConstraint("execution_id", name="uix_workflow_execution_id"),)
+
+
+class WorkflowExecutionStep(Base):
+    """Individual steps within workflow executions with full input/output tracking"""
+    __tablename__ = "workflow_execution_steps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    step_id: Mapped[str] = mapped_column(String, nullable=False)  # Unique within execution
+    execution_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), 
+        ForeignKey("workflow_executions.execution_id"), 
+        nullable=False
+    )
+    
+    # Step identification
+    step_type: Mapped[str] = mapped_column(String, nullable=False)  # 'agent_execution', 'tool_call', 'decision_point', 'data_processing'
+    step_index: Mapped[int] = mapped_column(Integer, nullable=False)  # Order within execution
+    agent_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    agent_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    tool_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    
+    # Step status and timing
+    status: Mapped[str] = mapped_column(String, nullable=False)  # 'pending', 'running', 'completed', 'failed', 'skipped'
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    
+    # Input/Output data
+    input_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    output_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    metadata: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    
+    # Relationships
+    execution = relationship("WorkflowExecution", back_populates="steps")
+
+    __table_args__ = (
+        UniqueConstraint("execution_id", "step_id", name="uix_execution_step"),
+    )
+
+
 class SessionMetrics(Base):
     __tablename__ = "session_metrics"
 

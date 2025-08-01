@@ -3,7 +3,7 @@ name = "elevAIte"
 version = "2.0"
 description = "ElevAIte monorepo setup using UV"
 authors = [
-  {name="Panagiotis Vamvakas", email="<57200277+vuxxs@users.noreply.github.com>"}
+	{ name = "Panagiotis Vamvakas", email = "<57200277+vuxxs@users.noreply.github.com>" },
 ]
 requires-python = "==3.11.11"
 readme = "README.md"
@@ -13,11 +13,12 @@ dependencies = []
 [tool.uv.workspace]
 members = ["python_apps/*", "python_packages/*"]
 exclude = [
-    "elevaite_backend/*",
-    "python_apps/arlo_backend",
-    "python_apps/exceltoppt",
-    "python_apps/media_backend",
-    "python_apps/pipelines",
-    "python_apps/sla_chatbot_backend",
-    "python_packages/email_middleware"
+	"elevaite_backend/*",
+	"python_apps/arlo_backend",
+	"python_apps/exceltoppt",
+	"python_apps/media_backend",
+	"python_apps/pipelines",
+	"python_apps/sla_chatbot_backend",
+	"python_packages/email_middleware",
+	"python_apps/toshiba_backends",
 ]

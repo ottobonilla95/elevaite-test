@@ -11,6 +11,7 @@ from services.analytics_service import analytics_service
 from db.database import Base, engine, get_db
 from api import prompt_router, agent_router, demo_router, analytics_router, tools_router
 from api.workflow_endpoints import router as workflow_router
+from api.execution_endpoints import router as execution_router
 from db import crud
 
 # Temporarily comment out workflow service to test
@@ -155,6 +156,7 @@ app.include_router(agent_router)
 app.include_router(demo_router)
 app.include_router(analytics_router)
 app.include_router(workflow_router)
+app.include_router(execution_router)
 app.include_router(tools_router)
 
 

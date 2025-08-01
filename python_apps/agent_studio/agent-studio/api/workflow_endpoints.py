@@ -3,7 +3,7 @@ import json
 import asyncio
 import time
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -695,6 +695,332 @@ async def execute_workflow_stream(
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
         },
+    )
+
+
+async def _execute_workflow_background(
+    execution_id: str,
+    workflow_id: uuid.UUID,
+    execution_request: schemas.WorkflowExecutionRequest,
+):
+    """
+    Background task to execute a workflow asynchronously with detailed tracing.
+    Updates execution status and workflow trace throughout the process.
+    """
+    from services.analytics_service import analytics_service, WorkflowStep
+    from db.database import get_db
+
+    try:
+        # Update status to running and initialize tracing
+        analytics_service.update_execution(
+            execution_id, status="running", current_step="Initializing workflow"
+        )
+
+        # Get database session
+        db = next(get_db())
+
+        try:
+            # Get the workflow from database
+            workflow = crud.get_workflow(db=db, workflow_id=workflow_id)
+            if workflow is None:
+                analytics_service.update_execution(
+                    execution_id, status="failed", error="Workflow not found"
+                )
+                return
+
+            # Initialize workflow tracing
+            agents = workflow.configuration.get("agents", [])
+            connections = workflow.configuration.get("connections", [])
+            estimated_steps = (
+                len(agents) + len(connections) + 2
+            )  # agents + connections + init + finalize
+
+            analytics_service.init_workflow_trace(
+                execution_id, str(workflow_id), estimated_steps
+            )
+
+            # Add initial step
+            init_step = WorkflowStep(
+                step_id=f"init_{execution_id}",
+                step_type="data_processing",
+                status="running",
+                metadata={"description": "Initializing workflow execution"},
+            )
+            analytics_service.add_workflow_step(execution_id, init_step)
+            analytics_service.update_execution(
+                execution_id, current_step="Analyzing workflow structure", progress=0.1
+            )
+
+            # Determine workflow type and create execution plan
+            is_single_agent = len(agents) == 1
+
+            if is_single_agent:
+                # Single-agent workflow execution with tracing
+                agent_config = agents[0]
+                agent_type = agent_config.get("agent_type", "CommandAgent")
+
+                # Add agent execution step
+                agent_step = WorkflowStep(
+                    step_id=f"agent_{agent_config.get('agent_id', 'unknown')}",
+                    step_type="agent_execution",
+                    agent_id=agent_config.get("agent_id"),
+                    agent_name=agent_type,
+                    status="pending",
+                    input_data={"query": execution_request.query},
+                    metadata={"agent_type": agent_type},
+                )
+                analytics_service.add_workflow_step(execution_id, agent_step)
+                analytics_service.add_execution_path(execution_id, agent_type)
+
+                analytics_service.update_execution(
+                    execution_id, current_step=f"Executing {agent_type}", progress=0.3
+                )
+                analytics_service.update_workflow_step(
+                    execution_id, agent_step.step_id, status="running"
+                )
+
+                try:
+                    if agent_type == "ToshibaAgent":
+                        agent = _build_toshiba_agent_from_workflow(
+                            db, workflow, agent_config
+                        )
+                    else:
+                        agent = _build_single_agent_from_workflow(
+                            db, workflow, agent_config
+                        )
+
+                    # Build dynamic agent store for inter-agent communication
+                    dynamic_agent_store = _build_dynamic_agent_store(db, workflow)
+
+                    result = agent.execute(
+                        query=execution_request.query,
+                        chat_history=execution_request.chat_history,
+                        enable_analytics=False,
+                        dynamic_agent_store=dynamic_agent_store,
+                    )
+
+                    # Update agent step as completed
+                    analytics_service.update_workflow_step(
+                        execution_id,
+                        agent_step.step_id,
+                        status="completed",
+                        output_data={"result": str(result)},
+                    )
+
+                except Exception as agent_error:
+                    analytics_service.update_workflow_step(
+                        execution_id,
+                        agent_step.step_id,
+                        status="failed",
+                        error=str(agent_error),
+                    )
+                    raise agent_error
+
+            else:
+                # Multi-agent workflow execution with tracing
+                analytics_service.update_execution(
+                    execution_id,
+                    current_step="Building CommandAgent orchestrator",
+                    progress=0.2,
+                )
+
+                # Add orchestrator step
+                orchestrator_step = WorkflowStep(
+                    step_id=f"orchestrator_{execution_id}",
+                    step_type="agent_execution",
+                    agent_name="CommandAgent",
+                    status="pending",
+                    input_data={
+                        "query": execution_request.query,
+                        "agent_count": len(agents),
+                    },
+                    metadata={"workflow_type": "multi_agent", "orchestrator": True},
+                )
+                analytics_service.add_workflow_step(execution_id, orchestrator_step)
+                analytics_service.add_execution_path(execution_id, "CommandAgent")
+
+                command_agent = _build_command_agent_from_workflow(db, workflow)
+                dynamic_agent_store = _build_dynamic_agent_store(db, workflow)
+
+                analytics_service.update_execution(
+                    execution_id,
+                    current_step="Orchestrating workflow execution",
+                    progress=0.4,
+                )
+                analytics_service.update_workflow_step(
+                    execution_id, orchestrator_step.step_id, status="running"
+                )
+
+                # Track individual agent executions within the orchestrator
+                for i, agent_config in enumerate(agents):
+                    agent_id = agent_config.get("agent_id", f"agent_{i}")
+                    agent_type = agent_config.get("agent_type", "Unknown")
+
+                    agent_step = WorkflowStep(
+                        step_id=f"sub_agent_{agent_id}",
+                        step_type="agent_execution",
+                        agent_id=agent_id,
+                        agent_name=agent_type,
+                        status="pending",
+                        metadata={"orchestrated": True, "step_index": i},
+                    )
+                    analytics_service.add_workflow_step(execution_id, agent_step)
+
+                try:
+                    if execution_request.chat_history:
+                        result = command_agent.execute_stream(
+                            execution_request.query,
+                            execution_request.chat_history,
+                            dynamic_agent_store,
+                        )
+                        # Convert generator to string for storage
+                        result = "".join(str(chunk) for chunk in result if chunk)
+                    else:
+                        session_id = (
+                            execution_request.session_id
+                            or f"workflow_{workflow_id}_{int(time.time())}"
+                        )
+                        user_id = execution_request.user_id or "workflow_user"
+                        result = command_agent.execute(
+                            query=execution_request.query,
+                            enable_analytics=True,
+                            session_id=session_id,
+                            user_id=user_id,
+                            dynamic_agent_store=dynamic_agent_store,
+                        )
+
+                    # Update orchestrator step as completed
+                    analytics_service.update_workflow_step(
+                        execution_id,
+                        orchestrator_step.step_id,
+                        status="completed",
+                        output_data={"result": str(result)},
+                    )
+
+                    # Mark sub-agent steps as completed (simplified for now)
+                    for agent_config in agents:
+                        agent_id = agent_config.get(
+                            "agent_id", f"agent_{agents.index(agent_config)}"
+                        )
+                        analytics_service.update_workflow_step(
+                            execution_id, f"sub_agent_{agent_id}", status="completed"
+                        )
+                        analytics_service.add_execution_path(
+                            execution_id, agent_config.get("agent_type", "Unknown")
+                        )
+
+                except Exception as orchestrator_error:
+                    analytics_service.update_workflow_step(
+                        execution_id,
+                        orchestrator_step.step_id,
+                        status="failed",
+                        error=str(orchestrator_error),
+                    )
+                    raise orchestrator_error
+
+            # Add finalization step
+            final_step = WorkflowStep(
+                step_id=f"finalize_{execution_id}",
+                step_type="data_processing",
+                status="running",
+                metadata={"description": "Finalizing workflow execution"},
+            )
+            analytics_service.add_workflow_step(execution_id, final_step)
+            analytics_service.update_execution(
+                execution_id, current_step="Finalizing results", progress=0.9
+            )
+
+            # Format the final response
+            import json
+
+            def safe_json_serialize(obj):
+                try:
+                    if isinstance(obj, str):
+                        return json.dumps({"content": obj})
+                    elif isinstance(obj, (dict, list, int, float, bool)) or obj is None:
+                        return json.dumps(obj)
+                    elif hasattr(obj, "__iter__") and not isinstance(obj, str):
+                        return json.dumps({"content": str(list(obj))})
+                    else:
+                        return json.dumps({"content": str(obj)})
+                except (TypeError, ValueError) as e:
+                    return json.dumps(
+                        {"content": str(obj), "serialization_error": str(e)}
+                    )
+
+            formatted_response = safe_json_serialize(result)
+            response_data = {
+                "status": "success",
+                "response": formatted_response,
+                "workflow_id": str(workflow_id),
+                "execution_id": execution_id,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+            # Complete finalization step
+            analytics_service.update_workflow_step(
+                execution_id,
+                final_step.step_id,
+                status="completed",
+                output_data=response_data,
+            )
+
+            # Update execution as completed
+            analytics_service.update_execution(
+                execution_id,
+                status="completed",
+                progress=1.0,
+                current_step="Completed",
+                result=response_data,
+                db=db,
+            )
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        # Update execution as failed
+        analytics_service.update_execution(execution_id, status="failed", error=str(e))
+
+
+@router.post("/{workflow_id}/execute/async")
+async def execute_workflow_async(
+    workflow_id: uuid.UUID,
+    execution_request: schemas.WorkflowExecutionRequest,
+    background_tasks: BackgroundTasks,
+):
+    """
+    Execute a workflow asynchronously with detailed tracing.
+    Returns immediately with execution_id for status polling and tracing.
+    """
+    from services.analytics_service import analytics_service, AsyncExecutionResponse
+    from datetime import datetime, timedelta
+
+    # Create execution record
+    execution_id = analytics_service.create_execution(
+        execution_type="workflow",
+        workflow_id=str(workflow_id),
+        session_id=execution_request.session_id,
+        user_id=execution_request.user_id,
+        query=execution_request.query,
+        estimated_duration=30,  # Rough estimate for workflows (longer than agents)
+    )
+
+    # Queue the background task
+    background_tasks.add_task(
+        _execute_workflow_background,
+        execution_id=execution_id,
+        workflow_id=workflow_id,
+        execution_request=execution_request,
+    )
+
+    return AsyncExecutionResponse(
+        execution_id=execution_id,
+        status="accepted",
+        type="workflow",
+        estimated_completion_time=datetime.now() + timedelta(seconds=30),
+        status_url=f"/api/executions/{execution_id}/status",
+        timestamp=datetime.now(),
     )
 
 

@@ -413,9 +413,11 @@ class AgentAnalyticsTest:
         print(f"Start Time: {details.get('start_time', 'N/A')}")
         print(f"End Time: {details.get('end_time', 'N/A')}")
         print(f"Duration: {details.get('duration_ms', 'N/A')}ms")
-        print(f"Total Interactions: {details.get('total_interactions', 0)}")
-        print(f"Unique Agents Used: {details.get('unique_agents_used', 0)}")
-        print(f"Total Tool Calls: {details.get('total_tool_calls', 0)}")
+        print(f"Total Queries: {details.get('total_queries', 0)}")
+        print(f"Successful Queries: {details.get('successful_queries', 0)}")
+        print(f"Failed Queries: {details.get('failed_queries', 0)}")
+        print(f"Unique Agents Used: {details.get('unique_agents_count', 0)}")
+        print(f"Average Response Time: {details.get('average_response_time_ms', 'N/A')}ms")
 
     async def run_comprehensive_test(
         self, agent_id: Optional[str] = None, use_streaming: bool = False
@@ -571,6 +573,97 @@ async def quick_test():
         test.print_session_details(session_details)
 
 
+async def tool_testing():
+    """Test agents with tool calling capabilities."""
+    async with AgentAnalyticsTest() as test:
+        print("🔧 Starting Tool Usage Analytics Test")
+        print("=" * 60)
+        
+        # Define test scenarios for different agents with tools
+        tool_test_scenarios = [
+            {
+                "agent_id": "46f38c47-0958-466b-a838-b5ef03832dcf",  # Weather and Web Agent
+                "agent_name": "Weather and Web Agent",
+                "queries": [
+                    "What's the weather forecast for New York City?",
+                    "Search the web for latest news about artificial intelligence"
+                ]
+            },
+            {
+                "agent_id": "9a2eb1e2-af45-4049-b8bc-af163522a0f2",  # ToshibaAgent
+                "agent_name": "ToshibaAgent", 
+                "queries": [
+                    "What is part number AC01548000?",
+                    "Find information about TAL parts list"
+                ]
+            },
+            {
+                "agent_id": "0a34851e-a72e-44ba-a60c-1129c200bfc0",  # WebAgent
+                "agent_name": "WebAgent",
+                "queries": [
+                    "Search for information about Python programming best practices"
+                ]
+            }
+        ]
+        
+        for scenario in tool_test_scenarios:
+            print(f"\n🤖 Testing {scenario['agent_name']}")
+            print("-" * 50)
+            
+            session_id = f"tool_test_{scenario['agent_name'].lower().replace(' ', '_')}_{int(time.time())}"
+            
+            for i, query in enumerate(scenario['queries'], 1):
+                print(f"\n📝 Query {i}: {query}")
+                
+                # Execute the agent
+                result = await test.execute_agent(
+                    scenario['agent_id'], query, session_id
+                )
+                
+                if result.get('success'):
+                    print(f"✅ Execution successful in {result.get('duration', 0):.2f}s")
+                    # Print a snippet of the response
+                    response = result.get('result', '')
+                    if len(response) > 200:
+                        print(f"📄 Response: {response[:200]}...")
+                    else:
+                        print(f"📄 Response: {response}")
+                else:
+                    print(f"❌ Execution failed: {result.get('error', 'Unknown error')}")
+                
+                # Wait a moment between queries
+                await asyncio.sleep(2)
+            
+            # Wait for analytics to be recorded
+            await asyncio.sleep(3)
+            
+            # Get session details for this agent test
+            session_details = await test.get_session_details(session_id)
+            if session_details:
+                print(f"\n📊 Session Summary for {scenario['agent_name']}:")
+                print(f"   Total Queries: {session_details.get('total_queries', 0)}")
+                print(f"   Successful: {session_details.get('successful_queries', 0)}")
+                print(f"   Failed: {session_details.get('failed_queries', 0)}")
+                print(f"   Avg Response Time: {session_details.get('average_response_time_ms', 'N/A')}ms")
+        
+        # Get overall analytics summary
+        print(f"\n📊 Overall Tool Usage Analytics Summary")
+        print("-" * 50)
+        summary = await test.get_analytics_summary(days=1)
+        
+        if summary.get('tool_stats'):
+            print(f"🔧 Tool Usage Stats:")
+            for tool_stat in summary['tool_stats']:
+                print(f"   - {tool_stat.get('tool_name', 'Unknown')}: {tool_stat.get('total_calls', 0)} calls")
+        else:
+            print("🔧 No tool usage stats found")
+            
+        if summary.get('agent_stats'):
+            print(f"\n🤖 Agent Usage Stats:")
+            for agent_stat in summary['agent_stats']:
+                print(f"   - {agent_stat.get('agent_name', 'Unknown')}: {agent_stat.get('total_executions', 0)} executions")
+
+
 async def workflow_test():
     """Test workflow execution and analytics."""
     async with AgentAnalyticsTest() as test:
@@ -623,6 +716,11 @@ def run_workflow_test():
     asyncio.run(workflow_test())
 
 
+def run_tool_test():
+    """Synchronous wrapper for tool testing."""
+    asyncio.run(tool_testing())
+
+
 if __name__ == "__main__":
     import sys
 
@@ -630,5 +728,7 @@ if __name__ == "__main__":
         run_quick_test()
     elif len(sys.argv) > 1 and sys.argv[1] == "workflow":
         run_workflow_test()
+    elif len(sys.argv) > 1 and sys.argv[1] == "tools":
+        run_tool_test()
     else:
         asyncio.run(main())
