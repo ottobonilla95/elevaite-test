@@ -44,7 +44,13 @@ function PromptRightSidebar(): JSX.Element {
 						}
 					</button>
 				) : (
-					<div><span className="font-medium">Invoice Extractor</span> <span className="text-[#E2E8ED]">|</span> <span className="text-sm">Extracts informetion from documents such as invoice, CSOWs, etc.</span></div>
+					<div>
+						<span className="font-medium">Document Extractor</span> 
+						<span className="text-[#E2E8ED]"> | </span> 
+						<span className="text-sm">
+							Extracts information from documents such as invoices, CSOWs, etc.
+						</span>
+					</div>
 				)}
 				<div className="flex items-center gap-3">
 					<button

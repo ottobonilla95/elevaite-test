@@ -3,8 +3,10 @@
 .testing-console {
 
     .draggable {
-        position: relative;
         height: 15px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
         
         &:hover { cursor: grab; }
         &:active { cursor: grabbing; }

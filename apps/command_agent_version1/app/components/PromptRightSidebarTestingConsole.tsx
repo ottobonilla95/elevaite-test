@@ -17,7 +17,7 @@ function PromptRightSidebarTestingConsole(): JSX.Element {
 
 	function handleMouseDown(): void {
 		resizing.current = true;
-		document.body.style.cursor = 'ns-resize';
+		document.body.style.cursor = "grabbing"; //'ns-resize';
 	};
 
 	function handleMouseMove(event: MouseEvent): void {
