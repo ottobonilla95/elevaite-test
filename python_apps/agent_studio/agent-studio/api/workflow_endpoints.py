@@ -744,7 +744,7 @@ async def _execute_workflow_background(
                 step_id=f"init_{execution_id}",
                 step_type="data_processing",
                 status="running",
-                metadata={"description": "Initializing workflow execution"},
+                step_metadata={"description": "Initializing workflow execution"},
             )
             analytics_service.add_workflow_step(execution_id, init_step)
             analytics_service.update_execution(
@@ -767,7 +767,7 @@ async def _execute_workflow_background(
                     agent_name=agent_type,
                     status="pending",
                     input_data={"query": execution_request.query},
-                    metadata={"agent_type": agent_type},
+                    step_metadata={"agent_type": agent_type},
                 )
                 analytics_service.add_workflow_step(execution_id, agent_step)
                 analytics_service.add_execution_path(execution_id, agent_type)
@@ -862,7 +862,7 @@ async def _execute_workflow_background(
                         agent_id=agent_id,
                         agent_name=agent_type,
                         status="pending",
-                        metadata={"orchestrated": True, "step_index": i},
+                        step_metadata={"orchestrated": True, "step_index": i},
                     )
                     analytics_service.add_workflow_step(execution_id, agent_step)
 
@@ -923,7 +923,7 @@ async def _execute_workflow_background(
                 step_id=f"finalize_{execution_id}",
                 step_type="data_processing",
                 status="running",
-                metadata={"description": "Finalizing workflow execution"},
+                step_metadata={"description": "Finalizing workflow execution"},
             )
             analytics_service.add_workflow_step(execution_id, final_step)
             analytics_service.update_execution(

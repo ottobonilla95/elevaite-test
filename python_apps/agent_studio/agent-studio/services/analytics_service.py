@@ -25,7 +25,7 @@ class WorkflowStep(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     duration_ms: Optional[int] = None
-    metadata: Dict[str, Any] = {}
+    step_metadata: Dict[str, Any] = {}
 
 
 class WorkflowTrace(BaseModel):
@@ -417,7 +417,7 @@ class AnalyticsService:
         agent_id: Optional[str] = None,
         agent_name: Optional[str] = None,
         tool_name: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        step_metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Start tracking a workflow step and return step_id."""
         step_id = f"{step_type}_{step_name}_{str(uuid.uuid4())[:8]}"
@@ -431,7 +431,7 @@ class AnalyticsService:
             status="running",
             input_data=input_data,
             started_at=datetime.now(),
-            metadata=metadata or {},
+            step_metadata=step_metadata or {},
         )
 
         self.add_workflow_step(execution_id, step)
