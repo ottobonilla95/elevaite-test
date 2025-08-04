@@ -22,20 +22,67 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Add missing fields to tools table."""
-    # Add missing fields to tools table
-    op.add_column("tools", sa.Column("api_endpoint", sa.String(), nullable=True))
-    op.add_column("tools", sa.Column("http_method", sa.String(), nullable=True))
-    op.add_column("tools", sa.Column("headers", postgresql.JSONB(astext_type=sa.Text()), nullable=True))
-    op.add_column("tools", sa.Column("auth_required", sa.Boolean(), nullable=False, server_default="false"))
-    op.add_column("tools", sa.Column("documentation", sa.Text(), nullable=True))
-    op.add_column("tools", sa.Column("examples", postgresql.JSONB(astext_type=sa.Text()), nullable=True))
+    # Check if columns already exist before adding them
+    from sqlalchemy import inspect
+
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    existing_columns = [col["name"] for col in inspector.get_columns("tools")]
+
+    # Add missing fields to tools table only if they don't exist
+    if "api_endpoint" not in existing_columns:
+        op.add_column("tools", sa.Column("api_endpoint", sa.String(), nullable=True))
+
+    if "http_method" not in existing_columns:
+        op.add_column("tools", sa.Column("http_method", sa.String(), nullable=True))
+
+    if "headers" not in existing_columns:
+        op.add_column(
+            "tools",
+            sa.Column(
+                "headers", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+            ),
+        )
+
+    if "auth_required" not in existing_columns:
+        op.add_column(
+            "tools",
+            sa.Column(
+                "auth_required", sa.Boolean(), nullable=False, server_default="false"
+            ),
+        )
+
+    if "documentation" not in existing_columns:
+        op.add_column("tools", sa.Column("documentation", sa.Text(), nullable=True))
+
+    if "examples" not in existing_columns:
+        op.add_column(
+            "tools",
+            sa.Column(
+                "examples", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+            ),
+        )
 
 
 def downgrade() -> None:
     """Remove the added fields from tools table."""
-    op.drop_column("tools", "examples")
-    op.drop_column("tools", "documentation")
-    op.drop_column("tools", "auth_required")
-    op.drop_column("tools", "headers")
-    op.drop_column("tools", "http_method")
-    op.drop_column("tools", "api_endpoint")
+    # Check if columns exist before dropping them
+    from sqlalchemy import inspect
+
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    existing_columns = [col["name"] for col in inspector.get_columns("tools")]
+
+    # Drop columns only if they exist
+    columns_to_drop = [
+        "examples",
+        "documentation",
+        "auth_required",
+        "headers",
+        "http_method",
+        "api_endpoint",
+    ]
+
+    for column_name in columns_to_drop:
+        if column_name in existing_columns:
+            op.drop_column("tools", column_name)
