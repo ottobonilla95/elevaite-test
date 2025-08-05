@@ -46,7 +46,6 @@ def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_
 
         # Process agents from configuration
         agents_config = workflow.configuration.get("agents", [])
-        print(workflow)
         for agent_config in agents_config:
             agent_type = agent_config.get("agent_type", "")
 
@@ -107,7 +106,7 @@ def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_
                     )
                     crud.create_workflow_connection(db, connection_data)
                 except (ValueError, TypeError) as e:
-                    print(f"Error creating connection: {e}")
+                    # Skip invalid connections
                     continue
 
         # Return the workflow with populated relationships
@@ -349,7 +348,6 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
         # Remove from active workflows memory
         if deployment_name in ACTIVE_WORKFLOWS:
             del ACTIVE_WORKFLOWS[deployment_name]
-            print(f"Removed '{deployment_name}' from active workflows")
 
         return {
             "message": f"Deployment '{deployment_name}' stopped successfully",
@@ -698,7 +696,7 @@ async def execute_workflow_stream(
     )
 
 
-async def _execute_workflow_background(
+def _execute_workflow_background(
     execution_id: str,
     workflow_id: uuid.UUID,
     execution_request: schemas.WorkflowExecutionRequest,
@@ -708,7 +706,6 @@ async def _execute_workflow_background(
     Updates execution status and workflow trace throughout the process.
     """
     from services.analytics_service import analytics_service, WorkflowStep
-    from db.database import get_db
 
     try:
         # Update status to running and initialize tracing
@@ -716,8 +713,10 @@ async def _execute_workflow_background(
             execution_id, status="running", current_step="Initializing workflow"
         )
 
-        # Get database session
-        db = next(get_db())
+        # Get database session for background task
+        from db.database import SessionLocal
+
+        db = SessionLocal()
 
         try:
             # Get the workflow from database
@@ -751,8 +750,23 @@ async def _execute_workflow_background(
                 execution_id, current_step="Analyzing workflow structure", progress=0.1
             )
 
-            # Determine workflow type and create execution plan
+            # Determine workflow type and find root agent
             is_single_agent = len(agents) == 1
+
+            # Find the root agent (entry point) - agent with no incoming connections
+            root_agent_id = None
+            if connections:
+                # Get all target agent IDs (agents that have incoming connections)
+                target_agent_ids = {conn.get("target_agent_id") for conn in connections}
+                # Find agents that are not targets (no incoming connections)
+                for agent in agents:
+                    agent_id = agent.get("agent_id")
+                    if agent_id and agent_id not in target_agent_ids:
+                        root_agent_id = agent_id
+                        break
+            elif agents:
+                # If no connections, use the first agent as root
+                root_agent_id = agents[0].get("agent_id")
 
             if is_single_agent:
                 # Single-agent workflow execution with tracing
@@ -817,29 +831,81 @@ async def _execute_workflow_background(
                     raise agent_error
 
             else:
-                # Multi-agent workflow execution with tracing
-                analytics_service.update_execution(
-                    execution_id,
-                    current_step="Building CommandAgent orchestrator",
-                    progress=0.2,
-                )
+                # Multi-agent workflow execution using root agent as entry point
+                if root_agent_id:
+                    # Use the root agent as the entry point
+                    analytics_service.update_execution(
+                        execution_id,
+                        current_step="Executing root agent",
+                        progress=0.2,
+                    )
 
-                # Add orchestrator step
-                orchestrator_step = WorkflowStep(
-                    step_id=f"orchestrator_{execution_id}",
-                    step_type="agent_execution",
-                    agent_name="CommandAgent",
-                    status="pending",
-                    input_data={
-                        "query": execution_request.query,
-                        "agent_count": len(agents),
-                    },
-                    metadata={"workflow_type": "multi_agent", "orchestrator": True},
-                )
-                analytics_service.add_workflow_step(execution_id, orchestrator_step)
-                analytics_service.add_execution_path(execution_id, "CommandAgent")
+                    # Get the root agent from database
+                    root_agent = crud.get_agent(db, uuid.UUID(root_agent_id))
+                    if root_agent:
+                        # Add root agent step
+                        # Create root agent step with proper UUID to avoid conflicts
+                        root_step = WorkflowStep(
+                            step_id=str(uuid.uuid4()),  # Use proper UUID for step_id
+                            step_type="agent_execution",
+                            agent_id=root_agent_id,
+                            agent_name=root_agent.name,
+                            status="pending",
+                            input_data={
+                                "query": execution_request.query,
+                                "agent_count": len(agents),
+                            },
+                            step_metadata={
+                                "workflow_type": "multi_agent",
+                                "root_agent": True,
+                                "agent_type": root_agent.agent_type,
+                            },
+                        )
+                        analytics_service.add_workflow_step(execution_id, root_step)
+                        analytics_service.add_execution_path(
+                            execution_id, root_agent.name
+                        )
 
-                command_agent = _build_command_agent_from_workflow(db, workflow)
+                        # Use the root agent with workflow functions
+                        command_agent = _build_root_agent_with_workflow_functions(
+                            db, workflow
+                        )
+                    else:
+                        analytics_service.update_execution(
+                            execution_id,
+                            status="failed",
+                            error=f"Root agent {root_agent_id} not found",
+                        )
+                        return
+                else:
+                    # Fallback to CommandAgent orchestrator if no root agent found
+                    analytics_service.update_execution(
+                        execution_id,
+                        current_step="Building CommandAgent orchestrator",
+                        progress=0.2,
+                    )
+
+                    # Add orchestrator step
+                    orchestrator_step = WorkflowStep(
+                        step_id=f"orchestrator_{execution_id}",
+                        step_type="agent_execution",
+                        agent_name="CommandAgent",
+                        status="pending",
+                        input_data={
+                            "query": execution_request.query,
+                            "agent_count": len(agents),
+                        },
+                        step_metadata={
+                            "workflow_type": "multi_agent",
+                            "orchestrator": True,
+                        },
+                    )
+                    analytics_service.add_workflow_step(execution_id, orchestrator_step)
+                    analytics_service.add_execution_path(execution_id, "CommandAgent")
+
+                    command_agent = _build_root_agent_with_workflow_functions(
+                        db, workflow
+                    )
                 dynamic_agent_store = _build_dynamic_agent_store(db, workflow)
 
                 analytics_service.update_execution(
@@ -847,24 +913,18 @@ async def _execute_workflow_background(
                     current_step="Orchestrating workflow execution",
                     progress=0.4,
                 )
-                analytics_service.update_workflow_step(
-                    execution_id, orchestrator_step.step_id, status="running"
-                )
-
-                # Track individual agent executions within the orchestrator
-                for i, agent_config in enumerate(agents):
-                    agent_id = agent_config.get("agent_id", f"agent_{i}")
-                    agent_type = agent_config.get("agent_type", "Unknown")
-
-                    agent_step = WorkflowStep(
-                        step_id=f"sub_agent_{agent_id}",
-                        step_type="agent_execution",
-                        agent_id=agent_id,
-                        agent_name=agent_type,
-                        status="pending",
-                        step_metadata={"orchestrated": True, "step_index": i},
+                # Update the appropriate step as running
+                if root_agent_id:
+                    analytics_service.update_workflow_step(
+                        execution_id, root_step.step_id, status="running"
                     )
-                    analytics_service.add_workflow_step(execution_id, agent_step)
+                else:
+                    analytics_service.update_workflow_step(
+                        execution_id, orchestrator_step.step_id, status="running"
+                    )
+
+                # Note: Individual tool calls will be tracked by CommandAgent analytics
+                # We don't create placeholder steps here - real tool calls will be captured
 
                 try:
                     if execution_request.chat_history:
@@ -881,21 +941,31 @@ async def _execute_workflow_background(
                             or f"workflow_{workflow_id}_{int(time.time())}"
                         )
                         user_id = execution_request.user_id or "workflow_user"
+                        # Enable analytics with proper execution_id to track tool calls
                         result = command_agent.execute(
                             query=execution_request.query,
                             enable_analytics=True,
                             session_id=session_id,
                             user_id=user_id,
                             dynamic_agent_store=dynamic_agent_store,
+                            execution_id=execution_id,  # Pass workflow execution_id
                         )
 
-                    # Update orchestrator step as completed
-                    analytics_service.update_workflow_step(
-                        execution_id,
-                        orchestrator_step.step_id,
-                        status="completed",
-                        output_data={"result": str(result)},
-                    )
+                    # Update the appropriate step as completed
+                    if root_agent_id:
+                        analytics_service.update_workflow_step(
+                            execution_id,
+                            root_step.step_id,
+                            status="completed",
+                            output_data={"result": str(result)},
+                        )
+                    else:
+                        analytics_service.update_workflow_step(
+                            execution_id,
+                            orchestrator_step.step_id,
+                            status="completed",
+                            output_data={"result": str(result)},
+                        )
 
                     # Mark sub-agent steps as completed (simplified for now)
                     for agent_config in agents:
@@ -910,12 +980,21 @@ async def _execute_workflow_background(
                         )
 
                 except Exception as orchestrator_error:
-                    analytics_service.update_workflow_step(
-                        execution_id,
-                        orchestrator_step.step_id,
-                        status="failed",
-                        error=str(orchestrator_error),
-                    )
+                    # Update the appropriate step as failed
+                    if root_agent_id:
+                        analytics_service.update_workflow_step(
+                            execution_id,
+                            root_step.step_id,
+                            status="failed",
+                            error=str(orchestrator_error),
+                        )
+                    else:
+                        analytics_service.update_workflow_step(
+                            execution_id,
+                            orchestrator_step.step_id,
+                            status="failed",
+                            error=str(orchestrator_error),
+                        )
                     raise orchestrator_error
 
             # Add finalization step
@@ -983,11 +1062,12 @@ async def _execute_workflow_background(
         analytics_service.update_execution(execution_id, status="failed", error=str(e))
 
 
-@router.post("/{workflow_id}/execute/async")
+@router.post("/{workflow_id}/execute/async", status_code=status.HTTP_202_ACCEPTED)
 async def execute_workflow_async(
     workflow_id: uuid.UUID,
     execution_request: schemas.WorkflowExecutionRequest,
     background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
 ):
     """
     Execute a workflow asynchronously with detailed tracing.
@@ -995,33 +1075,49 @@ async def execute_workflow_async(
     """
     from services.analytics_service import analytics_service, AsyncExecutionResponse
     from datetime import datetime, timedelta
+    import logging
 
-    # Create execution record
-    execution_id = analytics_service.create_execution(
-        execution_type="workflow",
-        workflow_id=str(workflow_id),
-        session_id=execution_request.session_id,
-        user_id=execution_request.user_id,
-        query=execution_request.query,
-        estimated_duration=30,  # Rough estimate for workflows (longer than agents)
-    )
+    logger = logging.getLogger(__name__)
+    logger.info(f"🚀 Starting async workflow execution for {workflow_id}")
 
-    # Queue the background task
-    background_tasks.add_task(
-        _execute_workflow_background,
-        execution_id=execution_id,
-        workflow_id=workflow_id,
-        execution_request=execution_request,
-    )
+    try:
+        # Create execution record
+        logger.info("📝 Creating execution record...")
+        execution_id = analytics_service.create_execution(
+            execution_type="workflow",
+            workflow_id=str(workflow_id),
+            session_id=execution_request.session_id,
+            user_id=execution_request.user_id,
+            query=execution_request.query,
+            estimated_duration=30,  # Rough estimate for workflows (longer than agents)
+        )
+        logger.info(f"✅ Created execution record: {execution_id}")
 
-    return AsyncExecutionResponse(
-        execution_id=execution_id,
-        status="accepted",
-        type="workflow",
-        estimated_completion_time=datetime.now() + timedelta(seconds=30),
-        status_url=f"/api/executions/{execution_id}/status",
-        timestamp=datetime.now(),
-    )
+        # Queue the background task
+        logger.info("🔄 Queuing background task...")
+        background_tasks.add_task(
+            _execute_workflow_background,
+            execution_id=execution_id,
+            workflow_id=workflow_id,
+            execution_request=execution_request,
+        )
+        logger.info("✅ Background task queued successfully")
+
+        logger.info(f"🎯 Creating response object for execution {execution_id}")
+        response_obj = AsyncExecutionResponse(
+            execution_id=execution_id,
+            status="accepted",
+            type="workflow",
+            estimated_completion_time=datetime.now() + timedelta(seconds=30),
+            status_url=f"/api/executions/{execution_id}/status",
+            timestamp=datetime.now(),
+        )
+        logger.info(f"✅ Response object created: {response_obj}")
+        logger.info("🚀 About to return response...")
+        return response_obj
+    except Exception as e:
+        logger.error(f"❌ Error in async workflow execution: {e}")
+        raise
 
 
 def _build_toshiba_agent_from_workflow(db: Session, workflow, agent_config):
@@ -1105,7 +1201,7 @@ def _build_single_agent_from_workflow(
                 prompt_label=getattr(db_agent.system_prompt, "prompt_label", ""),
             )
     except Exception as e:
-        print(f"❌ Error constructing PromptObject: {e}")
+        # Fallback to original system_prompt if PromptObject construction fails
         system_prompt = db_agent.system_prompt
 
     return Agent(
@@ -1228,10 +1324,8 @@ def _build_openai_schema_from_db_agent(db_agent: models.Agent):
         try:
             return python_function_to_openai_schema(db_agent)
         except Exception as schema_error:
-            print(
-                f"⚠️ Advanced schema generation failed for {db_agent.name}: {schema_error}"
-            )
-            print(f"   Falling back to simple schema...")
+            # Fallback to simple schema if advanced generation fails
+            pass
 
             # Fallback to simple, reliable schema that matches base Agent.execute signature
             return {
@@ -1271,7 +1365,7 @@ def _build_openai_schema_from_db_agent(db_agent: models.Agent):
             }
 
     except Exception as e:
-        print(f"❌ Error building OpenAI schema for agent {db_agent.name}: {e}")
+        # Return None if schema generation fails completely
         return None
 
 
@@ -1334,8 +1428,136 @@ def _build_dynamic_agent_store(db: Session, workflow):
         return agent_store
 
     except Exception as e:
-        print(f"❌ Error building dynamic agent store: {e}")
+        # Return empty store if building fails
         return {}
+
+
+def _find_root_agent(db: Session, workflow):
+    """Find the true root agent by analyzing workflow connections"""
+    workflow_agents = crud.get_workflow_agents(db, workflow.workflow_id)
+    workflow_connections = crud.get_workflow_connections(db, workflow.workflow_id)
+
+    # Get all agent IDs that appear as targets (have incoming connections)
+    target_agent_ids = {conn.target_agent_id for conn in workflow_connections}
+
+    # Get all agent IDs that appear as sources (have outgoing connections)
+    source_agent_ids = {conn.source_agent_id for conn in workflow_connections}
+
+    # Root agent is one that is a source but never a target
+    root_agent_ids = source_agent_ids - target_agent_ids
+
+    if len(root_agent_ids) == 1:
+        root_agent_id = list(root_agent_ids)[0]
+        return crud.get_agent(db, root_agent_id)
+    elif len(root_agent_ids) == 0:
+        # No clear root - might be a single agent workflow
+        if len(workflow_agents) == 1:
+            return crud.get_agent(db, workflow_agents[0].agent_id)
+
+    # Multiple roots or unclear structure - fallback to None
+    return None
+
+
+def _build_root_agent_with_workflow_functions(db: Session, workflow):
+    """Build the root agent with workflow functions instead of creating a temporary CommandAgent"""
+    # Find the true root agent
+    root_agent = _find_root_agent(db, workflow)
+
+    if not root_agent:
+        # Fallback to creating a temporary CommandAgent if no root found
+        return _build_command_agent_from_workflow(db, workflow)
+
+    # Get workflow connections to build functions list
+    workflow_connections = crud.get_workflow_connections(db, workflow.workflow_id)
+
+    # Build functions list from target agents that the root agent can call
+    workflow_functions = []
+
+    for connection in workflow_connections:
+        # Only include connections where the root agent is the source
+        if connection.source_agent_id == root_agent.agent_id:
+            target_agent = crud.get_agent(db, connection.target_agent_id)
+            if target_agent:
+                dynamic_schema = _build_openai_schema_from_db_agent(target_agent)
+                if dynamic_schema:
+                    workflow_functions.append(dynamic_schema)
+
+    # Create a CommandAgent using the root agent's properties but with workflow functions
+    from agents.command_agent import CommandAgent
+    from data_classes import PromptObject
+
+    # Create a PromptObject from the database prompt
+    if root_agent.system_prompt:
+        system_prompt_obj = PromptObject(
+            pid=root_agent.system_prompt.pid,
+            prompt_label=root_agent.system_prompt.prompt_label,
+            prompt=root_agent.system_prompt.prompt,
+            sha_hash=root_agent.system_prompt.sha_hash or "default_hash",
+            uniqueLabel=root_agent.system_prompt.unique_label,
+            appName=root_agent.system_prompt.app_name,
+            version=root_agent.system_prompt.version,
+            createdTime=root_agent.system_prompt.created_time,
+            deployedTime=root_agent.system_prompt.deployed_time,
+            last_deployed=root_agent.system_prompt.last_deployed,
+            modelProvider=root_agent.system_prompt.ai_model_provider,
+            modelName=root_agent.system_prompt.ai_model_name,
+            isDeployed=root_agent.system_prompt.is_deployed,
+            tags=root_agent.system_prompt.tags,
+            hyper_parameters=root_agent.system_prompt.hyper_parameters,
+            variables=root_agent.system_prompt.variables,
+        )
+    else:
+        # Fallback to default prompt
+        system_prompt_obj = PromptObject(
+            pid=uuid.uuid4(),
+            prompt_label="Default Workflow Agent",
+            prompt="You are a workflow orchestrator agent.",
+            sha_hash="default_hash",
+            uniqueLabel="DefaultWorkflowAgent",
+            appName="agent_studio",
+            version="1.0",
+            createdTime=datetime.now(),
+            deployedTime=None,
+            last_deployed=None,
+            modelProvider="OpenAI",
+            modelName="gpt-4o",
+            isDeployed=False,
+            tags=[],
+            hyper_parameters={},
+            variables={},
+        )
+
+    command_agent = CommandAgent(
+        name=root_agent.name,
+        agent_id=root_agent.agent_id,  # Use the real agent_id from database
+        system_prompt=system_prompt_obj,  # Use proper PromptObject
+        persona=root_agent.persona,
+        functions=workflow_functions,  # Use workflow-specific functions
+        routing_options={
+            "continue": "If you think you can't answer the query, you can continue to the next tool or do some reasoning.",
+            "respond": "If you think you have the answer, you can stop here.",
+            "give_up": "If you think you can't answer the query, you can give up and let the user know.",
+        },
+        model="gpt-4o",
+        temperature=0.7,
+        short_term_memory=root_agent.short_term_memory,
+        long_term_memory=root_agent.long_term_memory,
+        reasoning=root_agent.reasoning,
+        input_type=["text", "voice"],  # Use default values to avoid type issues
+        output_type=["text", "voice"],
+        response_type="json",
+        max_retries=5,
+        timeout=None,
+        deployed=True,
+        status="active",
+        priority=None,
+        failure_strategies=["retry", "escalate"],
+        session_id=None,
+        last_active=datetime.now(),
+        collaboration_mode="single",
+    )
+
+    return command_agent
 
 
 def _build_command_agent_from_workflow(db: Session, workflow) -> CommandAgent:
@@ -1346,25 +1568,14 @@ def _build_command_agent_from_workflow(db: Session, workflow) -> CommandAgent:
 
     # Build functions list for CommandAgent
     functions = []
-    print("workflow connections")
-    print(workflow_connections)
     for connection in workflow_connections:
-        source_agent = crud.get_agent(db, connection.source_agent_id)
         target_agent = crud.get_agent(db, connection.target_agent_id)
 
-        # if source_agent and source_agent.name == "CommandAgent":
-        # Comment out Redis-dependent agent_schemas lookup
-        # if target_agent and target_agent.name in agent_schemas:
-        #     functions.append(agent_schemas[target_agent.name])
-
-        # Instead, build OpenAI schema dynamically from database agent
+        # Build OpenAI schema dynamically from database agent
         if target_agent:
             dynamic_schema = _build_openai_schema_from_db_agent(target_agent)
             if dynamic_schema:
                 functions.append(dynamic_schema)
-
-    print("functions after parsing")
-    print(functions)
 
     # Create CommandAgent
     command_agent = CommandAgent(

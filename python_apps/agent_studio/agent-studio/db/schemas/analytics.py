@@ -1,9 +1,9 @@
-
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
 from pydantic import BaseModel, ConfigDict
+
 
 class AgentExecutionMetricsBase(BaseModel):
     agent_id: uuid.UUID
@@ -23,8 +23,10 @@ class AgentExecutionMetricsBase(BaseModel):
     tokens_used: Optional[int] = None
     api_calls_count: int = 0
 
+
 class AgentExecutionMetricsCreate(AgentExecutionMetricsBase):
     pass
+
 
 class AgentExecutionMetricsUpdate(BaseModel):
     end_time: Optional[datetime] = None
@@ -38,6 +40,7 @@ class AgentExecutionMetricsUpdate(BaseModel):
     tokens_used: Optional[int] = None
     api_calls_count: Optional[int] = None
 
+
 class AgentExecutionMetricsInDB(AgentExecutionMetricsBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -46,8 +49,10 @@ class AgentExecutionMetricsInDB(AgentExecutionMetricsBase):
     end_time: Optional[datetime] = None
     duration_ms: Optional[int] = None
 
+
 class AgentExecutionMetricsResponse(AgentExecutionMetricsInDB):
     pass
+
 
 class ToolUsageMetricsBase(BaseModel):
     tool_name: str
@@ -61,8 +66,10 @@ class ToolUsageMetricsBase(BaseModel):
     api_response_time_ms: Optional[int] = None
     api_status_code: Optional[int] = None
 
+
 class ToolUsageMetricsCreate(ToolUsageMetricsBase):
     pass
+
 
 class ToolUsageMetricsUpdate(BaseModel):
     end_time: Optional[datetime] = None
@@ -73,6 +80,7 @@ class ToolUsageMetricsUpdate(BaseModel):
     api_response_time_ms: Optional[int] = None
     api_status_code: Optional[int] = None
 
+
 class ToolUsageMetricsInDB(ToolUsageMetricsBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -81,8 +89,10 @@ class ToolUsageMetricsInDB(ToolUsageMetricsBase):
     end_time: Optional[datetime] = None
     duration_ms: Optional[int] = None
 
+
 class ToolUsageMetricsResponse(ToolUsageMetricsInDB):
     pass
+
 
 class WorkflowMetricsBase(BaseModel):
     workflow_type: str
@@ -98,8 +108,10 @@ class WorkflowMetricsBase(BaseModel):
     user_satisfaction_score: Optional[float] = None
     task_completion_rate: Optional[float] = None
 
+
 class WorkflowMetricsCreate(WorkflowMetricsBase):
     pass
+
 
 class WorkflowMetricsUpdate(BaseModel):
     end_time: Optional[datetime] = None
@@ -113,16 +125,19 @@ class WorkflowMetricsUpdate(BaseModel):
     user_satisfaction_score: Optional[float] = None
     task_completion_rate: Optional[float] = None
 
+
 class WorkflowMetricsInDB(WorkflowMetricsBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    execution_id: uuid.UUID
     workflow_id: uuid.UUID
     end_time: Optional[datetime] = None
     duration_ms: Optional[int] = None
 
+
 class WorkflowMetricsResponse(WorkflowMetricsInDB):
     pass
+
 
 class SessionMetricsBase(BaseModel):
     session_id: str
@@ -139,8 +154,10 @@ class SessionMetricsBase(BaseModel):
     total_tokens_used: Optional[int] = None
     is_active: bool = True
 
+
 class SessionMetricsCreate(SessionMetricsBase):
     pass
+
 
 class SessionMetricsUpdate(BaseModel):
     end_time: Optional[datetime] = None
@@ -154,6 +171,7 @@ class SessionMetricsUpdate(BaseModel):
     total_tokens_used: Optional[int] = None
     is_active: Optional[bool] = None
 
+
 class SessionMetricsInDB(SessionMetricsBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -161,8 +179,10 @@ class SessionMetricsInDB(SessionMetricsBase):
     end_time: Optional[datetime] = None
     duration_ms: Optional[int] = None
 
+
 class SessionMetricsResponse(SessionMetricsInDB):
     pass
+
 
 class AgentUsageStats(BaseModel):
     agent_name: str
@@ -174,6 +194,7 @@ class AgentUsageStats(BaseModel):
     success_rate: float = 0.0
     last_used: Optional[datetime] = None
 
+
 class ToolUsageStats(BaseModel):
     tool_name: str
     total_calls: int
@@ -182,6 +203,7 @@ class ToolUsageStats(BaseModel):
     average_duration_ms: Optional[float] = None
     success_rate: float = 0.0
     most_used_by_agent: Optional[str] = None
+
 
 class WorkflowPerformanceStats(BaseModel):
     workflow_type: str
@@ -192,12 +214,14 @@ class WorkflowPerformanceStats(BaseModel):
     average_agent_count: float = 1.0
     success_rate: float = 0.0
 
+
 class ErrorSummary(BaseModel):
     error_type: str
     count: int
     percentage: float
     most_affected_agent: Optional[str] = None
     most_affected_tool: Optional[str] = None
+
 
 class SessionActivityStats(BaseModel):
     total_sessions: int

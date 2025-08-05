@@ -216,17 +216,71 @@ def get_analytics_summary(
 @router.get("/executions/{execution_id}")
 def get_execution_details(execution_id: str, db: Session = Depends(get_db)):
     """
-    Get detailed information about a specific agent execution.
+    Get detailed information about a specific execution (agent or workflow).
+    Checks live executions first, then database records.
     """
     try:
-        # Convert string to UUID
-        execution_uuid = uuid.UUID(execution_id)
-        execution = crud.get_agent_execution_metrics(db=db, execution_id=execution_uuid)
-        if not execution:
-            raise HTTPException(status_code=404, detail="Execution not found")
-        return execution
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid execution ID format")
+        # First check live executions in analytics service
+        from services.analytics_service import analytics_service
+
+        live_execution = analytics_service.get_execution(execution_id)
+
+        if live_execution:
+            # Return live execution data with additional analytics
+            return {
+                "execution_id": live_execution.execution_id,
+                "type": live_execution.type,
+                "status": live_execution.status,
+                "progress": live_execution.progress,
+                "current_step": live_execution.current_step,
+                "agent_id": live_execution.agent_id,
+                "workflow_id": live_execution.workflow_id,
+                "session_id": live_execution.session_id,
+                "user_id": live_execution.user_id,
+                "query": live_execution.query,
+                "input_data": live_execution.input_data,
+                "result": live_execution.result,
+                "error": live_execution.error,
+                "tools_called": live_execution.tools_called,
+                "created_at": live_execution.created_at,
+                "started_at": live_execution.started_at,
+                "completed_at": live_execution.completed_at,
+                "estimated_completion": live_execution.estimated_completion,
+                "workflow_trace": live_execution.workflow_trace,
+                "source": "live",
+            }
+
+        # If not found in live executions, check database for historical records
+        try:
+            execution_uuid = uuid.UUID(execution_id)
+            execution = crud.get_agent_execution_metrics(
+                db=db, execution_id=execution_uuid
+            )
+            if execution:
+                return {
+                    "execution_id": str(execution.execution_id),
+                    "type": "agent",
+                    "agent_id": str(execution.agent_id),
+                    "agent_name": execution.agent_name,
+                    "status": execution.status,
+                    "query": execution.query,
+                    "response": execution.response,
+                    "error_message": execution.error_message,
+                    "start_time": execution.start_time,
+                    "end_time": execution.end_time,
+                    "duration_ms": execution.duration_ms,
+                    "tool_count": execution.tool_count,
+                    "session_id": execution.session_id,
+                    "user_id": execution.user_id,
+                    "source": "database",
+                }
+        except ValueError:
+            # Invalid UUID format, but that's okay - might be a workflow execution ID
+            pass
+
+        # Not found in either live or database
+        raise HTTPException(status_code=404, detail="Execution not found")
+
     except HTTPException:
         raise
     except Exception as e:

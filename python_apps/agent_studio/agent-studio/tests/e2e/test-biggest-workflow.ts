@@ -16,8 +16,8 @@ import * as fs from "fs";
 const CONFIG = {
   baseURL: "http://localhost:8005",
   workflowId: "86ee03db-910d-4d27-81a9-59c855d0a06e", // Media Planning Command Agent
-  pollInterval: 100, // Start with 100ms
-  maxPollInterval: 2000, // Max 2 seconds
+  pollInterval: 2000, // Start with 2 seconds - much more reasonable
+  maxPollInterval: 5000, // Max 5 seconds
   timeout: 600000, // 10 minutes max
   exportResults: true,
 };
@@ -40,6 +40,7 @@ interface ExecutionResponse {
   workflow_id: string;
   status: string;
   message: string;
+  response?: string;
 }
 
 interface ExecutionStatus {
@@ -113,19 +114,44 @@ class WorkflowAPIClient {
     workflowId: string,
     query: string
   ): Promise<ExecutionResponse> {
-    const response = await this.client.post(
-      `/api/workflows/${workflowId}/execute`,
-      {
-        query,
-        async_execution: true,
+    try {
+      const response = await this.client.post(
+        `/api/workflows/${workflowId}/execute/async`, // Use the dedicated async endpoint
+        {
+          query,
+        }
+      );
+
+      console.log("🔍 API Response:", JSON.stringify(response.data, null, 2));
+
+      // Handle async execution response format
+      if (response.data.execution_id) {
+        return {
+          execution_id: response.data.execution_id,
+          workflow_id: workflowId,
+          status: response.data.status || "accepted",
+          message: response.data.message || "Async execution started",
+        };
+      } else {
+        throw new Error(
+          `Unexpected async API response format: ${JSON.stringify(response.data)}`
+        );
       }
-    );
-    return response.data;
+    } catch (error: any) {
+      if (error.response) {
+        console.error(
+          "❌ API Error Response:",
+          error.response.status,
+          error.response.data
+        );
+      }
+      throw error;
+    }
   }
 
   async getExecutionStatus(executionId: string): Promise<ExecutionStatus> {
     const response = await this.client.get(
-      `/api/workflows/executions/${executionId}/status`
+      `/api/executions/${executionId}/status` // Use the general execution status endpoint
     );
     return response.data;
   }
@@ -136,7 +162,7 @@ class WorkflowAPIClient {
         `/api/analytics/executions/${executionId}`
       );
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.warn("⚠️  Analytics not available yet:", error.message);
       return null;
     }

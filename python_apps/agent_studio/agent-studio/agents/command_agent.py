@@ -11,6 +11,7 @@ class CommandAgent(Agent):
         user_id: Optional[str] = None,
         chat_history: Optional[List[dict]] = None,
         enable_analytics: bool = True,  # CommandAgent enables analytics by default
+        execution_id: Optional[str] = None,  # Allow custom execution_id
         **kwargs: Any,
     ) -> str:
         return super().execute(
@@ -19,6 +20,7 @@ class CommandAgent(Agent):
             user_id=user_id,
             chat_history=chat_history,
             enable_analytics=enable_analytics,
+            execution_id=execution_id,
             **kwargs,
         )
 

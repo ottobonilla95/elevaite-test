@@ -126,6 +126,9 @@ class Agent(BaseModel):
         chat_history: Optional[List[Dict[str, Any]]] = None,
         enable_analytics: bool = False,
         max_tool_calls: int = 10,  # Higher limit for non-streaming to maintain compatibility
+        execution_id: Optional[
+            str
+        ] = None,  # Allow custom execution_id to override UUID generation
         **kwargs: Any,
     ) -> str:
         """
@@ -143,7 +146,7 @@ class Agent(BaseModel):
         # Analytics setup if enabled
         analytics_service = None
         db = None
-        execution_id = None
+        # execution_id = None
         tools_called = []
         api_calls_count = 0
 
@@ -159,7 +162,9 @@ class Agent(BaseModel):
 
         # Start analytics tracking if enabled
         execution_context = None
+        original_execution_id = execution_id  # Store original for workflow context
         if enable_analytics and analytics_service:
+            # Always create agent execution tracking for proper tool tracking
             execution_context = analytics_service.track_agent_execution(
                 agent_id=str(self.agent_id),
                 agent_name=self.name,
@@ -167,8 +172,12 @@ class Agent(BaseModel):
                 session_id=session_id,
                 user_id=user_id,
                 db=db,
+                execution_id=execution_id,  # Pass custom execution_id if provided
             )
-            execution_id = execution_context.__enter__()
+            agent_execution_id = execution_context.__enter__()
+
+            # Always use the agent execution_id for tool tracking to satisfy foreign key constraints
+            execution_id = agent_execution_id
 
         try:
             tries = 0
@@ -241,7 +250,6 @@ class Agent(BaseModel):
                                     tool_count=len(tools_called),
                                     retry_count=tries,
                                     api_calls_count=api_calls_count,
-                                    db=db,
                                 )
                             return f"Maximum tool calls ({max_tool_calls}) reached. Ending conversation."
 
@@ -271,16 +279,10 @@ class Agent(BaseModel):
                             usage_id = None
                             tool_context = None
                             if enable_analytics and analytics_service and execution_id:
-                                external_api = None
-                                if function_name in ["web_search", "weather_forecast"]:
-                                    external_api = function_name
-
                                 tool_context = analytics_service.track_tool_usage(
                                     tool_name=function_name,
                                     execution_id=execution_id,
                                     input_data=arguments,
-                                    external_api_called=external_api,
-                                    db=db,
                                 )
                                 usage_id = tool_context.__enter__()
 
@@ -310,7 +312,6 @@ class Agent(BaseModel):
                                         output_data={
                                             "result": str(result)[:1000]
                                         },  # Truncate for storage
-                                        db=db,
                                     )
 
                                 # Track tool call for execution metrics
@@ -392,6 +393,7 @@ class Agent(BaseModel):
         user_id: Optional[str] = None,
         enable_analytics: bool = False,
         max_tool_calls: int = 5,
+        execution_id: Optional[str] = None,  # Allow custom execution_id
         **kwargs: Any,
     ) -> Generator[str, None, None]:
         """
@@ -406,7 +408,7 @@ class Agent(BaseModel):
         # Analytics setup if enabled
         analytics_service = None
         db = None
-        execution_id = None
+        # execution_id is now passed as parameter or will be generated
         tools_called = []
         api_calls_count = 0
 
@@ -422,7 +424,9 @@ class Agent(BaseModel):
 
         # Start analytics tracking if enabled
         execution_context = None
+        original_execution_id = execution_id  # Store original for workflow context
         if enable_analytics and analytics_service:
+            # Always create agent execution tracking for proper tool tracking
             execution_context = analytics_service.track_agent_execution(
                 agent_id=str(self.agent_id),
                 agent_name=self.name,
@@ -430,8 +434,12 @@ class Agent(BaseModel):
                 session_id=session_id,
                 user_id=user_id,
                 db=db,
+                execution_id=execution_id,  # Pass custom execution_id if provided
             )
-            execution_id = execution_context.__enter__()
+            agent_execution_id = execution_context.__enter__()
+
+            # Always use the agent execution_id for tool tracking to satisfy foreign key constraints
+            execution_id = agent_execution_id
 
         try:
             tries = 0
@@ -528,10 +536,6 @@ class Agent(BaseModel):
                             usage_id = None
                             tool_context = None
                             if enable_analytics and analytics_service and execution_id:
-                                external_api = None
-                                if function_name in ["web_search", "weather_forecast"]:
-                                    external_api = function_name
-
                                 tool_context = analytics_service.track_tool_usage(
                                     tool_name=function_name,
                                     execution_id=execution_id,

@@ -201,26 +201,43 @@ class AnalyticsService:
             # Create the database record immediately so tools can reference it
             if db and agent_id:
                 try:
-                    metrics = models.AgentExecutionMetrics(
-                        execution_id=execution_id,
-                        agent_name=agent_name,
-                        agent_id=agent_id,
-                        start_time=start_time,
-                        status="running",  # Initial status
-                        query=query,
-                        session_id=session_id,
-                        user_id=user_id,
-                        tool_count=0,
+                    # First check if the agent exists to avoid foreign key violation
+                    agent_exists = (
+                        db.query(models.Agent)
+                        .filter(models.Agent.agent_id == agent_id)
+                        .first()
                     )
-                    db.add(metrics)
-                    db.commit()
-                    self.logger.info(
-                        f"Created initial execution record: {execution_id}"
-                    )
+
+                    if agent_exists:
+                        metrics = models.AgentExecutionMetrics(
+                            execution_id=execution_id,
+                            agent_name=agent_name,
+                            agent_id=agent_id,
+                            start_time=start_time,
+                            status="running",  # Initial status
+                            query=query,
+                            session_id=session_id,
+                            user_id=user_id,
+                            tool_count=0,
+                        )
+                        db.add(metrics)
+                        db.commit()
+                        self.logger.info(
+                            f"Created initial execution record: {execution_id}"
+                        )
+                    else:
+                        self.logger.warning(
+                            f"Agent {agent_id} not found in database, skipping metrics creation"
+                        )
                 except Exception as db_error:
                     self.logger.error(
                         f"Failed to create initial execution record: {db_error}"
                     )
+                    # Rollback the transaction to prevent session issues
+                    try:
+                        db.rollback()
+                    except:
+                        pass
                     # Continue without database record - fallback to old behavior
 
             self.logger.info(
@@ -288,10 +305,24 @@ class AnalyticsService:
                             )
                     else:
                         # Create new record (fallback for cases where start didn't create one)
+                        agent_id = execution_data.get("agent_id")
+                        if agent_id:
+                            # Check if agent exists before creating record
+                            agent_exists = (
+                                db.query(models.Agent)
+                                .filter(models.Agent.agent_id == agent_id)
+                                .first()
+                            )
+                            if not agent_exists:
+                                self.logger.warning(
+                                    f"Agent {agent_id} not found, skipping metrics creation"
+                                )
+                                return  # Skip creating metrics for non-existent agents
+
                         metrics = models.AgentExecutionMetrics(
                             execution_id=execution_id,
                             agent_name=execution_data["agent_name"],
-                            agent_id=execution_data.get("agent_id"),
+                            agent_id=agent_id,  # Guaranteed to be valid since we checked agent_exists
                             start_time=execution_data["start_time"],
                             end_time=end_time,
                             duration_ms=duration_ms,
@@ -324,6 +355,11 @@ class AnalyticsService:
                     self.logger.error(
                         f"Failed to update/create execution record: {db_error}"
                     )
+                    # Rollback the transaction to prevent session issues
+                    try:
+                        db.rollback()
+                    except:
+                        pass
 
             del self.current_executions[execution_id]
             self.logger.info(f"Completed tracking execution: {execution_id}")
@@ -634,8 +670,59 @@ class AnalyticsService:
         session_id: Optional[str] = None,
         user_id: Optional[str] = None,
         db: Optional[Session] = None,
+        execution_id: Optional[str] = None,  # Allow custom execution_id
     ):
-        execution_id = str(uuid.uuid4())
+        # Use provided execution_id or generate new one
+        # But if the provided execution_id is already a workflow execution, generate a new one
+        original_execution_id = execution_id
+        if execution_id is None:
+            execution_id = str(uuid.uuid4())
+        else:
+            # Check if this execution_id is already a workflow execution
+            with self._lock:
+                if execution_id in self._live_executions:
+                    existing_execution = self._live_executions[execution_id]
+                    if existing_execution.type == "workflow":
+                        # Generate a new execution_id for the agent execution
+                        execution_id = str(uuid.uuid4())
+                        self.logger.info(
+                            f"Generated new agent execution_id {execution_id} for workflow {original_execution_id}"
+                        )
+
+        workflow_step_id = None
+        parent_workflow_execution_id = None
+
+        # Check if this agent execution is part of a workflow execution
+        # This happens when original_execution_id was provided and matches a workflow execution
+        is_sub_agent_in_workflow = False
+        if original_execution_id:
+            with self._lock:
+                if original_execution_id in self._live_executions:
+                    execution = self._live_executions[original_execution_id]
+                    is_sub_agent_in_workflow = (
+                        execution.type == "workflow"
+                        and execution.workflow_trace is not None
+                    )
+                    parent_workflow_execution_id = original_execution_id
+
+        # If this is a sub-agent in a workflow, create a workflow step
+        if is_sub_agent_in_workflow:
+            workflow_step_id = str(uuid.uuid4())  # Use proper UUID format
+            agent_step = WorkflowStep(
+                step_id=workflow_step_id,
+                step_type="agent_execution",
+                agent_id=agent_id,
+                agent_name=agent_name,
+                status="running",
+                input_data={"query": query},
+                started_at=datetime.now(),
+                step_metadata={
+                    "agent_execution_id": execution_id,
+                    "auto_created": True,
+                },
+            )
+            self.add_workflow_step(parent_workflow_execution_id, agent_step)
+            self.logger.info(f"Auto-created workflow step for agent: {agent_name}")
 
         try:
             self.start_agent_execution(
@@ -658,6 +745,15 @@ class AnalyticsService:
 
             yield execution_id
 
+            # Update workflow step as completed if it was created
+            if workflow_step_id and parent_workflow_execution_id:
+                self.update_workflow_step(
+                    parent_workflow_execution_id,
+                    workflow_step_id,
+                    status="completed",
+                    output_data={"status": "success"},
+                )
+
             self.end_agent_execution(
                 execution_id=execution_id,
                 status="success",
@@ -665,6 +761,15 @@ class AnalyticsService:
             )
 
         except Exception as e:
+            # Update workflow step as failed if it was created
+            if workflow_step_id and parent_workflow_execution_id:
+                self.update_workflow_step(
+                    parent_workflow_execution_id,
+                    workflow_step_id,
+                    status="failed",
+                    error=str(e),
+                )
+
             self.end_agent_execution(
                 execution_id=execution_id,
                 status="error",
@@ -682,30 +787,223 @@ class AnalyticsService:
         db: Optional[Session] = None,
     ):
         usage_id = str(uuid.uuid4())
+        workflow_step_id = None
+        skip_db_tracking = False  # Flag to control database persistence
+
+        # Check if this is happening during workflow execution
+        # We need to check both the current execution_id and see if there's a parent workflow
+        is_workflow_execution = False
+        workflow_execution_id = None
+
+        with self._lock:
+            # First check if this execution_id is directly a workflow
+            if execution_id in self._live_executions:
+                execution = self._live_executions[execution_id]
+                if (
+                    execution.type == "workflow"
+                    and execution.workflow_trace is not None
+                ):
+                    is_workflow_execution = True
+                    workflow_execution_id = execution_id
+                    self.logger.info(
+                        f"Tool tracking for {tool_name}: Direct workflow execution {execution_id}"
+                    )
+                else:
+                    self.logger.info(
+                        f"Tool tracking for {tool_name}: Agent execution {execution_id}, checking for active workflows"
+                    )
+            else:
+                self.logger.info(
+                    f"Tool tracking for {tool_name}: execution_id={execution_id} not found in live executions, checking for active workflows"
+                )
+
+            # If not a direct workflow execution, check for any active workflow executions
+            # Tool calls during workflow execution should be added as workflow steps
+            if not is_workflow_execution:
+                for live_exec_id, live_exec in self._live_executions.items():
+                    if (
+                        live_exec.type == "workflow"
+                        and live_exec.workflow_trace is not None
+                    ):
+                        # Found an active workflow - associate this tool call with it
+                        is_workflow_execution = True
+                        workflow_execution_id = live_exec_id
+                        self.logger.info(
+                            f"Tool tracking for {tool_name}: Found active workflow {live_exec_id} for tool call from execution {execution_id}"
+                        )
+                        break
+
+        # If this is a workflow execution, create a workflow step for the tool call
+        if is_workflow_execution and workflow_execution_id:
+            workflow_step_id = str(uuid.uuid4())  # Use proper UUID format
+            tool_step = WorkflowStep(
+                step_id=workflow_step_id,
+                step_type="tool_call",
+                tool_name=tool_name,
+                status="running",
+                input_data=input_data,
+                started_at=datetime.now(),
+                step_metadata={
+                    "tool_usage_id": usage_id,
+                    "auto_created": True,
+                    "agent_execution_id": execution_id,  # Track which agent execution this came from
+                },
+            )
+            self.add_workflow_step(workflow_execution_id, tool_step)
+            self.logger.info(
+                f"Auto-created workflow step for tool: {tool_name} in workflow {workflow_execution_id}"
+            )
 
         try:
-            self.start_tool_usage(
-                usage_id=usage_id,
-                tool_name=tool_name,
-                execution_id=execution_id,
-                parameters=input_data,
-            )
+            # For tool usage database persistence, we need to use an agent execution_id
+            # If this is a workflow execution, we need to find the actual agent execution_id
+            tool_tracking_execution_id = execution_id
+
+            if is_workflow_execution and workflow_execution_id:
+                # This tool call is part of a workflow - we need to find the agent execution_id
+                # The execution_id passed to us should already be the agent execution_id if this is called from agent context
+                agent_execution_found = False
+
+                # First, check if the current execution_id is already an agent execution_id
+                # (This happens when the tool is called directly from an agent)
+                if execution_id != workflow_execution_id:
+                    # The execution_id is different from workflow_execution_id, so it's likely an agent execution_id
+                    tool_tracking_execution_id = execution_id
+                    agent_execution_found = True
+                    self.logger.info(
+                        f"Using current execution_id {execution_id} as agent execution_id for tool tracking"
+                    )
+                else:
+                    # Look for the most recent agent execution step in the workflow
+                    with self._lock:
+                        if workflow_execution_id in self._live_executions:
+                            workflow_exec = self._live_executions[workflow_execution_id]
+                            if workflow_exec.workflow_trace:
+                                # Find the most recent agent execution step
+                                for step in reversed(
+                                    workflow_exec.workflow_trace.steps
+                                ):
+                                    if (
+                                        step.step_type == "agent_execution"
+                                        and step.step_metadata
+                                        and step.step_metadata.get("agent_execution_id")
+                                    ):
+                                        # Use the agent execution_id from the workflow step
+                                        tool_tracking_execution_id = step.step_metadata[
+                                            "agent_execution_id"
+                                        ]
+                                        agent_execution_found = True
+                                        self.logger.info(
+                                            f"Using agent execution {tool_tracking_execution_id} from workflow trace for tool tracking"
+                                        )
+                                        break
+
+                # Fallback: Look for any agent execution that's currently active
+                if not agent_execution_found:
+                    with self._lock:
+                        for live_exec_id, live_exec in self._live_executions.items():
+                            if (
+                                live_exec.type == "agent"
+                                and live_exec_id != workflow_execution_id
+                            ):
+                                # Found an agent execution - use it for tool tracking
+                                tool_tracking_execution_id = live_exec_id
+                                agent_execution_found = True
+                                self.logger.info(
+                                    f"Using agent execution {live_exec_id} for tool tracking instead of workflow {workflow_execution_id}"
+                                )
+                                break
+
+                # If no agent execution found, we cannot track tool usage safely
+                # Skip tool usage tracking to avoid foreign key violation
+                if not agent_execution_found:
+                    self.logger.warning(
+                        f"No agent execution found for workflow {workflow_execution_id} - skipping tool usage tracking to avoid foreign key violation"
+                    )
+                    # Set flag to skip database tracking
+                    skip_db_tracking = True
+
+            # Only track tool usage in database if we have a valid agent execution_id
+            if not skip_db_tracking:
+                # Double-check that the agent execution record exists in the database
+                if db:
+                    try:
+                        agent_execution_exists = (
+                            db.query(models.AgentExecutionMetrics)
+                            .filter(
+                                models.AgentExecutionMetrics.execution_id
+                                == tool_tracking_execution_id
+                            )
+                            .first()
+                        )
+
+                        if agent_execution_exists:
+                            self.logger.info(
+                                f"Agent execution {tool_tracking_execution_id} found in database - proceeding with tool usage tracking"
+                            )
+                            self.start_tool_usage(
+                                usage_id=usage_id,
+                                tool_name=tool_name,
+                                execution_id=tool_tracking_execution_id,  # Use agent execution_id for database persistence
+                                parameters=input_data,
+                            )
+                        else:
+                            self.logger.warning(
+                                f"Agent execution {tool_tracking_execution_id} not found in database - skipping tool usage tracking"
+                            )
+                            skip_db_tracking = True
+                    except Exception as db_check_error:
+                        self.logger.error(
+                            f"Error checking agent execution existence: {db_check_error}"
+                        )
+                        skip_db_tracking = True
+                else:
+                    # No database session available - skip tracking
+                    self.logger.warning(
+                        "No database session available for tool usage tracking"
+                    )
+                    skip_db_tracking = True
 
             yield usage_id
 
-            self.end_tool_usage(
-                usage_id=usage_id,
-                status="success",
-                db=db,
-            )
+            # Update workflow step as completed if it was created
+            if workflow_step_id and workflow_execution_id:
+                self.update_workflow_step(
+                    workflow_execution_id,
+                    workflow_step_id,
+                    status="completed",
+                    output_data={
+                        "status": "success",
+                        "skipped_db_tracking": skip_db_tracking,
+                    },
+                )
+
+            # Only end tool usage tracking if we started it
+            if not skip_db_tracking:
+                self.end_tool_usage(
+                    usage_id=usage_id,
+                    status="success",
+                    db=db,
+                )
 
         except Exception as e:
-            self.end_tool_usage(
-                usage_id=usage_id,
-                status="error",
-                result=str(e),
-                db=db,
-            )
+            # Update workflow step as failed if it was created
+            if workflow_step_id and workflow_execution_id:
+                self.update_workflow_step(
+                    workflow_execution_id,
+                    workflow_step_id,
+                    status="failed",
+                    error=str(e),
+                )
+
+            # Only end tool usage tracking if we started it
+            if not skip_db_tracking:
+                self.end_tool_usage(
+                    usage_id=usage_id,
+                    status="error",
+                    result=str(e),
+                    db=db,
+                )
             raise
 
     # === EXECUTION MANAGER CAPABILITIES ===
@@ -1035,8 +1333,9 @@ class AnalyticsService:
         """Persist execution data to database when execution completes."""
         try:
             if execution.type == "workflow":
-                # Create workflow metrics record
+                # Create workflow metrics record with execution_id as primary key
                 workflow_metrics = models.WorkflowMetrics(
+                    execution_id=execution.execution_id,  # Use execution_id as primary key
                     workflow_id=execution.workflow_id,
                     workflow_type="dynamic",  # Could be enhanced to get actual type
                     start_time=execution.started_at or execution.created_at,
@@ -1072,6 +1371,19 @@ class AnalyticsService:
                 if execution.workflow_trace:
                     for step in execution.workflow_trace.steps:
                         if step.step_type == "tool_call":
+                            # Check if this tool call was marked to skip database tracking
+                            skip_db_tracking = (
+                                step.output_data
+                                and isinstance(step.output_data, dict)
+                                and step.output_data.get("skipped_db_tracking", False)
+                            )
+
+                            if skip_db_tracking:
+                                self.logger.info(
+                                    f"Skipping database persistence for tool call {step.step_id} due to skipped_db_tracking flag"
+                                )
+                                continue
+
                             tool_metrics = models.ToolUsageMetrics(
                                 usage_id=step.step_id,
                                 tool_name=step.tool_name,

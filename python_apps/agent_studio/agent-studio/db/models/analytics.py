@@ -85,9 +85,11 @@ class ToolUsageMetrics(Base):
 class WorkflowMetrics(Base):
     __tablename__ = "workflow_metrics"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    execution_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, nullable=False
+    )
     workflow_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4
+        UUID(as_uuid=True), nullable=False, default=uuid.uuid4
     )
     workflow_type: Mapped[str] = mapped_column(String, nullable=False)
     start_time: Mapped[datetime] = mapped_column(

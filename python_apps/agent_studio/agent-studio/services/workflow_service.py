@@ -461,9 +461,13 @@ class WorkflowService:
                         print(f"Used fallback schema for {target_agent_fallback.name}")
 
         # Create CommandAgent with workflow-specific configuration
+        # Use a deterministic UUID based on workflow ID to avoid random agent IDs
+        workflow_agent_id = uuid.uuid5(
+            uuid.NAMESPACE_DNS, f"workflow.{workflow.workflow_id}"
+        )
         command_agent = CommandAgent(
             name=f"WorkflowCommandAgent_{workflow.name}",
-            agent_id=uuid.uuid4(),
+            agent_id=workflow_agent_id,
             system_prompt=command_agent_system_prompt,
             persona="Command Agent",
             functions=functions,
