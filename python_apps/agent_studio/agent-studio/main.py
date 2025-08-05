@@ -9,7 +9,14 @@ from sqlalchemy.orm import Session
 
 from services.analytics_service import analytics_service
 from db.database import Base, engine, get_db
-from api import prompt_router, agent_router, demo_router, analytics_router, tools_router
+from api import (
+    prompt_router,
+    agent_router,
+    demo_router,
+    analytics_router,
+    tools_router,
+    file_router,
+)
 from api.workflow_endpoints import router as workflow_router
 from api.execution_endpoints import router as execution_router
 from db import crud
@@ -22,6 +29,7 @@ from services.shared_state import session_status, update_status, get_status
 from fastapi.responses import StreamingResponse
 import logging
 import asyncio
+
 
 # Configure logging with a custom filter to suppress CancelledError
 class CancelledErrorFilter(logging.Filter):
@@ -97,6 +105,7 @@ async def lifespan(app_instance: fastapi.FastAPI):  # noqa: ARG001
 
     # Initialize tool registry
     from services.tool_registry import tool_registry
+
     try:
         # Get a database session for initialization
         db_gen = get_db()
@@ -158,6 +167,7 @@ app.include_router(analytics_router)
 app.include_router(workflow_router)
 app.include_router(execution_router)
 app.include_router(tools_router)
+app.include_router(file_router)
 
 
 @app.get("/")
@@ -212,7 +222,11 @@ async def initialize_system(db: Session = Depends(get_db)):
         print("📋 Step 1: Initializing prompts...")
         service = DemoInitializationService(db)
         prompts_success, prompts_message, prompts_details = service.initialize_prompts()
-        results["prompts"] = {"success": prompts_success, "message": prompts_message, "details": prompts_details}
+        results["prompts"] = {
+            "success": prompts_success,
+            "message": prompts_message,
+            "details": prompts_details,
+        }
 
         if prompts_success:
             print(f"✅ Prompts: {prompts_message}")
@@ -233,7 +247,10 @@ async def initialize_system(db: Session = Depends(get_db)):
             results["tools"] = {
                 "success": True,
                 "message": tools_message,
-                "details": {"categories": len(total_categories), "tools": len(total_tools)},
+                "details": {
+                    "categories": len(total_categories),
+                    "tools": len(total_tools),
+                },
             }
             print(f"✅ Tools: {tools_message}")
 
@@ -247,8 +264,14 @@ async def initialize_system(db: Session = Depends(get_db)):
         print("🤖 Step 3: Initializing agents...")
         if prompts_success:
             try:
-                agents_success, agents_message, agents_details = service.initialize_agents()
-                results["agents"] = {"success": agents_success, "message": agents_message, "details": agents_details}
+                agents_success, agents_message, agents_details = (
+                    service.initialize_agents()
+                )
+                results["agents"] = {
+                    "success": agents_success,
+                    "message": agents_message,
+                    "details": agents_details,
+                }
 
                 if agents_success:
                     print(f"✅ Agents: {agents_message}")
@@ -258,12 +281,22 @@ async def initialize_system(db: Session = Depends(get_db)):
 
             except Exception as e:
                 agents_error = f"Agent initialization failed: {str(e)}"
-                results["agents"] = {"success": False, "message": agents_error, "details": {}}
+                results["agents"] = {
+                    "success": False,
+                    "message": agents_error,
+                    "details": {},
+                }
                 print(f"❌ Agents: {agents_error}")
                 overall_success = False
         else:
-            skip_message = "Skipped agent initialization due to prompt initialization failure"
-            results["agents"] = {"success": False, "message": skip_message, "details": {}}
+            skip_message = (
+                "Skipped agent initialization due to prompt initialization failure"
+            )
+            results["agents"] = {
+                "success": False,
+                "message": skip_message,
+                "details": {},
+            }
             print(f"⏭️  Agents: {skip_message}")
 
         # Summary
@@ -367,6 +400,7 @@ async def get_current_status(uid: str, sid: str):
             "X-Accel-Buffering": "no",
         },
     )
+
 
 if __name__ == "__main__":
     import uvicorn
