@@ -672,22 +672,17 @@ class AnalyticsService:
         db: Optional[Session] = None,
         execution_id: Optional[str] = None,  # Allow custom execution_id
     ):
+
         # Use provided execution_id or generate new one
-        # But if the provided execution_id is already a workflow execution, generate a new one
         original_execution_id = execution_id
         if execution_id is None:
             execution_id = str(uuid.uuid4())
         else:
-            # Check if this execution_id is already a workflow execution
-            with self._lock:
-                if execution_id in self._live_executions:
-                    existing_execution = self._live_executions[execution_id]
-                    if existing_execution.type == "workflow":
-                        # Generate a new execution_id for the agent execution
-                        execution_id = str(uuid.uuid4())
-                        self.logger.info(
-                            f"Generated new agent execution_id {execution_id} for workflow {original_execution_id}"
-                        )
+            # If execution_id is provided, use it as-is (for workflow context)
+            # This allows agents to share the same execution_id as their parent workflow
+            self.logger.info(
+                f"Using provided execution_id {execution_id} for agent execution"
+            )
 
         workflow_step_id = None
         parent_workflow_execution_id = None
@@ -925,11 +920,25 @@ class AnalyticsService:
 
             # Only track tool usage in database if we have a valid agent execution_id
             if not skip_db_tracking:
+                # Ensure we have a database session - create one if needed
+                db_session = db
+                if db_session is None:
+                    try:
+                        from db.database import SessionLocal
+
+                        db_session = SessionLocal()
+                    except Exception as db_create_error:
+                        self.logger.error(
+                            f"Failed to create database session: {db_create_error}"
+                        )
+                        skip_db_tracking = True
+                        db_session = None
+
                 # Double-check that the agent execution record exists in the database
-                if db:
+                if db_session:
                     try:
                         agent_execution_exists = (
-                            db.query(models.AgentExecutionMetrics)
+                            db_session.query(models.AgentExecutionMetrics)
                             .filter(
                                 models.AgentExecutionMetrics.execution_id
                                 == tool_tracking_execution_id
@@ -980,10 +989,12 @@ class AnalyticsService:
 
             # Only end tool usage tracking if we started it
             if not skip_db_tracking:
+                # Use the database session we created or received
+                final_db_session = db_session if "db_session" in locals() else db
                 self.end_tool_usage(
                     usage_id=usage_id,
                     status="success",
-                    db=db,
+                    db=final_db_session,
                 )
 
         except Exception as e:
@@ -998,11 +1009,13 @@ class AnalyticsService:
 
             # Only end tool usage tracking if we started it
             if not skip_db_tracking:
+                # Use the database session we created or received
+                final_db_session = db_session if "db_session" in locals() else db
                 self.end_tool_usage(
                     usage_id=usage_id,
                     status="error",
                     result=str(e),
-                    db=db,
+                    db=final_db_session,
                 )
             raise
 

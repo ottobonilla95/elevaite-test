@@ -164,20 +164,34 @@ class Agent(BaseModel):
         execution_context = None
         original_execution_id = execution_id  # Store original for workflow context
         if enable_analytics and analytics_service:
-            # Always create agent execution tracking for proper tool tracking
-            execution_context = analytics_service.track_agent_execution(
-                agent_id=str(self.agent_id),
-                agent_name=self.name,
-                query=query,
-                session_id=session_id,
-                user_id=user_id,
-                db=db,
-                execution_id=execution_id,  # Pass custom execution_id if provided
-            )
-            agent_execution_id = execution_context.__enter__()
-
-            # Always use the agent execution_id for tool tracking to satisfy foreign key constraints
-            execution_id = agent_execution_id
+            if execution_id:
+                # If execution_id is provided (workflow context), create agent execution record
+                # for this execution_id so tool usage can reference it
+                execution_context = analytics_service.track_agent_execution(
+                    agent_id=str(self.agent_id),
+                    agent_name=self.name,
+                    query=query,
+                    session_id=session_id,
+                    user_id=user_id,
+                    db=db,
+                    execution_id=execution_id,  # Use the provided workflow execution_id
+                )
+                agent_execution_id = execution_context.__enter__()
+                # Ensure we use the same execution_id (should be the same as provided)
+                execution_id = agent_execution_id
+            else:
+                # Only create new agent execution tracking for standalone agent calls
+                execution_context = analytics_service.track_agent_execution(
+                    agent_id=str(self.agent_id),
+                    agent_name=self.name,
+                    query=query,
+                    session_id=session_id,
+                    user_id=user_id,
+                    db=db,
+                    execution_id=None,  # Let it create a new execution_id
+                )
+                agent_execution_id = execution_context.__enter__()
+                execution_id = agent_execution_id
 
         try:
             tries = 0
@@ -426,20 +440,34 @@ class Agent(BaseModel):
         execution_context = None
         original_execution_id = execution_id  # Store original for workflow context
         if enable_analytics and analytics_service:
-            # Always create agent execution tracking for proper tool tracking
-            execution_context = analytics_service.track_agent_execution(
-                agent_id=str(self.agent_id),
-                agent_name=self.name,
-                query=query,
-                session_id=session_id,
-                user_id=user_id,
-                db=db,
-                execution_id=execution_id,  # Pass custom execution_id if provided
-            )
-            agent_execution_id = execution_context.__enter__()
-
-            # Always use the agent execution_id for tool tracking to satisfy foreign key constraints
-            execution_id = agent_execution_id
+            if execution_id:
+                # If execution_id is provided (workflow context), create agent execution record
+                # for this execution_id so tool usage can reference it
+                execution_context = analytics_service.track_agent_execution(
+                    agent_id=str(self.agent_id),
+                    agent_name=self.name,
+                    query=query,
+                    session_id=session_id,
+                    user_id=user_id,
+                    db=db,
+                    execution_id=execution_id,  # Use the provided workflow execution_id
+                )
+                agent_execution_id = execution_context.__enter__()
+                # Ensure we use the same execution_id (should be the same as provided)
+                execution_id = agent_execution_id
+            else:
+                # Only create new agent execution tracking for standalone agent calls
+                execution_context = analytics_service.track_agent_execution(
+                    agent_id=str(self.agent_id),
+                    agent_name=self.name,
+                    query=query,
+                    session_id=session_id,
+                    user_id=user_id,
+                    db=db,
+                    execution_id=None,  # Let it create a new execution_id
+                )
+                agent_execution_id = execution_context.__enter__()
+                execution_id = agent_execution_id
 
         try:
             tries = 0
