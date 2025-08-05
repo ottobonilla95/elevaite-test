@@ -47,6 +47,7 @@ import DesignerSidebar from "./agents/DesignerSidebar";
 import VectorizerBottomDrawer, {
   type VectorizationStepData,
 } from "./agents/VectorizerBottomDrawer";
+import VectorizerConfigPanel from "./agents/VectorizerConfigPanel";
 // Import styles
 import "./AgentConfigForm.scss";
 import HeaderBottom from "./agents/HeaderBottom.tsx";
@@ -201,6 +202,13 @@ function AgentConfigForm(): JSX.Element {
     >
   >({});
 
+  // Vectorizer step selection and configuration state
+  const [selectedVectorizerStep, setSelectedVectorizerStep] =
+    useState<VectorizationStepData | null>(null);
+  const [vectorizerStepConfigs, setVectorizerStepConfigs] = useState<
+    Record<string, Record<string, any>>
+  >({});
+
   // Get current vectorizer state with memoization
   const currentVectorizerState = useMemo(() => {
     const state = vectorizerStates[vectorizerAgentId];
@@ -262,6 +270,30 @@ function AgentConfigForm(): JSX.Element {
       });
     },
     [vectorizerAgentId]
+  );
+
+  // Handle vectorizer step selection
+  const handleVectorizerStepSelect = useCallback(
+    (stepData: VectorizationStepData | null) => {
+      setSelectedVectorizerStep(stepData);
+      // Clear regular agent selection when vectorizer step is selected
+      if (stepData) {
+        setShowConfigPanel(false);
+        setSelectedNode(null);
+      }
+    },
+    []
+  );
+
+  // Handle vectorizer step configuration changes
+  const handleVectorizerStepConfigChange = useCallback(
+    (stepId: string, config: Record<string, any>) => {
+      setVectorizerStepConfigs((prev) => ({
+        ...prev,
+        [stepId]: config,
+      }));
+    },
+    []
   );
 
   // Workflow state management
@@ -609,6 +641,11 @@ function AgentConfigForm(): JSX.Element {
     (node: Node | null) => {
       setSelectedNode(node);
       setShowConfigPanel(node !== null);
+
+      // Clear vectorizer step selection when regular agent is selected
+      if (node) {
+        setSelectedVectorizerStep(null);
+      }
 
       // Close vectorizer drawer when selecting other nodes
       if (showVectorizerDrawer) {
@@ -1485,6 +1522,7 @@ function AgentConfigForm(): JSX.Element {
                       onClose={() => {
                         setShowVectorizerDrawer(false);
                         setIsVectorizerDrawerMinimized(false);
+                        setSelectedVectorizerStep(null); // Clear selection when closing
                       }}
                       agentName={vectorizerAgentName}
                       onMinimizedChange={setIsVectorizerDrawerMinimized}
@@ -1492,12 +1530,13 @@ function AgentConfigForm(): JSX.Element {
                       edges={currentVectorizerState.edges}
                       setNodes={updateVectorizerNodes}
                       setEdges={updateVectorizerEdges}
+                      onStepSelect={handleVectorizerStepSelect}
                     />
                   ) : null}
                 </div>
 
-                {/* Configuration Panel - shown when a node is selected */}
-                {showConfigPanel && selectedNode ? (
+                {/* Configuration Panel - shown when a node is selected OR vectorizer step is selected */}
+                {showConfigPanel && selectedNode && !selectedVectorizerStep ? (
                   <div
                     className={`config-panel-container${!sidebarRightOpen ? " shrinked" : ""}${isEditingPrompt ? " editing" : ""}`}
                   >
@@ -1533,6 +1572,25 @@ function AgentConfigForm(): JSX.Element {
                               : node
                           )
                         );
+                      }}
+                    />
+                  </div>
+                ) : selectedVectorizerStep ? (
+                  <div
+                    className={`config-panel-container${!sidebarRightOpen ? " shrinked" : ""}`}
+                  >
+                    <VectorizerConfigPanel
+                      selectedVectorizerStep={selectedVectorizerStep}
+                      onVectorizerStepConfigChange={
+                        handleVectorizerStepConfigChange
+                      }
+                      vectorizerStepConfigs={vectorizerStepConfigs}
+                      toggleSidebar={() => {
+                        setSidebarRightOpen(!sidebarRightOpen);
+                      }}
+                      sidebarOpen={sidebarRightOpen}
+                      onClose={() => {
+                        setSelectedVectorizerStep(null);
                       }}
                     />
                   </div>

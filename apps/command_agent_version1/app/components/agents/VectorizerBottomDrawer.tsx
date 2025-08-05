@@ -33,6 +33,7 @@ export interface VectorizationStepData {
   description: string;
   config?: Record<string, unknown>;
   onDelete: (id: string) => void;
+  onSelect?: (stepData: VectorizationStepData) => void;
 }
 
 const getStepIcon = (stepType: VectorizationStepType): string => {
@@ -61,10 +62,34 @@ function VectorizationStepNode({
   id: string;
   data: VectorizationStepData;
 }): JSX.Element {
-  const { type, name, onDelete } = data;
+  const { type, name, onDelete, onSelect } = data;
+
+  const handleStepClick = (e: React.MouseEvent): void => {
+    e.stopPropagation();
+    if (onSelect) {
+      onSelect(data);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent): void => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (onSelect) {
+        onSelect(data);
+      }
+    }
+  };
 
   return (
-    <div className="vectorization-step-node border-2 rounded-lg p-3 min-w-[160px] relative">
+    <div
+      className="vectorization-step-node border-2 rounded-lg p-3 min-w-[160px] relative cursor-pointer hover:border-brand-primary transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2"
+      onClick={handleStepClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Select ${name} step`}
+    >
       {/* Input Handle */}
       <Handle
         type="target"
@@ -117,6 +142,7 @@ interface VectorizerBottomDrawerProps {
   edges: Edge[];
   setNodes: React.Dispatch<React.SetStateAction<Node<VectorizationStepData>[]>>;
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
+  onStepSelect?: (stepData: VectorizationStepData | null) => void;
 }
 
 export default function VectorizerBottomDrawer({
@@ -128,6 +154,7 @@ export default function VectorizerBottomDrawer({
   edges,
   setNodes,
   setEdges,
+  onStepSelect,
 }: VectorizerBottomDrawerProps): JSX.Element | null {
   const [isMinimized, setIsMinimized] = useState(false);
 
@@ -207,12 +234,28 @@ export default function VectorizerBottomDrawer({
     setEdges((eds) => addEdge(newEdge, eds));
   }, []);
 
-  const handleDeleteStep = useCallback((nodeId: string) => {
-    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-    setEdges((eds) =>
-      eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
-    );
-  }, []);
+  const handleDeleteStep = useCallback(
+    (nodeId: string) => {
+      setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+      setEdges((eds) =>
+        eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
+      );
+      // Clear selection if deleted step was selected
+      if (onStepSelect) {
+        onStepSelect(null);
+      }
+    },
+    [onStepSelect]
+  );
+
+  const handleStepSelect = useCallback(
+    (stepData: VectorizationStepData) => {
+      if (onStepSelect) {
+        onStepSelect(stepData);
+      }
+    },
+    [onStepSelect]
+  );
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
@@ -245,6 +288,7 @@ export default function VectorizerBottomDrawer({
             name: stepData.name,
             description: stepData.description,
             onDelete: handleDeleteStep,
+            onSelect: handleStepSelect,
           },
         };
 
@@ -253,7 +297,7 @@ export default function VectorizerBottomDrawer({
         // Ignore invalid drop data
       }
     },
-    [handleDeleteStep]
+    [handleDeleteStep, handleStepSelect]
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
