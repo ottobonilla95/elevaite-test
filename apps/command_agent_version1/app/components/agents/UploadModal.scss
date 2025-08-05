@@ -1,12 +1,14 @@
+@import "../_variables.scss";
+
 @keyframes warning-flash {
   0% {
-    background-color: rgba(231, 95, 51, 0.1);
+    background-color: rgba($brand-primary, 0.1);
   }
   50% {
-    background-color: rgba(231, 95, 51, 0.3);
+    background-color: rgba($brand-primary, 0.3);
   }
   100% {
-    background-color: rgba(231, 95, 51, 0.1);
+    background-color: rgba($brand-primary, 0.1);
   }
 }
 
@@ -20,13 +22,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: $z-modal;
   padding: 2rem;
 }
 
 .upload-modal-content {
-  background-color: #212124;
-  border: 2px solid #3f3f41;
+  background-color: white;
+  border: 2px solid $gray-200;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -34,6 +36,7 @@
   max-width: 600px;
   max-height: 80vh;
   overflow: hidden;
+  box-shadow: $shadow-lg;
 
   .upload-modal-header {
     display: flex;
@@ -42,30 +45,30 @@
     align-items: center;
     gap: 0;
     padding: 1.5rem;
-    border-bottom: 1px solid #3f3f41;
+    border-bottom: 1px solid $gray-200;
 
     h1 {
-      font-size: 1.5rem;
+      font-size: $font-size-2xl;
       margin: 0;
-      color: white;
-      font-weight: normal;
+      color: $gray-900;
+      font-weight: 600;
     }
 
     .close-button {
       background: none;
       border: none;
-      color: rgba(255, 255, 255, 0.7);
+      color: $gray-500;
       cursor: pointer;
       padding: 0.5rem;
-      border-radius: 4px;
+      border-radius: $border-radius-sm;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: color 0.2s ease, background-color 0.2s ease;
+      transition: $transition-default;
 
       &:hover {
-        color: white;
-        background-color: rgba(255, 255, 255, 0.1);
+        color: $gray-700;
+        background-color: $gray-100;
       }
     }
   }
@@ -83,8 +86,8 @@
     box-sizing: border-box;
 
     .upload-dropzone {
-      border: 2px dashed rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
+      border: 2px dashed $gray-300;
+      border-radius: $border-radius-lg;
       padding: 2rem;
       display: flex;
       flex-direction: column;
@@ -95,29 +98,31 @@
       height: auto;
       flex: 0 0 auto;
       text-align: center;
-      transition: border-color 0.2s ease, background-color 0.2s ease;
+      transition: $transition-default;
+      background-color: $gray-50;
 
       &:hover {
-        border-color: #5f5f61;
-        background-color: rgba(255, 255, 255, 0.03);
+        border-color: $brand-primary;
+        background-color: $gray-100;
       }
 
       .upload-icon {
         width: 48px;
         height: 48px;
-        color: rgba(255, 255, 255, 0.5);
+        color: $gray-400;
         margin-bottom: 1rem;
       }
 
       h3 {
-        color: white;
+        color: $gray-900;
         margin-bottom: 0.5rem;
-        font-size: 1.1rem;
+        font-size: $font-size-lg;
+        font-weight: 600;
       }
 
       p {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 0.9rem;
+        color: $gray-600;
+        font-size: $font-size-sm;
         margin: 0;
       }
     }
@@ -134,17 +139,17 @@
       max-height: 300px;
 
       .warning-message {
-        color: #e75f33;
-        font-size: 14px;
+        color: $brand-primary;
+        font-size: $font-size-sm;
         margin-bottom: 12px;
         padding: 8px 12px;
-        background-color: rgba(231, 95, 51, 0.1);
-        border-radius: 6px;
-        border: 1px solid rgba(231, 95, 51, 0.3);
+        background-color: rgba($brand-primary, 0.1);
+        border-radius: $border-radius-md;
+        border: 1px solid rgba($brand-primary, 0.3);
         display: flex;
         align-items: center;
         gap: 8px;
-        transition: all 0.2s ease;
+        transition: $transition-default;
         width: 100%;
         box-sizing: border-box;
         white-space: normal;
@@ -163,9 +168,9 @@
         display: flex;
         align-items: center;
         padding: 0.75rem;
-        background-color: rgba(0, 0, 0, 0.2);
-        border-radius: 8px;
-        border: 2px solid #3f3f41;
+        background-color: white;
+        border-radius: $border-radius-lg;
+        border: 1px solid $gray-200;
         width: 100%;
         box-sizing: border-box;
         min-width: 0;
@@ -180,8 +185,9 @@
           max-width: 60%;
 
           .file-name {
-            color: white;
-            font-size: 0.9rem;
+            color: $gray-900;
+            font-size: $font-size-sm;
+            font-weight: 500;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -189,8 +195,8 @@
           }
 
           .file-size {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.8rem;
+            color: $gray-500;
+            font-size: $font-size-xs;
             margin-left: 8px;
 
             &::before {
@@ -211,7 +217,7 @@
           .progress-container {
             flex: 1;
             height: 6px;
-            background-color: #eef1f3;
+            background-color: $gray-200;
             border-radius: 5px;
             position: relative;
             overflow: hidden;
@@ -222,9 +228,9 @@
               left: 0;
               top: 0;
               height: 100%;
-              background-color: #30c292;
+              background-color: $brand-primary;
               border-radius: 2px;
-              transition: width 0.3s ease;
+              transition: $transition-slow;
             }
           }
 
@@ -237,10 +243,10 @@
             align-items: center;
             justify-content: center;
             padding: 4px;
-            transition: color 0.2s ease;
+            transition: $transition-default;
 
             &:hover {
-              color: #e75f33;
+              color: $brand-primary;
             }
           }
         }
@@ -250,5 +256,34 @@
 
   .hidden-input {
     display: none;
+  }
+
+  // Additional utility classes
+  .no-files-message {
+    color: $gray-500;
+    text-align: center;
+    padding: 1rem;
+    font-size: $font-size-sm;
+  }
+
+  .file-icon {
+    margin-right: 0.75rem;
+    fill: $gray-600;
+  }
+
+  .progress-percentage {
+    min-width: 45px;
+    text-align: right;
+    font-size: $font-size-sm;
+    font-weight: 500;
+    color: $gray-600;
+
+    &.completed {
+      color: $brand-primary;
+    }
+  }
+
+  .spacer {
+    flex: 1;
   }
 }

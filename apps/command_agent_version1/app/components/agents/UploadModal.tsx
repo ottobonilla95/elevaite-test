@@ -260,15 +260,7 @@ function UploadModal({
 
             {/* Render file items from state */}
             {uploadingFiles.length === 0 ? (
-              <div
-                style={{
-                  color: "#999",
-                  textAlign: "center",
-                  padding: "1rem",
-                }}
-              >
-                No files uploaded yet
-              </div>
+              <div className="no-files-message">No files uploaded yet</div>
             ) : (
               uploadingFiles.map((file) => (
                 <div key={file.id} className="file-item">
@@ -279,7 +271,7 @@ function UploadModal({
                       height="24"
                       viewBox="0 0 24 24"
                       fill="white"
-                      style={{ marginRight: "0.75rem" }}
+                      className="file-icon"
                     >
                       <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
                     </svg>
@@ -296,19 +288,15 @@ function UploadModal({
                           />
                         </div>
                         <div
-                          style={{
-                            minWidth: "45px",
-                            textAlign: "right",
-                            fontSize: "14px",
-                            fontWeight: "500",
-                            color: file.progress === 100 ? "#30c292" : "#ccc",
-                          }}
+                          className={`progress-percentage ${
+                            file.progress === 100 ? "completed" : ""
+                          }`}
                         >
                           {Math.round(file.progress)}%
                         </div>
                       </>
                     ) : (
-                      <div style={{ flex: 1 }} />
+                      <div className="spacer" />
                     )}
                     <button
                       type="button"
