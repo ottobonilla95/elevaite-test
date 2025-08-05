@@ -1,188 +1,191 @@
 // AgentNode.scss
-@import '../variables';
+@import "../variables";
 
 .agent-node {
-    border-radius: 1rem;
-    background-color: white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e5e7eb;
-    width: 440px;
+  border-radius: 1rem;
+  background-color: white;
+  box-shadow: $shadow-sm;
+  border: 1px solid $gray-200;
+  width: 440px;
 
-    &.selected {
-      border: 1px solid $brand-primary;
-      box-shadow: 0px 0px 0px 4px #FF681F33;
-    }
+  &.selected {
+    border: 1px solid $brand-primary;
+    box-shadow: 0px 0px 0px 4px rgba($brand-primary, 0.2);
+  }
 
-    // Header with title and controls
-    .agent-node-header {
+  // Header with title and controls
+  .agent-node-header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid $gray-200;
+    // align-items: flex-start;
+
+    .agent-icon-container {
       display: flex;
-      justify-content: space-between;
-      // align-items: flex-start;
+      align-items: center;
+      gap: 0.5rem;
 
-      .agent-icon-container {
+      .agent-icon {
+        height: 56px;
+        width: 56px;
+        border-radius: 0.375rem;
+        background-color: $gray-50;
+        border: 1px solid $gray-200;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
 
-        .agent-icon {
-          height: 56px;
-          width: 56px;
-          border-radius: 0.375rem;
-          background-color: $gray-50;
-          border: 1px solid $gray-200;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          & > svg {
-            color: $accent-primary;
-          }
-        }
-
-        .agent-title {
-          .agent-name {
-            font-weight: 500;
-            color: #111827; // gray-900
-            line-height: 1.5rem;
-          }
-
-          .agent-type {
-            font-size: 0.75rem;
-            color: #6b7280; // gray-500
-            line-height: 1.5rem;
-          }
+        & > svg {
+          color: $accent-primary;
         }
       }
 
-      .agent-controls {
-        display: flex;
-        gap: 0.25rem;
+      .agent-title {
+        .agent-name {
+          font-weight: 500;
+          color: $gray-900;
+          line-height: 1.5rem;
+        }
 
-        .control-button {
-          padding: 0.25rem;
-          border-radius: 0.25rem;
-          color: #212124;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          transition: color 0.2s;
-
-          &:hover {
-            color: #4b5563; // gray-600
-          }
-
-          &.edit-button:hover {
-            color: #3b82f6; // blue-500
-          }
-
-          &.delete-button:hover {
-            color: #ef4444; // red-500
-          }
-
-          &.disabled-button {
-            opacity: 0.5;
-            cursor: not-allowed;
-
-            &:hover {
-              color: #212124; // Keep original color, no hover effect
-            }
-          }
+        .agent-type {
+          font-size: $font-size-xs;
+          color: $gray-500;
+          line-height: 1.5rem;
         }
       }
     }
 
-    // Badge section
-    .agent-badges {
+    .agent-controls {
+      display: flex;
+      gap: 0.25rem;
+
+      .control-button {
+        padding: 0.25rem;
+        border-radius: $border-radius-sm;
+        color: $gray-800;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: $transition-default;
+
+        &:hover {
+          color: $gray-600;
+        }
+
+        &.edit-button:hover {
+          color: $brand-secondary;
+        }
+
+        &.delete-button:hover {
+          color: #ef4444; // red-500
+        }
+
+        &.disabled-button {
+          opacity: 0.5;
+          cursor: not-allowed;
+
+          &:hover {
+            color: $gray-800;
+          }
+        }
+      }
+    }
+  }
+
+  // Badge section
+  .agent-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid $gray-200;
+
+    .pill-button {
+      padding: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: $font-size-xs;
+      font-weight: 500;
+      border-radius: $border-radius-md;
+      background-color: $gray-100;
+      color: $gray-600;
+    }
+  }
+
+  // Tools section
+  .agent-tools {
+    padding: 1rem;
+
+    .tools-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+
+      .tools-title {
+        font-size: $font-size-sm;
+        font-weight: 500;
+        color: $gray-700;
+      }
+
+      .edit-tools-button {
+        padding: 0.25rem;
+        border-radius: $border-radius-sm;
+        color: $gray-800;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: $transition-default;
+
+        &:hover {
+          color: $gray-600;
+        }
+      }
+    }
+
+    .tools-list {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
-      padding: 0.75rem 1rem;
 
       .pill-button {
         padding: 0;
       }
 
-      .badge {
-        display: inline-block;
-        padding: 4px 10px;
-        font-size: 0.75rem;
-        font-weight: 500;
-        border-radius: 6px;
-        background-color: #6C82711F; // gray-100
-        color: #6C8271; // gray-600
-      }
-    }
-
-    // Tools section
-    .agent-tools {
-      padding: 1rem;
-
-      .tools-header {
-        display: flex;
-        justify-content: space-between;
+      .tool-badge {
+        display: inline-flex;
         align-items: center;
-        margin-bottom: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        font-size: $font-size-xs;
+        font-weight: 500;
+        border-radius: $border-radius-md;
+        background-color: rgba($brand-primary, 0.1);
+        color: $brand-primary;
 
-        .tools-title {
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: #374151; // gray-700
-        }
-
-        .edit-tools-button {
-          padding: 0.25rem;
-          border-radius: 0.25rem;
-          color: #212124;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          transition: color 0.2s;
-
-          &:hover {
-            color: #4b5563; // gray-600
-          }
+        .tool-name {
+          margin-left: 0.25rem;
         }
       }
-
-      .tools-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-
-        .pill-button {
-          padding: 0;
-        }
-
-        .tool-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 0.25rem 0.5rem;
-          font-size: 0.75rem;
-		      font-weight: 500;;
-          border-radius: 6px;
-          background-color: #FF681F1F; // orange-50
-          color: var(--orange); // orange-500
-
-          .tool-name {
-            margin-left: 0.25rem;
-          }
-        }
-      }
-    }
-
-    // ReactFlow handles
-    .input-handle, .output-handle {
-      background: #3b82f6; // blue-500
-      width: 8px;
-      height: 8px;
-      border: 2px solid white;
-    }
-
-    .input-handle {
-      top: -4px;
-    }
-
-    .output-handle {
-      bottom: -4px;
     }
   }
+
+  // ReactFlow handles
+  .input-handle,
+  .output-handle {
+    background: #3b82f6; // blue-500
+    width: 8px;
+    height: 8px;
+    border: 2px solid white;
+  }
+
+  .input-handle {
+    top: -4px;
+  }
+
+  .output-handle {
+    bottom: -4px;
+  }
+}
