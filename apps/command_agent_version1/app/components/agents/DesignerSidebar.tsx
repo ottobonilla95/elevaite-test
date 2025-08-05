@@ -281,21 +281,17 @@ function DesignerSidebar({
                 key="vectorizer"
                 icon={
                   <div className="w-8 h-8 rounded-md flex items-center justify-center">
-                    {
-                      getHighlightedAgentIcon(
-                        "Vectorizer"
-                      ) as React.ReactElement
-                    }
+                    {getHighlightedAgentIcon("Vectorizer")}
                   </div>
                 }
                 label="Vectorizer"
-                subLabel="Transform unstructured data"
+                subLabel="Convert data into vector embeddings"
                 draggable
                 onDragStart={(e) => {
                   const vectorizerAgent: AgentResponse = {
                     name: "Vectorizer",
                     agent_type: "vectorizer" as AgentType,
-                    description: "Transform unstructured data",
+                    description: "Convert data into vector embeddings",
                     parent_agent_id: null,
                     system_prompt_id: "vectorizer-prompt-1",
                     persona: null,

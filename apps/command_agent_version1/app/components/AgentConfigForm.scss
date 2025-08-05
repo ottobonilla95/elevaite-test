@@ -1,5 +1,4 @@
-// AgentConfigForm.scss
-@import 'variables';
+@import "variables";
 
 .agent-config-form {
   display: flex;
@@ -27,13 +26,43 @@
     position: relative;
     height: 100%;
     overflow: hidden;
+    display: flex;
+    flex-direction: row;
+  }
+
+  // Canvas container with optional drawer
+  .canvas-container {
+    display: grid;
+    height: 100%;
+    flex: 1;
+    grid-template-rows: 1fr;
+    min-width: 0; // Allow shrinking
+
+    // When drawer is shown, split the space
+    &.with-drawer {
+      grid-template-rows: 1fr 60vh;
+
+      // When drawer is minimized, adjust grid
+      &.drawer-minimized {
+        grid-template-rows: 1fr 60px;
+      }
+    }
+
+    // Ensure main canvas takes its grid area
+    .react-flow {
+      grid-row: 1;
+      width: 100%;
+      height: 100%;
+    }
+
+    // Drawer takes second grid row when present
+    .vectorizer-bottom-drawer {
+      grid-row: 2;
+    }
   }
 
   // Configuration panel container
   .config-panel-container {
-    position: absolute;
-    right: 0;
-    top: 0;
     width: 320px;
     height: 100%;
     background-color: white;
@@ -41,63 +70,63 @@
     overflow-y: auto;
     z-index: 10;
     //box-shadow: $shadow-md;
-	border: 1px solid #E2E8ED;
-	border-radius: 16px;
-	@include scrollbar(#71717366, #71717326);
+    border: 1px solid #e2e8ed;
+    border-radius: 16px;
+    flex-shrink: 0; // Don't shrink the panel
+    @include scrollbar(#71717366, #71717326);
 
-	&.editing {
-		display: flex;
-		width: 840px;
+    &.editing {
+      display: flex;
+      width: 840px;
 
-		.config-panel {
-			display: flex;
-			width: 100%;
-		}
+      .config-panel {
+        display: flex;
+        width: 100%;
+      }
+    }
 
-	}
+    &.shrinked {
+      width: 60px;
+      height: auto;
+      min-height: 85px;
+      align-items: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
 
-	&.shrinked {
-    width: 60px;
-    height: auto;
-    min-height: 85px;
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+      .config-panel {
+        padding: 16px 0;
+      }
 
-		.config-panel {
-			padding: 16px 0;
-		}
+      .agent-name-display,
+      .close-button,
+      .activate-fields,
+      .config-panel-header ~ *,
+      .config-panel-header > .pr-3,
+      .left,
+      .right button:not(.btn-toggle) {
+        display: none;
+      }
 
-		.agent-name-display,
-		.close-button,
-		.activate-fields,
-		.config-panel-header ~ *,
-		.config-panel-header > .pr-3,
-		.left,
-		.right button:not(.btn-toggle) {
-			display: none;
-		}
+      .right {
+        width: 100%;
+      }
 
-		.right {
-			width: 100%;
-		}
+      .config-panel-header {
+        justify-content: center;
+        margin-bottom: 0;
+      }
+    }
 
-		.config-panel-header {
-			justify-content: center;
-      margin-bottom: 0;
-		}
-	}
-
-	.icon-container {
-		width: 56px;
-		height: 56px;
-		border-radius: 6px;
-		border: 1px solid #e5e7eb;
-		background-color: #f9fafb;
-		display: grid;
-		place-items: center;;
-	}
+    .icon-container {
+      width: 56px;
+      height: 56px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      background-color: #f9fafb;
+      display: grid;
+      place-items: center;
+    }
   }
 
   // Chat content area
@@ -147,20 +176,19 @@
 }
 
 .badge {
-	display: inline-block;
-	padding: 4px 10px;
-	font-size: 0.75rem;
-	font-weight: 500;
-	border-radius: 6px;
-	background-color: #6C82711F; // gray-100
-	color: #6C8271; // gray-600
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 6px;
+  background-color: #6c82711f;
+  color: #6c8271;
 }
 
-
 .tabs {
-	&-inner {
-		background: #F1F4F8;
-		border: 1px solid #E6EBF0;
-		border-radius: 6px;
-	}
+  &-inner {
+    background: #f1f4f8;
+    border: 1px solid #e6ebf0;
+    border-radius: 6px;
+  }
 }

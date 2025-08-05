@@ -1,0 +1,262 @@
+@import "../variables";
+
+.vectorizer-bottom-drawer {
+  background: white;
+  border-top: 1px solid $gray-200;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+  height: 60vh;
+  transition: height $transition-default ease-in-out;
+  isolation: isolate; // Create new stacking context
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  &.minimized {
+    height: 60px;
+  }
+
+  .drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid $gray-200;
+    background: $gray-50;
+
+    h3 {
+      font-size: $font-size-lg;
+      color: $gray-800;
+      margin: 0;
+    }
+
+    button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: $gray-600;
+      transition: $transition-default;
+
+      &:hover {
+        color: $gray-800;
+        background: $gray-100;
+      }
+    }
+  }
+
+  .drawer-content {
+    display: flex;
+    height: calc(100% - 60px);
+    overflow: hidden;
+    flex: 1;
+
+    // Hide content when minimized
+    .minimized & {
+      display: none;
+    }
+  }
+
+  .steps-sidebar {
+    width: 250px;
+    background: $gray-50;
+    border-right: 1px solid $gray-200;
+    padding: 1rem;
+    overflow-y: auto;
+
+    h4 {
+      margin: 0 0 0.75rem 0;
+      font-size: $font-size-sm;
+      font-weight: 500;
+      color: $gray-700;
+    }
+
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .step-button {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: white;
+      border: 1px solid $gray-200;
+      border-radius: $border-radius-md;
+      cursor: grab;
+      transition: $transition-default;
+      text-align: left;
+
+      &:hover {
+        border-color: $brand-primary;
+        background: #fff4ed;
+      }
+
+      &:active {
+        cursor: grabbing;
+      }
+
+      .step-icon {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+      }
+
+      .step-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+
+        .step-name {
+          font-size: $font-size-sm;
+          font-weight: 500;
+          color: $gray-800;
+        }
+
+        .step-description {
+          font-size: $font-size-xs;
+          color: $gray-600;
+          line-height: 1.3;
+        }
+      }
+    }
+  }
+
+  .vectorization-canvas {
+    flex: 1;
+    position: relative;
+    background: $gray-50;
+    overflow: hidden; // Prevent canvas bleeding
+    isolation: isolate; // Create isolated stacking context
+
+    // Ensure the ReactFlow provider creates its own context
+    .react-flow-provider {
+      width: 100%;
+      height: 100%;
+    }
+
+    .react-flow {
+      background: $gray-50;
+      width: 100%;
+      height: 100%;
+    }
+
+    .react-flow__node {
+      cursor: grab;
+
+      &:active,
+      &.react-flow__node-selected {
+        cursor: grabbing;
+      }
+    }
+
+    .react-flow__edge {
+      stroke: $brand-primary;
+      stroke-width: 2;
+    }
+
+    .react-flow__edge-path {
+      stroke: $brand-primary;
+    }
+
+    .react-flow__controls {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      z-index: 10;
+      background: white;
+      border: 1px solid $gray-200;
+      border-radius: $border-radius-md;
+    }
+
+    .react-flow__minimap {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      z-index: 10;
+      background: white;
+      border: 1px solid $gray-200;
+      border-radius: $border-radius-md;
+      width: 120px;
+      height: 80px;
+    }
+
+    // Ensure attribution doesn't interfere
+    .react-flow__attribution {
+      display: none;
+    }
+  }
+}
+
+.vectorization-step-node {
+  background: white;
+  box-shadow: $shadow-sm;
+  transition: $transition-default;
+  cursor: grab;
+
+  border-color: $brand-primary !important;
+  background: #fff4ed !important;
+  box-shadow: $shadow-md;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  .step-icon {
+    font-size: 1rem;
+  }
+
+  .step-name {
+    font-size: $font-size-sm;
+    font-weight: 500;
+    color: $gray-800;
+  }
+
+  .step-description {
+    font-size: $font-size-xs;
+    color: $gray-600;
+    line-height: 1.3;
+  }
+
+  button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: $border-radius-sm;
+    transition: $transition-default;
+    position: relative;
+    z-index: 10;
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    &:active {
+      cursor: pointer;
+    }
+  }
+}
+
+.react-flow__handle {
+  background: $brand-primary;
+  border: 2px solid white;
+  width: 8px;
+  height: 8px;
+}
+
+.react-flow__handle-top {
+  top: -4px;
+}
+
+.react-flow__handle-bottom {
+  bottom: -4px;
+}
+
+.react-flow__handle-left {
+  left: -4px;
+}
+
+.react-flow__handle-right {
+  right: -4px;
+}
