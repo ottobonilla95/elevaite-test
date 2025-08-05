@@ -24,6 +24,7 @@ dependencies = [
     "google-api-python-client>=2.0.0",
     "qdrant-client>=1.7.0",
     "simple-salesforce>=1.12.6",
+    "aiofiles>=23.2.0",
 ]
 
 [project.optional-dependencies]
