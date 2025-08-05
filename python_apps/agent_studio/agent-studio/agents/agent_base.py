@@ -352,7 +352,6 @@ class Agent(BaseModel):
                                 tool_count=len(tools_called),
                                 retry_count=tries,
                                 api_calls_count=api_calls_count,
-                                db=db,
                             )
 
                         return response.choices[0].message.content
@@ -375,7 +374,6 @@ class Agent(BaseModel):
                                 tool_count=len(tools_called),
                                 retry_count=tries,
                                 api_calls_count=api_calls_count,
-                                db=db,
                             )
                         return self._get_fallback_response()
 
@@ -538,8 +536,6 @@ class Agent(BaseModel):
                                     tool_name=function_name,
                                     execution_id=execution_id,
                                     input_data=arguments,
-                                    external_api_called=external_api,
-                                    db=db,
                                 )
                                 usage_id = tool_context.__enter__()
 
@@ -566,7 +562,6 @@ class Agent(BaseModel):
                                     analytics_service.update_tool_metrics(
                                         usage_id=usage_id,
                                         output_data={"result": str(result)[:1000]},
-                                        db=db,
                                     )
 
                                 # Track tool call for execution metrics
@@ -623,7 +618,6 @@ class Agent(BaseModel):
                                 tool_count=len(tools_called),
                                 retry_count=tries,
                                 api_calls_count=api_calls_count,
-                                db=db,
                             )
 
                         # Yield final response
@@ -656,7 +650,6 @@ class Agent(BaseModel):
                                 tool_count=len(tools_called),
                                 retry_count=tries,
                                 api_calls_count=api_calls_count,
-                                db=db,
                             )
                         yield f"Error after {self.max_retries} attempts: {str(e)}\n"
                         return

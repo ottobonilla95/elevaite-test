@@ -1,0 +1,23 @@
+{
+  "name": "agent-studio-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E tests for Agent Studio workflows",
+  "main": "test-biggest-workflow.ts",
+  "scripts": {
+    "test": "tsx test-biggest-workflow.ts",
+    "test:biggest": "tsx test-biggest-workflow.ts",
+    "build": "tsc",
+    "dev": "tsx watch test-biggest-workflow.ts"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
