@@ -26,6 +26,11 @@ export default function Home(): JSX.Element {
   // Loading step state
   const [dataSource, setDataSource] = useState<string>("s3");
   const [fileFormat, setFileFormat] = useState<string>("pdf");
+  const [enableFileUpload, setEnableFileUpload] = useState<boolean>(true);
+  const [uploadEndpoint, setUploadEndpoint] = useState<string>(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/files/upload` ||
+      "http://localhost:8000/api/files/upload"
+  );
 
   // Parsing step state
   const [parsingMode, setParsingMode] = useState<string>("auto_parser");
@@ -689,6 +694,8 @@ export default function Home(): JSX.Element {
                                 options={[
                                   { value: "s3", label: "Amazon S3" },
                                   { value: "local", label: "Local Storage" },
+                                  { value: "url", label: "URL" },
+                                  { value: "upload", label: "File Upload" },
                                 ]}
                                 defaultValue={dataSource}
                                 onChange={(value) => {
@@ -769,6 +776,44 @@ export default function Home(): JSX.Element {
                                       type="text"
                                       placeholder="Enter output directory path"
                                       defaultValue="/elevaite_ingestion/OUTPUT"
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                            ]
+                          : []),
+                        ...(dataSource === "upload"
+                          ? [
+                              {
+                                id: "upload_endpoint",
+                                children: (
+                                  <ConfigField label="Upload Endpoint URL">
+                                    <CustomInput
+                                      type="text"
+                                      placeholder="Enter upload endpoint URL"
+                                      defaultValue={uploadEndpoint}
+                                      onChange={(value) => {
+                                        setUploadEndpoint(value);
+                                        console.log("Upload endpoint:", value);
+                                      }}
+                                    />
+                                  </ConfigField>
+                                ),
+                              },
+                              {
+                                id: "enable_file_upload",
+                                children: (
+                                  <ConfigField label="Enable File Upload">
+                                    <input
+                                      type="checkbox"
+                                      checked={enableFileUpload}
+                                      onChange={(e) => {
+                                        setEnableFileUpload(e.target.checked);
+                                        console.log(
+                                          "Enable file upload:",
+                                          e.target.checked
+                                        );
+                                      }}
                                     />
                                   </ConfigField>
                                 ),

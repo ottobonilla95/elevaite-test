@@ -2,7 +2,6 @@
 
 import React, { useRef, useState } from "react";
 import { X } from "lucide-react";
-import { CommonButton } from "@repo/ui/components";
 import "./UploadModal.scss";
 
 interface UploadingFile {
@@ -16,9 +15,14 @@ interface UploadingFile {
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  uploadEndpoint?: string;
 }
 
-function UploadModal({ isOpen, onClose }: UploadModalProps): JSX.Element | null {
+function UploadModal({
+  isOpen,
+  onClose,
+  uploadEndpoint,
+}: UploadModalProps): JSX.Element | null {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isWarningFlashing, setIsWarningFlashing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,18 +35,21 @@ function UploadModal({ isOpen, onClose }: UploadModalProps): JSX.Element | null 
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ): void => {
     const files = event.target.files;
     if (files && files.length > 0) {
       const newFiles: UploadingFile[] = Array.from(files).map((file) => {
         // Convert file size to readable format
         const sizeInMB = file.size / (1024 * 1024);
-        const sizeFormatted = sizeInMB >= 1 
-          ? `${sizeInMB.toFixed(1)} MB` 
-          : `${(file.size / 1024).toFixed(1)} KB`;
+        const sizeFormatted =
+          sizeInMB >= 1
+            ? `${sizeInMB.toFixed(1)} MB`
+            : `${(file.size / 1024).toFixed(1)} KB`;
 
         return {
-          id: `${Date.now()}-${Math.random()}`,
+          id: `${Date.now().toString()}-${Math.random().toString()}`,
           name: file.name,
           size: sizeFormatted,
           progress: 0,
@@ -52,9 +59,10 @@ function UploadModal({ isOpen, onClose }: UploadModalProps): JSX.Element | null 
 
       setUploadingFiles((prevFiles) => [...prevFiles, ...newFiles]);
 
-      // Start upload simulation for each file
-      newFiles.forEach((file) => {
-        simulateFileUpload(file.id);
+      // Start upload for each file
+      newFiles.forEach((uploadingFile, index) => {
+        const actualFile = Array.from(files)[index];
+        simulateFileUpload(uploadingFile.id, actualFile);
       });
     }
 
@@ -64,30 +72,76 @@ function UploadModal({ isOpen, onClose }: UploadModalProps): JSX.Element | null 
     }
   };
 
-  const simulateFileUpload = (fileId: string): void => {
+  const uploadFileToBackend = async (
+    file: File,
+    fileId: string
+  ): Promise<void> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:9004";
+      const endpoint =
+        uploadEndpoint ?? `${backendUrl.replace(/\/$/, "")}/api/files/upload`;
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+
+      // Mark file as completed
+      setUploadingFiles((prevFiles) =>
+        prevFiles.map((f) =>
+          f.id === fileId ? { ...f, progress: 100, completed: true } : f
+        )
+      );
+    } catch (error) {
+      // Mark file as failed
+      setUploadingFiles((prevFiles) =>
+        prevFiles.map((f) =>
+          f.id === fileId ? { ...f, progress: 0, completed: false } : f
+        )
+      );
+    }
+  };
+
+  const simulateFileUpload = (fileId: string, file: File): void => {
+    void uploadFileToBackend(file, fileId);
+
+    // Show progress animation
     const interval = setInterval(() => {
       setUploadingFiles((prevFiles) => {
-        const updatedFiles = prevFiles.map((file) => {
-          if (file.id === fileId && !file.completed) {
-            const newProgress = Math.min(file.progress + Math.random() * 15, 100);
+        const updatedFiles = prevFiles.map((fileItem) => {
+          if (fileItem.id === fileId && !fileItem.completed) {
+            const newProgress = Math.min(
+              fileItem.progress + Math.random() * 15,
+              90
+            );
             return {
-              ...file,
+              ...fileItem,
               progress: newProgress,
-              completed: newProgress >= 100,
             };
           }
-          return file;
+          return fileItem;
         });
 
-        // Clear interval if file is completed
+        // Clear interval if file is completed or we've reached 90%
         const targetFile = updatedFiles.find((f) => f.id === fileId);
-        if (targetFile?.completed) {
+        if (
+          targetFile?.completed ??
+          (targetFile && targetFile.progress >= 90)
+        ) {
           clearInterval(interval);
         }
 
         return updatedFiles;
       });
-    }, 500);
+    }, 200);
   };
 
   const handleDeleteFile = (fileId: string): void => {
@@ -106,17 +160,26 @@ function UploadModal({ isOpen, onClose }: UploadModalProps): JSX.Element | null 
     }
   };
 
+  const handleOverlayKeyDown = (e: React.KeyboardEvent): void => {
+    if (e.key === "Escape") {
+      onClose();
+    }
+  };
+
   return (
-    <div className="upload-modal-overlay" onClick={handleOverlayClick}>
+    <div
+      className="upload-modal-overlay"
+      onClick={handleOverlayClick}
+      onKeyDown={handleOverlayKeyDown}
+      role="button"
+      aria-label="Close modal"
+      tabIndex={0}
+    >
       <div className="upload-modal-content">
         {/* Header */}
         <div className="upload-modal-header">
           <h1>Upload Files</h1>
-          <button
-            className="close-button"
-            onClick={onClose}
-            type="button"
-          >
+          <button className="close-button" onClick={onClose} type="button">
             <X size={20} />
           </button>
         </div>
@@ -126,12 +189,31 @@ function UploadModal({ isOpen, onClose }: UploadModalProps): JSX.Element | null 
           {/* Dropzone */}
           <div
             className="upload-dropzone"
+            role="button"
+            tabIndex={0}
+            aria-label="Upload files by clicking or pressing Enter/Space"
             onClick={handleFileSelect}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleFileSelect();
+              }
+            }}
             onMouseOver={(e) => {
               e.currentTarget.style.borderColor = "#5f5f61";
-              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.03)";
+              e.currentTarget.style.backgroundColor =
+                "rgba(255, 255, 255, 0.03)";
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "#5f5f61";
+              e.currentTarget.style.backgroundColor =
+                "rgba(255, 255, 255, 0.03)";
             }}
             onMouseOut={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+            onBlur={(e) => {
               e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
               e.currentTarget.style.backgroundColor = "transparent";
             }}
@@ -171,7 +253,8 @@ function UploadModal({ isOpen, onClose }: UploadModalProps): JSX.Element | null 
                 >
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
                 </svg>
-                <strong>Files are still uploading.</strong> Please wait before proceeding.
+                <strong>Files are still uploading.</strong> Please wait before
+                proceeding.
               </div>
             )}
 
@@ -209,7 +292,7 @@ function UploadModal({ isOpen, onClose }: UploadModalProps): JSX.Element | null 
                         <div className="progress-container">
                           <div
                             className="progress-bar"
-                            style={{ width: `${file.progress}%` }}
+                            style={{ width: `${file.progress.toString()}%` }}
                           />
                         </div>
                         <div
@@ -225,11 +308,14 @@ function UploadModal({ isOpen, onClose }: UploadModalProps): JSX.Element | null 
                         </div>
                       </>
                     ) : (
-                      <div style={{ flex: 1 }}></div>
+                      <div style={{ flex: 1 }} />
                     )}
                     <button
+                      type="button"
                       className="delete-button"
-                      onClick={() => handleDeleteFile(file.id)}
+                      onClick={() => {
+                        handleDeleteFile(file.id);
+                      }}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"

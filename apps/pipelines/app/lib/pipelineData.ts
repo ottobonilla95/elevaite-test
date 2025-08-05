@@ -31,84 +31,101 @@ export const pipelineSteps: PipelineStep[] = [
     id: "loading",
     title: "Loading",
     description: "Load documents from various sources",
-    details: "The loading step involves fetching documents from different sources such as S3 buckets, local file systems, or URLs. This step prepares the documents for the parsing stage.",
+    details:
+      "The loading step involves fetching documents from different sources such as S3 buckets, local file systems, or URLs. This step prepares the documents for the parsing stage.",
     features: [
       "Support for multiple data sources (S3, local files, URLs, etc.)",
       "Handling of various file formats",
       "Batch loading capabilities",
       "Error handling and retry mechanisms",
-      "Progress tracking and reporting"
+      "Progress tracking and reporting",
     ],
     examples: [
       {
         input: "S3 bucket containing PDF, DOCX, and TXT files",
-        output: "Loaded documents ready for parsing"
+        output: "Loaded documents ready for parsing",
       },
       {
         input: "Local directory with mixed document types",
-        output: "Organized file list with metadata"
-      }
+        output: "Organized file list with metadata",
+      },
     ],
     configOptions: [
       {
         id: "source_type",
         label: "Source Type",
         type: "select",
-        options: ["s3", "local", "url"],
+        options: ["s3", "local", "url", "upload"],
         default: "s3",
-        description: "Select the source type for loading documents"
+        description: "Select the source type for loading documents",
       },
       {
         id: "bucket_name",
         label: "S3 Bucket Name",
         type: "text",
         default: "kb-check-pdf",
-        description: "Name of the S3 bucket containing documents"
+        description: "Name of the S3 bucket containing documents",
       },
       {
         id: "local_directory",
         label: "Local Directory",
         type: "text",
         default: "/INPUT",
-        description: "Path to local directory containing documents"
-      }
+        description: "Path to local directory containing documents",
+      },
+      {
+        id: "upload_endpoint",
+        label: "Upload Endpoint URL",
+        type: "text",
+        default: "http://localhost:9004/api/files/upload",
+        description:
+          "Backend endpoint URL for file uploads (only used when source type is 'upload')",
+      },
+      {
+        id: "enable_file_upload",
+        label: "Enable File Upload",
+        type: "checkbox",
+        default: true,
+        description: "Enable the file upload component for this pipeline step",
+      },
     ],
     providers: {
-      "sagemaker": {
+      sagemaker: {
         supported: true,
-        description: "Fully supported with S3 integration"
+        description: "Fully supported with S3 integration",
       },
-      "airflow": {
+      airflow: {
         supported: true,
-        description: "Excellent for scheduled loading from multiple sources"
+        description: "Excellent for scheduled loading from multiple sources",
       },
-      "bedrock": {
+      bedrock: {
         supported: true,
-        description: "Native support for AWS data sources"
-      }
-    }
+        description: "Native support for AWS data sources",
+      },
+    },
   },
   {
     id: "parsing",
     title: "Parsing",
     description: "Extract text and metadata from various document formats",
-    details: "The parsing step involves extracting raw text and metadata from documents in various formats such as PDF, DOCX, HTML, etc. This step prepares the content for further processing.",
+    details:
+      "The parsing step involves extracting raw text and metadata from documents in various formats such as PDF, DOCX, HTML, etc. This step prepares the content for further processing.",
     features: [
       "Support for multiple document formats (PDF, DOCX, TXT, HTML, etc.)",
       "Extraction of document metadata (title, author, creation date, etc.)",
       "Preservation of document structure (headings, paragraphs, lists, etc.)",
       "Handling of embedded images and tables",
-      "OCR for scanned documents"
+      "OCR for scanned documents",
     ],
     examples: [
       {
         input: "PDF document with text, images, and tables",
-        output: "Extracted plain text with metadata and structural information"
+        output: "Extracted plain text with metadata and structural information",
       },
       {
         input: "Scanned document with handwritten notes",
-        output: "OCR-processed text with confidence scores"
-      }
+        output: "OCR-processed text with confidence scores",
+      },
     ],
     configOptions: [
       {
@@ -117,7 +134,8 @@ export const pipelineSteps: PipelineStep[] = [
         type: "select",
         options: ["auto_parser", "custom_parser"],
         default: "auto_parser",
-        description: "Choose between automatic parser selection or custom parser"
+        description:
+          "Choose between automatic parser selection or custom parser",
       },
       {
         id: "file_type",
@@ -125,52 +143,54 @@ export const pipelineSteps: PipelineStep[] = [
         type: "select",
         options: ["pdf", "docx", "txt", "html", "url"],
         default: "pdf",
-        description: "Select the type of document to parse"
+        description: "Select the type of document to parse",
       },
       {
         id: "ocr_enabled",
         label: "Enable OCR",
         type: "checkbox",
         default: true,
-        description: "Enable Optical Character Recognition for scanned documents"
-      }
+        description:
+          "Enable Optical Character Recognition for scanned documents",
+      },
     ],
     providers: {
-      "sagemaker": {
+      sagemaker: {
         supported: true,
-        description: "Fully supported with all parsing options"
+        description: "Fully supported with all parsing options",
       },
-      "airflow": {
+      airflow: {
         supported: true,
-        description: "Supported with limited OCR capabilities"
+        description: "Supported with limited OCR capabilities",
       },
-      "bedrock": {
+      bedrock: {
         supported: true,
-        description: "Native support for all document types"
-      }
-    }
+        description: "Native support for all document types",
+      },
+    },
   },
   {
     id: "chunking",
     title: "Chunking",
     description: "Split documents into smaller, manageable pieces",
-    details: "Chunking divides the extracted text into smaller segments based on semantic meaning, fixed size, or natural breaks like paragraphs. This makes the content more manageable for processing and retrieval.",
+    details:
+      "Chunking divides the extracted text into smaller segments based on semantic meaning, fixed size, or natural breaks like paragraphs. This makes the content more manageable for processing and retrieval.",
     features: [
       "Multiple chunking strategies (fixed size, semantic, sliding window)",
       "Preservation of context across chunks",
       "Handling of document structure during chunking",
       "Customizable chunk size and overlap",
-      "Intelligent chunk boundary detection"
+      "Intelligent chunk boundary detection",
     ],
     examples: [
       {
         input: "Long document with multiple sections",
-        output: "Series of semantically coherent chunks"
+        output: "Series of semantically coherent chunks",
       },
       {
         input: "Technical document with code blocks",
-        output: "Chunks that preserve code block integrity"
-      }
+        output: "Chunks that preserve code block integrity",
+      },
     ],
     configOptions: [
       {
@@ -181,24 +201,25 @@ export const pipelineSteps: PipelineStep[] = [
           "semantic_chunking",
           "recursive_chunking",
           "sentence_chunking",
-          "mdstructure"
+          "mdstructure",
         ],
         default: "semantic_chunking",
-        description: "Select the strategy for dividing documents into chunks"
+        description: "Select the strategy for dividing documents into chunks",
       },
       {
         id: "chunk_size",
         label: "Chunk Size",
         type: "number",
         default: 500,
-        description: "Target size of chunks in tokens (for fixed-size strategies)"
+        description:
+          "Target size of chunks in tokens (for fixed-size strategies)",
       },
       {
         id: "chunk_overlap",
         label: "Chunk Overlap",
         type: "number",
         default: 50,
-        description: "Number of tokens to overlap between chunks"
+        description: "Number of tokens to overlap between chunks",
       },
       {
         id: "breakpoint_threshold_type",
@@ -206,45 +227,47 @@ export const pipelineSteps: PipelineStep[] = [
         type: "select",
         options: ["percentile", "absolute"],
         default: "percentile",
-        description: "Method for determining chunk boundaries in semantic chunking"
-      }
+        description:
+          "Method for determining chunk boundaries in semantic chunking",
+      },
     ],
     providers: {
-      "sagemaker": {
+      sagemaker: {
         supported: true,
-        description: "Supports all chunking strategies"
+        description: "Supports all chunking strategies",
       },
-      "airflow": {
+      airflow: {
         supported: true,
-        description: "Best performance with semantic chunking"
+        description: "Best performance with semantic chunking",
       },
-      "bedrock": {
+      bedrock: {
         supported: true,
-        description: "Native support for all chunking strategies"
-      }
-    }
+        description: "Native support for all chunking strategies",
+      },
+    },
   },
   {
     id: "embedding",
     title: "Embedding",
     description: "Convert text chunks into vector representations",
-    details: "The embedding step transforms text chunks into numerical vector representations using machine learning models. These vectors capture the semantic meaning of the text, enabling similarity searches and other operations.",
+    details:
+      "The embedding step transforms text chunks into numerical vector representations using machine learning models. These vectors capture the semantic meaning of the text, enabling similarity searches and other operations.",
     features: [
       "Support for various embedding models (OpenAI, Hugging Face, etc.)",
       "Customizable embedding dimensions",
       "Batch processing for efficiency",
       "Handling of multilingual content",
-      "Specialized embeddings for different content types"
+      "Specialized embeddings for different content types",
     ],
     examples: [
       {
         input: "Text chunk: 'The quick brown fox jumps over the lazy dog'",
-        output: "Vector: [0.021, -0.036, 0.058, ..., 0.073]"
+        output: "Vector: [0.021, -0.036, 0.058, ..., 0.073]",
       },
       {
         input: "Technical term with specific meaning in context",
-        output: "Context-aware vector representation"
-      }
+        output: "Context-aware vector representation",
+      },
     ],
     configOptions: [
       {
@@ -253,7 +276,7 @@ export const pipelineSteps: PipelineStep[] = [
         type: "select",
         options: ["openai", "huggingface", "cohere", "custom"],
         default: "openai",
-        description: "Select the model to use for generating embeddings"
+        description: "Select the model to use for generating embeddings",
       },
       {
         id: "embedding_dimensions",
@@ -261,52 +284,53 @@ export const pipelineSteps: PipelineStep[] = [
         type: "select",
         options: ["768", "1024", "1536", "3072"],
         default: "1536",
-        description: "Number of dimensions in the embedding vectors"
+        description: "Number of dimensions in the embedding vectors",
       },
       {
         id: "batch_size",
         label: "Batch Size",
         type: "number",
         default: 32,
-        description: "Number of chunks to process in a single batch"
-      }
+        description: "Number of chunks to process in a single batch",
+      },
     ],
     providers: {
-      "sagemaker": {
+      sagemaker: {
         supported: true,
-        description: "Supports all embedding models with GPU acceleration"
+        description: "Supports all embedding models with GPU acceleration",
       },
-      "airflow": {
+      airflow: {
         supported: true,
-        description: "Best for batch processing of large document sets"
+        description: "Best for batch processing of large document sets",
       },
-      "bedrock": {
+      bedrock: {
         supported: true,
-        description: "Native integration with AWS embedding models"
-      }
-    }
+        description: "Native integration with AWS embedding models",
+      },
+    },
   },
   {
     id: "vectorstore",
     title: "Vector Store",
     description: "Store and index vectors for efficient retrieval",
-    details: "The Vector Store step involves storing the generated embeddings in a specialized database optimized for vector similarity search. This enables efficient retrieval of relevant information based on semantic similarity.",
+    details:
+      "The Vector Store step involves storing the generated embeddings in a specialized database optimized for vector similarity search. This enables efficient retrieval of relevant information based on semantic similarity.",
     features: [
       "Vector database integration (Pinecone, Qdrant, etc.)",
       "Efficient indexing algorithms (HNSW, IVF, etc.)",
       "Metadata filtering capabilities",
       "Scalable to millions of vectors",
-      "Real-time index updates"
+      "Real-time index updates",
     ],
     examples: [
       {
         input: "Collection of vector embeddings",
-        output: "Indexed vector database ready for querying"
+        output: "Indexed vector database ready for querying",
       },
       {
         input: "New document to be added to existing index",
-        output: "Updated index with new vectors and metadata"
-      }
+        output: "Updated index with new vectors and metadata",
+      },
     ],
     configOptions: [
       {
@@ -315,7 +339,7 @@ export const pipelineSteps: PipelineStep[] = [
         type: "select",
         options: ["pinecone", "qdrant", "weaviate", "milvus", "faiss"],
         default: "pinecone",
-        description: "Select the vector database for storing embeddings"
+        description: "Select the vector database for storing embeddings",
       },
       {
         id: "index_algorithm",
@@ -323,7 +347,7 @@ export const pipelineSteps: PipelineStep[] = [
         type: "select",
         options: ["hnsw", "ivf", "flat"],
         default: "hnsw",
-        description: "Algorithm used for vector indexing"
+        description: "Algorithm used for vector indexing",
       },
       {
         id: "distance_metric",
@@ -331,29 +355,29 @@ export const pipelineSteps: PipelineStep[] = [
         type: "select",
         options: ["cosine", "euclidean", "dot_product"],
         default: "cosine",
-        description: "Metric used to measure similarity between vectors"
+        description: "Metric used to measure similarity between vectors",
       },
       {
         id: "index_name",
         label: "Index Name",
         type: "text",
         default: "default-index",
-        description: "Name of the vector index"
-      }
+        description: "Name of the vector index",
+      },
     ],
     providers: {
-      "sagemaker": {
+      sagemaker: {
         supported: true,
-        description: "Supports all vector databases with AWS integration"
+        description: "Supports all vector databases with AWS integration",
       },
-      "airflow": {
+      airflow: {
         supported: true,
-        description: "Best for scheduled index updates and maintenance"
+        description: "Best for scheduled index updates and maintenance",
       },
-      "bedrock": {
+      bedrock: {
         supported: true,
-        description: "Native integration with AWS vector databases"
-      }
-    }
-  }
+        description: "Native integration with AWS vector databases",
+      },
+    },
+  },
 ];
