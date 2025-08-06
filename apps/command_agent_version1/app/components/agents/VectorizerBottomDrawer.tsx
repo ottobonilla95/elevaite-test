@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useState, useEffect } from "react";
-import { X, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { Plus, GripHorizontal, Play, Rocket, Copy, X } from "lucide-react";
 import "./VectorizerBottomDrawer.scss";
 
 export type VectorizationStepType =
@@ -218,22 +218,25 @@ interface VectorizerBottomDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   agentName: string;
-  onMinimizedChange?: (minimized: boolean) => void;
   pipeline: PipelineStep[];
   setPipeline: React.Dispatch<React.SetStateAction<PipelineStep[]>>;
   onStepSelect?: (stepData: VectorizationStepData | null) => void;
+  onRunAllSteps?: () => void;
+  onDeploy?: () => void;
+  onClone?: () => void;
 }
 
 export default function VectorizerBottomDrawer({
   isOpen,
   onClose,
   agentName,
-  onMinimizedChange,
   pipeline,
   setPipeline,
   onStepSelect,
+  onRunAllSteps,
+  onDeploy,
+  onClone,
 }: VectorizerBottomDrawerProps): JSX.Element | null {
-  const [isMinimized, setIsMinimized] = useState(false);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -401,124 +404,133 @@ export default function VectorizerBottomDrawer({
       }
     };
 
-    if (isOpen && !isMinimized) {
+    if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen, isMinimized]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div
-      className={`vectorizer-bottom-drawer ${isMinimized ? "minimized" : ""}`}
-    >
+    <div className="vectorizer-bottom-drawer">
+      {/* Drag Handle */}
+      <div className="drag-handle">
+        <GripHorizontal className="text-gray-800" size={20} />
+      </div>
+
       {/* Drawer Header */}
       <div className="drawer-header">
-        <div className="flex items-center gap-3">
-          <span className="text-lg">🔢</span>
-          <h3 className="font-semibold text-gray-800">
-            Vectorizer: {agentName}
-          </h3>
+        <div className="flex flex-col gap-1">
+          <h3 className="font-semibold text-gray-800">Subflow: {agentName}</h3>
+          <p className="text-sm text-gray-600">Transform unstructured data</p>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              const newMinimized = !isMinimized;
-              setIsMinimized(newMinimized);
-              onMinimizedChange?.(newMinimized);
-            }}
-            className="p-1 hover:bg-gray-100 rounded transition-colors"
+            onClick={onClose}
+            className="px-3 py-1.5 bg-white hover:bg-orange-50 text-brand-primary text-sm font-medium rounded border border-brand-primary transition-colors"
             type="button"
           >
-            {isMinimized ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            <X size={14} className="inline mr-1" />
+            Cancel
           </button>
           <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded transition-colors"
+            onClick={() => onClone?.()}
+            className="px-3 py-1.5 bg-white hover:bg-orange-50 text-brand-primary text-sm font-medium rounded border border-brand-primary transition-colors"
             type="button"
           >
-            <X size={20} />
+            <Copy size={14} className="inline mr-1" />
+            Clone
+          </button>
+          <button
+            onClick={() => onDeploy?.()}
+            className="px-3 py-1.5 bg-brand-primary hover:bg-orange-600 text-white text-sm font-medium rounded border border-brand-primary transition-colors"
+            type="button"
+          >
+            <Rocket size={14} className="inline mr-1" />
+            Deploy
+          </button>
+          <button
+            onClick={() => onRunAllSteps?.()}
+            className="px-3 py-1.5 bg-brand-primary hover:bg-orange-600 text-white text-sm font-medium rounded border border-brand-primary transition-colors"
+            type="button"
+          >
+            <Play size={14} className="inline mr-1" />
+            Run All Steps
           </button>
         </div>
       </div>
 
       {/* Drawer Content */}
-      {!isMinimized && (
-        <div className="drawer-content">
-          {/* Linear Pipeline Canvas */}
+      <div className="drawer-content">
+        {/* Linear Pipeline Canvas */}
+        <div
+          className={`linear-pipeline-canvas ${isDragging ? "dragging" : ""}`}
+          onMouseDown={handleCanvasMouseDown}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseUp={handleCanvasMouseUp}
+          onMouseLeave={handleCanvasMouseLeave}
+          role="button"
+          aria-label="Interactive pipeline canvas - use arrow keys to pan or drag with mouse"
+          tabIndex={0}
+          aria-pressed="false"
+          onKeyDown={(e) => {
+            // Handle keyboard navigation for accessibility
+            if (
+              e.key === "ArrowLeft" ||
+              e.key === "ArrowRight" ||
+              e.key === "ArrowUp" ||
+              e.key === "ArrowDown"
+            ) {
+              e.preventDefault();
+              const step = 10;
+              const deltaX =
+                e.key === "ArrowLeft"
+                  ? -step
+                  : e.key === "ArrowRight"
+                    ? step
+                    : 0;
+              const deltaY =
+                e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+              setCanvasOffset((prev) => ({
+                x: prev.x + deltaX,
+                y: prev.y + deltaY,
+              }));
+            }
+          }}
+        >
           <div
-            className={`linear-pipeline-canvas ${isDragging ? "dragging" : ""}`}
-            onMouseDown={handleCanvasMouseDown}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseUp={handleCanvasMouseUp}
-            onMouseLeave={handleCanvasMouseLeave}
-            role="button"
-            aria-label="Interactive pipeline canvas - use arrow keys to pan or drag with mouse"
-            tabIndex={0}
-            aria-pressed="false"
-            onKeyDown={(e) => {
-              // Handle keyboard navigation for accessibility
-              if (
-                e.key === "ArrowLeft" ||
-                e.key === "ArrowRight" ||
-                e.key === "ArrowUp" ||
-                e.key === "ArrowDown"
-              ) {
-                e.preventDefault();
-                const step = 10;
-                const deltaX =
-                  e.key === "ArrowLeft"
-                    ? -step
-                    : e.key === "ArrowRight"
-                      ? step
-                      : 0;
-                const deltaY =
-                  e.key === "ArrowUp"
-                    ? -step
-                    : e.key === "ArrowDown"
-                      ? step
-                      : 0;
-                setCanvasOffset((prev) => ({
-                  x: prev.x + deltaX,
-                  y: prev.y + deltaY,
-                }));
-              }
+            className="pipeline-container"
+            style={{
+              transform: `translate(${canvasOffset.x.toString()}px, ${canvasOffset.y.toString()}px)`,
             }}
           >
-            <div
-              className="pipeline-container"
-              style={{
-                transform: `translate(${canvasOffset.x.toString()}px, ${canvasOffset.y.toString()}px)`,
-              }}
-            >
-              {pipeline.map((step, index) => (
-                <React.Fragment key={step.id}>
-                  <LinearPipelineStep
-                    step={step}
-                    isSelected={selectedStepId === step.id}
-                    onSelect={handleStepSelect}
-                    onDelete={handleDeleteStep}
-                  />
-                  {/* Always show add button after each step for insertion */}
-                  <AddStepButton
-                    onAddStep={handleAddStep}
-                    insertIndex={index + 1}
-                  />
-                </React.Fragment>
-              ))}
+            {pipeline.map((step, index) => (
+              <React.Fragment key={step.id}>
+                <LinearPipelineStep
+                  step={step}
+                  isSelected={selectedStepId === step.id}
+                  onSelect={handleStepSelect}
+                  onDelete={handleDeleteStep}
+                />
+                {/* Always show add button after each step for insertion */}
+                <AddStepButton
+                  onAddStep={handleAddStep}
+                  insertIndex={index + 1}
+                />
+              </React.Fragment>
+            ))}
 
-              {/* Show initial add button if no steps exist */}
-              {pipeline.length === 0 && (
-                <AddStepButton onAddStep={handleAddStep} />
-              )}
-            </div>
+            {/* Show initial add button if no steps exist */}
+            {pipeline.length === 0 && (
+              <AddStepButton onAddStep={handleAddStep} />
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

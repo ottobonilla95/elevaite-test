@@ -189,8 +189,6 @@ function AgentConfigForm(): JSX.Element {
   const [showVectorizerDrawer, setShowVectorizerDrawer] = useState(false);
   const [vectorizerAgentName, setVectorizerAgentName] = useState("");
   const [vectorizerAgentId, setVectorizerAgentId] = useState("");
-  const [isVectorizerDrawerMinimized, setIsVectorizerDrawerMinimized] =
-    useState(false);
 
   // Vectorizer pipeline state - persists when drawer is closed, per agent
   const [vectorizerPipelines, setVectorizerPipelines] = useState<
@@ -254,6 +252,63 @@ function AgentConfigForm(): JSX.Element {
     },
     []
   );
+
+  // Vectorizer action handlers
+  const handleVectorizerRunAllSteps = useCallback(() => {
+    // TODO: Implement run all steps functionality
+    console.log("Running all vectorizer steps for agent:", vectorizerAgentId);
+  }, [vectorizerAgentId]);
+
+  const handleVectorizerDeploy = useCallback(() => {
+    // TODO: Implement deploy functionality
+    console.log("Deploying vectorizer pipeline for agent:", vectorizerAgentId);
+  }, [vectorizerAgentId]);
+
+  const handleVectorizerClone = useCallback(() => {
+    // TODO: Implement clone functionality
+    console.log("Cloning vectorizer pipeline for agent:", vectorizerAgentId);
+  }, [vectorizerAgentId]);
+
+  // Auto-close vectorizer drawer when clicking outside vectorizer nodes
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent): void => {
+      if (!showVectorizerDrawer) return;
+
+      const target = event.target as Element;
+
+      // Don't close if clicking on the drawer itself
+      if (target.closest(".vectorizer-bottom-drawer")) {
+        return;
+      }
+
+      // Don't close if clicking on a vectorizer node
+      const clickedNode = target.closest(".react-flow__node");
+      if (clickedNode) {
+        const nodeElement = clickedNode as HTMLElement;
+        const nodeId = nodeElement.getAttribute("data-id");
+        const node = nodes.find((n) => n.id === nodeId);
+        if (
+          node &&
+          (node.data.agent?.agent_type === "vectorizer" ||
+            node.data.type === "vectorizer")
+        ) {
+          return;
+        }
+      }
+
+      // Close the drawer if clicking elsewhere
+      setShowVectorizerDrawer(false);
+      setSelectedVectorizerStep(null);
+    };
+
+    if (showVectorizerDrawer) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showVectorizerDrawer, nodes]);
 
   // Workflow state management
   const [isExistingWorkflow, setIsExistingWorkflow] = useState(false);
@@ -1461,7 +1516,7 @@ function AgentConfigForm(): JSX.Element {
               {/* Main Canvas */}
               <div className="designer-content">
                 <div
-                  className={`canvas-container ${showVectorizerDrawer ? "with-drawer" : ""} ${showVectorizerDrawer && isVectorizerDrawerMinimized ? "drawer-minimized" : ""}`}
+                  className={`canvas-container ${showVectorizerDrawer ? "with-drawer" : ""}`}
                 >
                   <DesignerCanvas
                     nodes={nodes}
@@ -1480,14 +1535,15 @@ function AgentConfigForm(): JSX.Element {
                       isOpen={showVectorizerDrawer}
                       onClose={() => {
                         setShowVectorizerDrawer(false);
-                        setIsVectorizerDrawerMinimized(false);
                         setSelectedVectorizerStep(null); // Clear selection when closing
                       }}
                       agentName={vectorizerAgentName}
-                      onMinimizedChange={setIsVectorizerDrawerMinimized}
                       pipeline={currentVectorizerPipeline}
                       setPipeline={updateVectorizerPipeline}
                       onStepSelect={handleVectorizerStepSelect}
+                      onRunAllSteps={handleVectorizerRunAllSteps}
+                      onDeploy={handleVectorizerDeploy}
+                      onClone={handleVectorizerClone}
                     />
                   ) : null}
                 </div>
