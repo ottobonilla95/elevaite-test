@@ -19,6 +19,7 @@ from api import (
 )
 from api.workflow_endpoints import router as workflow_router
 from api.execution_endpoints import router as execution_router
+from api.vectorization_endpoints import router as vectorization_router
 from db import crud
 
 # Temporarily comment out workflow service to test
@@ -168,6 +169,7 @@ app.include_router(workflow_router)
 app.include_router(execution_router)
 app.include_router(tools_router)
 app.include_router(file_router)
+app.include_router(vectorization_router)
 
 
 @app.get("/")
