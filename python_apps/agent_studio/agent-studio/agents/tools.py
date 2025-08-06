@@ -2719,6 +2719,218 @@ def sql_database(query: str) -> list:
 
 
 @function_schema
+def document_search(
+    query: str,
+    collection_name: str = "rag_documents",
+    top_k: Optional[int] = 5,
+    score_threshold: Optional[float] = 0.7,
+) -> str:
+    """
+    DOCUMENT SEARCH TOOL
+
+    Use this tool to search through processed documents using vector similarity.
+    Perfect for RAG (Retrieval-Augmented Generation) workflows where you need to find
+    relevant document chunks to answer user questions.
+
+    Args:
+        query: The search query to find relevant document chunks
+        collection_name: Name of the Qdrant collection containing documents (default: 'rag_documents')
+        top_k: Number of most relevant chunks to retrieve (default: 5)
+        score_threshold: Minimum similarity score for results (default: 0.7)
+
+    EXAMPLES:
+        Example: document_search("What is machine learning?")
+        Example: document_search("AI applications in healthcare", "medical_docs", 3, 0.8)
+        Example: document_search("transformer architecture", "research_papers", 10, 0.6)
+
+    Returns:
+        Formatted string with relevant document chunks and their metadata
+    """
+
+    try:
+        from qdrant_client import QdrantClient
+
+        # Get environment variables with fallbacks
+        QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
+        QDRANT_PORT = os.getenv("QDRANT_PORT", "6333")
+
+        # Initialize Qdrant client
+        qdrant_url = f"http://{QDRANT_HOST}:{QDRANT_PORT}"
+        qdrant_client = QdrantClient(url=qdrant_url)
+
+        # Generate embedding for the query
+        embedding_response = client.embeddings.create(
+            model="text-embedding-3-small", input=query  # Using newer, better model
+        )
+        query_vector = embedding_response.data[0].embedding
+
+        # Perform vector search
+        search_results = qdrant_client.search(
+            collection_name=collection_name,
+            query_vector=query_vector,
+            limit=top_k,
+            score_threshold=score_threshold,
+            with_payload=True,
+        )
+
+        # Handle no results
+        if not search_results:
+            return f"No relevant documents found for query: '{query}' in collection '{collection_name}' with score threshold {score_threshold}"
+
+        # Format results for RAG usage
+        result_text = f"DOCUMENT SEARCH RESULTS for '{query}':\n"
+        result_text += (
+            f"Collection: {collection_name} | Found: {len(search_results)} chunks\n"
+        )
+        result_text += "=" * 80 + "\n\n"
+
+        for i, result in enumerate(search_results, 1):
+            payload = result.payload or {}
+            score = result.score
+
+            result_text += f"📄 CHUNK {i} (Similarity: {score:.3f})\n"
+            result_text += "-" * 40 + "\n"
+
+            # Extract common document metadata
+            filename = payload.get(
+                "filename", payload.get("source", "Unknown Document")
+            )
+            chunk_text = payload.get(
+                "text",
+                payload.get(
+                    "content", payload.get("page_content", "No content available")
+                ),
+            )
+            page_number = payload.get("page", payload.get("page_number", "Unknown"))
+            chunk_id = payload.get("chunk_id", payload.get("id", f"chunk_{i}"))
+
+            result_text += f"📁 Source: {filename}\n"
+            result_text += f"📖 Page: {page_number}\n"
+            result_text += f"🔗 Chunk ID: {chunk_id}\n"
+            result_text += f"📝 Content:\n{chunk_text}\n"
+            result_text += "\n" + "=" * 80 + "\n\n"
+
+        return result_text
+
+    except ImportError:
+        return "Error: Qdrant client not installed. Please install with: pip install qdrant-client"
+    except Exception as e:
+        return f"Error searching documents: {str(e)}"
+
+
+@function_schema
+def document_metadata_search(
+    filename: Optional[str] = None,
+    date_range: Optional[dict] = None,
+    collection_name: str = "rag_documents",
+    limit: Optional[int] = 10,
+) -> str:
+    """
+    DOCUMENT METADATA SEARCH TOOL
+
+    Search documents by metadata filters (filename, upload date, etc.) without using vector similarity.
+    Useful for finding specific documents or filtering by document properties.
+
+    Args:
+        filename: Filter by specific filename (partial matches supported)
+        date_range: Filter by date range, e.g., {"start": "2024-01-01", "end": "2024-12-31"}
+        collection_name: Name of the Qdrant collection (default: 'rag_documents')
+        limit: Maximum number of documents to return (default: 10)
+
+    EXAMPLES:
+        Example: document_metadata_search(filename="research_paper.pdf")
+        Example: document_metadata_search(date_range={"start": "2024-01-01", "end": "2024-06-30"})
+        Example: document_metadata_search(filename="AI", limit=5)
+
+    Returns:
+        List of documents matching the metadata criteria
+    """
+
+    try:
+        from qdrant_client import QdrantClient
+        from qdrant_client.http import models
+
+        # Get environment variables
+        QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
+        QDRANT_PORT = os.getenv("QDRANT_PORT", "6333")
+
+        # Initialize Qdrant client
+        qdrant_url = f"http://{QDRANT_HOST}:{QDRANT_PORT}"
+        qdrant_client = QdrantClient(url=qdrant_url)
+
+        # Build filters
+        filters = []
+
+        if filename:
+            # Use partial match for filename
+            filters.append(
+                models.FieldCondition(
+                    key="filename", match=models.MatchText(text=filename)
+                )
+            )
+
+        # Note: Date filtering would require proper date field setup in Qdrant
+        # This is a placeholder for future implementation
+        if date_range:
+            # Would need to implement date range filtering based on your date field structure
+            pass
+
+        # Perform scroll search (metadata-only search)
+        if filters:
+            filter_condition = models.Filter(must=filters)
+        else:
+            filter_condition = None
+
+        scroll_result = qdrant_client.scroll(
+            collection_name=collection_name,
+            scroll_filter=filter_condition,
+            limit=limit,
+            with_payload=True,
+        )
+
+        points = scroll_result[0]  # scroll returns (points, next_page_offset)
+
+        if not points:
+            return f"No documents found matching the criteria in collection '{collection_name}'"
+
+        # Format results
+        result_text = f"DOCUMENT METADATA SEARCH RESULTS:\n"
+        result_text += (
+            f"Collection: {collection_name} | Found: {len(points)} documents\n"
+        )
+        result_text += "=" * 80 + "\n\n"
+
+        for i, point in enumerate(points, 1):
+            payload = point.payload or {}
+
+            result_text += f"📄 DOCUMENT {i}\n"
+            result_text += "-" * 40 + "\n"
+
+            filename = payload.get(
+                "filename", payload.get("source", "Unknown Document")
+            )
+            upload_date = payload.get(
+                "upload_date", payload.get("created_at", "Unknown Date")
+            )
+            file_size = payload.get("file_size", "Unknown Size")
+            chunk_count = payload.get("chunk_count", "Unknown")
+
+            result_text += f"📁 Filename: {filename}\n"
+            result_text += f"📅 Upload Date: {upload_date}\n"
+            result_text += f"📊 File Size: {file_size}\n"
+            result_text += f"🔢 Chunks: {chunk_count}\n"
+            result_text += f"🆔 Point ID: {point.id}\n"
+            result_text += "\n" + "=" * 80 + "\n\n"
+
+        return result_text
+
+    except ImportError:
+        return "Error: Qdrant client not installed. Please install with: pip install qdrant-client"
+    except Exception as e:
+        return f"Error searching document metadata: {str(e)}"
+
+
+@function_schema
 def arlo_api(query: str) -> str:
     """
     Use this tool to ask questions to the Arlo customer support agent.
@@ -2760,6 +2972,9 @@ tool_store = {
     "get_salesforce_accounts": get_salesforce_accounts,
     "get_salesforce_opportunities": get_salesforce_opportunities,
     "get_salesforce_opportunities_by_account": get_salesforce_opportunities_by_account,
+    # RAG and Document Search Tools
+    "document_search": document_search,
+    "document_metadata_search": document_metadata_search,
     # Backward compatibility aliases for renamed functions
     "qdrant_search": media_context_retriever,  # Alias for backward compatibility
     "query_retriever": query_retriever,
@@ -2788,6 +3003,9 @@ tool_schemas = {
     "get_salesforce_accounts": get_salesforce_accounts.openai_schema,
     "get_salesforce_opportunities": get_salesforce_opportunities.openai_schema,
     "get_salesforce_opportunities_by_account": get_salesforce_opportunities_by_account.openai_schema,
+    # RAG and Document Search Tools
+    "document_search": document_search.openai_schema,
+    "document_metadata_search": document_metadata_search.openai_schema,
     # Backward compatibility aliases for renamed functions
     "qdrant_search": media_context_retriever.openai_schema,  # Alias for backward compatibility
     "query_retriever": query_retriever.openai_schema,

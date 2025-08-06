@@ -114,7 +114,7 @@ class WorkflowExecutionContext:
         try:
             from services.deterministic_steps import step_implementations
 
-            # Register basic step implementations
+            # Register basic step implementations (bind methods to instance)
             self._step_registry["data_input"] = step_implementations.data_input_step
             self._step_registry["transformation"] = (
                 step_implementations.transformation_step
@@ -126,6 +126,20 @@ class WorkflowExecutionContext:
             )
 
             self.logger.info("Registered default deterministic step implementations")
+            
+            # Register tokenizer steps
+            try:
+                from services.tokenizer_steps_registry import tokenizer_steps_registry
+                
+                for step_type in tokenizer_steps_registry.list_available_steps():
+                    implementation = tokenizer_steps_registry.get_step_implementation(step_type)
+                    if implementation:
+                        self._step_registry[step_type] = implementation
+                
+                self.logger.info(f"Registered tokenizer steps: {tokenizer_steps_registry.list_available_steps()}")
+                
+            except ImportError as e:
+                self.logger.warning(f"Could not import tokenizer steps registry: {e}")
 
         except ImportError as e:
             self.logger.warning(f"Could not import default step implementations: {e}")
@@ -139,6 +153,26 @@ class WorkflowExecutionContext:
 
     def get_step_implementation(self, step_type: str) -> Optional[Callable]:
         """Get registered step implementation"""
+        return self._step_registry.get(step_type)
+    
+    def get_step_implementation_with_config(self, step_type: str, step_config: Dict[str, Any]) -> Optional[Callable]:
+        """Get step implementation, checking for tokenizer step configurations"""
+        # Check if this step uses a tokenizer implementation
+        step_config_dict = step_config.get("config", {})
+        tokenizer_step = step_config_dict.get("tokenizer_step")
+        
+        if tokenizer_step:
+            # Try to get tokenizer implementation
+            try:
+                from services.tokenizer_steps_registry import tokenizer_steps_registry
+                tokenizer_impl = tokenizer_steps_registry.get_step_implementation(tokenizer_step)
+                if tokenizer_impl:
+                    self.logger.info(f"Using tokenizer implementation for step {step_config.get('step_id', 'unknown')}: {tokenizer_step}")
+                    return tokenizer_impl
+            except ImportError:
+                self.logger.warning("Tokenizer steps registry not available")
+        
+        # Fall back to standard implementation
         return self._step_registry.get(step_type)
 
     @contextmanager
@@ -271,7 +305,7 @@ class WorkflowExecutionContext:
 
         try:
             # Get and execute step implementation
-            implementation = self.get_step_implementation(step_type)
+            implementation = self.get_step_implementation_with_config(step_type, step_config)
             if not implementation:
                 raise ValueError(f"No implementation found for step type: {step_type}")
 

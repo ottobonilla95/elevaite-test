@@ -1,0 +1,217 @@
+{
+  "name": "Hybrid RAG Document Processing Workflow",
+  "description": "Complete RAG pipeline: document processing + intelligent querying with vector retrieval",
+  "version": "1.0.0",
+  "configuration": {
+    "workflow_type": "hybrid",
+    "agents": [
+      {
+        "agent_id": "document_processor",
+        "agent_type": "DeterministicWorkflowAgent",
+        "name": "Document Tokenizer & Vector Storage",
+        "description": "Processes documents through the complete RAG pipeline: read → chunk → embed → store",
+        "config": {
+          "workflow_type": "deterministic",
+          "workflow_name": "RAG Document Processing Pipeline",
+          "description": "4-step tokenizer pipeline for RAG document preparation",
+          "execution_pattern": "sequential",
+          "steps": [
+            {
+              "step_id": "file_reader",
+              "step_type": "data_input",
+              "step_name": "Document File Reader",
+              "description": "Reads and validates uploaded document files",
+              "config": {
+                "tokenizer_step": "file_reader",
+                "supported_formats": ["txt", "pdf", "docx", "md"],
+                "max_file_size_mb": 50,
+                "encoding": "utf-8",
+                "validation_rules": [
+                  "file_exists",
+                  "supported_format",
+                  "size_limit"
+                ]
+              }
+            },
+            {
+              "step_id": "text_chunking",
+              "step_type": "data_processing",
+              "step_name": "Intelligent Text Chunking",
+              "description": "Chunks text using optimal strategy for RAG retrieval",
+              "config": {
+                "tokenizer_step": "text_chunking",
+                "chunking_strategy": "semantic",
+                "chunk_size": 1000,
+                "chunk_overlap": 200,
+                "preserve_sentences": true,
+                "min_chunk_size": 100,
+                "max_chunk_size": 1500
+              }
+            },
+            {
+              "step_id": "embedding_generation",
+              "step_type": "data_processing",
+              "step_name": "OpenAI Embedding Generation",
+              "description": "Generates vector embeddings for each text chunk using OpenAI",
+              "config": {
+                "tokenizer_step": "embedding_generation",
+                "embedding_model": "text-embedding-3-small",
+                "batch_size": 100,
+                "rate_limit_delay": 0.1,
+                "max_retries": 3,
+                "dimensions": 1536
+              }
+            },
+            {
+              "step_id": "vector_storage",
+              "step_type": "data_output",
+              "step_name": "Qdrant Vector Database Storage",
+              "description": "Stores embeddings and metadata in Qdrant for retrieval",
+              "config": {
+                "tokenizer_step": "vector_storage",
+                "qdrant_host": "localhost",
+                "qdrant_port": 6333,
+                "collection_name": "rag_documents",
+                "vector_size": 1536,
+                "distance_metric": "cosine",
+                "create_collection_if_not_exists": true,
+                "batch_size": 100
+              }
+            }
+          ]
+        }
+      },
+      {
+        "agent_id": "rag_query_agent",
+        "agent_type": "CommandAgent",
+        "name": "RAG-Enabled Query Agent",
+        "description": "Intelligent agent that can query processed documents using vector retrieval",
+        "config": {
+          "system_prompt": "You are a RAG-enabled document assistant. You have access to a vector database containing processed documents. When users ask questions, you should:\n\n1. Use the document_search tool to find relevant context from the processed documents\n2. Analyze the retrieved context carefully\n3. Provide comprehensive, accurate answers based on the retrieved information\n4. If the information isn't in the documents, clearly state that\n5. Always cite which parts of the documents you're referencing\n\nYou excel at understanding document content and providing detailed, contextual responses.",
+          "model": "gpt-4",
+          "temperature": 0.1,
+          "max_tokens": 2000,
+          "tools": [
+            {
+              "name": "document_search",
+              "description": "Search the processed document collection using vector similarity",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "The search query to find relevant document chunks"
+                  },
+                  "top_k": {
+                    "type": "integer",
+                    "description": "Number of most relevant chunks to retrieve",
+                    "default": 5
+                  },
+                  "score_threshold": {
+                    "type": "number",
+                    "description": "Minimum similarity score for results",
+                    "default": 0.7
+                  }
+                },
+                "required": ["query"]
+              }
+            },
+            {
+              "name": "document_metadata_search",
+              "description": "Search documents by metadata filters (filename, upload date, etc.)",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "filename": {
+                    "type": "string",
+                    "description": "Filter by specific filename"
+                  },
+                  "date_range": {
+                    "type": "object",
+                    "properties": {
+                      "start": { "type": "string", "format": "date" },
+                      "end": { "type": "string", "format": "date" }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "connections": [
+      {
+        "source_agent_id": "document_processor",
+        "target_agent_id": "rag_query_agent",
+        "connection_type": "conditional",
+        "description": "After document processing, route queries to RAG agent"
+      }
+    ],
+    "execution_logic": {
+      "routing_rules": [
+        {
+          "condition": "input.has_file",
+          "action": "process_document_then_query",
+          "flow": ["document_processor", "rag_query_agent"],
+          "description": "If file uploaded: process document → enable RAG querying",
+          "metadata": {
+            "processing_message": "Processing your document for intelligent querying...",
+            "completion_message": "Document processed! You can now ask questions about it."
+          }
+        },
+        {
+          "condition": "!input.has_file && input.query_type == 'document_search'",
+          "action": "direct_rag_query",
+          "flow": ["rag_query_agent"],
+          "description": "If no file but document query: direct RAG search",
+          "metadata": {
+            "search_message": "Searching processed documents for your query..."
+          }
+        },
+        {
+          "condition": "!input.has_file && input.query_type != 'document_search'",
+          "action": "general_query",
+          "flow": ["rag_query_agent"],
+          "description": "General queries without document context",
+          "metadata": {
+            "general_message": "Processing your general query..."
+          }
+        }
+      ],
+      "default_action": "direct_rag_query",
+      "error_handling": {
+        "document_processing_failure": {
+          "action": "fallback_to_general_query",
+          "message": "Document processing failed, but I can still help with general questions."
+        },
+        "vector_search_failure": {
+          "action": "general_response",
+          "message": "Vector search unavailable, providing general response."
+        }
+      }
+    },
+    "metadata": {
+      "category": "rag_document_processing",
+      "tags": [
+        "rag",
+        "document_processing",
+        "vector_search",
+        "hybrid",
+        "tokenizer"
+      ],
+      "use_cases": [
+        "Document analysis and Q&A",
+        "Research paper querying",
+        "Knowledge base creation",
+        "Content summarization",
+        "Intelligent document search"
+      ],
+      "requirements": {
+        "openai_api_key": "required",
+        "qdrant_instance": "localhost:6333",
+        "supported_file_types": ["txt", "pdf", "docx", "md"]
+      }
+    }
+  }
+}

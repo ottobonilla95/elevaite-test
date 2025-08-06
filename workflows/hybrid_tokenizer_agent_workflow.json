@@ -1,0 +1,88 @@
+{
+  "workflow_id": "hybrid_tokenizer_agent_001",
+  "workflow_name": "Hybrid Tokenizer + AI Agent Workflow",
+  "description": "Hybrid workflow that conditionally processes uploaded files through tokenizer pipeline and then routes queries to AI agents with enhanced RAG context.",
+  "version": "1.0.0",
+  "workflow_type": "hybrid",
+  "execution_pattern": "conditional",
+  "timeout_seconds": 1800,
+  "max_retries": 2,
+  "category": "hybrid_rag",
+  "tags": ["hybrid", "tokenizer", "rag", "ai_agent", "conditional"],
+  "conditions": [
+    {
+      "condition_id": "has_file_upload",
+      "expression": "input.has_file",
+      "description": "Check if input contains a file to process"
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "process_file",
+      "step_name": "Process Uploaded File",
+      "step_type": "deterministic_workflow",
+      "step_order": 1,
+      "dependencies": [],
+      "condition": "has_file_upload",
+      "config": {
+        "workflow_ref": "tokenizer_rag_001",
+        "pass_through_input": true,
+        "output_mapping": {
+          "processed_file": "store_vectors.storage_result",
+          "document_metadata": "read_document.metadata",
+          "chunks_count": "chunk_text.metadata.total_chunks",
+          "embeddings_count": "generate_embeddings.metadata.successful_embeddings"
+        }
+      },
+      "timeout_seconds": 1200
+    },
+    {
+      "step_id": "enhance_query_context",
+      "step_name": "Enhance Query with RAG Context",
+      "step_type": "data_processing",
+      "step_order": 2,
+      "dependencies": ["process_file"],
+      "condition": "has_file_upload",
+      "input_mapping": {
+        "original_query": "input.query",
+        "file_metadata": "process_file.document_metadata",
+        "processing_results": "process_file"
+      },
+      "config": {
+        "processing_type": "rag_context_enhancement",
+        "include_file_summary": true,
+        "include_processing_stats": true,
+        "context_template": "The user uploaded a {file_type} file '{file_name}' ({file_size} bytes) which has been processed into {chunks_count} text chunks and stored in the vector database with {embeddings_count} embeddings. The original query is: {query}"
+      },
+      "timeout_seconds": 30
+    },
+    {
+      "step_id": "route_to_agent",
+      "step_name": "Route Query to AI Agent",
+      "step_type": "agent_execution",
+      "step_order": 3,
+      "dependencies": ["enhance_query_context"],
+      "input_mapping": {
+        "query": "enhance_query_context.enhanced_query || input.query",
+        "context": "enhance_query_context.context_data"
+      },
+      "config": {
+        "agent_type": "CommandAgent",
+        "model": "gpt-4o",
+        "temperature": 0.7,
+        "max_tokens": 2000,
+        "enable_tools": true,
+        "enable_memory": true,
+        "enable_rag_retrieval": true,
+        "rag_config": {
+          "collection_name": "document_chunks",
+          "vector_db": "qdrant",
+          "top_k": 5,
+          "similarity_threshold": 0.7,
+          "include_metadata": true
+        }
+      },
+      "timeout_seconds": 180
+    }
+  ]
+}

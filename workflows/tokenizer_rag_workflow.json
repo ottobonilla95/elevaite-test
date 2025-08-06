@@ -1,0 +1,111 @@
+{
+  "workflow_id": "tokenizer_rag_001",
+  "workflow_name": "Document Tokenization for RAG",
+  "description": "Complete pipeline to read documents, chunk text, generate embeddings, and store in vector database for RAG retrieval. Supports PDF, DOCX, TXT, HTML, and Markdown files.",
+  "version": "1.0.0",
+  "workflow_type": "deterministic",
+  "execution_pattern": "sequential",
+  "uses_tokenizer_steps": true,
+  "timeout_seconds": 1200,
+  "max_retries": 2,
+  "category": "document_processing",
+  "tags": ["tokenizer", "rag", "embeddings", "vector_storage", "document_processing"],
+  "steps": [
+    {
+      "step_id": "read_document",
+      "step_name": "Read Document File",
+      "step_type": "data_input",
+      "step_order": 1,
+      "dependencies": [],
+      "config": {
+        "tokenizer_step": "file_reader",
+        "supported_formats": [".pdf", ".docx", ".txt", ".md", ".html"],
+        "max_file_size": 52428800,
+        "encoding": "utf-8",
+        "pdf_method": "pdfplumber",
+        "extract_metadata": true,
+        "preserve_formatting": false
+      },
+      "timeout_seconds": 120,
+      "max_retries": 2
+    },
+    {
+      "step_id": "chunk_text",
+      "step_name": "Chunk Text Content",
+      "step_type": "transformation",
+      "step_order": 2,
+      "dependencies": ["read_document"],
+      "input_mapping": {
+        "content": "read_document.content"
+      },
+      "config": {
+        "tokenizer_step": "text_chunking",
+        "chunk_strategy": "sliding_window",
+        "chunk_size": 1000,
+        "overlap": 0.2,
+        "min_chunk_size": 100,
+        "max_chunk_size": 2000,
+        "preserve_structure": true,
+        "semantic_model": "paraphrase-MiniLM-L6-v2"
+      },
+      "timeout_seconds": 180,
+      "max_retries": 2
+    },
+    {
+      "step_id": "generate_embeddings",
+      "step_name": "Generate Vector Embeddings",
+      "step_type": "batch_processing",
+      "step_order": 3,
+      "dependencies": ["chunk_text"],
+      "input_mapping": {
+        "chunks": "chunk_text.chunks"
+      },
+      "batch_size": 50,
+      "config": {
+        "tokenizer_step": "embedding_generation",
+        "provider": "openai",
+        "model": "text-embedding-3-small",
+        "batch_size": 50,
+        "max_retries": 3,
+        "retry_delay": 1,
+        "timeout": 30,
+        "rate_limit_rpm": 3000,
+        "normalize": false,
+        "dimension": 1536
+      },
+      "timeout_seconds": 600,
+      "max_retries": 2
+    },
+    {
+      "step_id": "store_vectors",
+      "step_name": "Store in Vector Database",
+      "step_type": "data_output",
+      "step_order": 4,
+      "dependencies": ["generate_embeddings"],
+      "input_mapping": {
+        "embeddings": "generate_embeddings.embeddings"
+      },
+      "config": {
+        "tokenizer_step": "vector_storage",
+        "vector_db": "qdrant",
+        "collection_name": "document_chunks",
+        "host": "localhost",
+        "port": 6333,
+        "distance_metric": "cosine",
+        "create_collection": true,
+        "batch_size": 100,
+        "upsert": true,
+        "hnsw_config": {
+          "m": 16,
+          "ef_construct": 100
+        },
+        "additional_metadata": {
+          "workflow_id": "tokenizer_rag_001",
+          "processing_version": "1.0.0"
+        }
+      },
+      "timeout_seconds": 300,
+      "max_retries": 2
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "workflow_id": "tokenizer_semantic_rag_001",
+  "workflow_name": "Advanced Semantic Tokenization for RAG",
+  "description": "Advanced pipeline using semantic chunking, multiple embedding models, and optimized vector storage for high-quality RAG retrieval.",
+  "version": "1.0.0",
+  "workflow_type": "deterministic",
+  "execution_pattern": "sequential",
+  "timeout_seconds": 1800,
+  "max_retries": 2,
+  "category": "advanced_document_processing",
+  "tags": ["tokenizer", "semantic", "rag", "embeddings", "advanced"],
+  "steps": [
+    {
+      "step_id": "read_document",
+      "step_name": "Read Document with Metadata",
+      "step_type": "data_input",
+      "step_order": 1,
+      "dependencies": [],
+      "config": {
+        "supported_formats": [".pdf", ".docx", ".txt", ".md", ".html"],
+        "max_file_size": 104857600,
+        "encoding": "utf-8",
+        "pdf_method": "pdfplumber",
+        "extract_metadata": true,
+        "preserve_formatting": true
+      },
+      "timeout_seconds": 180
+    },
+    {
+      "step_id": "semantic_chunk",
+      "step_name": "Semantic Text Chunking",
+      "step_type": "transformation",
+      "step_order": 2,
+      "dependencies": ["read_document"],
+      "input_mapping": {
+        "content": "read_document.content"
+      },
+      "config": {
+        "chunk_strategy": "semantic",
+        "n_clusters": 8,
+        "semantic_model": "all-MiniLM-L6-v2",
+        "min_chunk_size": 200,
+        "max_chunk_size": 1500,
+        "preserve_structure": true
+      },
+      "timeout_seconds": 300
+    },
+    {
+      "step_id": "generate_high_quality_embeddings",
+      "step_name": "Generate High-Quality Embeddings",
+      "step_type": "batch_processing",
+      "step_order": 3,
+      "dependencies": ["semantic_chunk"],
+      "input_mapping": {
+        "chunks": "semantic_chunk.chunks"
+      },
+      "batch_size": 25,
+      "config": {
+        "provider": "openai",
+        "model": "text-embedding-3-large",
+        "batch_size": 25,
+        "max_retries": 3,
+        "retry_delay": 2,
+        "timeout": 45,
+        "rate_limit_rpm": 1000,
+        "normalize": false,
+        "dimension": 3072
+      },
+      "timeout_seconds": 900
+    },
+    {
+      "step_id": "store_in_qdrant_cloud",
+      "step_name": "Store in Qdrant Cloud",
+      "step_type": "data_output",
+      "step_order": 4,
+      "dependencies": ["generate_high_quality_embeddings"],
+      "input_mapping": {
+        "embeddings": "generate_high_quality_embeddings.embeddings"
+      },
+      "config": {
+        "vector_db": "qdrant",
+        "collection_name": "semantic_document_chunks",
+        "host": "your-cluster.qdrant.io",
+        "port": 6333,
+        "api_key": "${QDRANT_API_KEY}",
+        "https": true,
+        "distance_metric": "cosine",
+        "create_collection": true,
+        "batch_size": 50,
+        "upsert": true,
+        "hnsw_config": {
+          "m": 32,
+          "ef_construct": 200
+        },
+        "additional_metadata": {
+          "workflow_id": "tokenizer_semantic_rag_001",
+          "processing_version": "1.0.0",
+          "chunking_strategy": "semantic",
+          "embedding_model": "text-embedding-3-large"
+        }
+      },
+      "timeout_seconds": 600
+    }
+  ]
+}

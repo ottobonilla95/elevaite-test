@@ -7,6 +7,7 @@
     "test": "tsx test-biggest-workflow.ts",
     "test:biggest": "tsx test-biggest-workflow.ts",
     "test:hybrid": "tsx test-hybrid-deterministic-workflows.ts",
+    "test:tokenizer": "tsx test-tokenizer-rag-workflow.ts",
     "build": "tsc",
     "dev": "tsx watch test-biggest-workflow.ts"
   },
