@@ -46,6 +46,7 @@ import DesignerCanvas from "./agents/DesignerCanvas";
 import DesignerSidebar from "./agents/DesignerSidebar";
 import VectorizerBottomDrawer, {
   type VectorizationStepData,
+  type PipelineStep,
 } from "./agents/VectorizerBottomDrawer";
 import VectorizerConfigPanel from "./agents/VectorizerConfigPanel";
 // Import styles
@@ -191,81 +192,39 @@ function AgentConfigForm(): JSX.Element {
   const [isVectorizerDrawerMinimized, setIsVectorizerDrawerMinimized] =
     useState(false);
 
-  // Vectorizer canvas state - persists when drawer is closed, per agent
-  const [vectorizerStates, setVectorizerStates] = useState<
-    Record<
-      string,
-      {
-        nodes: ReactFlowNode<VectorizationStepData>[];
-        edges: Edge[];
-      }
-    >
+  // Vectorizer pipeline state - persists when drawer is closed, per agent
+  const [vectorizerPipelines, setVectorizerPipelines] = useState<
+    Record<string, PipelineStep[]>
   >({});
 
   // Vectorizer step selection and configuration state
   const [selectedVectorizerStep, setSelectedVectorizerStep] =
     useState<VectorizationStepData | null>(null);
   const [vectorizerStepConfigs, setVectorizerStepConfigs] = useState<
-    Record<string, Record<string, any>>
+    Record<string, Record<string, unknown>>
   >({});
 
-  // Get current vectorizer state with memoization
-  const currentVectorizerState = useMemo(() => {
-    const state = vectorizerStates[vectorizerAgentId];
-    return {
-      nodes: state?.nodes || [],
-      edges: state?.edges || [],
-    };
-  }, [vectorizerStates, vectorizerAgentId]);
+  // Get current vectorizer pipeline with memoization
+  const currentVectorizerPipeline = useMemo(() => {
+    return vectorizerPipelines[vectorizerAgentId] ?? [];
+  }, [vectorizerPipelines, vectorizerAgentId]);
 
-  const updateVectorizerNodes = useCallback(
+  const updateVectorizerPipeline = useCallback(
     (
-      nodesOrUpdater:
-        | ReactFlowNode<VectorizationStepData>[]
-        | ((
-            prev: ReactFlowNode<VectorizationStepData>[]
-          ) => ReactFlowNode<VectorizationStepData>[])
+      pipelineOrUpdater:
+        | PipelineStep[]
+        | ((prev: PipelineStep[]) => PipelineStep[])
     ) => {
-      setVectorizerStates((prev) => {
-        const currentState = prev[vectorizerAgentId] || {
-          nodes: [],
-          edges: [],
-        };
-        const newNodes =
-          typeof nodesOrUpdater === "function"
-            ? nodesOrUpdater(currentState.nodes)
-            : nodesOrUpdater;
+      setVectorizerPipelines((prev) => {
+        const currentPipeline = prev[vectorizerAgentId] ?? [];
+        const newPipeline =
+          typeof pipelineOrUpdater === "function"
+            ? pipelineOrUpdater(currentPipeline)
+            : pipelineOrUpdater;
 
         return {
           ...prev,
-          [vectorizerAgentId]: {
-            ...currentState,
-            nodes: newNodes,
-          },
-        };
-      });
-    },
-    [vectorizerAgentId]
-  );
-
-  const updateVectorizerEdges = useCallback(
-    (edgesOrUpdater: Edge[] | ((prev: Edge[]) => Edge[])) => {
-      setVectorizerStates((prev) => {
-        const currentState = prev[vectorizerAgentId] || {
-          nodes: [],
-          edges: [],
-        };
-        const newEdges =
-          typeof edgesOrUpdater === "function"
-            ? edgesOrUpdater(currentState.edges)
-            : edgesOrUpdater;
-
-        return {
-          ...prev,
-          [vectorizerAgentId]: {
-            ...currentState,
-            edges: newEdges,
-          },
+          [vectorizerAgentId]: newPipeline,
         };
       });
     },
@@ -287,7 +246,7 @@ function AgentConfigForm(): JSX.Element {
 
   // Handle vectorizer step configuration changes
   const handleVectorizerStepConfigChange = useCallback(
-    (stepId: string, config: Record<string, any>) => {
+    (stepId: string, config: Record<string, unknown>) => {
       setVectorizerStepConfigs((prev) => ({
         ...prev,
         [stepId]: config,
@@ -1526,10 +1485,8 @@ function AgentConfigForm(): JSX.Element {
                       }}
                       agentName={vectorizerAgentName}
                       onMinimizedChange={setIsVectorizerDrawerMinimized}
-                      nodes={currentVectorizerState.nodes}
-                      edges={currentVectorizerState.edges}
-                      setNodes={updateVectorizerNodes}
-                      setEdges={updateVectorizerEdges}
+                      pipeline={currentVectorizerPipeline}
+                      setPipeline={updateVectorizerPipeline}
                       onStepSelect={handleVectorizerStepSelect}
                     />
                   ) : null}

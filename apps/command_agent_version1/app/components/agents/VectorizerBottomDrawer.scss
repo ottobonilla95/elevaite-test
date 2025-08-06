@@ -1,4 +1,4 @@
-@import "../variables";
+@import "../_variables";
 
 .vectorizer-bottom-drawer {
   background: white;
@@ -55,64 +55,225 @@
     }
   }
 
-  .steps-sidebar {
-    width: 250px;
+  .linear-pipeline-canvas {
+    flex: 1;
+    position: relative;
     background: $gray-50;
-    border-right: 1px solid $gray-200;
-    padding: 1rem;
+    overflow: hidden; // Hide overflow to create viewport
+    cursor: grab;
+    user-select: none;
+    width: 100%;
+    height: 100%;
+
+    &.dragging {
+      cursor: grabbing;
+    }
+
+    .pipeline-container {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      height: 100%;
+      width: max-content;
+      min-width: 100%;
+      padding: 2rem;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: transform 0.1s ease-out; // Smooth dragging
+    }
+  }
+}
+
+.linear-pipeline-step {
+  background: white;
+  border: 2px solid $gray-200;
+  border-radius: $border-radius-lg;
+  padding: 1rem;
+  min-width: 180px;
+  max-width: 200px;
+  cursor: pointer;
+  transition: $transition-default;
+  position: relative;
+  box-shadow: $shadow-sm;
+
+  &:hover {
+    border-color: $brand-primary;
+    box-shadow: $shadow-md;
+  }
+
+  &.selected {
+    border-color: $brand-primary;
+    background: #fff4ed;
+    box-shadow: $shadow-md;
+  }
+
+  .step-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+
+    .step-header-centered {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      text-align: center;
+      width: 100%;
+
+      .step-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+      }
+
+      .step-name {
+        font-size: $font-size-base;
+        font-weight: 600;
+        color: $gray-800;
+      }
+    }
+
+    .delete-button {
+      position: absolute;
+      top: -0.5rem;
+      right: -0.5rem;
+      background: white;
+      border: 1px solid $gray-200;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: $transition-default;
+      color: $gray-400;
+
+      &:hover {
+        background: #fee2e2;
+        border-color: #ef4444;
+        color: #ef4444;
+      }
+    }
+  }
+}
+
+.step-connector {
+  display: flex;
+  align-items: center;
+  margin: 0 1rem;
+
+  .connector-line {
+    width: 60px;
+    height: 2px;
+    background: $gray-300;
+  }
+}
+
+.add-step-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 1rem;
+  position: relative;
+  width: 60px;
+
+  .connector-line {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: $gray-300;
+    z-index: 1;
+  }
+
+  .add-step-button-wrapper {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .add-step-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: $brand-primary;
+    border: 2px solid white;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: $transition-default;
+    box-shadow: $shadow-sm;
+
+    &:hover {
+      background: darken($brand-primary, 10%);
+      box-shadow: $shadow-md;
+      transform: scale(1.1);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  .step-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 0.5rem;
+    background: white;
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-lg;
+    z-index: 1000;
+    min-width: 200px;
+    max-height: 300px;
     overflow-y: auto;
 
-    h4 {
-      margin: 0 0 0.75rem 0;
-      font-size: $font-size-sm;
-      font-weight: 500;
-      color: $gray-700;
-    }
-
-    .steps-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .step-button {
+    .step-option {
       display: flex;
       align-items: center;
       gap: 0.75rem;
       padding: 0.75rem;
-      background: white;
-      border: 1px solid $gray-200;
-      border-radius: $border-radius-md;
-      cursor: grab;
-      transition: $transition-default;
+      border: none;
+      background: none;
+      width: 100%;
       text-align: left;
+      cursor: pointer;
+      transition: $transition-default;
 
       &:hover {
-        border-color: $brand-primary;
-        background: #fff4ed;
+        background: $gray-50;
       }
 
-      &:active {
-        cursor: grabbing;
+      &:not(:last-child) {
+        border-bottom: 1px solid $gray-100;
       }
 
-      .step-icon {
+      .step-option-icon {
         font-size: 1.25rem;
         flex-shrink: 0;
       }
 
-      .step-info {
+      .step-option-info {
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
 
-        .step-name {
+        .step-option-name {
           font-size: $font-size-sm;
           font-weight: 500;
           color: $gray-800;
         }
 
-        .step-description {
+        .step-option-description {
           font-size: $font-size-xs;
           color: $gray-600;
           line-height: 1.3;
@@ -120,143 +281,4 @@
       }
     }
   }
-
-  .vectorization-canvas {
-    flex: 1;
-    position: relative;
-    background: $gray-50;
-    overflow: hidden; // Prevent canvas bleeding
-    isolation: isolate; // Create isolated stacking context
-
-    // Ensure the ReactFlow provider creates its own context
-    .react-flow-provider {
-      width: 100%;
-      height: 100%;
-    }
-
-    .react-flow {
-      background: $gray-50;
-      width: 100%;
-      height: 100%;
-    }
-
-    .react-flow__node {
-      cursor: grab;
-
-      &:active,
-      &.react-flow__node-selected {
-        cursor: grabbing;
-      }
-    }
-
-    .react-flow__edge {
-      stroke: $brand-primary;
-      stroke-width: 2;
-    }
-
-    .react-flow__edge-path {
-      stroke: $brand-primary;
-    }
-
-    .react-flow__controls {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      z-index: 10;
-      background: white;
-      border: 1px solid $gray-200;
-      border-radius: $border-radius-md;
-    }
-
-    .react-flow__minimap {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      z-index: 10;
-      background: white;
-      border: 1px solid $gray-200;
-      border-radius: $border-radius-md;
-      width: 120px;
-      height: 80px;
-    }
-
-    // Ensure attribution doesn't interfere
-    .react-flow__attribution {
-      display: none;
-    }
-  }
-}
-
-.vectorization-step-node {
-  background: white;
-  box-shadow: $shadow-sm;
-  transition: $transition-default;
-  cursor: grab;
-
-  border-color: $brand-primary !important;
-  background: #fff4ed !important;
-  box-shadow: $shadow-md;
-
-  &:active {
-    cursor: grabbing;
-  }
-
-  .step-icon {
-    font-size: 1rem;
-  }
-
-  .step-name {
-    font-size: $font-size-sm;
-    font-weight: 500;
-    color: $gray-800;
-  }
-
-  .step-description {
-    font-size: $font-size-xs;
-    color: $gray-600;
-    line-height: 1.3;
-  }
-
-  button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 0.25rem;
-    border-radius: $border-radius-sm;
-    transition: $transition-default;
-    position: relative;
-    z-index: 10;
-
-    &:hover {
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
-    }
-
-    &:active {
-      cursor: pointer;
-    }
-  }
-}
-
-.react-flow__handle {
-  background: $brand-primary;
-  border: 2px solid white;
-  width: 8px;
-  height: 8px;
-}
-
-.react-flow__handle-top {
-  top: -4px;
-}
-
-.react-flow__handle-bottom {
-  bottom: -4px;
-}
-
-.react-flow__handle-left {
-  left: -4px;
-}
-
-.react-flow__handle-right {
-  right: -4px;
 }

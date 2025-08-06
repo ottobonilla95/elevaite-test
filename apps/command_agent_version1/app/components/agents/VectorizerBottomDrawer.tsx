@@ -1,21 +1,7 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  Handle,
-  Position,
-  type Node,
-  type Edge,
-  type Connection,
-  addEdge,
-  type NodeChange,
-  type EdgeChange,
-  ReactFlowProvider,
-} from "react-flow-renderer";
-import { X, ChevronDown, ChevronUp } from "lucide-react";
+import React, { useCallback, useState, useEffect } from "react";
+import { X, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import "./VectorizerBottomDrawer.scss";
 
 export type VectorizationStepType =
@@ -34,6 +20,14 @@ export interface VectorizationStepData {
   config?: Record<string, unknown>;
   onDelete: (id: string) => void;
   onSelect?: (stepData: VectorizationStepData) => void;
+}
+
+export interface PipelineStep {
+  id: string;
+  type: VectorizationStepType;
+  name: string;
+  description: string;
+  config?: Record<string, unknown>;
 }
 
 const getStepIcon = (stepType: VectorizationStepType): string => {
@@ -55,93 +49,178 @@ const getStepIcon = (stepType: VectorizationStepType): string => {
   }
 };
 
-function VectorizationStepNode({
-  id,
-  data,
-}: {
-  id: string;
-  data: VectorizationStepData;
-}): JSX.Element {
-  const { type, name, onDelete, onSelect } = data;
+const getStepName = (stepType: VectorizationStepType): string => {
+  switch (stepType) {
+    case "load":
+      return "Load Data";
+    case "parse":
+      return "Parse";
+    case "chunk":
+      return "Chunk";
+    case "embed":
+      return "Embed";
+    case "store":
+      return "Store";
+    case "query":
+      return "Query";
+    default:
+      return "Unknown";
+  }
+};
 
+const getStepDescription = (stepType: VectorizationStepType): string => {
+  switch (stepType) {
+    case "load":
+      return "Load documents from various sources";
+    case "parse":
+      return "Extract text from documents";
+    case "chunk":
+      return "Split text into manageable chunks";
+    case "embed":
+      return "Generate vector embeddings";
+    case "store":
+      return "Save vectors to database";
+    case "query":
+      return "Search and retrieve vectors";
+    default:
+      return "Configure step";
+  }
+};
+
+// Linear Pipeline Step Component
+function LinearPipelineStep({
+  step,
+  isSelected,
+  onSelect,
+  onDelete,
+}: {
+  step: PipelineStep;
+  isSelected: boolean;
+  onSelect: (step: PipelineStep) => void;
+  onDelete: (stepId: string) => void;
+}): JSX.Element {
   const handleStepClick = (e: React.MouseEvent): void => {
     e.stopPropagation();
-    if (onSelect) {
-      onSelect(data);
-    }
+    onSelect(step);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent): void => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       e.stopPropagation();
-      if (onSelect) {
-        onSelect(data);
-      }
+      onSelect(step);
     }
   };
 
   return (
     <div
-      className="vectorization-step-node border-2 rounded-lg p-3 min-w-[160px] relative cursor-pointer hover:border-brand-primary transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2"
+      className={`linear-pipeline-step ${isSelected ? "selected" : ""}`}
       onClick={handleStepClick}
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
-      aria-label={`Select ${name} step`}
+      aria-label={`Select ${step.name} step`}
     >
-      {/* Input Handle */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="w-3 h-3 bg-brand-primary border-2 border-white"
-        id={`${id}-input`}
-      />
-
-      {/* Horizontal layout like main canvas agents */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{getStepIcon(type)}</span>
-          <span className="font-medium text-sm">{name}</span>
+      <div className="step-content">
+        <div className="step-header-centered">
+          <span className="step-icon">{getStepIcon(step.type)}</span>
+          <span className="step-name">{step.name}</span>
         </div>
 
         {/* Delete button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onDelete(id);
+            onDelete(step.id);
           }}
-          className="text-gray-400 hover:text-red-500 transition-colors"
+          className="delete-button"
           type="button"
+          aria-label={`Delete ${step.name} step`}
         >
           <X size={14} />
         </button>
       </div>
-
-      {/* Output Handle */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="w-3 h-3 bg-brand-primary border-2 border-white"
-        id={`${id}-output`}
-      />
     </div>
   );
 }
 
-const nodeTypes = {
-  vectorizationStep: VectorizationStepNode,
-};
+// Add Step Button Component
+function AddStepButton({
+  onAddStep,
+  insertIndex,
+}: {
+  onAddStep: (stepType: VectorizationStepType, insertIndex?: number) => void;
+  insertIndex?: number;
+}): JSX.Element {
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const availableStepTypes: VectorizationStepType[] = [
+    "load",
+    "parse",
+    "chunk",
+    "embed",
+    "store",
+    "query",
+  ];
+
+  const handleAddStep = (stepType: VectorizationStepType): void => {
+    onAddStep(stepType, insertIndex);
+    setShowDropdown(false);
+  };
+
+  return (
+    <div className="add-step-container">
+      <div className="connector-line" />
+      <div className="add-step-button-wrapper">
+        <button
+          className="add-step-button"
+          onClick={() => {
+            setShowDropdown(!showDropdown);
+          }}
+          type="button"
+          aria-label="Add pipeline step"
+        >
+          <Plus size={16} />
+        </button>
+
+        {showDropdown ? (
+          <div className="step-dropdown">
+            {availableStepTypes.map((stepType) => (
+              <button
+                key={stepType}
+                className="step-option"
+                onClick={() => {
+                  handleAddStep(stepType);
+                }}
+                type="button"
+              >
+                <span className="step-option-icon">
+                  {getStepIcon(stepType)}
+                </span>
+                <div className="step-option-info">
+                  <span className="step-option-name">
+                    {getStepName(stepType)}
+                  </span>
+                  <span className="step-option-description">
+                    {getStepDescription(stepType)}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 interface VectorizerBottomDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   agentName: string;
   onMinimizedChange?: (minimized: boolean) => void;
-  nodes: Node<VectorizationStepData>[];
-  edges: Edge[];
-  setNodes: React.Dispatch<React.SetStateAction<Node<VectorizationStepData>[]>>;
-  setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
+  pipeline: PipelineStep[];
+  setPipeline: React.Dispatch<React.SetStateAction<PipelineStep[]>>;
   onStepSelect?: (stepData: VectorizationStepData | null) => void;
 }
 
@@ -150,160 +229,186 @@ export default function VectorizerBottomDrawer({
   onClose,
   agentName,
   onMinimizedChange,
-  nodes,
-  edges,
-  setNodes,
-  setEdges,
+  pipeline,
+  setPipeline,
   onStepSelect,
 }: VectorizerBottomDrawerProps): JSX.Element | null {
   const [isMinimized, setIsMinimized] = useState(false);
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
-  const availableSteps: {
-    type: VectorizationStepType;
-    name: string;
-    description: string;
-  }[] = [
-    {
-      type: "load",
-      name: "Load Data",
-      description: "Load documents from various sources",
-    },
-    {
-      type: "parse",
-      name: "Parse",
-      description: "Extract text from documents",
-    },
-    {
-      type: "chunk",
-      name: "Chunk",
-      description: "Split text into manageable chunks",
-    },
-    { type: "embed", name: "Embed", description: "Generate vector embeddings" },
-    { type: "store", name: "Store", description: "Save vectors to database" },
-    {
-      type: "query",
-      name: "Query",
-      description: "Search and retrieve vectors",
-    },
-  ];
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes((nds) => {
-      const newNodes = [...nds];
-      changes.forEach((change) => {
-        if (
-          change.type === "position" &&
-          "position" in change &&
-          change.position
-        ) {
-          const nodeIndex = newNodes.findIndex((n) => n.id === change.id);
-          if (nodeIndex !== -1) {
-            newNodes[nodeIndex] = {
-              ...newNodes[nodeIndex],
-              position: change.position,
-            };
-          }
-        } else if (change.type === "remove" && "id" in change) {
-          return newNodes.filter((n) => n.id !== change.id);
-        }
-      });
-      return newNodes;
-    });
-  }, []);
+  useEffect(() => {
+    if (isOpen && pipeline.length === 0) {
+      const loadStep: PipelineStep = {
+        id: `load-${Date.now().toString()}`,
+        type: "load",
+        name: getStepName("load"),
+        description: getStepDescription("load"),
+        config: {},
+      };
+      setPipeline([loadStep]);
+      setSelectedStepId(loadStep.id);
 
-  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    setEdges((eds) => {
-      let newEdges = [...eds];
-      changes.forEach((change) => {
-        if (change.type === "remove" && "id" in change) {
-          newEdges = newEdges.filter((e) => e.id !== change.id);
-        }
-      });
-      return newEdges;
-    });
-  }, []);
-
-  const onConnect = useCallback((params: Connection) => {
-    const newEdge = {
-      ...params,
-      id: `e-${params.source ?? "unknown"}-${params.target ?? "unknown"}-${Date.now().toString()}`,
-      type: "smoothstep",
-      animated: true,
-      style: { stroke: "#FF681F", strokeWidth: 2 },
-    };
-    setEdges((eds) => addEdge(newEdge, eds));
-  }, []);
-
-  const handleDeleteStep = useCallback(
-    (nodeId: string) => {
-      setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-      setEdges((eds) =>
-        eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
-      );
-      // Clear selection if deleted step was selected
       if (onStepSelect) {
-        onStepSelect(null);
+        onStepSelect({
+          id: loadStep.id,
+          type: loadStep.type,
+          name: loadStep.name,
+          description: loadStep.description,
+          config: loadStep.config,
+          onDelete: () => {
+            handleDeleteStep(loadStep.id);
+          },
+          onSelect: handleStepSelect,
+        });
+      }
+    }
+  }, [isOpen, pipeline.length]);
+
+  const handleAddStep = useCallback(
+    (stepType: VectorizationStepType, insertIndex?: number) => {
+      const newStep: PipelineStep = {
+        id: `${stepType}-${Date.now().toString()}`,
+        type: stepType,
+        name: getStepName(stepType),
+        description: getStepDescription(stepType),
+        config: {},
+      };
+
+      setPipeline((prev) => {
+        if (insertIndex !== undefined) {
+          // Insert at specific index
+          const newPipeline = [...prev];
+          newPipeline.splice(insertIndex, 0, newStep);
+          return newPipeline;
+        }
+        return [...prev, newStep];
+      });
+
+      setSelectedStepId(newStep.id);
+
+      if (onStepSelect) {
+        onStepSelect({
+          id: newStep.id,
+          type: newStep.type,
+          name: newStep.name,
+          description: newStep.description,
+          config: newStep.config,
+          onDelete: () => {
+            handleDeleteStep(newStep.id);
+          },
+          onSelect: handleStepSelect,
+        });
       }
     },
     [onStepSelect]
+  );
+
+  const handleDeleteStep = useCallback(
+    (stepId: string) => {
+      setPipeline((prev) => prev.filter((step) => step.id !== stepId));
+
+      // Clear selection if deleted step was selected
+      if (selectedStepId === stepId) {
+        setSelectedStepId(null);
+        if (onStepSelect) {
+          onStepSelect(null);
+        }
+      }
+    },
+    [selectedStepId, onStepSelect]
   );
 
   const handleStepSelect = useCallback(
-    (stepData: VectorizationStepData) => {
+    (step: PipelineStep) => {
+      setSelectedStepId(step.id);
       if (onStepSelect) {
-        onStepSelect(stepData);
-      }
-    },
-    [onStepSelect]
-  );
-
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-
-      const reactFlowBounds = event.currentTarget.getBoundingClientRect();
-      const data = event.dataTransfer.getData("application/reactflow");
-
-      if (!data) return;
-
-      try {
-        const stepData = JSON.parse(data) as {
-          type: VectorizationStepType;
-          name: string;
-          description: string;
-        };
-        const position = {
-          x: event.clientX - reactFlowBounds.left,
-          y: event.clientY - reactFlowBounds.top,
-        };
-
-        const nodeId = `${stepData.type}-${Date.now().toString()}`;
-        const newNode: Node<VectorizationStepData> = {
-          id: nodeId,
-          type: "vectorizationStep",
-          position,
-          data: {
-            id: nodeId,
-            type: stepData.type,
-            name: stepData.name,
-            description: stepData.description,
-            onDelete: handleDeleteStep,
-            onSelect: handleStepSelect,
+        onStepSelect({
+          id: step.id,
+          type: step.type,
+          name: step.name,
+          description: step.description,
+          config: step.config,
+          onDelete: () => {
+            handleDeleteStep(step.id);
           },
-        };
-
-        setNodes((nds) => [...nds, newNode]);
-      } catch {
-        // Ignore invalid drop data
+          onSelect: handleStepSelect,
+        });
       }
     },
-    [handleDeleteStep, handleStepSelect]
+    [onStepSelect, handleDeleteStep]
   );
 
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
+    const target = e.target as Element;
+    if (
+      target.closest(".linear-pipeline-step") ??
+      target.closest(".add-step-container")
+    ) {
+      return;
+    }
+
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+
+    // Prevent text selection during drag
+    e.preventDefault();
   }, []);
+
+  const handleCanvasMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - dragStart.x;
+      const deltaY = e.clientY - dragStart.y;
+
+      setCanvasOffset((prev) => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY,
+      }));
+
+      setDragStart({ x: e.clientX, y: e.clientY });
+    },
+    [isDragging, dragStart]
+  );
+
+  const handleCanvasMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleCanvasMouseLeave = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent): void => {
+      const target = event.target as Element;
+      if (!target.closest(".add-step-container")) {
+        const dropdowns = document.querySelectorAll(".step-dropdown");
+        if (dropdowns.length > 0) {
+          // Trigger a small delay to allow the dropdown to close naturally
+          setTimeout(() => {
+            const stillOpenDropdowns =
+              document.querySelectorAll(".step-dropdown");
+            stillOpenDropdowns.forEach((dropdown) => {
+              (dropdown as HTMLElement).style.display = "none";
+            });
+          }, 100);
+        }
+      }
+    };
+
+    if (isOpen && !isMinimized) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, isMinimized]);
 
   if (!isOpen) return null;
 
@@ -344,73 +449,73 @@ export default function VectorizerBottomDrawer({
       {/* Drawer Content */}
       {!isMinimized && (
         <div className="drawer-content">
-          {/* Steps Sidebar */}
-          <div className="steps-sidebar">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">
-              Vectorization Steps
-            </h4>
-            <div className="steps-list">
-              {availableSteps.map((step) => (
-                <div
-                  key={step.type}
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData(
-                      "application/reactflow",
-                      JSON.stringify({
-                        type: step.type,
-                        name: step.name,
-                        description: step.description,
-                      })
-                    );
-                    e.dataTransfer.effectAllowed = "move";
-                  }}
-                  className="step-button"
-                >
-                  <span className="step-icon">{getStepIcon(step.type)}</span>
-                  <div className="step-info">
-                    <span className="step-name">{step.name}</span>
-                    <span className="step-description">{step.description}</span>
-                  </div>
-                </div>
+          {/* Linear Pipeline Canvas */}
+          <div
+            className={`linear-pipeline-canvas ${isDragging ? "dragging" : ""}`}
+            onMouseDown={handleCanvasMouseDown}
+            onMouseMove={handleCanvasMouseMove}
+            onMouseUp={handleCanvasMouseUp}
+            onMouseLeave={handleCanvasMouseLeave}
+            role="button"
+            aria-label="Interactive pipeline canvas - use arrow keys to pan or drag with mouse"
+            tabIndex={0}
+            aria-pressed="false"
+            onKeyDown={(e) => {
+              // Handle keyboard navigation for accessibility
+              if (
+                e.key === "ArrowLeft" ||
+                e.key === "ArrowRight" ||
+                e.key === "ArrowUp" ||
+                e.key === "ArrowDown"
+              ) {
+                e.preventDefault();
+                const step = 10;
+                const deltaX =
+                  e.key === "ArrowLeft"
+                    ? -step
+                    : e.key === "ArrowRight"
+                      ? step
+                      : 0;
+                const deltaY =
+                  e.key === "ArrowUp"
+                    ? -step
+                    : e.key === "ArrowDown"
+                      ? step
+                      : 0;
+                setCanvasOffset((prev) => ({
+                  x: prev.x + deltaX,
+                  y: prev.y + deltaY,
+                }));
+              }
+            }}
+          >
+            <div
+              className="pipeline-container"
+              style={{
+                transform: `translate(${canvasOffset.x.toString()}px, ${canvasOffset.y.toString()}px)`,
+              }}
+            >
+              {pipeline.map((step, index) => (
+                <React.Fragment key={step.id}>
+                  <LinearPipelineStep
+                    step={step}
+                    isSelected={selectedStepId === step.id}
+                    onSelect={handleStepSelect}
+                    onDelete={handleDeleteStep}
+                  />
+                  {/* Always show add button after each step for insertion */}
+                  <AddStepButton
+                    onAddStep={handleAddStep}
+                    insertIndex={index + 1}
+                  />
+                </React.Fragment>
               ))}
-            </div>
-          </div>
 
-          {/* Vectorization Canvas */}
-          <div className="vectorization-canvas">
-            <ReactFlowProvider>
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                onDrop={onDrop}
-                onDragOver={onDragOver}
-                nodeTypes={nodeTypes}
-                fitView
-                attributionPosition="bottom-right"
-                deleteKeyCode={["Backspace", "Delete"]}
-                multiSelectionKeyCode={["Meta", "Ctrl"]}
-                zoomOnScroll
-                zoomOnPinch
-                panOnScroll={false}
-                panOnDrag
-                selectNodesOnDrag
-                nodesDraggable
-                nodesConnectable
-                elementsSelectable
-                snapToGrid
-                snapGrid={[15, 15]}
-                onNodeClick={() => undefined} // Disable node clicking
-                onNodeDoubleClick={() => undefined} // Disable double clicking
-              >
-                <Background color="#aaa" gap={16} />
-                <Controls />
-                <MiniMap />
-              </ReactFlow>
-            </ReactFlowProvider>
+              {/* Show initial add button if no steps exist */}
+              {pipeline.length === 0 && (
+                <AddStepButton onAddStep={handleAddStep} />
+              )}
+            </div>
           </div>
         </div>
       )}
