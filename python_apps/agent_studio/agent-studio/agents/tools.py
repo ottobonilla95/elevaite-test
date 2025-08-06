@@ -753,15 +753,13 @@ def _share_folder_with_users(service, folder_id: str, emails: List[str]):
     """Share a folder with iopex.com domain (ignores individual emails)"""
     try:
         # Share with entire iopex.com domain instead of individual emails
-        permission = {
-            "type": "domain",
-            "role": "writer",
-            "domain": "iopex.com"
-        }
+        permission = {"type": "domain", "role": "writer", "domain": "iopex.com"}
         service.permissions().create(
             fileId=folder_id, body=permission, supportsAllDrives=True
         ).execute()
-        logging.getLogger(__name__).info(f"Shared folder {folder_id} with iopex.com domain")
+        logging.getLogger(__name__).info(
+            f"Shared folder {folder_id} with iopex.com domain"
+        )
     except Exception as e:
         logging.getLogger(__name__).warning(
             f"Failed to share with iopex.com domain: {str(e)}"
@@ -793,7 +791,9 @@ def _extract_targeting_info_from_placement(
                     "income_level": targeting.get("income_level", "Not specified"),
                     "interests": targeting.get("interests", "Not specified"),
                     "location": targeting.get("location", "Not specified"),
-                    "behavioral_data": targeting.get("behavioral_data", "Not specified"),
+                    "behavioral_data": targeting.get(
+                        "behavioral_data", "Not specified"
+                    ),
                 }
             )
         elif isinstance(targeting, str):
@@ -1762,15 +1762,21 @@ def _create_placement_record_direct(
         if placement_data.get("targeting"):
             targeting = placement_data["targeting"]
             if targeting.get("age_range"):
-                placement_record["target_audience_age_range__c"] = targeting["age_range"]
+                placement_record["target_audience_age_range__c"] = targeting[
+                    "age_range"
+                ]
             if targeting.get("gender"):
                 placement_record["target_audience_gender__c"] = targeting["gender"]
             if targeting.get("income_level"):
-                placement_record["target_audience_income_level__c"] = targeting["income_level"]
+                placement_record["target_audience_income_level__c"] = targeting[
+                    "income_level"
+                ]
             if targeting.get("location"):
                 placement_record["target_audience_location__c"] = targeting["location"]
             if targeting.get("interests"):
-                placement_record["target_audience_interests__c"] = targeting["interests"]
+                placement_record["target_audience_interests__c"] = targeting[
+                    "interests"
+                ]
             if targeting.get("behavioral_data"):
                 placement_record["target_audience_behavioral_data__c"] = ", ".join(
                     targeting["behavioral_data"]
@@ -2496,30 +2502,42 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
             response = requests.post(url, params=params)
             res = ""
             sources = []
-            print("^"*100)
+            print("^" * 100)
             print("Response")
             print(response.json())
             print("^" * 100)
             segments = response.json()["selected_segments"][:SEGMENT_NUM]
             for i, segment in enumerate(segments):
-                res += "*" * 5 + f"\n\nSegment Begins: " + "\n"  # +"Contextual Header: "
+                res += (
+                    "*" * 5 + f"\n\nSegment Begins: " + "\n"
+                )  # +"Contextual Header: "
                 references = ""
                 for j, chunk in enumerate(segment["chunks"]):
                     res += f"Chunk {j}: " + chunk["chunk_text"]
-                    pages = re.findall(r"\d+", str(chunk['page_info']))
+                    pages = re.findall(r"\d+", str(chunk["page_info"]))
                     res += f"\nSource for Chunk {j}: "
                     for page in pages:
                         print(chunk["filename"] + f" page {page}")
                         filename = chunk["filename"].strip(".pdf")
                         if "page" in filename:
-                            res += f"{filename} page {page}" + f" [aws_id: {filename}]\n"
+                            res += (
+                                f"{filename} page {page}" + f" [aws_id: {filename}]\n"
+                            )
                         else:
-                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
+                            res += (
+                                f"{filename} page {page}"
+                                + f" [aws_id: {filename}_page_{page}]\n"
+                            )
                     if "page" in filename:
-                        sources.append(f"{filename}" + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]")
+                        sources.append(
+                            f"{filename}"
+                            + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]"
+                        )
                     else:
                         sources.append(
-                            f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}] score: [{round(segment['score'], 2)}]")
+                            f"{filename} page {page}"
+                            + f" [aws_id: {filename}_page_{page}] score: [{round(segment['score'], 2)}]"
+                        )
             res += "Segment Ends\n" + "-" * 5 + "\n\n"
 
             return [res, sources]
@@ -2532,8 +2550,7 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
         "query": query,
         "top_k": 60,
         "machine_types": machine_types,
-        "collection_id": "toshiba_demo_4"
-
+        "collection_id": "toshiba_demo_4",
     }
     try:
         first_response, sources = get_response(url, params)
@@ -2566,7 +2583,7 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
 
 @function_schema
 def customer_query_retriever(query: str, collection_id: str) -> list:
-    """"
+    """ "
     TOSHIBA CUSTOMER DATA RETRIEVER TOOL
 
     Use this tool to query the Toshiba's Customer knowledge base.
@@ -2618,11 +2635,13 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
             sources = []
             segments = response.json()["selected_segments"][:SEGMENT_NUM]
             for i, segment in enumerate(segments):
-                res += "*" * 5 + f"\n\nSegment Begins: " + "\n"  # +"Contextual Header: "
+                res += (
+                    "*" * 5 + f"\n\nSegment Begins: " + "\n"
+                )  # +"Contextual Header: "
                 references = ""
                 for j, chunk in enumerate(segment["chunks"]):
                     res += f"Chunk {j}: " + chunk["chunk_text"]
-                    pages = re.findall(r"\d+", str(chunk['page_info']))
+                    pages = re.findall(r"\d+", str(chunk["page_info"]))
                     res += f"\nSource for Chunk {j}: "
                     for page in pages:
                         # print(chunk["filename"]+f" page {page}")
@@ -2630,12 +2649,20 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
                         if "page" in filename:
                             res += f"{filename}" + f" [aws_id: {filename}]\n"
                         else:
-                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
+                            res += (
+                                f"{filename} page {page}"
+                                + f" [aws_id: {filename}_page_{page}]\n"
+                            )
                     if "page" in filename:
-                        sources.append(f"{filename}" + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]")
+                        sources.append(
+                            f"{filename}"
+                            + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]"
+                        )
                     else:
                         sources.append(
-                            f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}] score: [{round(segment['score'], 2)}]")
+                            f"{filename} page {page}"
+                            + f" [aws_id: {filename}_page_{page}] score: [{round(segment['score'], 2)}]"
+                        )
 
             res += "Segment Ends\n" + "-" * 5 + "\n\n"
 
@@ -2645,22 +2672,15 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
             return ["", []]
 
     url = os.getenv("CUSTOMER_RETRIEVER_URL") + "/query-chunks"
-    params = {
-        "query": query,
-        "top_k": 60,
-        "collection_id": collection_id
-    }
+    params = {"query": query, "top_k": 60, "collection_id": collection_id}
     first_response, sources = ["", []]
     try:
         first_response, sources = get_response(url, params)
-        print("-"*100)
+        print("-" * 100)
         print("\nGot response")
         print(first_response[:200])
         print(sources)
-        print("-"*100)
-    except Exception as e:
-        print(f"Failed to call retriever: {e}")
-
+        print("-" * 100)
     except Exception as e:
         print(f"Failed to call retriever: {e}")
         second_response, second_sources = ["", []]
@@ -2671,7 +2691,7 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
 
 @function_schema
 def sql_database(query: str) -> list:
-    """"
+    """ "
     SQL DATABASE TOOL
     Any query that has "SQL: <question>" MUST use this tool.
 
@@ -2685,9 +2705,7 @@ def sql_database(query: str) -> list:
     query = "What tickets were handled by Jason Hechler?"
     """
     st_url = os.getenv("SQL_RETRIEVER_URL") + "/query"
-    params = {
-        "query": query
-    }
+    params = {"query": query}
     try:
         print(st_url)
         print(params)
@@ -2699,29 +2717,28 @@ def sql_database(query: str) -> list:
         print(f"Failed to call SR database: {e}")
         return []
 
+
 @function_schema
-def arlo_api(query:str)->str:
+def arlo_api(query: str) -> str:
     """
     Use this tool to ask questions to the Arlo customer support agent.
     """
     url = "https://elevaite-arlocb-api.iopex.ai/chat"
-    headers = {
-        "Content-Type": "application/json"
-    }
+    headers = {"Content-Type": "application/json"}
     payload = {
         "message": query,
         "session_id": "3973740a-404d-4924-9cf4-c71cf9ffd219",
         "user_id": "Jojo",
         "chat_history": [
             {"actor": "user", "content": "Hello"},
-            {"actor": "assistant", "content": "How are you"}
+            {"actor": "assistant", "content": "How are you"},
         ],
         "enable_web_search": True,
-        "fetched_knowledge": ""
+        "fetched_knowledge": "",
     }
 
     response = requests.post(url, headers=headers, json=payload)
-    return response.json()['response']
+    return response.json()["response"]
 
 
 tool_store = {

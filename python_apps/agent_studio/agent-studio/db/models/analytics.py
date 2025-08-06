@@ -130,7 +130,7 @@ class WorkflowExecution(Base):
     )
     execution_type: Mapped[str] = mapped_column(
         String, nullable=False
-    )  # 'agent' or 'workflow'
+    )  # 'agent', 'workflow', or 'deterministic'
     status: Mapped[str] = mapped_column(
         String, nullable=False
     )  # 'queued', 'running', 'completed', 'failed', 'cancelled'
@@ -230,6 +230,73 @@ class WorkflowExecutionStep(Base):
     __table_args__ = (
         UniqueConstraint("execution_id", "step_id", name="uix_execution_step"),
     )
+
+
+class DeterministicWorkflowStep(Base):
+    """
+    Enhanced step tracking for deterministic workflows.
+    
+    Extends the basic step tracking with:
+    - Step dependencies
+    - Batch processing progress
+    - Data flow tracking
+    - Rollback information
+    """
+    __tablename__ = "deterministic_workflow_steps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    step_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4
+    )
+    execution_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), 
+        ForeignKey("workflow_executions.execution_id"), 
+        nullable=False
+    )
+    
+    # Step identification
+    step_name: Mapped[str] = mapped_column(String, nullable=False)
+    step_type: Mapped[str] = mapped_column(String, nullable=False)  # From DeterministicStepType enum
+    step_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    
+    # Dependencies and execution pattern
+    dependencies: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)  # List of step_ids
+    execution_pattern: Mapped[str] = mapped_column(String, default="sequential")  # sequential, parallel, conditional, dag
+    
+    # Status and timing
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")  # pending, running, completed, failed, skipped
+    start_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    
+    # Data flow
+    input_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    output_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    input_mapping: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # How to get data from previous steps
+    
+    # Batch processing
+    total_items: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    processed_items: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    successful_items: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    failed_items: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    current_batch: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    total_batches: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    
+    # Error handling and rollback
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    rollback_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    rollback_attempted: Mapped[bool] = mapped_column(Boolean, default=False)
+    rollback_successful: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    
+    # Configuration and metadata
+    step_config: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    step_metadata: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    
+    # Progress tracking
+    progress_percentage: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    estimated_completion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    
+    execution = relationship("WorkflowExecution")
 
 
 class SessionMetrics(Base):

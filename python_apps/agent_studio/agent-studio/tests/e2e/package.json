@@ -6,6 +6,7 @@
   "scripts": {
     "test": "tsx test-biggest-workflow.ts",
     "test:biggest": "tsx test-biggest-workflow.ts",
+    "test:hybrid": "tsx test-hybrid-deterministic-workflows.ts",
     "build": "tsc",
     "dev": "tsx watch test-biggest-workflow.ts"
   },

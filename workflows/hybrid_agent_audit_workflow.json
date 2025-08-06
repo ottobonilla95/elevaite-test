@@ -1,0 +1,168 @@
+{
+  "workflow_id": "hybrid_agent_audit_001",
+  "workflow_name": "AI Agent Audit and Logging Workflow",
+  "description": "Production workflow that logs all AI agent interactions for compliance and monitoring. Logs input queries, executes AI agent, logs responses, and stores results in database with full audit trail.",
+  "version": "1.0.0",
+  "execution_pattern": "sequential",
+  "timeout_seconds": 300,
+  "max_retries": 2,
+  "category": "audit_compliance",
+  "tags": ["audit", "logging", "compliance", "ai_agent", "monitoring"],
+  "steps": [
+    {
+      "step_id": "audit_input",
+      "step_name": "Audit Input Request",
+      "step_type": "data_input",
+      "step_order": 1,
+      "dependencies": [],
+      "config": {
+        "audit_log_path": "/var/logs/agent_audit/requests.jsonl",
+        "include_user_metadata": true,
+        "include_request_headers": true,
+        "sanitize_pii": true,
+        "retention_days": 90
+      },
+      "timeout_seconds": 30,
+      "max_retries": 2
+    },
+    {
+      "step_id": "validate_input",
+      "step_name": "Validate Input Query",
+      "step_type": "validation",
+      "step_order": 2,
+      "dependencies": ["audit_input"],
+      "input_mapping": {
+        "query": "audit_input.query",
+        "user_id": "audit_input.user_id",
+        "request_metadata": "audit_input.request_metadata"
+      },
+      "config": {
+        "max_query_length": 10000,
+        "blocked_keywords": ["password", "secret", "token"],
+        "required_fields": ["query", "user_id"],
+        "rate_limit_check": true,
+        "content_safety_check": true
+      },
+      "timeout_seconds": 15
+    },
+    {
+      "step_id": "execute_agent",
+      "step_name": "Execute AI Agent",
+      "step_type": "data_processing",
+      "step_order": 3,
+      "dependencies": ["validate_input"],
+      "input_mapping": {
+        "query": "validate_input.validated_query",
+        "user_context": "validate_input.user_context",
+        "request_id": "audit_input.request_id"
+      },
+      "config": {
+        "agent_type": "production_agent",
+        "model": "gpt-4",
+        "temperature": 0.7,
+        "max_tokens": 2000,
+        "enable_tools": true,
+        "enable_memory": true,
+        "timeout_seconds": 120
+      },
+      "timeout_seconds": 180,
+      "max_retries": 1
+    },
+    {
+      "step_id": "audit_response",
+      "step_name": "Audit Agent Response",
+      "step_type": "data_output",
+      "step_order": 4,
+      "dependencies": ["execute_agent"],
+      "input_mapping": {
+        "agent_response": "execute_agent.response",
+        "execution_metadata": "execute_agent.execution_metadata",
+        "request_id": "audit_input.request_id"
+      },
+      "config": {
+        "audit_log_path": "/var/logs/agent_audit/responses.jsonl",
+        "include_execution_metrics": true,
+        "include_token_usage": true,
+        "sanitize_response": true,
+        "log_level": "INFO"
+      },
+      "timeout_seconds": 30
+    },
+    {
+      "step_id": "quality_check",
+      "step_name": "Response Quality Check",
+      "step_type": "validation",
+      "step_order": 5,
+      "dependencies": ["audit_response"],
+      "input_mapping": {
+        "response": "execute_agent.response",
+        "query": "validate_input.validated_query",
+        "execution_metrics": "execute_agent.execution_metadata"
+      },
+      "config": {
+        "min_response_length": 10,
+        "max_response_length": 5000,
+        "check_relevance": true,
+        "check_safety": true,
+        "check_hallucination": true,
+        "quality_threshold": 0.7
+      },
+      "timeout_seconds": 45
+    },
+    {
+      "step_id": "save_interaction",
+      "step_name": "Save to Database",
+      "step_type": "data_output",
+      "step_order": 6,
+      "dependencies": ["quality_check"],
+      "input_mapping": {
+        "request_data": "audit_input",
+        "validation_result": "validate_input",
+        "agent_result": "execute_agent",
+        "quality_result": "quality_check",
+        "full_audit_trail": "audit_response"
+      },
+      "config": {
+        "database_table": "agent_interactions",
+        "include_full_audit": true,
+        "enable_analytics": true,
+        "retention_policy": "1_year",
+        "backup_to_s3": true,
+        "encryption_enabled": true
+      },
+      "rollback_enabled": true,
+      "rollback_config": {
+        "rollback_type": "soft_delete",
+        "mark_as_deleted": true,
+        "cleanup_after_days": 7
+      },
+      "timeout_seconds": 60
+    },
+    {
+      "step_id": "notify_monitoring",
+      "step_name": "Send Monitoring Alerts",
+      "step_type": "notification",
+      "step_order": 7,
+      "dependencies": ["save_interaction"],
+      "input_mapping": {
+        "interaction_result": "save_interaction",
+        "quality_score": "quality_check.quality_score",
+        "execution_time": "execute_agent.execution_time_ms"
+      },
+      "config": {
+        "alert_conditions": {
+          "quality_score_below": 0.5,
+          "execution_time_above_ms": 30000,
+          "error_occurred": true
+        },
+        "notification_channels": ["slack", "email", "webhook"],
+        "slack_webhook": "${SLACK_MONITORING_WEBHOOK}",
+        "email_recipients": ["devops@company.com"],
+        "webhook_url": "${MONITORING_WEBHOOK_URL}",
+        "alert_severity": "medium"
+      },
+      "timeout_seconds": 30,
+      "max_retries": 3
+    }
+  ]
+}

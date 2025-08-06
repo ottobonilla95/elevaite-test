@@ -13,7 +13,12 @@ from db import models
 class WorkflowStep(BaseModel):
     step_id: str
     step_type: Literal[
-        "agent_execution", "tool_call", "decision_point", "data_processing"
+        # Existing AI workflow step types
+        "agent_execution", "tool_call", "decision_point", "data_processing",
+        # New deterministic workflow step types
+        "data_input", "data_output", "transformation", "validation", 
+        "batch_processing", "conditional_branch", "parallel_execution",
+        "aggregation", "notification"
     ]
     agent_id: Optional[str] = None
     agent_name: Optional[str] = None
@@ -40,7 +45,7 @@ class WorkflowTrace(BaseModel):
 
 class ExecutionStatus(BaseModel):
     execution_id: str
-    type: Literal["agent", "workflow"]
+    type: Literal["agent", "workflow", "deterministic"]
     status: Literal["queued", "running", "completed", "failed", "cancelled"]
     progress: Optional[float] = None  # 0.0 to 1.0
     current_step: Optional[str] = None
@@ -446,7 +451,12 @@ class AnalyticsService:
         self,
         execution_id: str,
         step_type: Literal[
-            "agent_execution", "tool_call", "decision_point", "data_processing"
+            # Existing AI workflow step types
+            "agent_execution", "tool_call", "decision_point", "data_processing",
+            # New deterministic workflow step types
+            "data_input", "data_output", "transformation", "validation", 
+            "batch_processing", "conditional_branch", "parallel_execution",
+            "aggregation", "notification"
         ],
         step_name: str,
         input_data: Optional[Dict[str, Any]] = None,
@@ -1023,7 +1033,7 @@ class AnalyticsService:
 
     def create_execution(
         self,
-        execution_type: Literal["agent", "workflow"],
+        execution_type: Literal["agent", "workflow", "deterministic"],
         agent_id: Optional[str] = None,
         workflow_id: Optional[str] = None,
         session_id: Optional[str] = None,
