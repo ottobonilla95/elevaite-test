@@ -269,7 +269,7 @@ function AgentConfigForm(): JSX.Element {
     console.log("Cloning vectorizer pipeline for agent:", vectorizerAgentId);
   }, [vectorizerAgentId]);
 
-  // Auto-close vectorizer drawer when clicking outside vectorizer nodes
+  // Auto-close vectorizer drawer when clicking on other nodes in the main canvas
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
       if (!showVectorizerDrawer) return;
@@ -281,12 +281,19 @@ function AgentConfigForm(): JSX.Element {
         return;
       }
 
-      // Don't close if clicking on a vectorizer node
+      // Don't close if clicking on the configuration panel
+      if (target.closest(".config-panel-container")) {
+        return;
+      }
+
+      // Only close if clicking on a different node in the main canvas
       const clickedNode = target.closest(".react-flow__node");
       if (clickedNode) {
         const nodeElement = clickedNode as HTMLElement;
         const nodeId = nodeElement.getAttribute("data-id");
         const node = nodes.find((n) => n.id === nodeId);
+
+        // If it's a vectorizer node, don't close (keep drawer open)
         if (
           node &&
           (node.data.agent?.agent_type === "vectorizer" ||
@@ -294,11 +301,13 @@ function AgentConfigForm(): JSX.Element {
         ) {
           return;
         }
-      }
 
-      // Close the drawer if clicking elsewhere
-      setShowVectorizerDrawer(false);
-      setSelectedVectorizerStep(null);
+        // If it's any other type of node, close the drawer
+        if (node) {
+          setShowVectorizerDrawer(false);
+          setSelectedVectorizerStep(null);
+        }
+      }
     };
 
     if (showVectorizerDrawer) {

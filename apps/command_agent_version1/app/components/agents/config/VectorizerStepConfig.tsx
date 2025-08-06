@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { Upload, X } from "lucide-react";
 import {
   type VectorizationStepType,
   type VectorizationStepData,
 } from "../VectorizerBottomDrawer";
 import { ConfigField } from "./ConfigField";
 import { CustomDropdown } from "./CustomDropdown";
+import UploadModal from "../UploadModal";
 import "./VectorizerStepConfig.scss";
 
 // Dropdown option interface matching pipelines app
@@ -29,6 +31,13 @@ interface ConfigFieldData {
 }
 
 type StepConfigData = Record<string, string | number | boolean>;
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  size: string;
+  completed: boolean;
+}
 
 interface VectorizerStepConfigProps {
   stepData: VectorizationStepData | null;
@@ -371,6 +380,16 @@ export default function VectorizerStepConfig({
 }: VectorizerStepConfigProps): JSX.Element {
   const [config, setConfig] = useState<StepConfigData>({});
 
+  // Upload functionality state - keyed by step ID
+  const [stepFiles, setStepFiles] = useState<Record<string, UploadedFile[]>>(
+    {}
+  );
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+  // Get current step's files
+  const currentStepId = stepData?.id || "default";
+  const currentFiles = stepFiles[currentStepId] || [];
+
   // Initialize config with default values when stepData changes
   useEffect(() => {
     if (stepData) {
@@ -404,6 +423,34 @@ export default function VectorizerStepConfig({
     if (stepData && onConfigChange) {
       onConfigChange(stepData.id, newConfig);
     }
+  };
+
+  // Upload handlers
+  const handleUploadClick = (): void => {
+    setIsUploadModalOpen(true);
+  };
+
+  const handleFilesUploaded = (uploadedFiles: any[]): void => {
+    // Convert UploadingFile to UploadedFile format
+    const convertedFiles: UploadedFile[] = uploadedFiles.map((file) => ({
+      id: file.id,
+      name: file.name,
+      size: file.size,
+      completed: file.completed,
+    }));
+
+    // Add new files to existing files for this step
+    setStepFiles((prev) => ({
+      ...prev,
+      [currentStepId]: [...currentFiles, ...convertedFiles],
+    }));
+  };
+
+  const handleRemoveFile = (fileId: string): void => {
+    setStepFiles((prev) => ({
+      ...prev,
+      [currentStepId]: currentFiles.filter((file) => file.id !== fileId),
+    }));
   };
 
   // Check if a field should be shown based on dependencies
@@ -518,6 +565,66 @@ export default function VectorizerStepConfig({
           ))}
         </div>
       </div>
+
+      {/* Upload Section - Only for load steps */}
+      {stepData.type === "load" && (
+        <div className="config-options">
+          <h4 className="config-section-title">File Upload</h4>
+          <div className="config-fields">
+            <ConfigField
+              label="Upload Files"
+              description="Upload files to be processed by this loading step"
+            >
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={handleUploadClick}
+                  className="px-3 py-2 bg-white hover:bg-gray-50 text-brand-primary text-sm font-medium rounded border border-brand-primary transition-colors flex items-center justify-center gap-2 w-full max-w-md"
+                >
+                  <Upload size={16} />
+                  Upload Files
+                </button>
+
+                {/* Display uploaded files */}
+                {currentFiles.length > 0 && (
+                  <div className="uploaded-files-list">
+                    <span className="text-xs font-medium text-gray-600 mb-2 block">
+                      Uploaded Files:
+                    </span>
+                    <div className="flex flex-col gap-2">
+                      {currentFiles.map((file) => (
+                        <div
+                          key={file.id}
+                          className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-sm"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-700">{file.name}</span>
+                            <span className="text-gray-500">({file.size})</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(file.id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ConfigField>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onFilesUploaded={handleFilesUploaded}
+      />
     </div>
   );
 }

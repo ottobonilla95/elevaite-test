@@ -81,6 +81,7 @@ const ConfigPanel = forwardRef<ConfigPanelHandle, ConfigPanelProps>(
     const [sidebarView, setSidebarView] = useState<"config" | "prompt">(
       "config"
     );
+
     const [selectedPromptForView, setSelectedPromptForView] =
       useState<PromptResponse | null>(null);
 

@@ -287,3 +287,51 @@
     flex: 1;
   }
 }
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-top: 1px solid $gray-200;
+  background-color: $gray-50;
+
+  .cancel-button {
+    padding: 0.5rem 1rem;
+    background-color: white;
+    color: $gray-600;
+    border: 1px solid $gray-300;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      background-color: $gray-50;
+      color: $gray-700;
+    }
+  }
+
+  .done-button {
+    padding: 0.5rem 1rem;
+    background-color: $brand-primary;
+    color: white;
+    border: 1px solid $brand-primary;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+
+    &:hover:not(:disabled) {
+      background-color: darken($brand-primary, 8%);
+      border-color: darken($brand-primary, 8%);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}

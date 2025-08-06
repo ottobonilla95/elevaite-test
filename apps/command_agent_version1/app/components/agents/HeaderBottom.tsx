@@ -2,7 +2,7 @@
 "use client";
 
 import { CommonButton } from "@repo/ui/components";
-import { FileText, LayoutGrid, PenLine, Upload } from "lucide-react";
+import { FileText, LayoutGrid, PenLine } from "lucide-react";
 import { useState } from "react";
 import type { ChatCompletionToolParam } from "../../lib/interfaces/common";
 import type {
@@ -12,7 +12,6 @@ import type {
 import "./HeaderBottom.scss";
 import PostDeploymentSuccessDialog from "./PostDeploymentSuccessDialog";
 import PreDeploymentModal from "./PreDeploymentModal";
-import UploadModal from "./UploadModal";
 import WorkflowEditModal from "./WorkflowEditModal";
 import WorkflowSaveModal from "./WorkflowSaveModal";
 
@@ -78,15 +77,10 @@ function HeaderBottom({
   const [isPreDeploymentDialogOpen, setIsPreDeploymentDialogOpen] =
     useState(false);
   const [isCreatingNewWorkflow, setIsCreatingNewWorkflow] = useState(false);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   function handleClearAll(): void {
     setShowTestingSidebar(false);
     if (onClearAll) onClearAll();
-  }
-
-  function handleUploadClick(): void {
-    setIsUploadModalOpen(true);
   }
 
   // Function to handle deploy button click - starts the advanced deployment flow
@@ -243,13 +237,6 @@ function HeaderBottom({
         </button>
       </div>
       <div className="flex justify-end gap-2">
-        <CommonButton
-          className="action-button secondary"
-          onClick={handleUploadClick}
-        >
-          <Upload size={16} />
-          Upload
-        </CommonButton>
         {Boolean(onClearAll) && (
           <CommonButton
             className="action-button secondary"
@@ -316,12 +303,6 @@ function HeaderBottom({
           tools={tools}
         />
       ) : null}
-
-      {/* Upload Modal */}
-      <UploadModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-      />
     </div>
   );
 }

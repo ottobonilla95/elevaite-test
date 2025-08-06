@@ -16,12 +16,14 @@ interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   uploadEndpoint?: string;
+  onFilesUploaded?: (files: UploadingFile[]) => void;
 }
 
 function UploadModal({
   isOpen,
   onClose,
   uploadEndpoint,
+  onFilesUploaded,
 }: UploadModalProps): JSX.Element | null {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isWarningFlashing, setIsWarningFlashing] = useState(false);
@@ -148,6 +150,16 @@ function UploadModal({
     setUploadingFiles((prevFiles) =>
       prevFiles.filter((file) => file.id !== fileId)
     );
+  };
+
+  const handleDone = (): void => {
+    const completedFiles = uploadingFiles.filter((file) => file.completed);
+    if (onFilesUploaded && completedFiles.length > 0) {
+      onFilesUploaded(completedFiles);
+    }
+    // Clear the uploaded files and close modal
+    setUploadingFiles([]);
+    onClose();
   };
 
   const hasUploadingFiles = (): boolean => {
@@ -319,6 +331,24 @@ function UploadModal({
                 </div>
               ))
             )}
+          </div>
+
+          {/* Modal Footer */}
+          <div className="modal-footer">
+            <button type="button" className="cancel-button" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="done-button"
+              onClick={handleDone}
+              disabled={
+                uploadingFiles.length === 0 ||
+                uploadingFiles.some((f) => !f.completed)
+              }
+            >
+              Done
+            </button>
           </div>
         </div>
       </div>
