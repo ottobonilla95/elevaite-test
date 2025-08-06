@@ -30,13 +30,14 @@ interface ConfigFieldData {
   showWhen?: string | string[];
 }
 
-type StepConfigData = Record<string, string | number | boolean>;
+type StepConfigData = Record<string, string | number | boolean | string[]>;
 
 interface UploadedFile {
   id: string;
   name: string;
   size: string;
   completed: boolean;
+  backendFileId?: string; // The actual file ID returned by the backend
 }
 
 interface VectorizerStepConfigProps {
@@ -387,8 +388,8 @@ export default function VectorizerStepConfig({
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   // Get current step's files
-  const currentStepId = stepData?.id || "default";
-  const currentFiles = stepFiles[currentStepId] || [];
+  const currentStepId = stepData?.id ?? "default";
+  const currentFiles = stepFiles[currentStepId] ?? [];
 
   // Initialize config with default values when stepData changes
   useEffect(() => {
@@ -410,9 +411,32 @@ export default function VectorizerStepConfig({
     }
   }, [stepData, existingConfig]);
 
+  // Sync uploaded files with configuration when files change
+  useEffect(() => {
+    if (stepData && currentFiles.length > 0) {
+      const backendFileIds = currentFiles
+        .filter((file) => file.backendFileId)
+        .map((file) => file.backendFileId!);
+      const currentFileIds = config.uploaded_file_ids as string[] | undefined;
+
+      // Only update if backend file IDs have changed
+      if (JSON.stringify(backendFileIds) !== JSON.stringify(currentFileIds)) {
+        const newConfig = {
+          ...config,
+          uploaded_file_ids: backendFileIds,
+        };
+        setConfig(newConfig);
+
+        if (onConfigChange) {
+          onConfigChange(stepData.id, newConfig);
+        }
+      }
+    }
+  }, [currentFiles, stepData?.id]);
+
   const handleConfigChange = (
     optionId: string,
-    value: string | number | boolean
+    value: string | number | boolean | string[]
   ): void => {
     const newConfig = {
       ...config,
@@ -437,20 +461,35 @@ export default function VectorizerStepConfig({
       name: file.name,
       size: file.size,
       completed: file.completed,
+      backendFileId: file.backendFileId,
     }));
 
     // Add new files to existing files for this step
+    const updatedFiles = [...currentFiles, ...convertedFiles];
     setStepFiles((prev) => ({
       ...prev,
-      [currentStepId]: [...currentFiles, ...convertedFiles],
+      [currentStepId]: updatedFiles,
     }));
+
+    // Update the step configuration with backend file IDs (not local IDs)
+    const backendFileIds = updatedFiles
+      .filter((file) => file.backendFileId) // Only include files with backend IDs
+      .map((file) => file.backendFileId!);
+    handleConfigChange("uploaded_file_ids", backendFileIds);
   };
 
   const handleRemoveFile = (fileId: string): void => {
+    const updatedFiles = currentFiles.filter((file) => file.id !== fileId);
     setStepFiles((prev) => ({
       ...prev,
-      [currentStepId]: currentFiles.filter((file) => file.id !== fileId),
+      [currentStepId]: updatedFiles,
     }));
+
+    // Update the step configuration with remaining backend file IDs
+    const backendFileIds = updatedFiles
+      .filter((file) => file.backendFileId)
+      .map((file) => file.backendFileId!);
+    handleConfigChange("uploaded_file_ids", backendFileIds);
   };
 
   // Check if a field should be shown based on dependencies

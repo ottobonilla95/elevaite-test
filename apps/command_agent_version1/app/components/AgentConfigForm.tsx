@@ -254,10 +254,91 @@ function AgentConfigForm(): JSX.Element {
   );
 
   // Vectorizer action handlers
-  const handleVectorizerRunAllSteps = useCallback(() => {
-    // TODO: Implement run all steps functionality
-    console.log("Running all vectorizer steps for agent:", vectorizerAgentId);
-  }, [vectorizerAgentId]);
+  const handleVectorizerRunAllSteps = useCallback(async () => {
+    try {
+      console.log("Running all vectorizer steps for agent:", vectorizerAgentId);
+
+      // Get current pipeline steps
+      const currentPipeline = vectorizerPipelines[vectorizerAgentId] ?? [];
+
+      if (currentPipeline.length === 0) {
+        alert("No pipeline steps configured. Please add steps before running.");
+        return;
+      }
+
+      // Convert pipeline steps to API format
+      const steps = currentPipeline.map((step) => ({
+        step_type: step.type,
+        config: vectorizerStepConfigs[step.id] ?? {},
+      }));
+
+      // Automatically collect file IDs from Load steps
+      const loadSteps = currentPipeline.filter((step) => step.type === "load");
+      const allFileIds: string[] = [];
+
+      for (const loadStep of loadSteps) {
+        const stepConfig = vectorizerStepConfigs[loadStep.id];
+        const uploadedFileIds = stepConfig?.uploaded_file_ids as
+          | string[]
+          | undefined;
+        if (uploadedFileIds && uploadedFileIds.length > 0) {
+          allFileIds.push(...uploadedFileIds);
+        }
+      }
+
+      if (allFileIds.length === 0) {
+        alert(
+          "No files uploaded. Please upload files in the Load steps before running the pipeline."
+        );
+        return;
+      }
+
+      console.log("Found uploaded files:", allFileIds);
+
+      console.log("Executing pipeline with steps:", steps);
+      console.log("Step configurations:", vectorizerStepConfigs);
+
+      // Create the request payload
+      const requestPayload = {
+        steps,
+        file_id: allFileIds[0], // Use the first file ID for backward compatibility
+        file_ids: allFileIds, // Pass all file IDs for multi-file support
+        pipeline_name: `${vectorizerAgentName}-pipeline`,
+      };
+
+      console.log(
+        "Full request payload:",
+        JSON.stringify(requestPayload, null, 2)
+      );
+
+      // Import the action dynamically to avoid server-side issues
+      const { executeVectorizationPipeline } = await import(
+        "../lib/actions/vectorization"
+      );
+
+      const result = await executeVectorizationPipeline(requestPayload);
+
+      console.log("Pipeline execution result:", result);
+
+      if (result.status === "completed") {
+        alert(
+          `Pipeline executed successfully! Pipeline ID: ${result.pipeline_id}\n\nCheck the console for detailed results.`
+        );
+      } else {
+        alert(`Pipeline execution failed: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Failed to execute vectorization pipeline:", error);
+      alert(
+        `Failed to execute pipeline: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }, [
+    vectorizerAgentId,
+    vectorizerPipelines,
+    vectorizerStepConfigs,
+    vectorizerAgentName,
+  ]);
 
   const handleVectorizerDeploy = useCallback(() => {
     // TODO: Implement deploy functionality

@@ -10,6 +10,7 @@ interface UploadingFile {
   size: string;
   progress: number;
   completed: boolean;
+  backendFileId?: string; // The actual file ID returned by the backend
 }
 
 interface UploadModalProps {
@@ -96,10 +97,21 @@ function UploadModal({
         throw new Error(`Upload failed: ${response.statusText}`);
       }
 
-      // Mark file as completed
+      // Get the backend response with the actual file ID
+      const responseData = await response.json();
+      const backendFileId = responseData?.data?.file_id;
+
+      // Mark file as completed and store the backend file ID
       setUploadingFiles((prevFiles) =>
         prevFiles.map((f) =>
-          f.id === fileId ? { ...f, progress: 100, completed: true } : f
+          f.id === fileId
+            ? {
+                ...f,
+                progress: 100,
+                completed: true,
+                backendFileId: backendFileId,
+              }
+            : f
         )
       );
     } catch (error) {
