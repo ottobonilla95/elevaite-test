@@ -2,8 +2,17 @@ import uuid
 import json
 import asyncio
 import time
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from typing import List, Optional, Dict, Any
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    BackgroundTasks,
+    UploadFile,
+    File,
+    Form,
+)
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -43,6 +52,172 @@ router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 
 # Global variable to store active workflow deployments
 ACTIVE_WORKFLOWS = {}
+
+
+async def process_file_through_vectorizer(
+    file_path: str,
+    file_name: str,
+    workflow_config: Dict[str, Any],
+    execution_context: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Process an uploaded file through the vectorization pipeline.
+
+    This function runs the file through the tokenizer steps:
+    1. File reading with enhanced parsing
+    2. Text chunking with intelligent segmentation
+    3. Embedding generation
+    4. Vector storage in Qdrant
+
+    Returns processing results and metadata.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Import tokenizer steps
+        from services.tokenizer_steps_registry import tokenizer_steps_registry
+
+        # Get workflow steps to find vectorizer configuration
+        steps = workflow_config.get("steps", [])
+        vectorizer_steps = [
+            step
+            for step in steps
+            if step.get("step_type")
+            in [
+                "file_reader",
+                "text_chunking",
+                "embedding_generation",
+                "vector_storage",
+            ]
+        ]
+
+        if not vectorizer_steps:
+            return {"status": "error", "error": "No vectorizer steps found in workflow"}
+
+        logger.info(
+            f"🔄 Processing {file_name} through {len(vectorizer_steps)} vectorizer steps"
+        )
+
+        # Initialize processing context
+        processing_data = {
+            "file_path": file_path,
+            "file_name": file_name,
+            "execution_context": execution_context,
+        }
+
+        # Step 1: File reading
+        file_reader_impl = tokenizer_steps_registry.get_step_implementation(
+            "file_reader"
+        )
+        if file_reader_impl:
+            logger.info("📖 Running file reader step...")
+            file_reader_config = {
+                "step_id": "file_upload_reader",
+                "step_name": "File Upload Reader",
+                "config": {
+                    "file_path": file_path,
+                    "enhanced_parsing": True,
+                    "extract_metadata": True,
+                },
+            }
+            file_result = await file_reader_impl(
+                file_reader_config, processing_data, execution_context
+            )
+            processing_data.update(file_result)
+            logger.info(
+                f"✅ File reading completed: {len(file_result.get('content', ''))} characters"
+            )
+
+        # Step 2: Text chunking
+        text_chunking_impl = tokenizer_steps_registry.get_step_implementation(
+            "text_chunking"
+        )
+        if text_chunking_impl:
+            logger.info("✂️ Running text chunking step...")
+            chunking_config = {
+                "step_id": "file_upload_chunking",
+                "step_name": "File Upload Chunking",
+                "config": {
+                    "chunk_size": 1000,
+                    "chunk_overlap": 200,
+                    "chunking_strategy": "intelligent",
+                    "preserve_structure": True,
+                },
+            }
+            chunk_result = await text_chunking_impl(
+                chunking_config, processing_data, execution_context
+            )
+            processing_data.update(chunk_result)
+            chunks = chunk_result.get("chunks", [])
+            logger.info(f"✅ Text chunking completed: {len(chunks)} chunks created")
+
+        # Step 3: Embedding generation
+        embedding_impl = tokenizer_steps_registry.get_step_implementation(
+            "embedding_generation"
+        )
+        if embedding_impl:
+            logger.info("🧠 Running embedding generation step...")
+            embedding_config = {
+                "step_id": "file_upload_embeddings",
+                "step_name": "File Upload Embeddings",
+                "config": {
+                    "embedding_model": "text-embedding-3-small",
+                    "batch_size": 50,
+                },
+            }
+            embedding_result = await embedding_impl(
+                embedding_config, processing_data, execution_context
+            )
+            processing_data.update(embedding_result)
+            embeddings = embedding_result.get("embeddings", [])
+            logger.info(
+                f"✅ Embedding generation completed: {len(embeddings)} embeddings created"
+            )
+
+        # Step 4: Vector storage
+        vector_storage_impl = tokenizer_steps_registry.get_step_implementation(
+            "vector_storage"
+        )
+        if vector_storage_impl:
+            logger.info("💾 Running vector storage step...")
+            # Use session-specific collection name
+            collection_name = (
+                f"uploaded_docs_{execution_context.get('session_id', 'default')}"
+            )
+            storage_config = {
+                "step_id": "file_upload_storage",
+                "step_name": "File Upload Storage",
+                "config": {
+                    "collection_name": collection_name,
+                    "vector_size": 1536,  # text-embedding-3-small dimension
+                    "create_collection": True,
+                },
+            }
+            storage_result = await vector_storage_impl(
+                storage_config, processing_data, execution_context
+            )
+            processing_data.update(storage_result)
+            logger.info(
+                f"✅ Vector storage completed: stored in collection '{collection_name}'"
+            )
+
+        # Return processing summary
+        return {
+            "status": "success",
+            "file_name": file_name,
+            "collection_name": collection_name,
+            "chunks_count": len(chunks),
+            "embeddings_count": len(embeddings),
+            "processing_time": processing_data.get("processing_time"),
+            "metadata": processing_data.get("metadata", {}),
+            "message": f"Successfully processed '{file_name}' into {len(chunks)} chunks and stored in collection '{collection_name}'",
+        }
+
+    except Exception as e:
+        logger.error(f"❌ File vectorization failed: {e}")
+        return {"status": "error", "error": str(e), "file_name": file_name}
 
 
 @router.post("/", response_model=schemas.WorkflowResponse)
@@ -744,9 +919,17 @@ async def execute_workflow_stream(
 @router.post("/{workflow_id}/execute/async", status_code=status.HTTP_202_ACCEPTED)
 async def execute_workflow_async(
     workflow_id: uuid.UUID,
-    execution_request: schemas.WorkflowExecutionRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    # Support both JSON body (backward compatibility) and form data (with file uploads)
+    query: Optional[str] = Form(None),
+    chat_history: Optional[str] = Form(None),  # JSON string
+    runtime_overrides: Optional[str] = Form(None),  # JSON string
+    session_id: Optional[str] = Form(None),
+    user_id: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    # Also support JSON body for backward compatibility
+    execution_request: Optional[schemas.WorkflowExecutionRequest] = None,
 ):
     """
     Execute a workflow asynchronously with detailed tracing.
@@ -760,6 +943,168 @@ async def execute_workflow_async(
     logger.info(f"🚀 Starting async workflow execution for {workflow_id}")
 
     try:
+        # Handle both form data (with file) and JSON body (backward compatibility)
+        if execution_request is None:
+            # Build execution request from form data
+            parsed_chat_history = None
+            if chat_history:
+                try:
+                    parsed_chat_history = json.loads(chat_history)
+                except json.JSONDecodeError:
+                    logger.warning(f"Invalid chat_history JSON: {chat_history}")
+
+            parsed_runtime_overrides = None
+            if runtime_overrides:
+                try:
+                    parsed_runtime_overrides = json.loads(runtime_overrides)
+                except json.JSONDecodeError:
+                    logger.warning(
+                        f"Invalid runtime_overrides JSON: {runtime_overrides}"
+                    )
+
+            execution_request = schemas.WorkflowExecutionRequest(
+                query=query or "",
+                chat_history=parsed_chat_history,
+                runtime_overrides=parsed_runtime_overrides,
+                session_id=session_id,
+                user_id=user_id,
+            )
+
+        # Get workflow to check if it's hybrid with vectorizer steps
+        workflow = crud.get_workflow(db=db, workflow_id=workflow_id)
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+
+        # Check if this is a hybrid workflow with vectorizer capabilities
+        is_hybrid = is_hybrid_workflow(workflow.configuration)
+        has_vectorizer_steps = False
+        file_processing_result = None
+
+        # Check for vectorizer steps in workflow configuration (for both hybrid and deterministic workflows)
+        steps = workflow.configuration.get("steps", [])
+        vectorizer_step_types = [
+            "file_reader",
+            "text_chunking",
+            "embedding_generation",
+            "vector_storage",
+        ]
+        has_vectorizer_steps = any(
+            step.get("step_type") in vectorizer_step_types
+            or step.get("config", {}).get("tokenizer_step") in vectorizer_step_types
+            for step in steps
+        )
+
+        logger.info(
+            f"Workflow analysis - Hybrid: {is_hybrid}, Has vectorizer: {has_vectorizer_steps}, File provided: {file is not None}"
+        )
+
+        # Process file if provided and workflow supports it
+        temp_file_path = None
+        if file and has_vectorizer_steps:
+            logger.info(f"🔄 Preparing uploaded file for workflow: {file.filename}")
+
+            # Save uploaded file temporarily for workflow to process
+            import tempfile
+            import os
+
+            try:
+                # Create temporary file
+                temp_dir = tempfile.mkdtemp()
+                temp_file_path = os.path.join(
+                    temp_dir, file.filename or "uploaded_file"
+                )
+
+                # Save uploaded file
+                content = await file.read()
+                with open(temp_file_path, "wb") as f:
+                    f.write(content)
+
+                logger.info(f"📁 Saved file for workflow processing: {temp_file_path}")
+
+                # Add file context to chat history
+                file_context = {
+                    "role": "system",
+                    "content": f"A file named '{file.filename}' has been uploaded and will be processed by the workflow.",
+                }
+
+                if execution_request.chat_history is None:
+                    execution_request.chat_history = []
+                execution_request.chat_history.insert(0, file_context)
+
+                file_processing_result = {
+                    "status": "uploaded",
+                    "file_path": temp_file_path,
+                    "file_name": file.filename,
+                }
+
+            except Exception as file_error:
+                logger.error(f"❌ File upload failed: {file_error}")
+                file_processing_result = {"status": "error", "error": str(file_error)}
+
+        elif file and not has_vectorizer_steps:
+            logger.warning(
+                "🚨 File uploaded but workflow does not contain vectorizer steps - file will be ignored"
+            )
+
+        elif not file and has_vectorizer_steps:
+            logger.info(
+                "ℹ️ Workflow has vectorizer capabilities but no file was uploaded"
+            )
+
+        # Store file processing result in runtime overrides for the workflow
+        if file_processing_result:
+            if execution_request.runtime_overrides is None:
+                execution_request.runtime_overrides = {}
+            execution_request.runtime_overrides["file_processing_result"] = (
+                file_processing_result
+            )
+
+        # If we have an uploaded file and vectorizer steps, modify workflow config directly
+        if temp_file_path and has_vectorizer_steps:
+            logger.info(
+                f"🔧 Injecting uploaded file path into workflow step configurations"
+            )
+
+            # Directly modify the workflow configuration to use uploaded file
+            # This ensures the file_reader step gets the file_path in its config
+            modified_steps = []
+            for step in workflow.configuration.get("steps", []):
+                if step.get("step_type") == "file_reader":
+                    # Create a modified step with the uploaded file path
+                    modified_step = step.copy()
+                    if "config" not in modified_step:
+                        modified_step["config"] = {}
+
+                    modified_step["config"]["file_path"] = temp_file_path
+                    modified_step["config"]["file_name"] = (
+                        file.filename or "uploaded_file"
+                    )
+                    modified_steps.append(modified_step)
+                    logger.info(
+                        f"✅ Injected file path into file_reader step config: {temp_file_path}"
+                    )
+                else:
+                    modified_steps.append(step)
+
+            # Store the modified workflow configuration in runtime overrides
+            # so the workflow execution can use it instead of the original
+            if execution_request.runtime_overrides is None:
+                execution_request.runtime_overrides = {}
+
+            modified_workflow_config = workflow.configuration.copy()
+            modified_workflow_config["steps"] = modified_steps
+            execution_request.runtime_overrides["modified_workflow_config"] = (
+                modified_workflow_config
+            )
+
+            # Also store cleanup info
+            execution_request.runtime_overrides["uploaded_file"] = {
+                "file_path": temp_file_path,
+                "file_name": file.filename or "uploaded_file",
+                "temp_cleanup_required": True,
+            }
+
+            logger.info(f"✅ Modified workflow configuration to use uploaded file")
         # Create execution record
         logger.info("📝 Creating execution record...")
         execution_id = analytics_service.create_execution(

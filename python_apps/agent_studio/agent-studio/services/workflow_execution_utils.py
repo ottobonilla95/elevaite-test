@@ -162,8 +162,18 @@ def convert_to_deterministic_config(
 ) -> Dict[str, Any]:
     """
     Convert a workflow configuration to deterministic workflow format.
+    Supports runtime overrides including modified workflow configurations for file uploads.
     """
-    config = workflow.configuration.copy()
+    # Check if we have a modified workflow configuration in runtime overrides
+    runtime_overrides = execution_request.runtime_overrides or {}
+    modified_workflow_config = runtime_overrides.get("modified_workflow_config")
+
+    if modified_workflow_config:
+        # Use the modified configuration (e.g., with injected file paths)
+        config = modified_workflow_config.copy()
+    else:
+        # Use the original configuration
+        config = workflow.configuration.copy()
 
     # If it's already in deterministic format, return as-is
     if is_deterministic_workflow(config):

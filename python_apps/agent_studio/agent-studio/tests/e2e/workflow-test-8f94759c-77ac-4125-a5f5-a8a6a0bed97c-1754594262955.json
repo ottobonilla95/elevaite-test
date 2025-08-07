@@ -1,0 +1,283 @@
+{
+  "execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+  "workflow_id": "86ee03db-910d-4d27-81a9-59c855d0a06e",
+  "test_query": "Create a comprehensive media plan for Nike's new Air Max campaign with the following requirements:\n- Budget: $60,000 for Q4 2024\n- Target audience: Athletes and fitness enthusiasts aged 18-35\n- Geographic focus: North America (US and Canada)\n- Campaign objectives: Brand awareness and product launch\n- Preferred channels: Digital (social media, search) and traditional (TV, radio)\n- Timeline: 3-month campaign starting January 2025\n- Key messaging: Innovation, performance, and style\n- Please include insertion orders for both Salesforce and Google Drive integration\n- Generate comprehensive campaign analytics and ROI projections",
+  "start_time": "2025-08-07T19:17:29.188Z",
+  "end_time": "2025-08-07T19:17:42.949Z",
+  "total_duration_ms": 13761,
+  "final_status": "completed",
+  "steps_completed": 3,
+  "agents_involved": [
+    "Media Plan Workflow Orchestrator"
+  ],
+  "tools_used": [],
+  "polling_attempts": 3,
+  "execution_trace": [
+    {
+      "execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+      "type": "workflow",
+      "status": "running",
+      "progress": 0.2,
+      "current_step": "Executing root agent",
+      "agent_id": null,
+      "workflow_id": "86ee03db-910d-4d27-81a9-59c855d0a06e",
+      "session_id": null,
+      "user_id": null,
+      "query": "",
+      "input_data": null,
+      "result": null,
+      "error": null,
+      "tools_called": [],
+      "created_at": "2025-08-07T22:17:38.711531",
+      "started_at": "2025-08-07T22:17:38.716351",
+      "completed_at": null,
+      "estimated_completion": "2025-08-07T22:18:08.711515",
+      "workflow_trace": {
+        "execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+        "workflow_id": "86ee03db-910d-4d27-81a9-59c855d0a06e",
+        "current_step_index": 0,
+        "total_steps": 7,
+        "steps": [
+          {
+            "step_id": "init_8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+            "step_type": "data_processing",
+            "agent_id": null,
+            "agent_name": null,
+            "tool_name": null,
+            "status": "running",
+            "input_data": null,
+            "output_data": null,
+            "error": null,
+            "started_at": null,
+            "completed_at": null,
+            "duration_ms": null,
+            "step_metadata": {
+              "description": "Initializing workflow execution"
+            }
+          }
+        ],
+        "execution_path": [],
+        "branch_decisions": {}
+      }
+    },
+    {
+      "execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+      "type": "workflow",
+      "status": "running",
+      "progress": 0.4,
+      "current_step": "Orchestrating workflow execution",
+      "agent_id": null,
+      "workflow_id": "86ee03db-910d-4d27-81a9-59c855d0a06e",
+      "session_id": null,
+      "user_id": null,
+      "query": "",
+      "input_data": null,
+      "result": null,
+      "error": null,
+      "tools_called": [],
+      "created_at": "2025-08-07T22:17:38.711531",
+      "started_at": "2025-08-07T22:17:38.716351",
+      "completed_at": null,
+      "estimated_completion": "2025-08-07T22:18:08.711515",
+      "workflow_trace": {
+        "execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+        "workflow_id": "86ee03db-910d-4d27-81a9-59c855d0a06e",
+        "current_step_index": 0,
+        "total_steps": 7,
+        "steps": [
+          {
+            "step_id": "init_8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+            "step_type": "data_processing",
+            "agent_id": null,
+            "agent_name": null,
+            "tool_name": null,
+            "status": "running",
+            "input_data": null,
+            "output_data": null,
+            "error": null,
+            "started_at": null,
+            "completed_at": null,
+            "duration_ms": null,
+            "step_metadata": {
+              "description": "Initializing workflow execution"
+            }
+          },
+          {
+            "step_id": "238a04c4-695a-497c-848c-0a65874a9784",
+            "step_type": "agent_execution",
+            "agent_id": "f143fb71-13ad-46de-ba15-fe598ebae3ee",
+            "agent_name": "Media Plan Workflow Orchestrator",
+            "tool_name": null,
+            "status": "running",
+            "input_data": {
+              "query": "",
+              "agent_count": 3
+            },
+            "output_data": null,
+            "error": null,
+            "started_at": "2025-08-07T22:17:38.774518",
+            "completed_at": null,
+            "duration_ms": null,
+            "step_metadata": {
+              "workflow_type": "multi_agent",
+              "root_agent": true,
+              "agent_type": "router"
+            }
+          },
+          {
+            "step_id": "3c8d7660-b6ae-4035-872a-f2b651e50f80",
+            "step_type": "agent_execution",
+            "agent_id": "f143fb71-13ad-46de-ba15-fe598ebae3ee",
+            "agent_name": "Media Plan Workflow Orchestrator",
+            "tool_name": null,
+            "status": "running",
+            "input_data": {
+              "query": ""
+            },
+            "output_data": null,
+            "error": null,
+            "started_at": "2025-08-07T22:17:38.775249",
+            "completed_at": null,
+            "duration_ms": null,
+            "step_metadata": {
+              "agent_execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+              "auto_created": true
+            }
+          }
+        ],
+        "execution_path": [
+          "Media Plan Workflow Orchestrator"
+        ],
+        "branch_decisions": {}
+      }
+    },
+    {
+      "execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+      "type": "workflow",
+      "status": "completed",
+      "progress": 1,
+      "current_step": "Completed",
+      "agent_id": null,
+      "workflow_id": "86ee03db-910d-4d27-81a9-59c855d0a06e",
+      "session_id": null,
+      "user_id": null,
+      "query": "",
+      "input_data": null,
+      "result": {
+        "status": "success",
+        "response": "{\"content\": \"{ \\\"routing\\\": \\\"give_up\\\", \\\"content\\\": \\\"It seems like you haven't entered any input. If you need assistance with media planning or creating insertion orders, please provide some details or a question, and I'll be happy to help!\\\"}\"}",
+        "workflow_id": "86ee03db-910d-4d27-81a9-59c855d0a06e",
+        "execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+        "timestamp": "2025-08-07T22:17:41.379357"
+      },
+      "error": null,
+      "tools_called": [],
+      "created_at": "2025-08-07T22:17:38.711531",
+      "started_at": "2025-08-07T22:17:38.716351",
+      "completed_at": "2025-08-07T22:17:41.379381",
+      "estimated_completion": "2025-08-07T22:18:08.711515",
+      "workflow_trace": {
+        "execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+        "workflow_id": "86ee03db-910d-4d27-81a9-59c855d0a06e",
+        "current_step_index": 0,
+        "total_steps": 7,
+        "steps": [
+          {
+            "step_id": "init_8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+            "step_type": "data_processing",
+            "agent_id": null,
+            "agent_name": null,
+            "tool_name": null,
+            "status": "running",
+            "input_data": null,
+            "output_data": null,
+            "error": null,
+            "started_at": null,
+            "completed_at": null,
+            "duration_ms": null,
+            "step_metadata": {
+              "description": "Initializing workflow execution"
+            }
+          },
+          {
+            "step_id": "238a04c4-695a-497c-848c-0a65874a9784",
+            "step_type": "agent_execution",
+            "agent_id": "f143fb71-13ad-46de-ba15-fe598ebae3ee",
+            "agent_name": "Media Plan Workflow Orchestrator",
+            "tool_name": null,
+            "status": "completed",
+            "input_data": {
+              "query": "",
+              "agent_count": 3
+            },
+            "output_data": {
+              "result": "{ \"routing\": \"give_up\", \"content\": \"It seems like you haven't entered any input. If you need assistance with media planning or creating insertion orders, please provide some details or a question, and I'll be happy to help!\"}"
+            },
+            "error": null,
+            "started_at": "2025-08-07T22:17:38.774518",
+            "completed_at": "2025-08-07T22:17:41.379172",
+            "duration_ms": 2604,
+            "step_metadata": {
+              "workflow_type": "multi_agent",
+              "root_agent": true,
+              "agent_type": "router"
+            }
+          },
+          {
+            "step_id": "3c8d7660-b6ae-4035-872a-f2b651e50f80",
+            "step_type": "agent_execution",
+            "agent_id": "f143fb71-13ad-46de-ba15-fe598ebae3ee",
+            "agent_name": "Media Plan Workflow Orchestrator",
+            "tool_name": null,
+            "status": "completed",
+            "input_data": {
+              "query": ""
+            },
+            "output_data": {
+              "status": "success"
+            },
+            "error": null,
+            "started_at": "2025-08-07T22:17:38.775249",
+            "completed_at": "2025-08-07T22:17:41.347091",
+            "duration_ms": 2571,
+            "step_metadata": {
+              "agent_execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+              "auto_created": true
+            }
+          },
+          {
+            "step_id": "finalize_8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+            "step_type": "data_processing",
+            "agent_id": null,
+            "agent_name": null,
+            "tool_name": null,
+            "status": "completed",
+            "input_data": null,
+            "output_data": {
+              "status": "success",
+              "response": "{\"content\": \"{ \\\"routing\\\": \\\"give_up\\\", \\\"content\\\": \\\"It seems like you haven't entered any input. If you need assistance with media planning or creating insertion orders, please provide some details or a question, and I'll be happy to help!\\\"}\"}",
+              "workflow_id": "86ee03db-910d-4d27-81a9-59c855d0a06e",
+              "execution_id": "8f94759c-77ac-4125-a5f5-a8a6a0bed97c",
+              "timestamp": "2025-08-07T22:17:41.379357"
+            },
+            "error": null,
+            "started_at": null,
+            "completed_at": "2025-08-07T22:17:41.379375",
+            "duration_ms": null,
+            "step_metadata": {
+              "description": "Finalizing workflow execution"
+            }
+          }
+        ],
+        "execution_path": [
+          "Media Plan Workflow Orchestrator",
+          "router",
+          "router",
+          "router"
+        ],
+        "branch_decisions": {}
+      }
+    }
+  ],
+  "success": true
+}

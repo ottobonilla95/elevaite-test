@@ -223,15 +223,7 @@ const TOKENIZER_RAG_WORKFLOW = {
           chunks: "chunk_document_text.chunks",
         },
         config: {
-          agent_config: {
-            agent_name: "RAG Query Agent",
-            model: "gpt-4o-mini",
-            temperature: 0.2,
-            max_tokens: 1500,
-            tools: ["document_search", "document_metadata_search"],
-            system_prompt:
-              "You are a RAG (Retrieval-Augmented Generation) agent with access to a vector database containing processed documents. You can search through document chunks using semantic similarity and metadata filters. The documents have been processed through a complete tokenizer pipeline including advanced parsing, intelligent chunking, embedding generation, and vector storage. Use your search tools to provide accurate, well-sourced answers.",
-          },
+          agent_id: "718c97ae-d91e-4c84-941b-6f39f3fd9f52", // RAG Document Analyzer agent
           query:
             "Please analyze the document that was just processed. What are the key concepts, main topics, and important details? Use both semantic search and metadata search to provide a comprehensive analysis of the document's content and structure.",
           execution_context: {
@@ -400,15 +392,7 @@ const ENHANCED_TOKENIZER_WORKFLOW = {
           file_metadata: "read_file_advanced.metadata",
         },
         config: {
-          agent_config: {
-            agent_name: "Document Query Agent",
-            model: "gpt-4o-mini",
-            temperature: 0.1,
-            max_tokens: 1000,
-            tools: ["document_search", "document_metadata_search"],
-            system_prompt:
-              "You are a document analysis agent. You have access to document search tools that can query processed documents. Use these tools to answer questions about the document content. The document has been processed through an enhanced tokenizer pipeline with advanced parsing and chunking.",
-          },
+          agent_id: "718c97ae-d91e-4c84-941b-6f39f3fd9f52", // RAG Document Analyzer agent
           query:
             "What are the main topics covered in this document? Please search the processed chunks to provide a comprehensive summary of the document's content and structure.",
           execution_context: {

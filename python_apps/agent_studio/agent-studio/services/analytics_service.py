@@ -14,11 +14,24 @@ class WorkflowStep(BaseModel):
     step_id: str
     step_type: Literal[
         # Existing AI workflow step types
-        "agent_execution", "tool_call", "decision_point", "data_processing",
+        "agent_execution",
+        "tool_call",
+        "decision_point",
+        "data_processing",
         # New deterministic workflow step types
-        "data_input", "data_output", "transformation", "validation", 
-        "batch_processing", "conditional_branch", "parallel_execution",
-        "aggregation", "notification"
+        "data_input",
+        "data_output",
+        "transformation",
+        "validation",
+        "batch_processing",
+        "conditional_branch",
+        "parallel_execution",
+        "aggregation",
+        "notification",
+        "file_reader",
+        "text_chunking",
+        "embedding_generation",
+        "vector_storage",
     ]
     agent_id: Optional[str] = None
     agent_name: Optional[str] = None
@@ -452,11 +465,20 @@ class AnalyticsService:
         execution_id: str,
         step_type: Literal[
             # Existing AI workflow step types
-            "agent_execution", "tool_call", "decision_point", "data_processing",
+            "agent_execution",
+            "tool_call",
+            "decision_point",
+            "data_processing",
             # New deterministic workflow step types
-            "data_input", "data_output", "transformation", "validation", 
-            "batch_processing", "conditional_branch", "parallel_execution",
-            "aggregation", "notification"
+            "data_input",
+            "data_output",
+            "transformation",
+            "validation",
+            "batch_processing",
+            "conditional_branch",
+            "parallel_execution",
+            "aggregation",
+            "notification",
         ],
         step_name: str,
         input_data: Optional[Dict[str, Any]] = None,

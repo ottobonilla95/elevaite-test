@@ -43,6 +43,7 @@ class FileReaderStepConfig(StepConfig):
     """Configuration for File Reader Step"""
 
     step_type: DeterministicStepType = DeterministicStepType.DATA_INPUT
+    file_path: str
 
 
 class FileReaderStep(DataInputStep):
@@ -615,6 +616,8 @@ class FileReaderStep(DataInputStep):
 def create_file_reader_step(config: Dict[str, Any]) -> FileReaderStep:
     """Create a FileReaderStep with given configuration"""
     step_config = FileReaderStepConfig(
-        step_name=config.get("step_name", "File Reader"), config=config
+        step_name=config.get("step_name", "File Reader"),
+        file_path=config.get("file_path", ""),
+        config=config,
     )
     return FileReaderStep(step_config)

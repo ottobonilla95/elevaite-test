@@ -275,7 +275,7 @@ class AgentExecutionStep(BaseDeterministicStep):
             # Create PromptObject for system_prompt using the pattern from workflow_agent_builders.py
             from datetime import datetime
             import uuid
-            
+
             system_prompt = PromptObject(
                 appName="DynamicAgent",
                 createdTime=datetime.now(),
@@ -330,14 +330,34 @@ class AgentExecutionStep(BaseDeterministicStep):
     ) -> Dict[str, Any]:
         """Process agent response and integrate with workflow data"""
 
-        # Base result with agent execution data
-        result = {
-            "agent_execution": agent_result,
-            "success": agent_result.get("status") == "completed",
-        }
+        # Check if we should return a simplified response
+        return_simplified = config.get("return_simplified", False)
 
-        # Add original input data if requested
-        if config.get("include_input_data", True):
+        if return_simplified:
+            # Return a simplified structure with just the essential data
+            result = {
+                "response": agent_result.get("response", ""),
+                "success": agent_result.get("status") == "completed",
+                "execution_time": agent_result.get("execution_time"),
+                "agent_name": agent_result.get(
+                    "agent_name", agent_result.get("agent_id")
+                ),
+                "tools_used": agent_result.get("tools_used", []),
+                "timestamp": agent_result.get("timestamp"),
+            }
+        else:
+            # Base result with agent execution data (full structure)
+            result = {
+                "agent_execution": agent_result,
+                "success": agent_result.get("status") == "completed",
+                # Extract the actual response for easier access
+                "response": agent_result.get("response", ""),
+                "agent_id": agent_result.get("agent_id"),
+                "agent_name": agent_result.get("agent_name"),
+            }
+
+        # Add original input data if requested (but not by default to reduce size)
+        if config.get("include_input_data", False):
             result["input_data"] = input_data
 
         # Extract specific fields if configured
@@ -417,7 +437,9 @@ def register_agent_execution_step():
 
 
 async def create_agent_execution_step_direct(
-    step_config: Dict[str, Any], input_data: Dict[str, Any], execution_context: Dict[str, Any] = None
+    step_config: Dict[str, Any],
+    input_data: Dict[str, Any],
+    execution_context: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
     """Direct agent execution step implementation"""
     config = AgentExecutionStepConfig(
@@ -427,12 +449,12 @@ async def create_agent_execution_step_direct(
     )
 
     step = AgentExecutionStep(config)
-    
+
     # Use execution_context if available for additional context
     if execution_context:
         # Could potentially use execution_context for session info, etc.
         # For now, just pass through the input_data
         pass
-    
+
     result = await step.execute(input_data)
     return result.data or {}
