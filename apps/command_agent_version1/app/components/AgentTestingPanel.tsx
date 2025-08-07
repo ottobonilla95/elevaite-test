@@ -1,5 +1,5 @@
 import { ChatbotIcons } from "@repo/ui/components";
-import { AlertCircle, Bot, User } from "lucide-react";
+import { AlertCircle, Bot, User, Upload, Maximize2, Minimize2, FileText, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { executeWorkflowModern } from "../lib/actions";
 import { useWorkflows } from "../ui/contexts/WorkflowsContext";
@@ -8,73 +8,64 @@ import { AgentTestingParser } from "./AgentTestingParser";
 import AgentWorkflowDetailsModal from "./AgentWorkflowDetailsModal";
 import { type ChatMessage } from "./type";
 import { ChatLoading } from "./ui/ChatLoading";
+import UploadModal from "../components/agents/UploadModal";
 
-const rows = [
-  {
-    id: 1,
-    heading: "Context",
-    value: "8,192 Tokens",
-  },
-  {
-    id: 2,
-    heading: "Input Pricing",
-    value: "$30.00 / 1M Tokens",
-  },
-  {
-    id: 3,
-    heading: "Output Pricing",
-    value: "$60.00 / 1M Tokens",
-  },
-  {
-    id: 4,
-    heading: "Hallucination Risk",
-    tag: "Low",
-  },
-  {
-    id: 5,
-    heading: "Latency",
-    tag: "Normal (2.3s)",
-  },
-  {
-    id: 6,
-    heading: "Overall Score",
-    tag: "8/10",
-  },
-];
+interface UploadedFile {
+  id: string;
+  name: string;
+  size: string;
+  completed: boolean;
+  backendFileId?: string;
+}
+
+interface AgentTestingPanelProps {
+  workflowId?: string;
+  sessionId?: string;
+  // ADD: Callback to update workflow ID
+  onWorkflowUpdate?: (workflowId: string) => void;
+}
 
 function AgentTestingPanel({
   workflowId,
   sessionId,
-}: {
-  workflowId: string;
-  sessionId?: string;
-}): React.ReactElement {
+  onWorkflowUpdate,
+}: AgentTestingPanelProps): React.ReactElement {
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const { expandChat, setExpandChat } = useWorkflows();
   const [showAgentWorkflowModal, setShowAgentWorkflowModal] = useState(false);
-  const [showAgentWorkflowDetails, setShowAgentWorkflowDetails] =
-    useState(true);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [agentStatus, setAgentStatus] = useState("Processing...");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+  const [agentStatus, setAgentStatus] = useState("Ready");
+  
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => [
     {
       id: Date.now(),
       text: workflowId
-        ? `Workflow deployed successfully with ID: ${workflowId.substring(0, 8)}. You can now ask questions.`
+        ? `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`
         : "No workflow detected. Please select a workflow from the left panel or save a new one.",
       sender: "bot",
     },
   ]);
 
+  // UPDATE: React to workflowId changes
   useEffect(() => {
-    if (chatMessages.length === 1) {
+    if (workflowId) {
       setChatMessages([
         {
           id: Date.now(),
-          text: workflowId
-            ? `Workflow deployed successfully with ID: ${workflowId.substring(0, 8)}. You can now ask questions.`
-            : "No workflow detected. Please select a workflow from the left panel or save a new one.",
+          text: ` Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
+          sender: "bot",
+        },
+      ]);
+      // Clear any previous uploads when workflow changes
+      setUploadedFiles([]);
+    } else {
+      setChatMessages([
+        {
+          id: Date.now(),
+          text: "No workflow detected. Please select a workflow from the left panel or save a new one.",
           sender: "bot",
         },
       ]);
@@ -89,9 +80,6 @@ function AgentTestingPanel({
 
   useEffect(() => {
     if (!sessionId || !process.env.NEXT_PUBLIC_BACKEND_URL) return;
-
-    //TODO: Testing!
-    // simulateAgentStatusUpdates();
 
     const userId = "superuser@iopex.com";
     const eventSource = new EventSource(
@@ -109,31 +97,6 @@ function AgentTestingPanel({
     };
   }, [sessionId]);
 
-  // useEffect(() => {
-  // 	console.log("Agent Status:", agentStatus);
-  // }, [agentStatus]);
-
-  //TODO: Testing!
-  // function simulateAgentStatusUpdates(): void {
-  // 	const statuses = [
-  // 		"Initializing agent...",
-  // 		"Loading modules...",
-  // 		"Connecting to backend...",
-  // 		"Running pre-checks...",
-  // 		"Agent ready.",
-  // 	];
-
-  // 	let index = 0;
-
-  // 	function updateStatus(): void {
-  // 		setAgentStatus(statuses[index]);
-  // 		index = (index + 1) % statuses.length;
-  // 		setTimeout(updateStatus, 2000);
-  // 	}
-
-  // 	updateStatus();
-  // }
-
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
     setChatInput(event.target.value);
   }
@@ -147,19 +110,18 @@ function AgentTestingPanel({
   async function handleSendMessage(): Promise<void> {
     if (!chatInput.trim()) return;
 
-    // Add user message to chat
-    const userMessage = {
+    const userMessage: ChatMessage = {
       id: Date.now(),
       text: chatInput,
-      sender: "user" as const,
+      sender: "user",
     };
 
     setChatMessages((prevMessages) => [...prevMessages, userMessage]);
 
-    // Save and clear input
     const query = chatInput;
     setChatInput("");
     setIsLoading(true);
+    setAgentStatus("Processing your request...");
 
     try {
       const chatHistory = chatMessages.map((message) => ({
@@ -167,14 +129,17 @@ function AgentTestingPanel({
         content: message.text,
       }));
 
-      // Create execution request
       const executionRequest = {
         query,
         chat_history: chatHistory,
         runtime_overrides: {},
+        files: uploadedFiles.map(file => ({
+          id: file.backendFileId || file.id,
+          name: file.name
+        }))
       };
 
-      const result = await executeWorkflowModern(workflowId, executionRequest);
+      const result = await executeWorkflowModern(workflowId || "", executionRequest);
 
       let responseText = "No response received";
 
@@ -195,17 +160,16 @@ function AgentTestingPanel({
         }
       }
 
-      const botMessage = {
+      const botMessage: ChatMessage = {
         id: Date.now() + 1,
         text: responseText,
-        sender: "bot" as const,
+        sender: "bot",
       };
 
       setChatMessages((prevMessages) => [...prevMessages, botMessage]);
     } catch (error) {
       console.error("Error running workflow:", error);
 
-      // Add error message to chat
       setChatMessages((prevMessages) => [
         ...prevMessages,
         {
@@ -217,8 +181,22 @@ function AgentTestingPanel({
       ]);
     } finally {
       setIsLoading(false);
+      setAgentStatus("Ready");
     }
   }
+
+  const handleFilesUploaded = (files: UploadedFile[]): void => {
+    setUploadedFiles((prev) => [...prev, ...files]);
+    
+    const fileNames = files.map(f => f.name).join(', ');
+    const systemMessage: ChatMessage = {
+      id: Date.now(),
+      text: `📎 Uploaded ${files.length} file(s): ${fileNames}. You can now ask questions about these documents!`,
+      sender: "bot",
+    };
+    
+    setChatMessages((prevMessages) => [...prevMessages, systemMessage]);
+  };
 
   const renderUserAvatar = (): React.ReactElement => {
     return (
@@ -228,8 +206,7 @@ function AgentTestingPanel({
     );
   };
 
-  // Render bot avatar
-  const renderBotAvatar = (isError = false) => {
+  const renderBotAvatar = (isError = false): React.ReactElement => {
     return (
       <div className="message-avatar rounded-full shrink-0 bg-[#FF681F]">
         {isError ? <AlertCircle size={16} /> : <Bot size={16} />}
@@ -237,7 +214,7 @@ function AgentTestingPanel({
     );
   };
 
-  const formatTime = (timestamp: number) => {
+  const formatTime = (timestamp: number): string => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
@@ -261,77 +238,52 @@ function AgentTestingPanel({
                 className="flex items-center justify-between py-2 px-6 sticky top-0 z-10 bg-white"
                 style={{ borderBottom: "1px solid #E2E8ED" }}
               >
-                <div className="font-bold">Testing Workflow</div>
-                <button
-                  onClick={() => {
-                    setExpandChat(!expandChat);
-                  }}
-                  type="button"
-                >
-                  {expandChat ? (
-                    <svg
-                      width="17"
-                      height="18"
-                      viewBox="0 0 17 18"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M2.83773 10.417H7.08773M7.08773 10.417V14.667M7.08773 10.417L2.12939 15.3753M14.1711 7.58364H9.92106M9.92106 7.58364V3.33364M9.92106 7.58364L14.8794 2.62531"
-                        stroke="#4D4D50"
-                        strokeWidth="1.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M2.83773 10.417H7.08773M7.08773 10.417V14.667M7.08773 10.417L2.12939 15.3753M14.1711 7.58364H9.92106M9.92106 7.58364V3.33364M9.92106 7.58364L14.8794 2.62531"
-                        stroke="#4D4D50"
-                        strokeWidth="1.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g opacity="0.8">
-                        <path
-                          d="M10.6667 5.33333L14 2M14 2H10.6667M14 2V5.33333M5.33333 5.33333L2 2M2 2L2 5.33333M2 2L5.33333 2M5.33333 10.6667L2 14M2 14H5.33333M2 14L2 10.6667M10.6667 10.6667L14 14M14 14V10.6667M14 14H10.6667"
-                          stroke="#212124"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M10.6667 5.33333L14 2M14 2H10.6667M14 2V5.33333M5.33333 5.33333L2 2M2 2L2 5.33333M2 2L5.33333 2M5.33333 10.6667L2 14M2 14H5.33333M2 14L2 10.6667M10.6667 10.6667L14 14M14 14V10.6667M14 14H10.6667"
-                          stroke="#212124"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </g>
-                    </svg>
-                  )}
-                </button>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-[#FF681F] rounded-lg flex items-center justify-center">
+                    <Bot size={16} className="text-white" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm">CoPilot</div>
+                    <div className="text-xs text-gray-500">AI Assistant</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowUploadModal(true)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    type="button"
+                    title="Upload files"
+                    disabled={!workflowId}
+                  >
+                    <Upload size={16} className={workflowId ? "text-gray-600" : "text-gray-300"} />
+                  </button>
+                  <button
+                    onClick={() => setExpandChat(!expandChat)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    type="button"
+                    title={expandChat ? "Minimize chat" : "Expand chat"}
+                  >
+                    {expandChat ? (
+                      <Minimize2 size={16} className="text-gray-600" />
+                    ) : (
+                      <Maximize2 size={16} className="text-gray-600" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="chat-bubbles my-4 px-6">
                 {chatMessages.map((message) => (
                   <div
                     key={message.id}
-                    className={`chat-bubble rounded-lg bg-[#F8FAFC] flex items-center gap-4 p-4 ${message.sender === "user" ? "user-message" : "bot-message"} ${message.error ? "error-message" : ""}`}
+                    className={`chat-bubble rounded-lg bg-[#F8FAFC] flex items-start gap-4 p-4 mb-4 ${message.sender === "user" ? "user-message" : "bot-message"} ${message.error ? "error-message" : ""}`}
                   >
                     {message.sender === "user"
                       ? renderUserAvatar()
                       : renderBotAvatar(message.error)}
-                    <div>
+                    <div className="flex-1">
                       <div
-                        className={`text-xs text-[#FF681F] ${message.sender === "user" ? "user-time" : "bot-time"}`}
+                        className={`text-xs text-[#FF681F] mb-1 ${message.sender === "user" ? "user-time" : "bot-time"}`}
                       >
                         {formatTime(message.id)}
                       </div>
@@ -343,52 +295,40 @@ function AgentTestingPanel({
                 ))}
                 <div ref={chatEndRef} />
               </div>
+
+              {/* Show uploaded files if any */}
+              {uploadedFiles.length > 0 && (
+                <div className="uploaded-files px-6 mb-4">
+                  <div className="text-xs font-medium text-gray-500 mb-2">Uploaded Files:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {uploadedFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex items-center gap-2 bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs"
+                      >
+                        <FileText size={12} />
+                        <span>{file.name}</span>
+                        <button
+                          onClick={() => {
+                            setUploadedFiles(prev => prev.filter(f => f.id !== file.id));
+                          }}
+                          className="text-blue-500 hover:text-blue-700"
+                          type="button"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* <div className="my-4 px-6 sticky bg-white bottom-4 z-1">
-							<div className="details rounded-xl" style={{ border: '1px solid #E2E8ED' }}>
-								<div className="flex items-center justify-between py-2 px-4" style={showAgentWorkflowDetails ? { borderBottom: '1px solid #E2E8ED' } : undefined}>
-									<div className="font-medium text-sm">CoPilot</div>
-									<button onClick={() => { setShowAgentWorkflowDetails(!showAgentWorkflowDetails); }} type="button">
-										<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-											<g opacity="0.8">
-												<path d="M4 6L8 10L12 6" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-											</g>
-										</svg>
-									</button>
-								</div>
-								{Boolean(showAgentWorkflowDetails) && (
-									<div className="p-4">
-										{rows.map(row => (
-											<div key={row.id} className="flex items-center justify-between py-1 mb-3">
-												<div className="font-medium text-sm opacity-75">
-													{row.heading}
-												</div>
-												{Boolean(row.value) && (
-													<div className="font-medium text-sm">
-														{row.value}
-													</div>
-												)}
-												{Boolean(row.tag) && (
-													<div className="tag-blue">
-														{row.tag}
-													</div>
-												)}
-											</div>
-										))}
-										<button className="font-medium text-xs text-[#FF681F]" onClick={() => { setShowAgentWorkflowModal(true); }} type="button">
-											See Full Workflow Details
-										</button>
-									</div>
-								)}
-							</div>
-						</div> */}
+            <ChatLoading isLoading={isLoading} loadingMessage={agentStatus} />
           </div>
-
-          <ChatLoading isLoading={isLoading} loadingMessage={agentStatus} />
         </div>
 
-        {!workflowId ? undefined : (
+        {workflowId && (
           <div
             className="bottom p-6 rounded-md bg-[#F8FAFC]"
             style={{ border: "1px solid #E2E8ED" }}
@@ -396,25 +336,22 @@ function AgentTestingPanel({
             <div className="relative">
               <input
                 type="text"
-                className="h-[48px] w-full rounded-lg"
+                className="h-[48px] w-full rounded-lg px-4 pr-12"
                 value={chatInput}
                 placeholder={
                   isLoading ? "Working, please wait..." : "Type message here"
                 }
                 onChange={handleInputChange}
                 onKeyDown={handleKeyPress}
+                disabled={isLoading}
               />
-              <div className="actions flex items-center gap-2 absolute right-6 top-1/2 -translate-y-1/2">
-                {/* <button type="button">
-									<svg width="11" height="18" viewBox="0 0 11 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-										<path d="M9.31548 3.64493L9.67967 12.8244C9.72434 13.949 9.3204 15.0452 8.55677 15.8719C7.79314 16.6987 6.73236 17.1882 5.60778 17.2328C4.48324 17.2774 3.38701 16.8735 2.56027 16.1098C1.73353 15.3462 1.24405 14.2854 1.19941 13.1608L0.835202 3.98139C0.805476 3.23167 1.07478 2.50085 1.58384 1.94972C2.09295 1.39854 2.80014 1.07219 3.54981 1.04248C4.29954 1.01272 5.03037 1.28199 5.58152 1.79107C6.13268 2.30016 6.459 3.00737 6.48873 3.75709L6.84814 12.9417C6.86302 13.3166 6.72835 13.682 6.47381 13.9576C6.21927 14.2331 5.86569 14.3963 5.49083 14.4112C5.11597 14.4261 4.75061 14.2915 4.47499 14.0369C4.19943 13.7823 4.03626 13.4287 4.02137 13.0539L3.6901 4.57843" stroke="#FF681F" strokeWidth="1.06028" strokeLinecap="round" strokeLinejoin="round"/>
-										<path d="M9.31548 3.64493L9.67967 12.8244C9.72434 13.949 9.3204 15.0452 8.55677 15.8719C7.79314 16.6987 6.73236 17.1882 5.60778 17.2328C4.48324 17.2774 3.38701 16.8735 2.56027 16.1098C1.73353 15.3462 1.24405 14.2854 1.19941 13.1608L0.835202 3.98139C0.805476 3.23167 1.07478 2.50085 1.58384 1.94972C2.09295 1.39854 2.80014 1.07219 3.54981 1.04248C4.29954 1.01272 5.03037 1.28199 5.58152 1.79107C6.13268 2.30016 6.459 3.00737 6.48873 3.75709L6.84814 12.9417C6.86302 13.3166 6.72835 13.682 6.47381 13.9576C6.21927 14.2331 5.86569 14.3963 5.49083 14.4112C5.11597 14.4261 4.75061 14.2915 4.47499 14.0369C4.19943 13.7823 4.03626 13.4287 4.02137 13.0539L3.6901 4.57843" stroke="#FF681F" strokeWidth="1.06028" strokeLinecap="round" strokeLinejoin="round"/>
-									</svg>
-								</button> */}
+              <div className="actions flex items-center gap-2 absolute right-3 top-1/2 -translate-y-1/2">
                 <button
-                  className={["send-button", isLoading ? "loading" : undefined]
-                    .filter(Boolean)
-                    .join(" ")}
+                  className={`send-button p-2 rounded-lg ${
+                    isLoading || !chatInput.trim()
+                      ? "bg-gray-200 cursor-not-allowed"
+                      : "bg-[#FF681F] hover:bg-orange-600"
+                  } transition-colors`}
                   onClick={handleSendMessage}
                   disabled={isLoading || !chatInput.trim()}
                   type="button"
@@ -431,14 +368,23 @@ function AgentTestingPanel({
         )}
       </div>
 
-      {Boolean(showAgentWorkflowModal) && (
+      {/* Upload Modal - Only show if we have a workflow */}
+      {workflowId && (
+        <UploadModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onFilesUploaded={handleFilesUploaded}
+        />
+      )}
+
+      {/* Workflow Details Modal */}
+      {showAgentWorkflowModal && (
         <AgentWorkflowDetailsModal
-          onClose={() => {
-            setShowAgentWorkflowModal(false);
-          }}
+          onClose={() => setShowAgentWorkflowModal(false)}
         />
       )}
     </>
   );
 }
-export default AgentTestingPanel;
+
+export default AgentTestingPanel; 

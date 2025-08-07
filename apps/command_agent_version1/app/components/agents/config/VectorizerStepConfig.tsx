@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Play, ChevronDown, ChevronUp } from "lucide-react";
 import {
   type VectorizationStepType,
   type VectorizationStepData,
 } from "../VectorizerBottomDrawer";
 import { ConfigField } from "./ConfigField";
 import { CustomDropdown } from "./CustomDropdown";
+import { LogsPanel } from "./LogsPanel";
 import UploadModal from "../UploadModal";
 import "./VectorizerStepConfig.scss";
 
@@ -44,6 +45,9 @@ interface VectorizerStepConfigProps {
   stepData: VectorizationStepData | null;
   onConfigChange?: (stepId: string, config: StepConfigData) => void;
   existingConfig?: Record<string, unknown>;
+  onRunStep?: () => void;
+  isRunning?: boolean;
+  showLogsPanel?: boolean;
 }
 
 // Configuration options for each step type based on actual pipelines app
@@ -374,12 +378,38 @@ const getStepIcon = (stepType: VectorizationStepType): string => {
   }
 };
 
+// Helper function to get step button text
+const getRunButtonText = (stepType: VectorizationStepType): string => {
+  switch (stepType) {
+    case "load":
+      return "Run Load Step";
+    case "parse":
+      return "Run Parsing Step";
+    case "chunk":
+      return "Run Chunking Step";
+    case "embed":
+      return "Run Embedding Step";
+    case "store":
+      return "Run Vector Store Step";
+    case "query":
+      return "Run Query Step";
+    default:
+      return `Run ${stepType} Step`;
+  }
+};
+
 export default function VectorizerStepConfig({
   stepData,
   onConfigChange,
   existingConfig,
+  onRunStep,
+  isRunning = false,
+  showLogsPanel = false,
 }: VectorizerStepConfigProps): JSX.Element {
   const [config, setConfig] = useState<StepConfigData>({});
+  
+  // Collapsible sections state
+  const [isConfigExpanded, setIsConfigExpanded] = useState(true);
 
   // Upload functionality state - keyed by step ID
   const [stepFiles, setStepFiles] = useState<Record<string, UploadedFile[]>>(
@@ -492,6 +522,13 @@ export default function VectorizerStepConfig({
     handleConfigChange("uploaded_file_ids", backendFileIds);
   };
 
+  // Handle running a step
+  const handleRunStep = async (): Promise<void> => {
+    if (onRunStep) {
+      onRunStep();
+    }
+  };
+
   // Check if a field should be shown based on dependencies
   const shouldShowField = (field: ConfigFieldData): boolean => {
     if (!field.dependsOn || !field.showWhen) {
@@ -536,127 +573,151 @@ export default function VectorizerStepConfig({
         </div>
       </div>
 
-      {/* Configuration Options */}
-      <div className="config-options">
-        <h4 className="config-section-title">Configuration</h4>
-        <div className="config-fields">
-          {visibleOptions.map((option) => (
-            <ConfigField
-              key={option.id}
-              label={option.label}
-              description={option.description}
-            >
-              {option.type === "select" && option.options ? (
-                <CustomDropdown
-                  options={option.options}
-                  value={config[option.id] as string}
-                  defaultValue={option.default as string}
-                  onChange={(value) => {
-                    handleConfigChange(option.id, value);
-                  }}
-                />
-              ) : null}
-
-              {option.type === "text" && (
-                <input
-                  type="text"
-                  value={(config[option.id] as string) || ""}
-                  onChange={(e) => {
-                    handleConfigChange(option.id, e.target.value);
-                  }}
-                  placeholder={`Enter ${option.label.toLowerCase()}`}
-                />
-              )}
-
-              {option.type === "number" && (
-                <input
-                  type="number"
-                  value={
-                    (config[option.id] as number) ||
-                    (typeof option.default === "number" ? option.default : 0)
-                  }
-                  onChange={(e) => {
-                    handleConfigChange(
-                      option.id,
-                      parseFloat(e.target.value) || 0
-                    );
-                  }}
-                  step="any"
-                />
-              )}
-
-              {option.type === "checkbox" && (
-                <div className="checkbox-wrapper">
-                  <input
-                    type="checkbox"
-                    id={`checkbox-${option.id}`}
-                    checked={(config[option.id] as boolean) || false}
-                    onChange={(e) => {
-                      handleConfigChange(option.id, e.target.checked);
-                    }}
-                  />
-                  <label htmlFor={`checkbox-${option.id}`}>
-                    {option.description ?? option.label}
-                  </label>
-                </div>
-              )}
-            </ConfigField>
-          ))}
+      {/* Collapsible Configuration Section */}
+      <div className="collapsible-section">
+        <div 
+          className="section-header"
+          onClick={() => setIsConfigExpanded(!isConfigExpanded)}
+        >
+          <h4 className="section-title">Configuration</h4>
+          <button type="button" className="collapse-button">
+            {isConfigExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
         </div>
-      </div>
-
-      {/* Upload Section - Only for load steps */}
-      {stepData.type === "load" && (
-        <div className="config-options">
-          <h4 className="config-section-title">File Upload</h4>
-          <div className="config-fields">
-            <ConfigField
-              label="Upload Files"
-              description="Upload files to be processed by this loading step"
-            >
-              <div className="flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={handleUploadClick}
-                  className="px-3 py-2 bg-white hover:bg-gray-50 text-brand-primary text-sm font-medium rounded border border-brand-primary transition-colors flex items-center justify-center gap-2 w-full max-w-md"
+        
+        {isConfigExpanded && (
+          <div className="section-content">
+            <div className="config-fields">
+              {visibleOptions.map((option) => (
+                <ConfigField
+                  key={option.id}
+                  label={option.label}
+                  description={option.description}
                 >
-                  <Upload size={16} />
-                  Upload Files
-                </button>
+                  {option.type === "select" && option.options ? (
+                    <CustomDropdown
+                      options={option.options}
+                      value={config[option.id] as string}
+                      defaultValue={option.default as string}
+                      onChange={(value) => {
+                        handleConfigChange(option.id, value);
+                      }}
+                    />
+                  ) : null}
 
-                {/* Display uploaded files */}
-                {currentFiles.length > 0 && (
-                  <div className="uploaded-files-list">
-                    <span className="text-xs font-medium text-gray-600 mb-2 block">
-                      Uploaded Files:
-                    </span>
-                    <div className="flex flex-col gap-2">
-                      {currentFiles.map((file) => (
-                        <div
-                          key={file.id}
-                          className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-sm"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-700">{file.name}</span>
-                            <span className="text-gray-500">({file.size})</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveFile(file.id)}
-                            className="text-gray-400 hover:text-red-500 transition-colors"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
+                  {option.type === "text" && (
+                    <input
+                      type="text"
+                      value={(config[option.id] as string) || ""}
+                      onChange={(e) => {
+                        handleConfigChange(option.id, e.target.value);
+                      }}
+                      placeholder={`Enter ${option.label.toLowerCase()}`}
+                    />
+                  )}
+
+                  {option.type === "number" && (
+                    <input
+                      type="number"
+                      value={
+                        (config[option.id] as number) ||
+                        (typeof option.default === "number" ? option.default : 0)
+                      }
+                      onChange={(e) => {
+                        handleConfigChange(
+                          option.id,
+                          parseFloat(e.target.value) || 0
+                        );
+                      }}
+                      step="any"
+                    />
+                  )}
+
+                  {option.type === "checkbox" && (
+                    <div className="checkbox-wrapper">
+                      <input
+                        type="checkbox"
+                        id={`checkbox-${option.id}`}
+                        checked={(config[option.id] as boolean) || false}
+                        onChange={(e) => {
+                          handleConfigChange(option.id, e.target.checked);
+                        }}
+                      />
+                      <label htmlFor={`checkbox-${option.id}`}>
+                        {option.description ?? option.label}
+                      </label>
                     </div>
+                  )}
+                </ConfigField>
+              ))}
+            </div>
+
+            {/* Upload Section - Only for load steps */}
+            {stepData.type === "load" && (
+              <div className="upload-section">
+                <h5 className="upload-section-title">File Upload</h5>
+                <ConfigField
+                  label="Upload Files"
+                  description="Upload files to be processed by this loading step"
+                >
+                  <div className="flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={handleUploadClick}
+                      className="px-3 py-2 bg-white hover:bg-gray-50 text-brand-primary text-sm font-medium rounded border border-brand-primary transition-colors flex items-center justify-center gap-2 w-full max-w-md"
+                    >
+                      <Upload size={16} />
+                      Upload Files
+                    </button>
+
+                    {/* Display uploaded files */}
+                    {currentFiles.length > 0 && (
+                      <div className="uploaded-files-list">
+                        <span className="text-xs font-medium text-gray-600 mb-2 block">
+                          Uploaded Files:
+                        </span>
+                        <div className="flex flex-col gap-2">
+                          {currentFiles.map((file) => (
+                            <div
+                              key={file.id}
+                              className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-sm"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-700">{file.name}</span>
+                                <span className="text-gray-500">({file.size})</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveFile(file.id)}
+                                className="text-gray-400 hover:text-red-500 transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </ConfigField>
               </div>
-            </ConfigField>
+            )}
+
+            {/* Run Step Button */}
+            <div className="run-step-section">
+              <button
+                type="button"
+                onClick={handleRunStep}
+                disabled={isRunning}
+                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white text-sm font-medium rounded transition-colors flex items-center justify-center gap-2 w-full"
+              >
+                <Play size={16} />
+                {isRunning ? "Running..." : getRunButtonText(stepData.type)}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Upload Modal */}
       <UploadModal
