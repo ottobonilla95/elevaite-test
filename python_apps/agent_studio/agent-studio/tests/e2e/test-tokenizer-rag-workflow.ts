@@ -20,6 +20,7 @@ import { writeFileSync, unlinkSync, existsSync } from "fs";
 const BASE_URL = "http://localhost:8005";
 const API_BASE = `${BASE_URL}/api`;
 const TEST_FILE_PATH = "/tmp/test-tokenizer-doc.txt";
+const TEST_MD_FILE_PATH = "/tmp/test-tokenizer-doc.md";
 
 interface WorkflowResponse {
   workflow_id: string;
@@ -163,14 +164,14 @@ const TOKENIZER_RAG_WORKFLOW = {
       {
         step_id: "generate_test_embeddings",
         step_name: "Generate Test Embeddings",
-        step_type: "batch_processing",
+        step_type: "transformation",
         step_order: 3,
         dependencies: ["chunk_document_text"],
         input_mapping: {
           chunks: "chunk_document_text.chunks",
         },
-        batch_size: 10,
         config: {
+          tokenizer_step: "embedding_generation",
           provider: "openai",
           model: "text-embedding-ada-002",
           batch_size: 10,
@@ -193,6 +194,7 @@ const TOKENIZER_RAG_WORKFLOW = {
           embeddings: "generate_test_embeddings.embeddings",
         },
         config: {
+          tokenizer_step: "vector_storage",
           vector_db: "qdrant",
           collection_name: `e2e_test_collection_${Date.now()}`,
           host: "localhost",
@@ -209,9 +211,45 @@ const TOKENIZER_RAG_WORKFLOW = {
         timeout_seconds: 120,
         max_retries: 2,
       },
+      {
+        step_id: "query_rag_documents",
+        step_name: "Query RAG Documents with Agent",
+        step_type: "agent_execution",
+        step_order: 5,
+        dependencies: ["store_test_vectors"],
+        input_mapping: {
+          embeddings: "generate_test_embeddings.embeddings",
+          vector_metadata: "store_test_vectors.metadata",
+          chunks: "chunk_document_text.chunks",
+        },
+        config: {
+          agent_config: {
+            agent_name: "RAG Query Agent",
+            model: "gpt-4o-mini",
+            temperature: 0.2,
+            max_tokens: 1500,
+            tools: ["document_search", "document_metadata_search"],
+            system_prompt:
+              "You are a RAG (Retrieval-Augmented Generation) agent with access to a vector database containing processed documents. You can search through document chunks using semantic similarity and metadata filters. The documents have been processed through a complete tokenizer pipeline including advanced parsing, intelligent chunking, embedding generation, and vector storage. Use your search tools to provide accurate, well-sourced answers.",
+          },
+          query:
+            "Please analyze the document that was just processed. What are the key concepts, main topics, and important details? Use both semantic search and metadata search to provide a comprehensive analysis of the document's content and structure.",
+          execution_context: {
+            collection_name: "e2e_test_collection",
+          },
+          response_mapping: {
+            agent_response: "response",
+            execution_time: "execution_time",
+            tools_used: "tools_used",
+          },
+          include_input_data: true,
+        },
+        timeout_seconds: 240,
+        max_retries: 2,
+      },
     ],
   },
-  tags: ["e2e-test", "tokenizer", "rag"],
+  tags: ["e2e-test", "tokenizer", "rag", "agent-query"],
 };
 
 // Simplified workflow for testing without external dependencies
@@ -232,6 +270,7 @@ const SIMPLE_TOKENIZER_WORKFLOW = {
         step_type: "data_input",
         step_order: 1,
         config: {
+          tokenizer_step: "file_reader",
           file_path: TEST_FILE_PATH,
           supported_formats: [".txt"],
           max_file_size: 1048576,
@@ -250,6 +289,7 @@ const SIMPLE_TOKENIZER_WORKFLOW = {
           content: "read_test_file.content",
         },
         config: {
+          tokenizer_step: "text_chunking",
           chunk_strategy: "fixed_size",
           chunk_size: 200,
           min_chunk_size: 50,
@@ -262,14 +302,193 @@ const SIMPLE_TOKENIZER_WORKFLOW = {
   tags: ["e2e-test", "simple"],
 };
 
+// Enhanced workflow testing advanced FileReaderStep capabilities
+const ENHANCED_TOKENIZER_WORKFLOW = {
+  name: "E2E Enhanced Tokenizer Test",
+  description:
+    "Tests enhanced FileReaderStep with advanced parsing capabilities",
+  version: "1.0.0",
+  configuration: {
+    workflow_id: "e2e_enhanced_tokenizer_test",
+    workflow_name: "E2E Enhanced Tokenizer Test",
+    workflow_type: "deterministic",
+    execution_pattern: "sequential",
+    timeout_seconds: 600,
+    steps: [
+      {
+        step_id: "read_file_advanced",
+        step_name: "Read File with Advanced Parsing",
+        step_type: "data_input",
+        step_order: 1,
+        config: {
+          tokenizer_step: "file_reader",
+          execution_mode: "advanced",
+          file_path: TEST_MD_FILE_PATH,
+          supported_formats: [".txt", ".md", ".pdf", ".docx"],
+          max_file_size: 10485760, // 10MB for advanced mode
+          encoding: "utf-8",
+          extract_metadata: true,
+          advanced_parsing: {
+            default_mode: "auto_parser",
+            use_markitdown: true,
+            auto_detect_format: true,
+            parsers: {
+              txt: {
+                default_tool: "markitdown",
+                available_tools: ["markitdown"],
+              },
+              md: {
+                default_tool: "markitdown",
+                available_tools: ["markitdown"],
+              },
+            },
+          },
+        },
+        timeout_seconds: 60,
+      },
+      {
+        step_id: "chunk_advanced_text",
+        step_name: "Chunk Text with Advanced Strategies",
+        step_type: "transformation",
+        step_order: 2,
+        dependencies: ["read_file_advanced"],
+        input_mapping: {
+          content: "read_file_advanced.content",
+          metadata: "read_file_advanced.metadata",
+          structured_elements: "read_file_advanced.structured_elements",
+        },
+        config: {
+          tokenizer_step: "text_chunking",
+          execution_mode: "advanced",
+          advanced_chunking: {
+            default_strategy: "auto",
+            auto_select_strategy: true,
+            strategies: {
+              semantic_chunking: {
+                breakpoint_threshold_type: "percentile",
+                breakpoint_threshold_amount: 85,
+                max_chunk_size: 500,
+                min_chunk_size: 100,
+              },
+              mdstructure: {
+                chunk_size: 400,
+                min_chunk_size: 100,
+                max_chunk_size: 600,
+                respect_headers: true,
+                include_headers: true,
+              },
+              sentence_chunking: {
+                max_sentences_per_chunk: 5,
+                min_sentences_per_chunk: 2,
+                max_chunk_size: 500,
+                min_chunk_size: 100,
+              },
+            },
+          },
+        },
+        timeout_seconds: 120,
+      },
+      {
+        step_id: "query_processed_document",
+        step_name: "Query Processed Document with Agent",
+        step_type: "agent_execution",
+        step_order: 3,
+        dependencies: ["chunk_advanced_text"],
+        input_mapping: {
+          chunks: "chunk_advanced_text.chunks",
+          metadata: "chunk_advanced_text.metadata",
+          file_metadata: "read_file_advanced.metadata",
+        },
+        config: {
+          agent_config: {
+            agent_name: "Document Query Agent",
+            model: "gpt-4o-mini",
+            temperature: 0.1,
+            max_tokens: 1000,
+            tools: ["document_search", "document_metadata_search"],
+            system_prompt:
+              "You are a document analysis agent. You have access to document search tools that can query processed documents. Use these tools to answer questions about the document content. The document has been processed through an enhanced tokenizer pipeline with advanced parsing and chunking.",
+          },
+          query:
+            "What are the main topics covered in this document? Please search the processed chunks to provide a comprehensive summary of the document's content and structure.",
+          execution_context: {
+            collection_name: "e2e_test_collection",
+          },
+          response_mapping: {
+            agent_response: "response",
+            execution_time: "execution_time",
+            tools_used: "tools_used",
+          },
+          include_input_data: true,
+        },
+        timeout_seconds: 180,
+        max_retries: 2,
+      },
+    ],
+  },
+  tags: ["e2e-test", "enhanced", "advanced-parsing", "agent-query"],
+};
+
 class TokenizerWorkflowE2ETest {
   private createdWorkflows: string[] = [];
 
   async createTestFile(): Promise<void> {
-    console.log("📄 Creating test document...");
+    console.log("📄 Creating test documents...");
+
+    // Create text file for simple workflow
     writeFileSync(TEST_FILE_PATH, TEST_DOCUMENT_CONTENT.trim(), "utf-8");
     console.log(
-      `✅ Test document created: ${TEST_FILE_PATH} (${TEST_DOCUMENT_CONTENT.length} characters)`
+      `✅ Text document created: ${TEST_FILE_PATH} (${TEST_DOCUMENT_CONTENT.length} characters)`
+    );
+
+    // Create markdown file for enhanced workflow
+    const markdownContent = `# Enhanced Tokenizer Test Document
+
+This document tests the **enhanced FileReaderStep** with advanced parsing capabilities.
+
+## Features Being Tested
+
+### Advanced Parsing
+- Intelligent parser selection
+- Markitdown integration
+- Structured content extraction
+
+### Configuration Migration
+- Automatic detection of execution mode
+- Backward compatibility with simple mode
+- Support for elevaite_ingestion style configs
+
+## Content Structure
+
+### Tables
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Docling Parser | ✅ | Advanced PDF processing |
+| Markitdown Parser | ✅ | Multi-format support |
+| Auto Selection | ✅ | Intelligent parser choice |
+
+### Code Blocks
+\`\`\`json
+{
+  "execution_mode": "advanced",
+  "advanced_parsing": {
+    "default_mode": "auto_parser"
+  }
+}
+\`\`\`
+
+### Lists
+- Enhanced metadata extraction
+- Structured element detection
+- Multi-provider support
+- Graceful fallbacks
+
+This document should be processed with **markitdown** parser in advanced mode.
+`;
+
+    writeFileSync(TEST_MD_FILE_PATH, markdownContent, "utf-8");
+    console.log(
+      `✅ Markdown document created: ${TEST_MD_FILE_PATH} (${markdownContent.length} characters)`
     );
   }
 
@@ -277,6 +496,10 @@ class TokenizerWorkflowE2ETest {
     if (existsSync(TEST_FILE_PATH)) {
       unlinkSync(TEST_FILE_PATH);
       console.log(`🧹 Cleaned up test file: ${TEST_FILE_PATH}`);
+    }
+    if (existsSync(TEST_MD_FILE_PATH)) {
+      unlinkSync(TEST_MD_FILE_PATH);
+      console.log(`🧹 Cleaned up markdown file: ${TEST_MD_FILE_PATH}`);
     }
   }
 
@@ -425,14 +648,10 @@ class TokenizerWorkflowE2ETest {
         user_id: "e2e_stream_test_user",
       };
 
-      await axios.post(
-        `${API_BASE}/workflows/${workflowId}/stream`,
-        payload,
-        {
-          responseType: "stream",
-          timeout: 30000, // 30 second timeout
-        }
-      );
+      await axios.post(`${API_BASE}/workflows/${workflowId}/stream`, payload, {
+        responseType: "stream",
+        timeout: 30000, // 30 second timeout
+      });
 
       console.log(`✅ Streaming execution started`);
 
@@ -533,8 +752,123 @@ class TokenizerWorkflowE2ETest {
         await this.testStreamingExecution(simpleWorkflow.workflow_id);
       }
 
-      // Test 2: Full tokenizer workflow (if external services available)
-      console.log("\n🔬 Test 2: Full tokenizer RAG workflow (all steps)");
+      // Test 2: Enhanced tokenizer workflow (advanced parsing capabilities)
+      console.log(
+        "\n🔬 Test 2: Enhanced tokenizer workflow (advanced parsing)"
+      );
+      const enhancedWorkflow = await this.createWorkflow(
+        ENHANCED_TOKENIZER_WORKFLOW
+      );
+
+      if (enhancedWorkflow) {
+        const enhancedSyncResult = await this.executeWorkflowSync(
+          enhancedWorkflow.workflow_id
+        );
+        if (enhancedSyncResult) {
+          console.log("✅ Enhanced workflow test passed");
+
+          // Validate enhanced features from response
+          if (enhancedSyncResult.response) {
+            try {
+              const resultData = JSON.parse(enhancedSyncResult.response);
+
+              // Validate FileReaderStep advanced features
+              if (resultData && resultData.read_file_advanced) {
+                const fileMetadata = resultData.read_file_advanced.metadata;
+                if (fileMetadata.execution_mode === "advanced") {
+                  console.log("   ✅ Advanced file reading mode confirmed");
+                }
+                if (fileMetadata.parser_used) {
+                  console.log(
+                    `   ✅ File parser used: ${fileMetadata.parser_used}`
+                  );
+                }
+                if (fileMetadata.structured_content !== undefined) {
+                  console.log(
+                    `   ✅ Structured content support: ${fileMetadata.structured_content}`
+                  );
+                }
+              }
+
+              // Validate TextChunkingStep advanced features
+              if (resultData && resultData.chunk_advanced_text) {
+                const chunkMetadata = resultData.chunk_advanced_text.metadata;
+                if (chunkMetadata.execution_mode === "advanced") {
+                  console.log("   ✅ Advanced chunking mode confirmed");
+                }
+                if (chunkMetadata.chunker_used) {
+                  console.log(
+                    `   ✅ Chunker used: ${chunkMetadata.chunker_used}`
+                  );
+                }
+                if (chunkMetadata.total_chunks) {
+                  console.log(
+                    `   ✅ Chunks produced: ${chunkMetadata.total_chunks}`
+                  );
+                }
+                if (chunkMetadata.avg_semantic_score !== undefined) {
+                  console.log(
+                    `   ✅ Semantic score: ${chunkMetadata.avg_semantic_score.toFixed(3)}`
+                  );
+                }
+                if (chunkMetadata.max_structure_level !== undefined) {
+                  console.log(
+                    `   ✅ Structure level: ${chunkMetadata.max_structure_level}`
+                  );
+                }
+                if (chunkMetadata.avg_sentence_confidence !== undefined) {
+                  console.log(
+                    `   ✅ Sentence confidence: ${chunkMetadata.avg_sentence_confidence.toFixed(3)}`
+                  );
+                }
+              }
+
+              // Validate Agent execution features
+              if (resultData && resultData.query_processed_document) {
+                const agentResult = resultData.query_processed_document;
+                if (agentResult.success) {
+                  console.log("   ✅ Agent query execution completed");
+                }
+                if (
+                  agentResult.agent_execution &&
+                  agentResult.agent_execution.response
+                ) {
+                  const responseLength =
+                    agentResult.agent_execution.response.length;
+                  console.log(
+                    `   ✅ Agent response length: ${responseLength} characters`
+                  );
+                }
+                if (agentResult.metadata && agentResult.metadata.tools_used) {
+                  console.log(
+                    `   ✅ Tools used: ${agentResult.metadata.tools_used.join(", ")}`
+                  );
+                }
+                if (
+                  agentResult.metadata &&
+                  agentResult.metadata.execution_time
+                ) {
+                  console.log(
+                    `   ✅ Agent execution time: ${agentResult.metadata.execution_time}s`
+                  );
+                }
+              }
+            } catch (e) {
+              console.log("   ⚠️  Could not parse response for validation");
+            }
+          }
+        }
+
+        const enhancedAsyncExecutionId = await this.executeWorkflowAsync(
+          enhancedWorkflow.workflow_id
+        );
+        if (enhancedAsyncExecutionId) {
+          await this.checkExecutionStatus(enhancedAsyncExecutionId);
+        }
+      }
+
+      // Test 3: Full tokenizer workflow (if external services available)
+      console.log("\n🔬 Test 3: Full tokenizer RAG workflow (all steps)");
       console.log("⚠️  This test requires OpenAI API key and Qdrant database");
 
       const fullWorkflow = await this.createWorkflow(TOKENIZER_RAG_WORKFLOW);
@@ -546,30 +880,31 @@ class TokenizerWorkflowE2ETest {
         console.log("   - Qdrant database is running on localhost:6333");
 
         // Only attempt execution if we detect the services might be available
-        const hasOpenAiKey = process.env.OPENAI_API_KEY;
-        if (hasOpenAiKey) {
-          console.log(
-            "   🔑 OpenAI API key detected, attempting full execution..."
-          );
-          const fullSyncResult = await this.executeWorkflowSync(
-            fullWorkflow.workflow_id
-          );
-          if (fullSyncResult) {
-            console.log("✅ Full tokenizer workflow test passed");
-          }
-        } else {
-          console.log("   ⏭️  Skipping full execution (no OpenAI API key)");
+
+        const fullSyncResult = await this.executeWorkflowSync(
+          fullWorkflow.workflow_id
+        );
+        if (fullSyncResult) {
+          console.log("✅ Full tokenizer workflow test passed");
         }
       }
 
-      // Test 3: List and verify workflows
-      console.log("\n🔬 Test 3: Workflow management");
+      // Test 4: List and verify workflows
+      console.log("\n🔬 Test 4: Workflow management");
       await this.listWorkflows();
 
       // Summary
       console.log("\n" + "=".repeat(70));
       console.log("🎉 Tokenizer RAG Workflow E2E Test Completed");
       console.log(`✅ Created ${this.createdWorkflows.length} test workflows`);
+      console.log(
+        "✅ Tested simple tokenizer workflow (backward compatibility)"
+      );
+      console.log(
+        "✅ Tested enhanced tokenizer workflow (advanced parsing + agent query)"
+      );
+      console.log("✅ Tested document search agent integration");
+      console.log("✅ Tested agent execution within deterministic workflows");
       console.log("✅ Tested sync execution");
       console.log("✅ Tested async execution with status checking");
       console.log("✅ Tested streaming rejection for deterministic workflows");

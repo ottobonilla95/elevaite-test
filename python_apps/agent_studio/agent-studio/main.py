@@ -119,6 +119,8 @@ async def lifespan(app_instance: fastapi.FastAPI):  # noqa: ARG001
     except Exception as e:
         logging.error(f"Failed to initialize tool registry: {e}")
         raise
+
+    # Agent execution step is now registered automatically in workflow_execution_context initialization
     # Start background tasks (MCP health monitoring, etc.)
     from services.background_tasks import start_background_tasks
 

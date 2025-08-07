@@ -1,0 +1,189 @@
+{
+  "workflow_id": "enhanced_file_reader_001",
+  "workflow_name": "Enhanced File Reader with Advanced Parsing",
+  "description": "Demonstrates enhanced file reading capabilities with docling and markitdown support",
+  "version": "1.0.0",
+  "workflow_type": "deterministic",
+  "execution_pattern": "sequential",
+  "uses_tokenizer_steps": true,
+  "advanced_mode": true,
+  "timeout_seconds": 600,
+  "max_retries": 2,
+  "category": "document_processing",
+  "tags": ["tokenizer", "file_reader", "docling", "markitdown", "advanced_parsing"],
+  "steps": [
+    {
+      "step_id": "read_document_advanced",
+      "step_name": "Advanced Document Reading",
+      "step_type": "data_input",
+      "step_order": 1,
+      "dependencies": [],
+      "config": {
+        "tokenizer_step": "file_reader",
+        "execution_mode": "advanced",
+        "supported_formats": [".pdf", ".docx", ".xlsx", ".txt", ".md", ".html"],
+        "max_file_size": 104857600,
+        "encoding": "utf-8",
+        "extract_metadata": true,
+        "advanced_parsing": {
+          "default_mode": "auto_parser",
+          "use_docling": true,
+          "use_markitdown": true,
+          "auto_detect_format": true,
+          "parsers": {
+            "pdf": {
+              "default_tool": "docling",
+              "available_tools": ["docling", "markitdown", "pdfplumber", "pypdf2"]
+            },
+            "docx": {
+              "default_tool": "markitdown",
+              "available_tools": ["markitdown", "docling", "python-docx"]
+            },
+            "xlsx": {
+              "default_tool": "markitdown",
+              "available_tools": ["markitdown"]
+            },
+            "txt": {
+              "default_tool": "markitdown",
+              "available_tools": ["markitdown"]
+            },
+            "html": {
+              "default_tool": "markitdown",
+              "available_tools": ["markitdown"]
+            }
+          }
+        }
+      },
+      "timeout_seconds": 300,
+      "max_retries": 2
+    }
+  ],
+  "examples": {
+    "basic_pdf": {
+      "description": "Process a PDF document with automatic parser selection",
+      "input": {
+        "file_path": "/path/to/document.pdf"
+      },
+      "expected_output": {
+        "content": "Extracted text content...",
+        "metadata": {
+          "file_type": ".pdf",
+          "parser_used": "docling",
+          "execution_mode": "advanced",
+          "structured_content": true,
+          "tables_count": 2,
+          "images_count": 1
+        },
+        "structured_elements": [
+          {
+            "type": "table",
+            "content": "| Header 1 | Header 2 |\n| --- | --- |\n| Data 1 | Data 2 |"
+          }
+        ]
+      }
+    },
+    "excel_document": {
+      "description": "Process an Excel file using markitdown",
+      "input": {
+        "file_path": "/path/to/spreadsheet.xlsx"
+      },
+      "expected_output": {
+        "content": "Converted spreadsheet content in markdown format...",
+        "metadata": {
+          "file_type": ".xlsx",
+          "parser_used": "markitdown",
+          "execution_mode": "advanced",
+          "markdown_format": true
+        }
+      }
+    },
+    "backward_compatibility": {
+      "description": "Process using simple mode for backward compatibility",
+      "config_override": {
+        "execution_mode": "simple",
+        "pdf_method": "pdfplumber"
+      },
+      "input": {
+        "file_path": "/path/to/document.pdf"
+      },
+      "expected_output": {
+        "content": "Extracted text content...",
+        "metadata": {
+          "file_type": ".pdf",
+          "extraction_method": "pdfplumber"
+        }
+      }
+    }
+  },
+  "configuration_templates": {
+    "high_quality_pdf": {
+      "description": "High-quality PDF processing with docling",
+      "config": {
+        "execution_mode": "advanced",
+        "advanced_parsing": {
+          "default_mode": "auto_parser",
+          "parsers": {
+            "pdf": {
+              "default_tool": "docling",
+              "available_tools": ["docling"]
+            }
+          }
+        }
+      }
+    },
+    "fast_processing": {
+      "description": "Fast processing with markitdown",
+      "config": {
+        "execution_mode": "advanced",
+        "advanced_parsing": {
+          "default_mode": "auto_parser",
+          "parsers": {
+            "pdf": {
+              "default_tool": "markitdown",
+              "available_tools": ["markitdown", "pdfplumber"]
+            },
+            "docx": {
+              "default_tool": "markitdown",
+              "available_tools": ["markitdown"]
+            }
+          }
+        }
+      }
+    },
+    "legacy_compatible": {
+      "description": "Legacy mode for backward compatibility",
+      "config": {
+        "execution_mode": "simple",
+        "pdf_method": "pdfplumber",
+        "supported_formats": [".pdf", ".docx", ".txt"]
+      }
+    }
+  },
+  "requirements": {
+    "optional_packages": [
+      {
+        "name": "docling",
+        "purpose": "Advanced PDF parsing with table and image extraction",
+        "install_command": "pip install docling",
+        "fallback": "Uses pdfplumber or pypdf2 if not available"
+      },
+      {
+        "name": "markitdown",
+        "purpose": "Multi-format document parsing with markdown output",
+        "install_command": "pip install markitdown",
+        "fallback": "Uses format-specific parsers if not available"
+      }
+    ],
+    "base_packages": [
+      "PyPDF2",
+      "pdfplumber",
+      "python-docx"
+    ]
+  },
+  "performance_notes": {
+    "docling": "Best quality for PDFs with tables/images, slower processing",
+    "markitdown": "Good balance of speed and quality, supports many formats",
+    "pdfplumber": "Fast PDF processing, good for text-heavy documents",
+    "pypdf2": "Fastest PDF processing, basic text extraction only"
+  }
+}

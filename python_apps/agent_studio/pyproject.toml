@@ -26,6 +26,8 @@ dependencies = [
     "simple-salesforce>=1.12.6",
     "aiofiles>=23.2.0",
     "elevaite-ingestion",
+    "sentence-transformers>=5.1.0",
+    "scikit-learn>=1.6.1",
 ]
 
 [project.optional-dependencies]

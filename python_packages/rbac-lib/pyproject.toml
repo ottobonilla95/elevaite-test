@@ -6,18 +6,16 @@ build-backend = "hatchling.build"
 name = "rbac_lib"
 version = "0.1.0"
 description = ""
-authors = [
-  {name="John Zachariadis", email="johnbelly95@gmail.com"}
-]
+authors = [{ name = "John Zachariadis", email = "johnbelly95@gmail.com" }]
 readme = "README.md"
 requires-python = "~=3.11"
 
 dependencies = [
-"fastapi==0.111.0",
-"requests>=2.31.0",
-"redis==5.0.4",
-"fusionauth-client>=1.53.0",
-"elevaitelib",
+  "fastapi==0.114.0",
+  "requests>=2.31.0",
+  "redis==5.0.4",
+  "fusionauth-client>=1.53.0",
+  "elevaitelib",
 ]
 
 [tool.uv.sources]

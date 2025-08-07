@@ -127,6 +127,14 @@ class WorkflowExecutionContext:
 
             self.logger.info("Registered default deterministic step implementations")
             
+            # Register agent execution step
+            try:
+                from steps.agent_execution_step import create_agent_execution_step_direct
+                self._step_registry["agent_execution"] = create_agent_execution_step_direct
+                self.logger.info("Registered agent execution step")
+            except ImportError as e:
+                self.logger.warning(f"Could not import agent execution step: {e}")
+            
             # Register tokenizer steps
             try:
                 from services.tokenizer_steps_registry import tokenizer_steps_registry
