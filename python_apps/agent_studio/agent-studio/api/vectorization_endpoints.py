@@ -154,7 +154,7 @@ async def execute_pipeline_stages(
             ("parse", "stage/parse_stage/parse_main.py"),
             ("chunk", "stage/chunk_stage/chunk_main.py"),
             ("embed", "stage/embed_stage/embed_main.py"),
-            ("store", "stage/store_stage/store_main.py"),
+            ("store", "stage/vectorstore_stage/vectordb_main.py"),
         ]
 
         # Get the ingestion package path
@@ -330,11 +330,30 @@ def create_ingestion_config(
                 "openai": {
                     "api_key": os.getenv("OPENAI_API_KEY", ""),
                     "models": {
-                        "text-embedding-3-small": {
-                            "description": "OpenAI's small embedding model"
-                        }
+                        "text-embedding-ada-002": {"dimension": 1536},
+                        "text-embedding-3-small": {"dimension": 1536},
+                        "text-embedding-3-large": {"dimension": 3072},
                     },
-                }
+                },
+                "cohere": {
+                    "models": {
+                        "embed-english-light-v3.0": {"dimension": 1024},
+                        "embed-english-v3.0": {"dimension": 1024},
+                        "embed-multilingual-v3.0": {"dimension": 1024},
+                    }
+                },
+                "local": {
+                    "models": {
+                        "all-MiniLM-L6-v2": {"dimension": 384},
+                        "all-mpnet-base-v2": {"dimension": 768},
+                    }
+                },
+                "amazon_bedrock": {
+                    "models": {
+                        "amazon.titan-embed-text-v1": {"dimension": 1536},
+                        "amazon.titan-embed-text-v2:0": {"dimension": 1024},
+                    }
+                },
             },
         },
         "vector_db": {
@@ -371,9 +390,13 @@ def create_ingestion_config(
             if "model" in embed_config:
                 config["embedding"]["default_model"] = embed_config["model"]
             if "api_key" in embed_config and embed_config["api_key"]:
-                config["embedding"]["providers"]["openai"]["api_key"] = embed_config[
-                    "api_key"
-                ]
+                provider = embed_config.get("provider", "openai")
+                if provider in ["openai", "cohere"]:  # Providers that need API keys
+                    if provider not in config["embedding"]["providers"]:
+                        config["embedding"]["providers"][provider] = {}
+                    config["embedding"]["providers"][provider]["api_key"] = (
+                        embed_config["api_key"]
+                    )
 
         elif step.step_type == "store":
             store_config = step.config
