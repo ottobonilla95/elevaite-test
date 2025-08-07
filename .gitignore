@@ -62,3 +62,5 @@ elevaite_backend/fastapi-logger/fastapi_logger.egg-info
 elevaite_backend/fastapi-logger/elevaite_logger.egg-info
 python_packages/fastapi-logger/fastapi_logger.egg-info
 python_packages/fastapi-logger/elevaite_logger.egg-info
+
+python_packages/elevaite_ingestion/python
