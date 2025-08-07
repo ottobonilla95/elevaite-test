@@ -14,7 +14,7 @@ requires-python = "~=3.11"
 
 dependencies = [
 "fastapi==0.111.0",
-"requests==2.31.0",
+"requests>=2.31.0",
 "redis==5.0.4",
 "fusionauth-client>=1.53.0",
 "elevaitelib",
