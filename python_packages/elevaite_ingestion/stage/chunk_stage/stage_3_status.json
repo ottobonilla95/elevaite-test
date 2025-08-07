@@ -4,13 +4,15 @@
         "INPUT_BUCKET_URL": "s3://kb-check-docs",
         "OUTPUT_BUCKET_URL": "s3://kb-check-docs/chunked_output/",
         "CHUNKING_STRATEGY": "semantic_chunking",
-        "TOTAL_FILES": 74,
+        "TOTAL_FILES": 1,
         "EVENT_DETAILS": [
             {
-                "input": "All parsed files",
-                "status": "Failed - An asyncio.Future, a coroutine or an awaitable is required"
+                "input_url": "s3://kb-check-docs/Old Programming Zebra DS2278 barcode sheet.json",
+                "status": "Success",
+                "output_url": "s3://kb-check-docs/chunked_output/Old Programming Zebra DS2278 barcode sheet.pdf_chunk_*.json",
+                "total_chunks": 2
             }
         ],
-        "STATUS": "Failed"
+        "STATUS": "Completed"
     }
 }

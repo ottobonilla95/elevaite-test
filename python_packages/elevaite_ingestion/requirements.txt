@@ -17,3 +17,4 @@ fuzzywuzzy
 colbert
 cohere
 opensearch-py
+boto3

@@ -1,0 +1,24 @@
+{
+    "STAGE_5: VECTORSTORE": {
+        "INPUT": "s3://kb-check-docs/embeddings_output/",
+        "VECTOR_DB": "qdrant",
+        "TOTAL_FILES": 3,
+        "EVENT_DETAILS": [
+            {
+                "input": "s3://kb-check-docs/embeddings_output/stage_4_output.json",
+                "status": "Failed - \u274c Missing 'chunk_embedding' in embeddings_output/stage_4_output.json"
+            },
+            {
+                "input": "s3://kb-check-docs/embeddings_output/Old Programming Zebra DS2278 barcode sheet.pdf_chunk_f302d82a-c61e-46ee-afe6-71ce751897db.json",
+                "status": "Failed - Unexpected Response: 409 (Conflict)\nRaw response content:\nb'{\"status\":{\"error\":\"Wrong input: Collection `toshiba_agent_studio` already exists!\"},\"time\":0.000039681}'"
+            },
+            {
+                "filename": "Old Programming Zebra DS2278 barcode sheet.pdf",
+                "chunk_id": "e721ce4f-9a89-46f4-b1fb-341d957f22e6",
+                "input": "s3://kb-check-docs/embeddings_output/Old Programming Zebra DS2278 barcode sheet.pdf_chunk_e721ce4f-9a89-46f4-b1fb-341d957f22e6.json",
+                "status": "Success"
+            }
+        ],
+        "STATUS": "Completed"
+    }
+}
