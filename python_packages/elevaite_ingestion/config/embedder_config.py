@@ -3,16 +3,9 @@ import json
 import boto3
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.embeddings import BedrockEmbeddings
 
-try:
-    from langchain_cohere import CohereEmbeddings
-except ImportError:
-    CohereEmbeddings = None
-try:
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-except ImportError:
-    HuggingFaceEmbeddings = None
+# from sentence_transformers import SentenceTransformer
+from langchain_community.embeddings import BedrockEmbeddings
 
 load_dotenv()
 
@@ -48,30 +41,13 @@ def get_embedder():
     """Returns the correct embedding model based on the provider."""
     if DEFAULT_PROVIDER == "openai":
         return OpenAIEmbeddings(model=DEFAULT_MODEL)
+    # elif DEFAULT_PROVIDER == "sentence_transformers":
+    #     # return SentenceTransformer(DEFAULT_MODEL)
     elif DEFAULT_PROVIDER == "amazon_bedrock":
         bedrock_client = get_bedrock_client()
         if not bedrock_client:
             raise ValueError("❌ Bedrock client initialization failed.")
         return BedrockEmbeddings(model_id=DEFAULT_MODEL, client=bedrock_client)
-    elif DEFAULT_PROVIDER == "cohere":
-        if CohereEmbeddings is None:
-            raise ValueError(
-                "❌ Cohere embeddings not available. Install langchain-cohere package."
-            )
-        api_key = config.get("embedding", {}).get("providers", {}).get(
-            "cohere", {}
-        ).get("api_key") or os.getenv("COHERE_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "❌ Cohere API key not found. Set COHERE_API_KEY environment variable or configure in settings."
-            )
-        return CohereEmbeddings(model=DEFAULT_MODEL, cohere_api_key=api_key)
-    elif DEFAULT_PROVIDER == "local":
-        if HuggingFaceEmbeddings is None:
-            raise ValueError(
-                "❌ HuggingFace embeddings not available. Install sentence-transformers package."
-            )
-        return HuggingFaceEmbeddings(model_name=DEFAULT_MODEL)
     else:
         raise ValueError(f"❌ Unsupported embedding provider: {DEFAULT_PROVIDER}")
 
