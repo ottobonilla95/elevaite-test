@@ -169,15 +169,29 @@ async def execute_pipeline_stages(
 
             stage_path = ingestion_package_path / stage_script
             if not stage_path.exists():
-                logger.warning(f"Stage script not found: {stage_path}")
-                continue
+                logger.error(f"Stage script not found: {stage_path}")
+                stage_results[stage_name] = {
+                    "status": "failed",
+                    "error": f"Stage script not found: {stage_path}",
+                    "return_code": -1,
+                }
+                raise Exception(
+                    f"Critical pipeline stage missing: {stage_name} at {stage_path}"
+                )
 
             # Execute stage using subprocess to avoid import issues
             result = await execute_stage_subprocess(stage_path, working_dir)
 
             stage_results[stage_name] = result
-            stages_completed.append(stage_name)
 
+            # Check if stage execution was successful
+            if result.get("status") != "completed" or result.get("return_code", 0) != 0:
+                logger.error(f"Stage {stage_name} failed: {result}")
+                raise Exception(
+                    f"Stage {stage_name} failed with return code {result.get('return_code', -1)}"
+                )
+
+            stages_completed.append(stage_name)
             logger.info(f"Stage {stage_name} completed successfully")
 
         return {
