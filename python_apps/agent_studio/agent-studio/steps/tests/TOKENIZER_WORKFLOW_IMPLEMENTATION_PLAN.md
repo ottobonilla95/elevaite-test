@@ -1,3 +1,5 @@
+MOVED FROM ROOT, MIGHT NEED ADJUSTMENTS
+
 # Deterministic Workflow Framework Implementation Plan
 
 ## 🎯 CURRENT STATUS: CORE FRAMEWORK COMPLETED
@@ -7,7 +9,7 @@
 #### **Core Infrastructure - COMPLETED ✅**
 
 - ✅ **Deterministic Workflow Framework**: Full production-ready framework with step execution
-- ✅ **Hybrid Workflow Detection**: Automatic detection and routing for deterministic vs hybrid vs traditional workflows  
+- ✅ **Hybrid Workflow Detection**: Automatic detection and routing for deterministic vs hybrid vs traditional workflows
 - ✅ **Conditional Execution Logic**: Smart routing based on input context (file presence, etc.)
 - ✅ **Database Integration**: Full CRUD operations for workflows with proper schema validation
 - ✅ **Error Handling & Validation**: Comprehensive error management with proper HTTP status codes
@@ -18,7 +20,7 @@
 - ✅ **4-Step Production Pipeline**: FileReader → TextChunking → EmbeddingGeneration → VectorStorage
 - ✅ **OpenAI Integration**: Real embedding generation using configured API keys
 - ✅ **Qdrant Integration**: Vector storage without API key requirement for localhost
-- ✅ **Configuration-Driven**: `tokenizer_step` hints route to specialized implementations  
+- ✅ **Configuration-Driven**: `tokenizer_step` hints route to specialized implementations
 - ✅ **Multiple Chunking Strategies**: Fixed, sliding window, semantic, sentence, paragraph
 - ✅ **Batch Processing**: Optimized for API efficiency with rate limiting and retries
 - ✅ **Complete Documentation**: Comprehensive README with all configuration options
@@ -67,7 +69,7 @@
 
 #### **Immediate (Current Session)** ⚡
 
-1. **✅ Fix Step Function Signatures**: Resolved - all steps support 3-parameter execution  
+1. **✅ Fix Step Function Signatures**: Resolved - all steps support 3-parameter execution
 2. **✅ Implement Production Tokenizer Steps**: Complete - 4-step pipeline working with OpenAI + Qdrant
 3. **✅ Test End-to-End Workflow**: Complete - full tokenizer RAG pipeline tested successfully
 4. **🔄 Create Hybrid RAG Workflow**: Combine tokenizer processing with RAG-enabled agent
@@ -77,12 +79,14 @@
 The ultimate test will demonstrate a **complete hybrid RAG workflow** that:
 
 1. **Document Processing Phase** (Deterministic):
+
    - Reads a document file (FileReaderStep)
-   - Chunks the text optimally (TextChunkingStep) 
+   - Chunks the text optimally (TextChunkingStep)
    - Generates embeddings via OpenAI (EmbeddingGenerationStep)
    - Stores vectors in Qdrant (VectorStorageStep)
 
 2. **Query Processing Phase** (AI Agent):
+
    - Takes user queries about the processed document
    - Retrieves relevant context from Qdrant using vector similarity
    - Uses retrieved context to provide informed RAG responses
