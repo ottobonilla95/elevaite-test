@@ -1,0 +1,115 @@
+{
+  "loading": {
+    "default_source": "s3",
+    "sources": {
+      "s3": {
+        "bucket_name": "kb-check-pdf",
+        "region": "us-east-2"
+      },
+      "local": {
+        "input_directory": "/Users/dheeraj/Desktop/elevaite/elevaite_ingestion/INPUT",
+        "output_directory": "/Users/dheeraj/Desktop/elevaite/elevaite_ingestion/OUTPUT"
+      }
+    }
+  },
+  "parsing": {
+    "default_mode": "auto_parser",
+    "custom_parser_selection": {
+      "parser": "pdf",
+      "tool": null
+    },
+    "parsers": {
+      "docx": {
+        "default_tool": "markitdown",
+        "available_tools": ["markitdown", "docling"]
+      },
+      "xlsx": {
+        "default_tool": "markitdown",
+        "available_tools": ["markitdown", "docling"]
+      },
+      "url": {
+        "default_tool": "markitdown",
+        "available_tools": ["markitdown", "crawl4ai"]
+      },
+      "pdf": {
+        "default_tool": null,
+        "available_tools": []
+      }
+    }
+  },
+  "chunking": {
+    "default_strategy": "recursive_chunking",
+    "strategies": {
+      "semantic_chunking": {
+        "breakpoint_threshold_type": "percentile",
+        "breakpoint_threshold_amount": 85
+      },
+      "mdstructure": {
+        "chunk_size": 1500
+      },
+      "recursive_chunking": {
+        "chunk_size": 699,
+        "chunk_overlap": 100
+      },
+      "sentence_chunking": {
+        "max_chunk_size": 2000
+      }
+    }
+  },
+  "embedding": {
+    "default_provider": "openai",
+    "default_model": "text-embedding-ada-002",
+    "providers": {
+      "openai": {
+        "api_key": "skA",
+        "models": {
+          "text-embedding-ada-002": {
+            "description": "OpenAI's ada embedding model"
+          },
+          "text-embedding-large": {
+            "description": "OpenAI's ada embedding model"
+          }
+        }
+      },
+      "sentence_transformers": {
+        "models": {
+          "all-MiniLM-L6-v2": {
+            "description": "MiniLM model with 6 layers"
+          },
+          "all-mpnet-base-v2": {
+            "description": "MPNet base embedding model"
+          }
+        }
+      },
+      "amazon_bedrock": {
+        "aws_region": "us-east-2",
+        "models": {
+          "titan-embed-text-v1": {
+            "description": "Amazon Titan Embedding model"
+          }
+        }
+      }
+    }
+  },
+  "vector_db": {
+    "default_db": "qdrant",
+    "databases": {
+      "pinecone": {
+        "api_key": "pcsk_4JLFdb_",
+        "cloud": "aws",
+        "region": "us-east-1",
+        "index_name": "kb-final10",
+        "dimension": 1536
+      },
+      "chroma": {
+        "db_path": "data/chroma_db",
+        "collection_name": "kb-chroma"
+      },
+      "qdrant": {
+        "host": "http://3.101.65.253",
+        "port": 5333,
+        "collection_name": "toshiba_agent_studio"
+      }
+    }
+  }
+}
