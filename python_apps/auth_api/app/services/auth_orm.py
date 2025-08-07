@@ -622,7 +622,7 @@ async def create_user_session(
             user_id=user_id,
             refresh_token=refresh_token,
             expires_at=datetime.now(timezone.utc)
-            + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_DAYS),
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
         )

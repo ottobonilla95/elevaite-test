@@ -78,7 +78,7 @@ export function useSessionValidation(): {
     // Set up periodic validation
     const intervalId = setInterval(() => {
       void checkSession();
-    }, 300000); // 5 minutes
+    }, 90*60000); // 5 minutes
 
     return () => {
       clearInterval(intervalId);

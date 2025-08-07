@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-dotenv
+pydantic
+qdrant-client
+openai
+cohere
+scipy
+matplotlib
+nltk

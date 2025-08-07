@@ -20,6 +20,8 @@ from extract_sources import extract_sources_from_text
 from add_columns import add_columns
 import pandas as pd
 from openai import AsyncOpenAI
+import re
+import tools
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
     dotenv.load_dotenv(".env")
@@ -127,6 +129,16 @@ async def get_current_status(uid: str, sid: str):
     )
 
 
+def is_part_number(query: str) -> bool:
+    patterns = [
+        r'^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{11}$',
+        r'^(?=.*[0-9])(?=.*[a-zA-Z])[a-zA-Z0-9]{7}$',
+    ]
+    for pattern in patterns:
+        if re.match(pattern, query):
+            return True
+    return False
+
 @app.post("/run")
 async def run(request: Request):
     """
@@ -169,20 +181,50 @@ async def run(request: Request):
         agent_flow_id = str(uuid.uuid4())
         full_response = ""
         try:
-            print("Query: ", query)
-            async for chunk in toshiba_agent.execute3(
-                query=query,
-                qid=data.get("qid"),
-                session_id=data.get("sid"),
-                chat_history=chat_history,
-                user_id=user_id,
-                agent_flow_id=agent_flow_id,
-            ):
-                if chunk:
-                    if isinstance(chunk, dict):
-                        await update_status(user_id, chunk[user_id])
-                        await asyncio.sleep(0.1)
-                        continue
+            if is_part_number(query):
+                print("Power Search Query: ", query)
+
+                part_context = await tools.power_search(query)
+                if not part_context:
+                    full_response = "I could not find any information about the part number."
+                    yield f"{full_response}\n\n"
+                else:
+                # print("Part Context: ", part_context)
+                    final_query = "Here is the context for the part number: " + part_context + \
+                                  " Now give the description for the part number: " + query + \
+                                ". Remember to output in a table format with columns: Part Number, Description, Customer Name (if collection_id is toshiba_demo_4 then the customer name is Toshiba, if collection_id is toshiba_walgreens then the customer name is Walgreens, if collection_id is toshiba_kroger then the customer name is Kroger, if collection_id is toshiba_sams_club then the customer name is Sam's Club, if collection_id is toshiba_tractor_supply then the customer name is Tractor Supply, if collection_id is toshiba_dollar_general then the customer name is Dollar General). DO NOT USE ANY TOOLS YOU HAVE ACCESS TO. Finally, add the sources in the bottom after **Sources:**."
+                    async for chunk in toshiba_agent.execute3(
+                            query=final_query,
+                            qid=data.get("qid"),
+                            session_id=data.get("sid"),
+                            chat_history=chat_history,
+                            user_id=user_id,
+                            agent_flow_id=agent_flow_id,
+
+                    ):
+                        if chunk:
+                            if isinstance(chunk, dict):
+                                await update_status(user_id, chunk[user_id])
+                                await asyncio.sleep(0.1)
+                                continue
+
+                            full_response += chunk
+                            yield f"{chunk if isinstance(chunk, str) else ''}"
+            else:
+                print("Query: ", query)
+                async for chunk in toshiba_agent.execute3(
+                    query=query,
+                    qid=data.get("qid"),
+                    session_id=data.get("sid"),
+                    chat_history=chat_history,
+                    user_id=user_id,
+                    agent_flow_id=agent_flow_id,
+                ):
+                    if chunk:
+                        if isinstance(chunk, dict):
+                            await update_status(user_id, chunk[user_id])
+                            await asyncio.sleep(0.1)
+                            continue
 
                     full_response += chunk
                     yield f"{chunk if isinstance(chunk, str) else ''}"

@@ -1,3 +1,4 @@
+import time
 from utils import function_schema
 import dotenv
 import os
@@ -10,6 +11,133 @@ TOP_GUN_SEGMENT_NUM = 2
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
     dotenv.load_dotenv(".env.local")
+
+import aiohttp
+import asyncio
+
+async def fetch_response(session, url, params):
+    try:
+        async with session.post(url, params=params) as response:
+            data = await response.json()
+            # Adapt this to your get_response logic if needed
+            res, sources = "", []
+            segments = data.get("selected_segments", [])[:SEGMENT_NUM]
+            for i, segment in enumerate(segments):
+                res += "*"*5+f"\n\nSegment Begins: "+"\n"
+                for j, chunk in enumerate(segment["chunks"]):
+                    res += f"Chunk {j}: "+chunk["chunk_text"]
+                    pages = re.findall(r"\d+", str(chunk['page_info']))
+                    res += f"\nSource for Chunk {j}: "
+                    for page in pages:
+                        filename = chunk["filename"].removesuffix(".pdf")
+                        if "page" in filename:
+                            res += f"{filename}" + f" [aws_id: {filename}]\n"
+                        else:
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
+                res += "Segment Ends\n"+"-"*5+"\n\n"
+            return res
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        return ""
+
+async def power_search(query: str) -> list:
+    """
+    Asynchronous retriever tool that goes through all collections and returns the best answer.
+    """
+    collection_names = [
+        "toshiba_demo_4",
+        "toshiba_walgreens",
+        "toshiba_kroger",
+        "toshiba_sams_club",
+        "toshiba_tractor_supply",
+        "toshiba_dollar_general",
+        "toshiba_wegmans",
+        "toshiba_ross",
+        "toshiba_costco",
+        "toshiba_whole_foods",
+        "toshiba_bjs",
+        "toshiba_alex_lee",
+        "toshiba_badger",
+        "toshiba_best_buy",
+        "toshiba_GNC",
+        "toshiba_coach",
+        "toshiba_quickchek",
+        "toshiba_cameras_al",
+        "toshiba_hudson_news",
+        "toshiba_idkids",
+        "toshiba_saks",
+        "toshiba_cvs",
+        "toshiba_at_home",
+        "toshiba_harbor_freight",
+        "toshiba_tca",
+        "toshiba_spartan_nash",
+        "toshiba_event_network",
+        "toshiba_bass_pro",
+        "toshiba_foodland",
+        "toshiba_cost_plus_world_market",
+        "toshiba_enterprise",
+        "toshiba_red_apple",
+        "toshiba_yum_brands",
+        "toshiba_bealls",
+        "toshiba_disney",
+        "toshiba_ovation_foods",
+        "toshiba_nike",
+        "toshiba_abc_stores",
+        "toshiba_tommy_bahama",
+        "toshiba_gordon_food_service",
+        "toshiba_michaels",
+        "toshiba_Zara",
+        "toshiba_dunn_edwards",
+        "toshiba_bp",
+        "toshiba_northern_tool",
+        "toshiba_winn_dixie",
+        "toshiba_pvh_tommy_hilfiger_and_calvin_klein",
+        "toshiba_ahold_stopshop_giant_martins_bfresh",
+        "toshiba_fresh_market",
+        "toshiba_times_supermarkets",
+        "toshiba_mlse",
+        "toshiba_kirklands",
+        "toshiba_simmons_bank",
+        "toshiba_stcr"
+    ]
+
+    url = os.getenv("POWER_SEARCH_URL") + "/"+"query-chunks"
+
+    async def async_power_search():
+        responses = []
+        start_time = time.time()
+        print("Starting time in Async: ",start_time)
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for collection_id in collection_names:
+                now = time.time()
+                print(now - start_time)
+                if collection_id == "toshiba_walgreens":
+                    collection_id = "toshiba_walgreen"
+                if collection_id == "toshiba_harbor_freight":
+                    collection_id = "toshiba_harbour_frieght"
+                params = {
+                    "query": query,
+                    "top_k": 60,
+                    "collection_id": collection_id
+                }
+                tasks.append(fetch_response(session, url, params))
+            responses = await asyncio.gather(*tasks)
+        return responses
+
+    # Run the async function and return the results
+    try:
+        starting_time = time.time()
+        responses = await async_power_search()
+        result = ""
+        for i, (r, collection_id) in enumerate(zip(responses, collection_names)):
+            if r:
+                result += f"{i}. Data from {collection_id}: \n" + r + "\n\n"
+        print("Time taken for Power Search:", time.time() - starting_time)
+        return result
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        return "Cannot connect to Power Search."
 
 def customer_resolver(collection_id: str) -> str:
     customer_mapping = {
@@ -443,6 +571,3 @@ tool_schemas = {
     "sql_database": sql_database.openai_schema,
     "customer_query_retriever": customer_query_retriever.openai_schema,
 }
-
-
-print(customer_query_retriever("Client advocates list", collection_id="toshiba_event_network")[0])
