@@ -2809,7 +2809,8 @@ def vectorizer_conversative_search(
         for i, r in enumerate(results, 1):
             payload = r.payload or {}
             text = (
-                payload.get("text")
+                payload.get("chunk_text")
+                or payload.get("text")
                 or payload.get("content")
                 or payload.get("page_content")
                 or ""
