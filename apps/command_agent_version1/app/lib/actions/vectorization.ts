@@ -24,7 +24,9 @@ export interface VectorizationStepConfig {
 export interface VectorizationPipelineRequest {
   steps: VectorizationStepConfig[];
   file_id?: string;
+  file_ids?: string[];
   pipeline_name?: string;
+  pipeline_id?: string;
 }
 
 export interface VectorizationPipelineResponse {

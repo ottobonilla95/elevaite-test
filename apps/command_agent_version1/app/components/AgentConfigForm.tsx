@@ -194,6 +194,102 @@ function AgentConfigForm(): JSX.Element {
   const [vectorizerAgentId, setVectorizerAgentId] = useState("");
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
 
+  // Pipeline progress listener function using polling
+  const startPipelineProgressListener = useCallback(
+    (pipelineId: string, backendUrl: string) => {
+      let isPolling = true;
+      let pollCount = 0;
+      let lastCompletedSteps: string[] = [];
+      const maxPolls = 600; // 10 minutes max (600 polls)
+
+      const pollProgress = async () => {
+        if (!isPolling || pollCount >= maxPolls) {
+          setIsPipelineRunning(false);
+          return;
+        }
+
+        try {
+          pollCount++;
+          const statusUrl = `${backendUrl.replace(/\/$/, "")}/api/vectorization/pipeline/${pipelineId}/status`;
+
+          const response = await fetch(statusUrl, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            const progressData = await response.json();
+
+            // Check for newly completed steps
+            if (
+              progressData.completed_steps &&
+              Array.isArray(progressData.completed_steps)
+            ) {
+              const newlyCompleted = progressData.completed_steps.filter(
+                (step: string) => !lastCompletedSteps.includes(step)
+              );
+
+              // Show alerts for newly completed steps
+              newlyCompleted.forEach((stepName: string) => {
+                alert(`✅ Step completed: ${stepName}`);
+              });
+
+              // Update the last completed steps
+              lastCompletedSteps = [...progressData.completed_steps];
+            }
+
+            // Handle pipeline completion (only when all steps are done)
+            if (
+              progressData.status === "completed" &&
+              progressData.current_step >= progressData.total_steps
+            ) {
+              alert("🎉 Pipeline completed successfully!");
+              isPolling = false;
+              setIsPipelineRunning(false);
+              return;
+            } else if (progressData.status === "failed") {
+              alert(`❌ Pipeline failed: ${progressData.message}`);
+              isPolling = false;
+              setIsPipelineRunning(false);
+              return;
+            }
+          }
+        } catch (error) {
+          // Silently continue polling on errors
+        }
+
+        // Continue polling with dynamic interval based on stage
+        if (isPolling) {
+          // Determine polling interval based on completed steps
+          let pollInterval = 1000; // Default 1 second for early stages
+
+          if (
+            lastCompletedSteps.includes("chunk") ||
+            lastCompletedSteps.includes("embed") ||
+            lastCompletedSteps.includes("store")
+          ) {
+            pollInterval = 10000; // 10 seconds for later stages (chunk, embed, store)
+          } else if (lastCompletedSteps.includes("parse")) {
+            pollInterval = 5000; // 5 seconds for parse stage
+          }
+
+          setTimeout(pollProgress, pollInterval);
+        }
+      };
+
+      // Start polling after a short delay
+      setTimeout(pollProgress, 2000);
+
+      // Clean up function
+      return () => {
+        isPolling = false;
+      };
+    },
+    []
+  );
+
   // Vectorizer pipeline state - persists when drawer is closed, per agent
   const [vectorizerPipelines, setVectorizerPipelines] = useState<
     Record<string, PipelineStep[]>
@@ -363,18 +459,29 @@ function AgentConfigForm(): JSX.Element {
         "../lib/actions/vectorization"
       );
 
-      const result = await executeVectorizationPipeline(requestPayload);
+      // Generate pipeline ID on frontend to establish SSE connection early
+      const pipelineId = `frontend-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const backendUrl = (
+        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000"
+      ).replace("127.0.0.1", "localhost");
 
-      console.log("Pipeline execution result:", result);
+      // Start pipeline progress monitoring
 
-      if (result.status === "completed") {
-        alert(
-          `Pipeline executed successfully! Pipeline ID: ${result.pipeline_id}\n\nCheck the console for detailed results.`
-        );
-      }
+      // Start listening for progress updates BEFORE starting the pipeline
+      startPipelineProgressListener(pipelineId, backendUrl);
+
+      // Add pipeline_id to request payload
+      const requestWithId = {
+        ...requestPayload,
+        pipeline_id: pipelineId,
+      };
+
+      const result = await executeVectorizationPipeline(requestWithId);
+
+      // Pipeline started successfully - keep loading state active
+      // The polling will handle completion and reset the loading state
     } catch (error) {
       console.error("Failed to execute vectorization pipeline:", error);
-    } finally {
       setIsPipelineRunning(false);
     }
   }, [

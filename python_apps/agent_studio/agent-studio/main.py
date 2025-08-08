@@ -160,7 +160,14 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Cache-Control",
+        "Accept",
+        "Accept-Encoding",
+        "Accept-Language",
+    ],
 )
 
 app.include_router(prompt_router)
@@ -414,7 +421,14 @@ if __name__ == "__main__":
         allow_origins=origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "Cache-Control",
+            "Accept",
+            "Accept-Encoding",
+            "Accept-Language",
+        ],
     )
 
     uvicorn.run(app, host="0.0.0.0", port=8000)

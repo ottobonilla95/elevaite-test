@@ -9,8 +9,16 @@ import subprocess
 import asyncio
 from typing import Dict, Any, Optional, List
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    UploadFile,
+    File,
+    Form,
+    BackgroundTasks,
+)
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
@@ -19,6 +27,95 @@ from db.database import get_db
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/vectorization", tags=["vectorization"])
+
+
+# Global progress tracking
+class PipelineProgressTracker:
+    def __init__(self):
+        self.progress_data = {}
+        self.subscribers = {}
+
+    def start_pipeline(self, pipeline_id: str, total_steps: int):
+        """Start tracking a new pipeline."""
+        self.progress_data[pipeline_id] = {
+            "pipeline_id": pipeline_id,
+            "status": "running",
+            "current_step": 0,
+            "total_steps": total_steps,
+            "completed_steps": [],
+            "current_stage": None,
+            "message": "Pipeline started",
+        }
+        self.subscribers[pipeline_id] = []
+
+    def update_progress(
+        self, pipeline_id: str, stage: str, status: str, message: str = ""
+    ):
+        """Update progress for a pipeline."""
+        if pipeline_id not in self.progress_data:
+            return
+
+        progress = self.progress_data[pipeline_id]
+
+        if status == "started":
+            progress["current_stage"] = stage
+            progress["message"] = f"Starting {stage}..."
+        elif status == "completed":
+            progress["completed_steps"].append(stage)
+            progress["current_step"] = len(progress["completed_steps"])
+            progress["message"] = f"Completed {stage}"
+
+            if progress["current_step"] >= progress["total_steps"]:
+                progress["status"] = "completed"
+                progress["current_stage"] = None
+                progress["message"] = "Pipeline completed successfully"
+
+        # Notify all subscribers
+        self._notify_subscribers(pipeline_id, progress.copy())
+
+    def complete_pipeline(
+        self, pipeline_id: str, status: str = "completed", message: str = ""
+    ):
+        """Mark pipeline as completed."""
+        if pipeline_id not in self.progress_data:
+            return
+
+        self.progress_data[pipeline_id]["status"] = status
+        self.progress_data[pipeline_id]["message"] = message or f"Pipeline {status}"
+        self._notify_subscribers(pipeline_id, self.progress_data[pipeline_id].copy())
+
+    def add_subscriber(self, pipeline_id: str, queue: asyncio.Queue):
+        """Add a subscriber for pipeline updates."""
+        if pipeline_id not in self.subscribers:
+            self.subscribers[pipeline_id] = []
+        self.subscribers[pipeline_id].append(queue)
+
+    def remove_subscriber(self, pipeline_id: str, queue: asyncio.Queue):
+        """Remove a subscriber."""
+        if pipeline_id in self.subscribers and queue in self.subscribers[pipeline_id]:
+            self.subscribers[pipeline_id].remove(queue)
+
+    def _notify_subscribers(self, pipeline_id: str, progress_data: dict):
+        """Notify all subscribers of progress update."""
+        if pipeline_id not in self.subscribers:
+            return
+
+        try:
+            for queue in self.subscribers[pipeline_id]:
+                try:
+                    queue.put_nowait(progress_data)
+                except asyncio.QueueFull:
+                    logger.warning(
+                        f"Queue full for pipeline {pipeline_id}, skipping update"
+                    )
+                except Exception as e:
+                    logger.error(f"Error notifying subscriber for {pipeline_id}: {e}")
+        except Exception as e:
+            logger.error(f"Error in _notify_subscribers for {pipeline_id}: {e}")
+
+
+# Global progress tracker instance
+progress_tracker = PipelineProgressTracker()
 
 
 # Pydantic models for request/response
@@ -46,6 +143,9 @@ class VectorizationPipelineRequest(BaseModel):
     pipeline_name: Optional[str] = Field(
         "default", description="Name for this pipeline execution"
     )
+    pipeline_id: Optional[str] = Field(
+        None, description="Optional pipeline ID from frontend"
+    )
 
 
 class VectorizationPipelineResponse(BaseModel):
@@ -62,7 +162,7 @@ class VectorizationPipelineResponse(BaseModel):
 
 
 async def execute_ingestion_pipeline(
-    config_file: Path, working_dir: Path
+    config_file: Path, working_dir: Path, pipeline_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Execute the elevaite-ingestion pipeline with the provided configuration.
@@ -70,6 +170,7 @@ async def execute_ingestion_pipeline(
     Args:
         config_file: Path to the configuration JSON file
         working_dir: Working directory for the pipeline
+        pipeline_id: Optional pipeline ID for progress tracking
 
     Returns:
         Pipeline execution results
@@ -102,7 +203,9 @@ async def execute_ingestion_pipeline(
             os.environ["CONFIG_FILE"] = str(config_file)
 
             # Import and execute the pipeline stages sequentially
-            result = await execute_pipeline_stages(config_file, working_dir)
+            result = await execute_pipeline_stages(
+                config_file, working_dir, pipeline_id
+            )
 
             logger.info("Ingestion pipeline completed successfully")
             return {
@@ -135,7 +238,7 @@ async def execute_ingestion_pipeline(
 
 
 async def execute_pipeline_stages(
-    config_file: Path, working_dir: Path
+    config_file: Path, working_dir: Path, pipeline_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Execute the ingestion pipeline stages sequentially.
@@ -143,6 +246,7 @@ async def execute_pipeline_stages(
     Args:
         config_file: Path to the configuration file
         working_dir: Working directory for the pipeline
+        pipeline_id: Optional pipeline ID for progress tracking
 
     Returns:
         Pipeline execution results
@@ -170,6 +274,13 @@ async def execute_pipeline_stages(
         for stage_name, stage_script in stages:
             logger.info(f"Executing stage: {stage_name}")
 
+            # Emit progress update - stage started
+            if pipeline_id:
+                try:
+                    progress_tracker.update_progress(pipeline_id, stage_name, "started")
+                except Exception as e:
+                    logger.error(f"Error updating progress for {stage_name} start: {e}")
+
             stage_path = ingestion_package_path / stage_script
             if not stage_path.exists():
                 logger.error(f"Stage script not found: {stage_path}")
@@ -178,24 +289,66 @@ async def execute_pipeline_stages(
                     "error": f"Stage script not found: {stage_path}",
                     "return_code": -1,
                 }
+                # Emit progress update - stage failed
+                if pipeline_id:
+                    try:
+                        progress_tracker.update_progress(
+                            pipeline_id,
+                            stage_name,
+                            "failed",
+                            f"Stage script not found: {stage_path}",
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error updating progress for {stage_name} failure: {e}"
+                        )
                 raise Exception(
                     f"Critical pipeline stage missing: {stage_name} at {stage_path}"
                 )
 
             # Execute stage using subprocess to avoid import issues
+            logger.info(f"Starting subprocess execution for {stage_name}")
             result = await execute_stage_subprocess(stage_path, working_dir)
+            logger.info(
+                f"Subprocess execution completed for {stage_name} with result: {result.get('status', 'unknown')}"
+            )
 
             stage_results[stage_name] = result
 
             # Check if stage execution was successful
             if result.get("status") != "completed" or result.get("return_code", 0) != 0:
                 logger.error(f"Stage {stage_name} failed: {result}")
+                # Emit progress update - stage failed
+                if pipeline_id:
+                    try:
+                        progress_tracker.update_progress(
+                            pipeline_id,
+                            stage_name,
+                            "failed",
+                            f"Stage failed: {result.get('error', 'Unknown error')}",
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error updating progress for {stage_name} failure: {e}"
+                        )
                 raise Exception(
                     f"Stage {stage_name} failed with return code {result.get('return_code', -1)}"
                 )
 
             stages_completed.append(stage_name)
             logger.info(f"Stage {stage_name} completed successfully")
+
+            # Emit progress update - stage completed
+            if pipeline_id:
+                try:
+                    progress_tracker.update_progress(
+                        pipeline_id, stage_name, "completed"
+                    )
+                    logger.info(f"Progress updated for {stage_name} completion")
+                except Exception as e:
+                    logger.error(
+                        f"Error updating progress for {stage_name} completion: {e}"
+                    )
 
         return {
             "stages_completed": stages_completed,
@@ -243,6 +396,9 @@ async def execute_stage_subprocess(
         ingestion_dir = stage_path.parent.parent.parent
 
         # Execute the stage script
+        logger.info(
+            f"Creating subprocess for {stage_path} in directory {ingestion_dir}"
+        )
         process = await asyncio.create_subprocess_exec(
             sys.executable,
             str(stage_path),
@@ -251,8 +407,39 @@ async def execute_stage_subprocess(
             stderr=asyncio.subprocess.PIPE,
             env={**os.environ, "PYTHONPATH": str(ingestion_dir)},
         )
+        logger.info(
+            f"Subprocess created with PID {process.pid}, waiting for completion..."
+        )
 
-        stdout, stderr = await process.communicate()
+        # Add timeout to prevent hanging (10 minutes for heavy stages like chunking)
+        # Also add periodic logging to track progress
+        async def monitor_process():
+            for i in range(60):  # Check every 10 seconds for 10 minutes
+                await asyncio.sleep(10)
+                if process.returncode is not None:
+                    break
+                logger.info(f"Subprocess still running after {(i+1)*10} seconds...")
+
+        monitor_task = asyncio.create_task(monitor_process())
+
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=600)
+            logger.info(f"Subprocess completed with return code {process.returncode}")
+        except asyncio.TimeoutError:
+            logger.error(f"Stage execution timed out after 10 minutes: {stage_path}")
+            process.kill()
+            await process.wait()
+            return {
+                "status": "failed",
+                "error": "Stage execution timed out after 10 minutes",
+                "return_code": -1,
+            }
+        finally:
+            monitor_task.cancel()
+            try:
+                await monitor_task
+            except asyncio.CancelledError:
+                pass
 
         if process.returncode == 0:
             return {
@@ -407,6 +594,7 @@ def create_ingestion_config(
 
     # Add local-specific parsing configuration if in local mode
     if file_path is not None:
+        input_dir = Path(file_path).parent / "input_data"
         parsed_dir = Path(file_path).parent / "data" / "processed"
         parsed_dir.mkdir(parents=True, exist_ok=True)
         config["parsing"]["local"] = {
@@ -476,29 +664,91 @@ def create_ingestion_config(
     return config
 
 
-@router.post("/pipeline/execute", response_model=VectorizationPipelineResponse)
-async def execute_vectorization_pipeline(
-    request: VectorizationPipelineRequest, db: Session = Depends(get_db)
-):
+@router.get("/pipeline/progress/{pipeline_id}")
+async def stream_pipeline_progress(pipeline_id: str):
     """
-    Execute a vectorization pipeline with the provided configuration.
-
-    This endpoint processes uploaded files through the complete ingestion pipeline:
-    load → parse → chunk → embed → store
+    Stream pipeline progress updates using Server-Sent Events (SSE).
 
     Args:
-        request: Pipeline configuration and file information
-        db: Database session
+        pipeline_id: ID of the pipeline to monitor
 
     Returns:
-        Pipeline execution status and results
+        StreamingResponse with SSE data
     """
-    pipeline_id = str(uuid.uuid4())
+    logger.info(f"🔗 SSE connection request for pipeline: {pipeline_id}")
 
+    async def event_stream():
+        queue = asyncio.Queue(maxsize=100)
+        logger.info(f"📡 Adding subscriber for pipeline: {pipeline_id}")
+        progress_tracker.add_subscriber(pipeline_id, queue)
+
+        try:
+            # Send initial progress if pipeline exists
+            if pipeline_id in progress_tracker.progress_data:
+                initial_data = progress_tracker.progress_data[pipeline_id]
+                yield f"data: {json.dumps(initial_data)}\n\n"
+
+            # Stream updates
+            while True:
+                try:
+                    # Wait for progress update with timeout
+                    progress_data = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield f"data: {json.dumps(progress_data)}\n\n"
+
+                    # If pipeline is completed or failed, send final message and break
+                    if progress_data.get("status") in ["completed", "failed"]:
+                        break
+
+                except asyncio.TimeoutError:
+                    # Send heartbeat to keep connection alive
+                    yield f"data: {json.dumps({'type': 'heartbeat', 'timestamp': str(uuid.uuid4())})}\n\n"
+
+        except Exception as e:
+            logger.error(f"Error in SSE stream for pipeline {pipeline_id}: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        finally:
+            progress_tracker.remove_subscriber(pipeline_id, queue)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "text/event-stream",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Cache-Control, Accept, Accept-Encoding, Accept-Language",
+            "Access-Control-Allow-Credentials": "false",
+        },
+    )
+
+
+async def run_pipeline_background(
+    pipeline_id: str, request: VectorizationPipelineRequest
+):
+    """
+    Background task to run the pipeline asynchronously.
+
+    Args:
+        pipeline_id: Unique pipeline identifier
+        request: Pipeline configuration and file information
+    """
     try:
+        # Add a delay to ensure any monitoring connections are established
+        await asyncio.sleep(3)
+
         # Validate steps
         if not request.steps:
-            raise HTTPException(status_code=400, detail="No pipeline steps provided")
+            progress_tracker.complete_pipeline(
+                pipeline_id, "failed", "No pipeline steps provided"
+            )
+            return
+
+        # Start progress tracking - count actual pipeline stages
+        # The pipeline always runs: load, parse, chunk, embed, store (5 stages)
+        total_steps = 5
+        progress_tracker.start_pipeline(pipeline_id, total_steps)
 
         # Check if we have file IDs (either single file_id or multiple file_ids)
         file_ids = []
@@ -570,7 +820,9 @@ async def execute_vectorization_pipeline(
             logger.info(f"Created ingestion config: {config_file}")
 
             # Execute the actual ingestion pipeline
-            pipeline_result = await execute_ingestion_pipeline(config_file, temp_path)
+            pipeline_result = await execute_ingestion_pipeline(
+                config_file, temp_path, pipeline_id
+            )
 
             # Prepare results
             results = {
@@ -615,6 +867,9 @@ async def execute_vectorization_pipeline(
             if stage_results:
                 results["stage_details"] = stage_results
 
+            # Mark pipeline as completed
+            progress_tracker.complete_pipeline(pipeline_id, final_status, final_message)
+
             return VectorizationPipelineResponse(
                 pipeline_id=pipeline_id,
                 status=final_status,
@@ -624,18 +879,78 @@ async def execute_vectorization_pipeline(
                 results=results,
             )
 
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Pipeline execution failed: {str(e)}")
-        return VectorizationPipelineResponse(
-            pipeline_id=pipeline_id,
-            status="failed",
-            message=f"Pipeline execution failed: {str(e)}",
-            steps_completed=0,
-            total_steps=len(request.steps) if request.steps else 0,
-            results=None,
+        logger.error(f"Background pipeline execution failed: {str(e)}")
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception details: {e}", exc_info=True)
+        # Mark pipeline as failed
+        progress_tracker.complete_pipeline(
+            pipeline_id, "failed", f"Pipeline execution failed: {str(e)}"
         )
+
+
+@router.options("/pipeline/progress/{pipeline_id}")
+async def options_pipeline_progress(pipeline_id: str):
+    """Handle CORS preflight for SSE endpoint."""
+    logger.info(f"🔧 CORS preflight request for pipeline: {pipeline_id}")
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+            "Access-Control-Allow-Headers": "Cache-Control, Accept, Accept-Encoding, Accept-Language",
+            "Access-Control-Allow-Credentials": "false",
+        },
+    )
+
+
+@router.head("/pipeline/progress/{pipeline_id}")
+async def head_pipeline_progress(pipeline_id: str):
+    """Handle HEAD request for SSE endpoint."""
+    logger.info(f"🧪 HEAD request for pipeline: {pipeline_id}")
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "text/event-stream",
+        },
+    )
+
+
+@router.post("/pipeline/execute", response_model=VectorizationPipelineResponse)
+async def execute_vectorization_pipeline(
+    request: VectorizationPipelineRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Start a vectorization pipeline execution in the background.
+
+    This endpoint starts the pipeline execution asynchronously and returns immediately
+    with a pipeline_id. Clients can use the pipeline_id to monitor progress via SSE.
+
+    Args:
+        request: Pipeline configuration and file information
+        background_tasks: FastAPI background tasks
+        db: Database session
+
+    Returns:
+        Pipeline ID and initial status
+    """
+    # Use provided pipeline_id or generate a new one
+    pipeline_id = request.pipeline_id or str(uuid.uuid4())
+
+    # Start the pipeline in the background
+    background_tasks.add_task(run_pipeline_background, pipeline_id, request)
+
+    return VectorizationPipelineResponse(
+        pipeline_id=pipeline_id,
+        status="running",
+        message="Pipeline started successfully. Use the pipeline_id to monitor progress.",
+        steps_completed=0,
+        total_steps=len(request.steps),
+        results=None,
+    )
 
 
 @router.get("/pipeline/{pipeline_id}/status")
@@ -650,17 +965,22 @@ async def get_pipeline_status(pipeline_id: str, db: Session = Depends(get_db)):
     Returns:
         Pipeline status information
     """
-    # TODO: Implement pipeline status tracking
-    # For now, return a mock response
-    return JSONResponse(
-        content={
-            "pipeline_id": pipeline_id,
-            "status": "completed",
-            "message": "Status tracking not yet implemented",
-            "steps_completed": 0,
-            "total_steps": 0,
-        }
-    )
+    # Check if pipeline exists in progress tracker
+    if pipeline_id in progress_tracker.progress_data:
+        progress_data = progress_tracker.progress_data[pipeline_id].copy()
+        return JSONResponse(content=progress_data)
+    else:
+        return JSONResponse(
+            content={
+                "pipeline_id": pipeline_id,
+                "status": "not_found",
+                "message": "Pipeline not found",
+                "current_step": 0,
+                "total_steps": 0,
+                "completed_steps": [],
+                "current_stage": None,
+            }
+        )
 
 
 @router.get("/config/template")
