@@ -11,26 +11,26 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
         label: "Workers & Queues",
         link: "/workers_queues",
     },
-    models: {
-        label: "Models",
-        link: "/models",
-    },
+    // models: {
+    //     label: "Models",
+    //     link: "/models",
+    // },
     access: {
       label: "Access Management",
       link: "/access",
     },
-    datasets: {
-        label: "Datasets",
-        link: "/datasets",
-    },
+    // datasets: {
+    //     label: "Datasets",
+    //     link: "/datasets",
+    // },
     workbench: {
-        label: "Workbench",
+        label: "Agent Studio",
         link: "/workbench",
     },
-    cost: {
-        label: "Billing and Costs",
-        link: "/cost",
-    },
+    // cost: {
+    //     label: "Billing and Costs",
+    //     link: "/cost",
+    // },
     application: {
         label: "Application",
         link: "/application",
@@ -52,13 +52,13 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
 const sidebarIcons: SidebarIconObject[] = [
     // { icon: <ElevaiteIcons.WorkersQueues />, link: "/workers_queues" },
     { icon: <ElevaiteIcons.SVGAccess />, link: "/access", description: "Access Management" },
-    { icon: <ElevaiteIcons.Datasets />, link: "/datasets", description: "Datasets" },
-    { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
+    // { icon: <ElevaiteIcons.Datasets />, link: "/datasets", description: "Datasets" },
+    // { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
     { icon: <ElevaiteIcons.Workbench />, link: "/workbench", description: "Workbench" },
-    { icon: <ElevaiteIcons.SVGCost />, link: "/cost", description: "Billing & Costs" },
+    // { icon: <ElevaiteIcons.SVGCost />, link: "/cost", description: "Billing & Costs" },
     { icon: <ElevaiteIcons.SVGApplications />, link: "/", description: "Applications" },
-    { icon: <ElevaiteIcons.SVGSettings />, link: "https://playground-dev.iopex.ai", description: "Config"},
-    { icon: <ElevaiteIcons.SVGProjects className="rotate-180"  />, link: "/dashboard", description: "Dashboard" },
+    // { icon: <ElevaiteIcons.SVGSettings />, link: "https://playground-dev.iopex.ai", description: "Config"},
+    // { icon: <ElevaiteIcons.SVGProjects className="rotate-180"  />, link: "/dashboard", description: "Dashboard" },
 ];
 
 

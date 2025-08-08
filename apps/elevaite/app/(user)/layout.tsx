@@ -11,26 +11,26 @@ export const metadata: Metadata = {
 };
 
 const breadcrumbLabels: Record<string, { label: string; link: string }> = {
-  models: {
-    label: "Models",
-    link: "/models",
-  },
-  datasets: {
-    label: "Datasets",
-    link: "/datasets",
-  },
+  // models: {
+  //   label: "Models",
+  //   link: "/models",
+  // },
+  // datasets: {
+  //   label: "Datasets",
+  //   link: "/datasets",
+  // },
   access: {
     label: "Access Management",
     link: "/access",
   },
   workbench: {
-    label: "Workbench",
+    label: "Studio",
     link: "/workbench",
   },
-  cost: {
-    label: "Billing and Costs",
-    link: "/cost",
-  },
+  // cost: {
+  //   label: "Billing and Costs",
+  //   link: "/cost",
+  // },
   application: {
     label: "Application",
     link: "/application",
@@ -43,18 +43,18 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
     label: "Applications",
     link: "/",
   },
-  contracts: {
-    label: "Contracts",
-    link: "/contracts",
-  },
-  config: {
-    label: "Config",
-    link: "/config",
-  },
-  dashboard: {
-    label: "Dashboard",
-    link: "/dashboard",
-  },
+  // contracts: {
+  //   label: "Contracts",
+  //   link: "/contracts",
+  // },
+  // config: {
+  //   label: "Config",
+  //   link: "/config",
+  // },
+  // dashboard: {
+  //   label: "Dashboard",
+  //   link: "/dashboard",
+  // },
 };
 
 const sidebarIcons: SidebarIconObject[] = [
@@ -63,37 +63,37 @@ const sidebarIcons: SidebarIconObject[] = [
     link: "/access",
     description: "Access Management",
   },
-  {
-    icon: <ElevaiteIcons.Datasets />,
-    link: "/datasets",
-    description: "Datasets",
-  },
-  { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
+  // {
+  //   icon: <ElevaiteIcons.Datasets />,
+  //   link: "/datasets",
+  //   description: "Datasets",
+  // },
+  // { icon: <ElevaiteIcons.SVGModels />, link: "/models", description: "Models" },
   {
     icon: <ElevaiteIcons.Workbench />,
     link: "/workbench",
     description: "Workbench",
   },
-  {
-    icon: <ElevaiteIcons.SVGCost />,
-    link: "/cost",
-    description: "Billing & Costs",
-  },
+  // {
+  //   icon: <ElevaiteIcons.SVGCost />,
+  //   link: "/cost",
+  //   description: "Billing & Costs",
+  // },
   {
     icon: <ElevaiteIcons.SVGApplications />,
     link: "/",
     description: "Applications",
   },
-  {
-    icon: <ElevaiteIcons.SVGSettings />,
-    link: "https://playground-dev.iopex.ai",
-    description: "Config",
-  },
-  {
-    icon: <ElevaiteIcons.SVGProjects className="rotate-180" />,
-    link: "/dashboard",
-    description: "Dashboard",
-  },
+  // {
+  //   icon: <ElevaiteIcons.SVGSettings />,
+  //   link: "https://playground-dev.iopex.ai",
+  //   description: "Config",
+  // },
+  // {
+  //   icon: <ElevaiteIcons.SVGProjects className="rotate-180" />,
+  //   link: "/dashboard",
+  //   description: "Dashboard",
+  // },
 ];
 
 const alcatelSidebarIcons: SidebarIconObject[] = [

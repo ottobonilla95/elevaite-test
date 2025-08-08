@@ -1,12 +1,13 @@
 "use client";
-import { Card, ElevaiteIcons } from "@repo/ui/components";
+import { Card } from "@repo/ui/components";
 import { useThemes } from "@repo/ui/contexts";
-import { Tab, TabList, TabPanel, Tabs } from "react-tabs";
-import { useWorkbench } from "../../lib/contexts/WorkbenchContext";
+// import { Tab, TabList, TabPanel, Tabs } from "react-tabs";
+// import { useWorkbench } from "../../lib/contexts/WorkbenchContext";
+// import { ElevaiteIcons } from "@repo/ui/components";
 import "./page.scss";
 
 export default function Page(): JSX.Element {
-  const workbenchContext = useWorkbench();
+  // const workbenchContext = useWorkbench();
   const themesContext = useThemes();
 
   return (
@@ -15,12 +16,27 @@ export default function Page(): JSX.Element {
         .filter(Boolean)
         .join(" ")}
     >
-      <Tabs>
+      <div className="tab-panel-contents agent-studio">
+        <Card
+          id="agent-studio"
+          description="Build and deploy intelligent agents with our comprehensive studio environment."
+          icon="/icons/appIcons/supportBot.svg"
+          iconAlt="Agent Studio"
+          subtitle="By Elevaite"
+          title="Agent Studio"
+          btnLabel="Open"
+          externalUrl="http://elevaite-studio.iopex.ai/"
+          openInNewTab={true}
+        />
+      </div>
+
+      {/* Previous implementation with tabs and sections commented out */}
+      {/* <Tabs>
         <TabList>
           <Tab>INGEST</Tab>
-          {/* <Tab>TRAINING</Tab>
+          <Tab>TRAINING</Tab>
           <Tab>QA</Tab>
-          <Tab>DEPLOY</Tab> */}
+          <Tab>DEPLOY</Tab>
         </TabList>
         <TabPanel>
           <div className="tab-panel-contents ingest">
@@ -99,7 +115,7 @@ export default function Page(): JSX.Element {
             )}
           </div>
         </TabPanel>
-        {/* <TabPanel>
+        <TabPanel>
           <div className="grid sm:max-lg:grid-cols-1 lg:max-2xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-4 p-8 w-fit">
             {ingestionMethods.map((method) => (
               <Card
@@ -146,24 +162,25 @@ export default function Page(): JSX.Element {
               />
             ))}
           </div>
-        </TabPanel> */}
-      </Tabs>
+        </TabPanel>
+      </Tabs> */}
     </div>
   );
 }
 
-function Section(props: {
-  separator?: boolean;
-  children?: React.ReactNode;
-}): JSX.Element {
-  return (
-    <div
-      className={["app-section", !props.separator ? "info" : undefined]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <span>{props.children}</span>
-      {!props.separator ? null : <div className="separator" />}
-    </div>
-  );
-}
+// Section function commented out as it's no longer used
+// function Section(props: {
+//   separator?: boolean;
+//   children?: React.ReactNode;
+// }): JSX.Element {
+//   return (
+//     <div
+//       className={["app-section", !props.separator ? "info" : undefined]
+//         .filter(Boolean)
+//         .join(" ")}
+//     >
+//       <span>{props.children}</span>
+//       {!props.separator ? null : <div className="separator" />}
+//     </div>
+//   );
+// }
