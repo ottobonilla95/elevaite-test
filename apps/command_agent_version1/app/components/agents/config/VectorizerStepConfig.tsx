@@ -66,7 +66,7 @@ const getStepConfigOptions = (
             { value: "gcs", label: "Google Cloud Storage" },
             { value: "azure", label: "Azure Blob Storage" },
             { value: "local", label: "Local File System" },
-            { value: "url", label: "URL/Web" },
+            // { value: "url", label: "URL/Web" }, #FIXME: Removed for the demo, add later
           ],
           default: "s3",
           description: "Select the data source provider",
@@ -407,7 +407,7 @@ export default function VectorizerStepConfig({
   showLogsPanel = false,
 }: VectorizerStepConfigProps): JSX.Element {
   const [config, setConfig] = useState<StepConfigData>({});
-  
+
   // Collapsible sections state
   const [isConfigExpanded, setIsConfigExpanded] = useState(true);
 
@@ -575,16 +575,20 @@ export default function VectorizerStepConfig({
 
       {/* Collapsible Configuration Section */}
       <div className="collapsible-section">
-        <div 
+        <div
           className="section-header"
           onClick={() => setIsConfigExpanded(!isConfigExpanded)}
         >
           <h4 className="section-title">Configuration</h4>
           <button type="button" className="collapse-button">
-            {isConfigExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            {isConfigExpanded ? (
+              <ChevronUp size={20} />
+            ) : (
+              <ChevronDown size={20} />
+            )}
           </button>
         </div>
-        
+
         {isConfigExpanded && (
           <div className="section-content">
             <div className="config-fields">
@@ -621,7 +625,9 @@ export default function VectorizerStepConfig({
                       type="number"
                       value={
                         (config[option.id] as number) ||
-                        (typeof option.default === "number" ? option.default : 0)
+                        (typeof option.default === "number"
+                          ? option.default
+                          : 0)
                       }
                       onChange={(e) => {
                         handleConfigChange(
@@ -683,8 +689,12 @@ export default function VectorizerStepConfig({
                               className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-sm"
                             >
                               <div className="flex items-center gap-2">
-                                <span className="text-gray-700">{file.name}</span>
-                                <span className="text-gray-500">({file.size})</span>
+                                <span className="text-gray-700">
+                                  {file.name}
+                                </span>
+                                <span className="text-gray-500">
+                                  ({file.size})
+                                </span>
                               </div>
                               <button
                                 type="button"
