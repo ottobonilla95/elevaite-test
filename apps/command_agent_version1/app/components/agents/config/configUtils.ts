@@ -26,8 +26,6 @@ export const getAgentTypeDisplay = (type: AgentType): string => {
       return "Data Extractor";
     case "troubleshooting":
       return "Troubleshooting";
-    case "vectorizer":
-      return "Vectorizer";
     default:
       return type;
   }

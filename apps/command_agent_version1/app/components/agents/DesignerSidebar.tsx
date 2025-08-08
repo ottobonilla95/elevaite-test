@@ -9,7 +9,6 @@ import {
   Link2,
   Wrench,
   Search,
-  Eye,
   X,
   ChevronsLeft,
   ChevronsRight,
@@ -26,9 +25,7 @@ import { RouterAgentIcon } from "../icons";
 import TabHeader, { type Tab } from "../TabHeader";
 import WorkflowsTab from "./WorkflowsTab";
 import "./DesignerSidebar.scss";
-import { mockupAgents } from "../../lib/mockup";
 import { ToolsTabViewOnly } from "./config/ToolsTabViewOnly";
-import { getHighlightedAgentIcon } from "./iconUtils";
 
 // SidebarItem component for draggable items
 interface SidebarItemProps {
@@ -69,37 +66,6 @@ function SidebarItem({
   );
 }
 
-function HighlightedSidebarItem({
-  icon,
-  label,
-  subLabel,
-  onClick,
-  draggable,
-  onDragStart,
-}: SidebarItemProps): JSX.Element {
-  return (
-    <button
-      className="sidebar-item highlighted-sidebar-item cursor-grab p-2 mb-2 rounded-md hover:bg-orange-50 transition-colors w-full"
-      onClick={onClick}
-      draggable={draggable}
-      onDragStart={onDragStart}
-      type="button"
-    >
-      <div className="sidebar-item-content flex w-full">
-        <div className="item-icon highlighted-item-icon mr-3">{icon}</div>
-        <div className="item-details w-full flex justify-start flex-col">
-          <h3 className="text-sm font-medium flex flex-1 text-brand-primary">
-            {label}
-          </h3>
-          {subLabel ? (
-            <p className="text-xs text-gray-600 flex flex-1">{subLabel}</p>
-          ) : null}
-        </div>
-      </div>
-    </button>
-  );
-}
-
 interface DesignerSidebarProps {
   handleDragStart: (
     event: React.DragEvent<HTMLElement>,
@@ -128,13 +94,11 @@ function DesignerSidebar({
 
   // Use agents context
   const {
-    agents,
     isLoading: agentsLoading,
     error: agentsError,
     refreshAgents,
     filteredAgents: contextFilteredAgents,
     setSearchQuery: setContextSearchQuery,
-    setAgents,
   } = useAgents();
 
   // Define tabs for TabHeader component
@@ -275,66 +239,6 @@ function DesignerSidebar({
                   }}
                 />
               ))}
-
-              {/* Highlighted Agents */}
-              <HighlightedSidebarItem
-                key="vectorizer"
-                icon={
-                  <div className="w-8 h-8 rounded-md flex items-center justify-center">
-                    {getHighlightedAgentIcon("Vectorizer")}
-                  </div>
-                }
-                label="Vectorizer"
-                subLabel="Convert data into vector embeddings"
-                draggable
-                onDragStart={(e) => {
-                  const vectorizerAgent: AgentResponse = {
-                    name: "Vectorizer",
-                    agent_type: "vectorizer" as AgentType,
-                    description: "Convert data into vector embeddings",
-                    parent_agent_id: null,
-                    system_prompt_id: "vectorizer-prompt-1",
-                    persona: null,
-                    functions: [],
-                    routing_options: {},
-                    short_term_memory: false,
-                    long_term_memory: false,
-                    reasoning: false,
-                    input_type: ["text"],
-                    output_type: ["text"],
-                    response_type: "json",
-                    max_retries: 3,
-                    timeout: null,
-                    deployed: true,
-                    status: "active",
-                    priority: null,
-                    failure_strategies: null,
-                    collaboration_mode: "single",
-                    available_for_deployment: true,
-                    deployment_code: null,
-                    id: 999,
-                    agent_id: "vectorizer-highlighted",
-                    session_id: null,
-                    last_active: null,
-                    system_prompt: {
-                      prompt_label: "Vectorizer",
-                      prompt:
-                        "You are a vectorizer agent that converts data into vector embeddings.",
-                      unique_label: "vectorizer-prompt",
-                      app_name: "command_agent_version1",
-                      version: "1.0.0",
-                      ai_model_provider: "",
-                      ai_model_name: "",
-                      id: 999,
-                      pid: "vectorizer-pid",
-                      sha_hash: "vectorizer-hash",
-                      is_deployed: true,
-                      created_time: new Date().toISOString(),
-                    },
-                  };
-                  handleDragStart(e, vectorizerAgent);
-                }}
-              />
             </div>
           </div>
 

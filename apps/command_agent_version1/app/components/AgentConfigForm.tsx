@@ -83,7 +83,7 @@ function convertConfigToAgentCreate(
   if (!selectedPromptId) {
     throw new Error("A prompt must be selected to create an agent");
   }
-  
+
   // Map output format to response_type with exact case matching
   const getResponseType = (
     outputFormat?: string
@@ -184,7 +184,9 @@ function AgentConfigForm(): JSX.Element {
   const [activeTab, setActiveTab] = useState("actions");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showTestingSidebar, setShowTestingSidebar] = useState(false);
-  const [currentTestingWorkflowId, setCurrentTestingWorkflowId] = useState<string | undefined>(undefined);
+  const [currentTestingWorkflowId, setCurrentTestingWorkflowId] = useState<
+    string | undefined
+  >(undefined);
 
   // Vectorizer drawer state
   const [showVectorizerDrawer, setShowVectorizerDrawer] = useState(false);
@@ -253,29 +255,31 @@ function AgentConfigForm(): JSX.Element {
     },
     []
   );
-  const handleVectorizerWorkflowSaved = useCallback((newWorkflowId: string) => {
-  console.log("🎉 Vectorizer workflow saved with ID:", newWorkflowId);
-  
-  // Set the workflow ID for the testing panel
-  setCurrentTestingWorkflowId(newWorkflowId);
-  
-  // Close vectorizer drawer and clear state
-  setShowVectorizerDrawer(false);
-  setSelectedVectorizerStep(null);
-  
-  // Clear the pipeline for this agent
-  setVectorizerPipelines(prev => ({
-    ...prev,
-    [vectorizerAgentId]: []
-  }));
-  
-  // Clear step configs
-  setVectorizerStepConfigs({});
-  
-  // Show testing sidebar automatically
-  setShowTestingSidebar(true);
-  
-}, [vectorizerAgentId]);
+  const handleVectorizerWorkflowSaved = useCallback(
+    (newWorkflowId: string) => {
+      console.log("🎉 Vectorizer workflow saved with ID:", newWorkflowId);
+
+      // Set the workflow ID for the testing panel
+      setCurrentTestingWorkflowId(newWorkflowId);
+
+      // Close vectorizer drawer and clear state
+      setShowVectorizerDrawer(false);
+      setSelectedVectorizerStep(null);
+
+      // Clear the pipeline for this agent
+      setVectorizerPipelines((prev) => ({
+        ...prev,
+        [vectorizerAgentId]: [],
+      }));
+
+      // Clear step configs
+      setVectorizerStepConfigs({});
+
+      // Show testing sidebar automatically
+      setShowTestingSidebar(true);
+    },
+    [vectorizerAgentId]
+  );
   // Vectorizer action handlers
   const handleVectorizerRunAllSteps = useCallback(async () => {
     try {
@@ -386,11 +390,7 @@ function AgentConfigForm(): JSX.Element {
         const node = nodes.find((n) => n.id === nodeId);
 
         // If it's a vectorizer node, don't close (keep drawer open)
-        if (
-          node &&
-          (node.data.agent?.agent_type === "vectorizer" ||
-            node.data.type === "vectorizer")
-        ) {
+        if (node && node.data.name === "Vectorizer Conversative Agent") {
           return;
         }
 
@@ -571,8 +571,7 @@ function AgentConfigForm(): JSX.Element {
 
       // Check if this is a vectorizer agent
       const isVectorizer =
-        targetNode.data.agent?.agent_type === "vectorizer" ||
-        targetNode.data.type === "vectorizer";
+        targetNode.data.name === "Vectorizer Conversative Agent";
 
       if (isVectorizer) {
         setVectorizerAgentName(targetNode.data.name);
@@ -1760,7 +1759,12 @@ function AgentConfigForm(): JSX.Element {
           )}
           {Boolean(showTestingSidebar) && (
             <AgentTestingPanel
-            workflowId={currentTestingWorkflowId || currentWorkflowData?.workflow_id || ""}              sessionId={currentWorkflowData?.id.toString()}
+              workflowId={
+                currentTestingWorkflowId ??
+                currentWorkflowData?.workflow_id ??
+                ""
+              }
+              sessionId={currentWorkflowData?.id.toString()}
             />
           )}
         </div>

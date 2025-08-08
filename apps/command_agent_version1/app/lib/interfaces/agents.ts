@@ -14,7 +14,6 @@ export const AGENT_TYPE = {
   API: "api",
   TOSHIBA: "toshiba",
   CUSTOM: "custom",
-  VECTORIZER: "vectorizer",
 } as const;
 
 // Extract the union type from the const object
