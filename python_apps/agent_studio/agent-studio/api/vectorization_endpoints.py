@@ -40,6 +40,9 @@ class VectorizationPipelineRequest(BaseModel):
         ..., description="List of pipeline steps in order"
     )
     file_id: Optional[str] = Field(None, description="ID of uploaded file to process")
+    file_ids: Optional[List[str]] = Field(
+        None, description="List of file IDs for multi-file support"
+    )
     pipeline_name: Optional[str] = Field(
         "default", description="Name for this pipeline execution"
     )
@@ -272,101 +275,144 @@ async def execute_stage_subprocess(
 
 
 def create_ingestion_config(
-    steps: List[VectorizationStepConfig], file_path: str
+    steps: List[VectorizationStepConfig], file_path: Optional[str]
 ) -> Dict[str, Any]:
     """
     Convert frontend vectorization steps to elevaite-ingestion config format.
 
     Args:
         steps: List of vectorization step configurations
-        file_path: Path to the file to process
+        file_path: Path to the file to process (None for S3 mode)
 
     Returns:
         Configuration dictionary compatible with elevaite-ingestion
     """
-    # Create directories for the pipeline
-    input_dir = Path(file_path).parent / "input_data"
-    output_dir = Path(file_path).parent / "output_data"
-    parsed_dir = Path(file_path).parent / "data" / "processed"
+    # Check if we're dealing with S3 or local files
+    s3_load_steps = [
+        step
+        for step in steps
+        if step.step_type == "load" and step.config.get("provider") == "s3"
+    ]
 
-    input_dir.mkdir(exist_ok=True)
-    output_dir.mkdir(exist_ok=True)
-    parsed_dir.mkdir(parents=True, exist_ok=True)
+    if file_path is None and s3_load_steps:
+        # S3 mode - use S3 configuration
+        s3_config = s3_load_steps[0].config  # Use first S3 load step config
+        bucket_name = s3_config.get("bucket_name", "")
+        s3_prefix = s3_config.get("s3_prefix", "")
 
-    # Copy the file to the input directory with a standard name
-    input_file = input_dir / Path(file_path).name
-    if not input_file.exists():
-        shutil.copy2(file_path, input_file)
+        config = {
+            "loading": {
+                "default_source": "s3",
+                "sources": {
+                    "s3": {
+                        "bucket_name": bucket_name,
+                        "prefix": s3_prefix,
+                        "aws_access_key_id": os.getenv("AWS_ACCESS_KEY_ID", ""),
+                        "aws_secret_access_key": os.getenv("AWS_SECRET_ACCESS_KEY", ""),
+                        "region_name": os.getenv("AWS_DEFAULT_REGION", "us-east-2"),
+                    }
+                },
+            },
+        }
+    else:
+        # Local mode - use local file configuration
+        if file_path is None:
+            raise ValueError("file_path is required for local mode")
 
-    config = {
-        "loading": {
-            "default_source": "local",
-            "sources": {
-                "local": {
-                    "input_directory": str(input_dir),
-                    "output_directory": str(output_dir),
-                }
+        # Create directories for the pipeline
+        input_dir = Path(file_path).parent / "input_data"
+        output_dir = Path(file_path).parent / "output_data"
+        parsed_dir = Path(file_path).parent / "data" / "processed"
+
+        input_dir.mkdir(exist_ok=True)
+        output_dir.mkdir(exist_ok=True)
+        parsed_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy the file to the input directory with a standard name
+        input_file = input_dir / Path(file_path).name
+        if not input_file.exists():
+            shutil.copy2(file_path, input_file)
+
+        config = {
+            "loading": {
+                "default_source": "local",
+                "sources": {
+                    "local": {
+                        "input_directory": str(input_dir),
+                        "output_directory": str(output_dir),
+                    }
+                },
             },
-        },
-        "parsing": {
-            "default_mode": "auto_parser",
-            "custom_parser_selection": {"parser": "pdf", "tool": None},
-            "parsers": {"pdf": {"default_tool": None, "available_tools": []}},
-            "local": {
-                "input_directory": str(input_dir),
-                "output_parsed_directory": str(parsed_dir),
+        }
+
+    # Add common configuration sections
+    config.update(
+        {
+            "parsing": {
+                "default_mode": "auto_parser",
+                "custom_parser_selection": {"parser": "pdf", "tool": None},
+                "parsers": {"pdf": {"default_tool": None, "available_tools": []}},
             },
-        },
-        "chunking": {
-            "default_strategy": "recursive_chunking",
-            "strategies": {
-                "recursive_chunking": {"chunk_size": 1000, "chunk_overlap": 200}
+            "chunking": {
+                "default_strategy": "recursive_chunking",
+                "strategies": {
+                    "recursive_chunking": {"chunk_size": 1000, "chunk_overlap": 200}
+                },
             },
-        },
-        "embedding": {
-            "default_provider": "openai",
-            "default_model": "text-embedding-3-small",
-            "providers": {
-                "openai": {
-                    "api_key": os.getenv("OPENAI_API_KEY", ""),
-                    "models": {
-                        "text-embedding-ada-002": {"dimension": 1536},
-                        "text-embedding-3-small": {"dimension": 1536},
-                        "text-embedding-3-large": {"dimension": 3072},
+            "embedding": {
+                "default_provider": "openai",
+                "default_model": "text-embedding-3-small",
+                "providers": {
+                    "openai": {
+                        "api_key": os.getenv("OPENAI_API_KEY", ""),
+                        "models": {
+                            "text-embedding-ada-002": {"dimension": 1536},
+                            "text-embedding-3-small": {"dimension": 1536},
+                            "text-embedding-3-large": {"dimension": 3072},
+                        },
+                    },
+                    "cohere": {
+                        "models": {
+                            "embed-english-light-v3.0": {"dimension": 1024},
+                            "embed-english-v3.0": {"dimension": 1024},
+                            "embed-multilingual-v3.0": {"dimension": 1024},
+                        }
+                    },
+                    "local": {
+                        "models": {
+                            "all-MiniLM-L6-v2": {"dimension": 384},
+                            "all-mpnet-base-v2": {"dimension": 768},
+                        }
+                    },
+                    "amazon_bedrock": {
+                        "models": {
+                            "amazon.titan-embed-text-v1": {"dimension": 1536},
+                            "amazon.titan-embed-text-v2:0": {"dimension": 1024},
+                        }
                     },
                 },
-                "cohere": {
-                    "models": {
-                        "embed-english-light-v3.0": {"dimension": 1024},
-                        "embed-english-v3.0": {"dimension": 1024},
-                        "embed-multilingual-v3.0": {"dimension": 1024},
-                    }
-                },
-                "local": {
-                    "models": {
-                        "all-MiniLM-L6-v2": {"dimension": 384},
-                        "all-mpnet-base-v2": {"dimension": 768},
-                    }
-                },
-                "amazon_bedrock": {
-                    "models": {
-                        "amazon.titan-embed-text-v1": {"dimension": 1536},
-                        "amazon.titan-embed-text-v2:0": {"dimension": 1024},
+            },
+            "vector_db": {
+                "default_db": "qdrant",
+                "databases": {
+                    "qdrant": {
+                        "host": os.getenv("QDRANT_HOST", "localhost"),
+                        "port": int(os.getenv("QDRANT_PORT", "6333")),
+                        "collection_name": f"vectorization_{uuid.uuid4().hex[:8]}",
                     }
                 },
             },
-        },
-        "vector_db": {
-            "default_db": "qdrant",
-            "databases": {
-                "qdrant": {
-                    "host": os.getenv("QDRANT_HOST", "localhost"),
-                    "port": int(os.getenv("QDRANT_PORT", "6333")),
-                    "collection_name": f"vectorization_{uuid.uuid4().hex[:8]}",
-                }
-            },
-        },
-    }
+        }
+    )
+
+    # Add local-specific parsing configuration if in local mode
+    if file_path is not None:
+        parsed_dir = Path(file_path).parent / "data" / "processed"
+        parsed_dir.mkdir(parents=True, exist_ok=True)
+        config["parsing"]["local"] = {
+            "input_directory": str(input_dir),
+            "output_parsed_directory": str(parsed_dir),
+        }
 
     # Apply step-specific configurations
     for step in steps:
@@ -397,6 +443,22 @@ def create_ingestion_config(
                     config["embedding"]["providers"][provider]["api_key"] = (
                         embed_config["api_key"]
                     )
+
+        elif step.step_type == "load":
+            load_config = step.config
+            if "provider" in load_config:
+                provider = load_config["provider"]
+                if provider == "s3":
+                    # Update S3 configuration with step-specific settings
+                    if "s3" in config["loading"]["sources"]:
+                        if "bucket_name" in load_config:
+                            config["loading"]["sources"]["s3"]["bucket_name"] = (
+                                load_config["bucket_name"]
+                            )
+                        if "s3_prefix" in load_config:
+                            config["loading"]["sources"]["s3"]["prefix"] = load_config[
+                                "s3_prefix"
+                            ]
 
         elif step.step_type == "store":
             store_config = step.config
@@ -438,42 +500,69 @@ async def execute_vectorization_pipeline(
         if not request.steps:
             raise HTTPException(status_code=400, detail="No pipeline steps provided")
 
-        # For now, we require a file_id (uploaded file)
-        if not request.file_id:
+        # Check if we have file IDs (either single file_id or multiple file_ids)
+        file_ids = []
+        if request.file_ids:
+            file_ids = request.file_ids
+        elif request.file_id:
+            file_ids = [request.file_id]
+
+        if not file_ids:
             raise HTTPException(
-                status_code=400, detail="file_id is required for pipeline execution"
+                status_code=400,
+                detail="file_id or file_ids are required for pipeline execution",
             )
 
-        # TODO: Implement file retrieval from upload directory
-        # For now, assume file is in uploads directory
-        upload_dir = Path(os.getenv("UPLOAD_DIR", "uploads"))
-        file_path = None
-
-        # Find file by ID in upload directory
-        for file in upload_dir.iterdir():
-            if file.is_file() and file.stem == request.file_id:
-                file_path = file
-                break
-
-        if not file_path or not file_path.exists():
-            raise HTTPException(
-                status_code=404, detail=f"File with ID {request.file_id} not found"
-            )
-
-        logger.info(f"Processing file: {file_path}")
+        # Check if any load step uses S3
+        s3_load_steps = [
+            step
+            for step in request.steps
+            if step.step_type == "load" and step.config.get("provider") == "s3"
+        ]
 
         # Create temporary working directory for this pipeline
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            # Copy file to temp directory
-            temp_file = temp_path / file_path.name
-            shutil.copy2(file_path, temp_file)
+            if s3_load_steps:
+                # S3 pipeline - files are already in S3, no need to look for local files
+                logger.info(f"Processing S3 pipeline with {len(file_ids)} file(s)")
 
-            # Create ingestion config
-            ingestion_config = create_ingestion_config(request.steps, str(temp_file))
+                # For S3 pipelines, we don't need to copy files locally
+                # The ingestion config will point to S3 directly
+                ingestion_config = create_ingestion_config(request.steps, None)
+                file_processed = "S3 files"
+            else:
+                # Local file pipeline - look for files in upload directory
+                upload_dir = Path(os.getenv("UPLOAD_DIR", "uploads"))
+                file_path = None
 
-            # Save config to temp directory
+                # Find file by ID in upload directory (use first file_id for backward compatibility)
+                primary_file_id = file_ids[0]
+                for file in upload_dir.iterdir():
+                    if file.is_file() and file.stem == primary_file_id:
+                        file_path = file
+                        break
+
+                if not file_path or not file_path.exists():
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"File with ID {primary_file_id} not found",
+                    )
+
+                logger.info(f"Processing local file: {file_path}")
+
+                # Copy file to temp directory
+                temp_file = temp_path / file_path.name
+                shutil.copy2(file_path, temp_file)
+
+                # Create ingestion config
+                ingestion_config = create_ingestion_config(
+                    request.steps, str(temp_file)
+                )
+                file_processed = str(file_path)
+
+            # Save config to temp directory (common for both S3 and local)
             config_file = temp_path / "config.json"
             with open(config_file, "w") as f:
                 json.dump(ingestion_config, f, indent=2)
@@ -486,7 +575,7 @@ async def execute_vectorization_pipeline(
             # Prepare results
             results = {
                 "config_used": ingestion_config,
-                "file_processed": str(file_path),
+                "file_processed": file_processed,
                 "temp_directory": temp_dir,
                 "steps_executed": [step.step_type for step in request.steps],
                 "pipeline_result": pipeline_result,

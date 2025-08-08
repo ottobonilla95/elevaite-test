@@ -192,6 +192,7 @@ function AgentConfigForm(): JSX.Element {
   const [showVectorizerDrawer, setShowVectorizerDrawer] = useState(false);
   const [vectorizerAgentName, setVectorizerAgentName] = useState("");
   const [vectorizerAgentId, setVectorizerAgentId] = useState("");
+  const [isPipelineRunning, setIsPipelineRunning] = useState(false);
 
   // Vectorizer pipeline state - persists when drawer is closed, per agent
   const [vectorizerPipelines, setVectorizerPipelines] = useState<
@@ -282,6 +283,7 @@ function AgentConfigForm(): JSX.Element {
   );
   // Vectorizer action handlers
   const handleVectorizerRunAllSteps = useCallback(async () => {
+    setIsPipelineRunning(true);
     try {
       console.log("Running all vectorizer steps for agent:", vectorizerAgentId);
 
@@ -372,6 +374,8 @@ function AgentConfigForm(): JSX.Element {
       }
     } catch (error) {
       console.error("Failed to execute vectorization pipeline:", error);
+    } finally {
+      setIsPipelineRunning(false);
     }
   }, [
     vectorizerAgentId,
@@ -1621,6 +1625,7 @@ function AgentConfigForm(): JSX.Element {
         onEditWorkflow={handleEditWorkflow}
         showTestingSidebar={showTestingSidebar}
         setShowTestingSidebar={setShowTestingSidebar}
+        isPipelineRunning={isPipelineRunning}
       />
       <ReactFlowProvider>
         <div className="agent-config-form" ref={reactFlowWrapper}>
@@ -1670,6 +1675,7 @@ function AgentConfigForm(): JSX.Element {
                       onDeploy={handleVectorizerDeploy}
                       onClone={handleVectorizerClone}
                       onWorkflowSaved={handleVectorizerWorkflowSaved}
+                      isPipelineRunning={isPipelineRunning}
                     />
                   ) : null}
                 </div>

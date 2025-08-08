@@ -30,6 +30,7 @@ interface HeaderBottomProps {
     deployment?: WorkflowDeployment;
     inferenceUrl?: string;
   };
+  isPipelineRunning?: boolean;
   currentWorkflowData?: WorkflowResponse | null;
   tools?: ChatCompletionToolParam[];
   onUpdateExistingWorkflow: () => void;
@@ -70,6 +71,7 @@ function HeaderBottom({
   onClearDeploymentResult,
   onEditWorkflow,
   setShowTestingSidebar,
+  isPipelineRunning = false,
 }: HeaderBottomProps): JSX.Element {
   const [activeBtnAction, setActiveBtnAction] = useState("workflow-creation");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -248,9 +250,13 @@ function HeaderBottom({
         <CommonButton
           className="action-button"
           onClick={handleDeployClick}
-          disabled={isLoading}
+          disabled={isLoading || isPipelineRunning}
         >
-          {isLoading ? "Deploying..." : "Deploy"}
+          {isLoading
+            ? "Deploying..."
+            : isPipelineRunning
+              ? "Pipeline Running..."
+              : "Deploy"}
         </CommonButton>
       </div>
 
