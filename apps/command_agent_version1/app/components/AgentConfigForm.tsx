@@ -315,6 +315,31 @@ function AgentConfigForm(): JSX.Element {
 
       console.log("Found uploaded files:", allFileIds);
 
+      // Check if any load step uses S3
+      const s3LoadSteps = loadSteps.filter((step) => {
+        const stepConfig = vectorizerStepConfigs[step.id];
+        return stepConfig?.provider === "s3";
+      });
+
+      if (s3LoadSteps.length > 0 && allFileIds.length > 0) {
+        console.log(
+          "S3 load steps detected. Files should already be uploaded directly to S3."
+        );
+
+        // Get bucket name from the first S3 load step for validation
+        const s3StepConfig = vectorizerStepConfigs[s3LoadSteps[0].id];
+        const bucketName = s3StepConfig?.bucket_name as string;
+
+        if (!bucketName) {
+          alert(
+            "S3 bucket name is required for S3 pipeline. Please configure the bucket name in the load step."
+          );
+          return;
+        }
+
+        console.log(`Using S3 bucket: ${bucketName} for pipeline execution`);
+      }
+
       console.log("Executing pipeline with steps:", steps);
       console.log("Step configurations:", vectorizerStepConfigs);
 

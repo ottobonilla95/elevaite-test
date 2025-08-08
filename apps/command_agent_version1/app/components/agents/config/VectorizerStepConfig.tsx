@@ -75,7 +75,7 @@ const getStepConfigOptions = (
           id: "bucket_name",
           label: "Bucket Name",
           type: "text",
-          default: "",
+          default: "kb-check-pdf",
           description: "Name of the storage bucket",
           dependsOn: "provider",
           showWhen: ["s3", "gcs", "azure"],
@@ -464,6 +464,13 @@ export default function VectorizerStepConfig({
     }
   }, [currentFiles, stepData?.id]);
 
+  // Auto-populate bucket name when provider is set to S3
+  useEffect(() => {
+    if (config.provider === "s3" && !config.bucket_name) {
+      handleConfigChange("bucket_name", "kb-check-pdf");
+    }
+  }, [config.provider]);
+
   const handleConfigChange = (
     optionId: string,
     value: string | number | boolean | string[]
@@ -472,6 +479,12 @@ export default function VectorizerStepConfig({
       ...config,
       [optionId]: value,
     };
+
+    // Auto-populate bucket name when provider changes to S3
+    if (optionId === "provider" && value === "s3" && !newConfig.bucket_name) {
+      newConfig.bucket_name = "kb-check-pdf";
+    }
+
     setConfig(newConfig);
 
     if (stepData && onConfigChange) {
@@ -589,7 +602,7 @@ export default function VectorizerStepConfig({
           </button>
         </div>
 
-        {isConfigExpanded && (
+        {isConfigExpanded ? (
           <div className="section-content">
             <div className="config-fields">
               {visibleOptions.map((option) => (
@@ -698,7 +711,9 @@ export default function VectorizerStepConfig({
                               </div>
                               <button
                                 type="button"
-                                onClick={() => handleRemoveFile(file.id)}
+                                onClick={() => {
+                                  handleRemoveFile(file.id);
+                                }}
                                 className="text-gray-400 hover:text-red-500 transition-colors"
                               >
                                 <X size={14} />
@@ -726,14 +741,19 @@ export default function VectorizerStepConfig({
               </button>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Upload Modal */}
       <UploadModal
         isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
+        onClose={() => {
+          setIsUploadModalOpen(false);
+        }}
         onFilesUploaded={handleFilesUploaded}
+        useS3DirectUpload={config.provider === "s3"}
+        s3BucketName={config.bucket_name as string}
+        s3Prefix=""
       />
     </div>
   );

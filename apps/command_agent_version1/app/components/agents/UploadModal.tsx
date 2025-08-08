@@ -18,6 +18,10 @@ interface UploadModalProps {
   onClose: () => void;
   uploadEndpoint?: string;
   onFilesUploaded?: (files: UploadingFile[]) => void;
+  // S3 direct upload props
+  useS3DirectUpload?: boolean;
+  s3BucketName?: string;
+  s3Prefix?: string;
 }
 
 function UploadModal({
@@ -25,6 +29,9 @@ function UploadModal({
   onClose,
   uploadEndpoint,
   onFilesUploaded,
+  useS3DirectUpload = false,
+  s3BucketName = "",
+  s3Prefix = "",
 }: UploadModalProps): JSX.Element | null {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isWarningFlashing, setIsWarningFlashing] = useState(false);
@@ -79,14 +86,28 @@ function UploadModal({
     file: File,
     fileId: string
   ): Promise<void> => {
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
       const backendUrl =
         process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:9004";
-      const endpoint =
-        uploadEndpoint ?? `${backendUrl.replace(/\/$/, "")}/api/files/upload`;
+
+      let endpoint: string;
+      let formData: FormData;
+      let responseData: unknown;
+
+      if (useS3DirectUpload && s3BucketName) {
+        // Direct S3 upload
+        endpoint = `${backendUrl.replace(/\/$/, "")}/api/files/upload-direct-to-s3`;
+        formData = new FormData();
+        formData.append("files", file);
+        formData.append("bucket_name", s3BucketName);
+        formData.append("s3_prefix", s3Prefix);
+      } else {
+        // Regular server upload
+        endpoint =
+          uploadEndpoint ?? `${backendUrl.replace(/\/$/, "")}/api/files/upload`;
+        formData = new FormData();
+        formData.append("file", file);
+      }
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -97,9 +118,19 @@ function UploadModal({
         throw new Error(`Upload failed: ${response.statusText}`);
       }
 
-      // Get the backend response with the actual file ID
-      const responseData = await response.json();
-      const backendFileId = responseData?.data?.file_id;
+      responseData = await response.json();
+
+      let backendFileId: string;
+      if (useS3DirectUpload) {
+        // For S3 direct upload, get file_id from the first successful result
+        const successfulResult = responseData?.data?.results?.find(
+          (r: any) => r.status === "success"
+        );
+        backendFileId = successfulResult?.file_id;
+      } else {
+        // For regular upload, get file_id from data
+        backendFileId = responseData?.data?.file_id;
+      }
 
       // Mark file as completed and store the backend file ID
       setUploadingFiles((prevFiles) =>
@@ -115,6 +146,7 @@ function UploadModal({
         )
       );
     } catch (error) {
+      console.error("Upload failed:", error);
       // Mark file as failed
       setUploadingFiles((prevFiles) =>
         prevFiles.map((f) =>
