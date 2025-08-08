@@ -286,13 +286,6 @@ function AgentConfigForm(): JSX.Element {
         }
       }
 
-      if (allFileIds.length === 0) {
-        alert(
-          "No files uploaded. Please upload files in the Load steps before running the pipeline."
-        );
-        return;
-      }
-
       console.log("Found uploaded files:", allFileIds);
 
       console.log("Executing pipeline with steps:", steps);
@@ -324,14 +317,9 @@ function AgentConfigForm(): JSX.Element {
         alert(
           `Pipeline executed successfully! Pipeline ID: ${result.pipeline_id}\n\nCheck the console for detailed results.`
         );
-      } else {
-        alert(`Pipeline execution failed: ${result.message}`);
       }
     } catch (error) {
       console.error("Failed to execute vectorization pipeline:", error);
-      alert(
-        `Failed to execute pipeline: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
     }
   }, [
     vectorizerAgentId,

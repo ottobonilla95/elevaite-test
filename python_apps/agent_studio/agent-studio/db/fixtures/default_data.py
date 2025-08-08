@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Literal, Any
 
 from db.schemas import AgentFunction, AgentFunctionInner
 
+
 @dataclass
 class DefaultPrompt:
     prompt_label: str
@@ -16,10 +17,21 @@ class DefaultPrompt:
     hyper_parameters: Dict[str, str]
     variables: Dict[str, str]
 
+
 @dataclass
 class DefaultAgent:
     name: str
-    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather", "toshiba"]]
+    agent_type: Optional[
+        Literal[
+            "router",
+            "web_search",
+            "data",
+            "troubleshooting",
+            "api",
+            "weather",
+            "toshiba",
+        ]
+    ]
     description: Optional[str]
     prompt_label: str
     persona: str
@@ -39,6 +51,7 @@ class DefaultAgent:
     failure_strategies: List[str]
     collaboration_mode: Literal["single", "team", "parallel", "sequential"]
 
+
 AGENT_CODES = {
     "WebAgent": "w",
     "DataAgent": "d",
@@ -52,6 +65,7 @@ AGENT_CODES = {
     "Performance Summary Agent": "psa",
     "Media Planning Agent": "mpa",
     "Generic Response Agent": "gra",
+    "Vectorizer Conversative Agent": "vca",
 }
 
 DEFAULT_PROMPTS: List[DefaultPrompt] = [
@@ -274,7 +288,6 @@ Format "Performance Summary" as a level 2 header(##) and the other subsections a
         hyper_parameters={"temperature": "0.7"},
         variables={"domain": "performance_summary"},
     ),
-
     DefaultPrompt(
         prompt_label="Media Planning Agent Prompt",
         prompt="""You are a media planning agent. Use the user query and the provided data only if relevant to create a media plan summary. In the 'message' field of the output, provide a concise explanation that includes: (1) the search context and what data was retrieved, (2) which specific brand names were most useful for media plan generation and why they appeared in the results (e.g., semantic search matching, industry/season filtering, or both) If no relevant data was available, explain why the retrieved data wasn't suitable for media planning. Keep the message short and informative to help users understand the search and selection process.
@@ -355,7 +368,6 @@ If no specific brand is mentioned by the user, do not include the brand comment.
         hyper_parameters={"temperature": "0.7"},
         variables={"domain": "media_planning"},
     ),
-
     DefaultPrompt(
         prompt_label="Insertion Order Agent Prompt",
         prompt="""You are an insertion order agent specialized in creating comprehensive insertion orders based on media plans. Your role is to:
@@ -402,7 +414,6 @@ Always maintain context from the media plan and ask clarifying questions to ensu
         hyper_parameters={"temperature": "0.7"},
         variables={"domain": "insertion_order_creation"},
     ),
-
     DefaultPrompt(
         prompt_label="Generic Response Agent Prompt",
         prompt="""You are an agent that's in charge of answering miscellaneous questions as part of a media and marketing chatbot.
@@ -526,7 +537,22 @@ Generate a concise, descriptive prompt that incorporates relevant components bas
         hyper_parameters={"temperature": "0.7"},
         variables={"domain": "prompt_generation"},
     ),
-
+    DefaultPrompt(
+        prompt_label="Vectorizer Conversative Agent Prompt",
+        prompt=(
+            "You are a conservative and precise assistant that answers strictly from the provided vectorized PDF knowledge base. "
+            "Use the 'vectorizer_conversative_search' tool to retrieve relevant chunks from Qdrant and compose a succinct, factual answer. "
+            "Prefer quoting the exact steps or instructions and include brief citations like (filename, page). If the answer is not found, say you don't know."
+        ),
+        unique_label="VectorizerConversativeAgentPrompt",
+        app_name="agent_studio",
+        version="1.0",
+        ai_model_provider="OpenAI",
+        ai_model_name="GPT-4o-mini",
+        tags=["rag", "qdrant", "pdf"],
+        hyper_parameters={"temperature": "0"},
+        variables={"domain": "vectorized_pdf"},
+    ),
 ]
 
 DEFAULT_AGENTS: List[DefaultAgent] = [
@@ -690,7 +716,9 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
         description="Intent Router for the Media Workflow",
         prompt_label="IntentAgentPrompt",
         persona="",
-        functions=[AgentFunction(function=AgentFunctionInner(name="redis_cache_operation"))],
+        functions=[
+            AgentFunction(function=AgentFunctionInner(name="redis_cache_operation"))
+        ],
         routing_options={},
         short_term_memory=False,
         long_term_memory=False,
@@ -734,7 +762,9 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
         description="Media Context Retriever Agent for the Media Workflow",
         prompt_label="MediaContextRetrieverAgentPrompt",
         persona="",
-        functions=[AgentFunction(function=AgentFunctionInner(name="media_context_retriever"))],
+        functions=[
+            AgentFunction(function=AgentFunctionInner(name="media_context_retriever"))
+        ],
         routing_options={},
         short_term_memory=False,
         long_term_memory=False,
@@ -801,6 +831,32 @@ DEFAULT_AGENTS: List[DefaultAgent] = [
         prompt_label="GenericResponseAgentPrompt",
         persona="",
         functions=[AgentFunction(function=AgentFunctionInner(name="qdrant_search"))],
+        routing_options={},
+        short_term_memory=False,
+        long_term_memory=False,
+        reasoning=False,
+        input_type=["text"],
+        output_type=["text"],
+        response_type="json",
+        max_retries=3,
+        timeout=None,
+        deployed=False,
+        status="active",
+        priority=None,
+        failure_strategies=[],
+        collaboration_mode="single",
+    ),
+    DefaultAgent(
+        name="Vectorizer Conversative Agent",
+        agent_type="router",
+        description="Answers conservatively using only the vectorized PDF knowledge base in Qdrant",
+        prompt_label="VectorizerConversativeAgentPrompt",
+        persona="Technical Manual Assistant",
+        functions=[
+            AgentFunction(
+                function=AgentFunctionInner(name="vectorizer_conversative_search")
+            )
+        ],
         routing_options={},
         short_term_memory=False,
         long_term_memory=False,

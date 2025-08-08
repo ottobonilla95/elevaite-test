@@ -2719,6 +2719,120 @@ def sql_database(query: str) -> list:
 
 
 @function_schema
+def vectorizer_conversative_search(
+    query: str,
+    top_k: Optional[int] = 5,
+    score_threshold: Optional[float] = 0.7,
+) -> str:
+    """
+    VECTORIZER CONVERSATIVE SEARCH TOOL
+
+    Uses the real ingestion config (python_packages/elevaite_ingestion/config.json) to:
+    - Read Qdrant host/port/collection
+    - Read default embedding model
+    - Perform a semantic search over the existing vectorized PDF data
+
+    Args:
+        query: The search query
+        top_k: Number of results to retrieve
+        score_threshold: Minimum similarity score
+
+    Returns:
+        A formatted string containing retrieved chunks with source metadata.
+    """
+    import os
+    import json
+    from pathlib import Path
+
+    try:
+        from qdrant_client import QdrantClient
+    except Exception:
+        return "Error: Qdrant client not installed. Please install with: pip install qdrant-client"
+
+    try:
+        # Locate repo root relative to this file and load config.json
+        current_dir = Path(__file__).resolve().parent
+        repo_root = current_dir.parents[
+            3
+        ]  # up from python_apps/agent_studio/agent-studio/agents
+        cfg_path = repo_root / "python_packages" / "elevaite_ingestion" / "config.json"
+        with open(cfg_path, "r") as f:
+            cfg = json.load(f)
+
+        qdrant_cfg = cfg.get("vector_db", {}).get("databases", {}).get("qdrant", {})
+        host = qdrant_cfg.get("host", "http://localhost")
+        port = qdrant_cfg.get("port", 6333)
+        collection_name = qdrant_cfg.get("collection_name", "rag_documents")
+
+        # Build Qdrant client URL
+        host = str(host)
+        if host.startswith("http://") or host.startswith("https://"):
+            qdrant_url = f"{host}:{port}"
+        else:
+            qdrant_url = f"http://{host}:{port}"
+        qdrant_client = QdrantClient(url=qdrant_url)
+
+        # Explicit debug printout for verification
+        print(
+            f"[VectorizerConversative] Using Qdrant URL: {qdrant_url} | Collection: {collection_name}"
+        )
+
+        # Choose embedding model from config to match indexed vectors
+        embedding_default = (
+            cfg.get("embedding", {}).get("default_model") or "text-embedding-ada-002"
+        )
+
+        # Generate embedding
+        embedding_response = client.embeddings.create(
+            model=embedding_default,
+            input=query,
+        )
+        query_vector = embedding_response.data[0].embedding
+
+        # Perform vector search
+        results = qdrant_client.search(
+            collection_name=collection_name,
+            query_vector=query_vector,
+            limit=top_k or 5,
+            score_threshold=score_threshold,
+            with_payload=True,
+        )
+
+        if not results:
+            return f"No relevant documents found for '{query}' in collection '{collection_name}'"
+
+        # Format response conservatively with citations
+        out = []
+        out.append(
+            f"QDRANT SEARCH RESULTS (Collection: {collection_name}, TopK: {top_k}, Threshold: {score_threshold})\n"
+        )
+        for i, r in enumerate(results, 1):
+            payload = r.payload or {}
+            text = (
+                payload.get("text")
+                or payload.get("content")
+                or payload.get("page_content")
+                or ""
+            )
+            filename = payload.get("filename") or payload.get("source") or "Unknown"
+            page = (
+                payload.get("page")
+                or payload.get("page_number")
+                or payload.get("page_info")
+                or "-"
+            )
+            out.append(f"Result {i} (score={getattr(r, 'score', 0):.3f})\n")
+            out.append(f"Source: {filename} | Page: {page}\n")
+            out.append(f"Content:\n{text}\n")
+            out.append("-" * 80 + "\n")
+
+        return "".join(out)
+
+    except Exception as e:
+        return f"Error in vectorizer_conversative_search: {str(e)}"
+
+
+@function_schema
 def document_search(
     query: str,
     collection_name: str = "rag_documents",
@@ -2975,6 +3089,7 @@ tool_store = {
     # RAG and Document Search Tools
     "document_search": document_search,
     "document_metadata_search": document_metadata_search,
+    "vectorizer_conversative_search": vectorizer_conversative_search,
     # Backward compatibility aliases for renamed functions
     "qdrant_search": media_context_retriever,  # Alias for backward compatibility
     "query_retriever": query_retriever,
@@ -3006,6 +3121,7 @@ tool_schemas = {
     # RAG and Document Search Tools
     "document_search": document_search.openai_schema,
     "document_metadata_search": document_metadata_search.openai_schema,
+    "vectorizer_conversative_search": vectorizer_conversative_search.openai_schema,
     # Backward compatibility aliases for renamed functions
     "qdrant_search": media_context_retriever.openai_schema,  # Alias for backward compatibility
     "query_retriever": query_retriever.openai_schema,
