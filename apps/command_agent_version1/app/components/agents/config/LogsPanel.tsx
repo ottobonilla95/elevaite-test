@@ -94,19 +94,6 @@ const getMockLogs = (stepType: VectorizationStepType): string => {
 [2024-01-15 10:16:17] INFO: Total vectors stored: 574
 [2024-01-15 10:16:17] SUCCESS: Vector storage completed successfully`;
 
-    case "query":
-      return `[2024-01-15 10:16:18] INFO: Starting query processing
-[2024-01-15 10:16:18] INFO: Query strategy: similarity search
-[2024-01-15 10:16:18] INFO: Top K results: 5
-[2024-01-15 10:16:18] INFO: Processing query: "What is machine learning?"
-[2024-01-15 10:16:19] INFO: Generated query embedding (1536 dimensions)
-[2024-01-15 10:16:19] INFO: Searching vector index for similar documents
-[2024-01-15 10:16:20] INFO: Found 574 candidate vectors
-[2024-01-15 10:16:20] INFO: Retrieved top 5 most similar results
-[2024-01-15 10:16:20] INFO: Score threshold applied: 0.0
-[2024-01-15 10:16:20] INFO: Similarity scores: [0.89, 0.87, 0.85, 0.83, 0.81]
-[2024-01-15 10:16:20] SUCCESS: Query processing completed successfully`;
-
     default:
       return `[2024-01-15 10:16:21] INFO: Starting ${stepType} processing
 [2024-01-15 10:16:21] INFO: Configuration loaded successfully
@@ -232,52 +219,6 @@ const getMockOutput = (stepType: VectorizationStepType): object => {
         },
         "execution_time_seconds": 14.3,
         "timestamp": "2024-01-15T10:16:17Z"
-      };
-
-    case "query":
-      return {
-        "status": "completed",
-        "query": "What is machine learning?",
-        "results_found": 5,
-        "search_stats": {
-          "total_vectors_searched": 574,
-          "search_time_ms": 142,
-          "score_threshold": 0.0
-        },
-        "results": [
-          {
-            "id": "chunk_127",
-            "score": 0.89,
-            "text": "Machine learning is a subset of artificial intelligence that enables computers to learn and improve from experience without being explicitly programmed...",
-            "metadata": {
-              "source": "document_1.pdf",
-              "page": 3,
-              "chunk_index": 127
-            }
-          },
-          {
-            "id": "chunk_89", 
-            "score": 0.87,
-            "text": "Supervised learning algorithms use labeled training data to learn patterns and make predictions on new, unseen data...",
-            "metadata": {
-              "source": "document_2.pdf",
-              "page": 2,
-              "chunk_index": 89
-            }
-          },
-          {
-            "id": "chunk_203",
-            "score": 0.85,
-            "text": "Deep learning is a specialized branch of machine learning that uses neural networks with multiple layers...",
-            "metadata": {
-              "source": "document_3.pdf",
-              "page": 1,
-              "chunk_index": 203
-            }
-          }
-        ],
-        "execution_time_seconds": 2.1,
-        "timestamp": "2024-01-15T10:16:20Z"
       };
 
     default:

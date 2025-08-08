@@ -3,9 +3,17 @@
 import React, { useState, useEffect } from "react";
 import { Upload, X, Play, ChevronDown, ChevronUp } from "lucide-react";
 import {
-  type VectorizationStepType,
   type VectorizationStepData,
 } from "../VectorizerBottomDrawer";
+
+// Define VectorizationStepType here if not already defined, or extend it to include "query"
+export type VectorizationStepType =
+  | "load"
+  | "parse"
+  | "chunk"
+  | "embed"
+  | "store"
+  | "query";
 import { ConfigField } from "./ConfigField";
 import { CustomDropdown } from "./CustomDropdown";
 import { LogsPanel } from "./LogsPanel";
@@ -559,7 +567,7 @@ export default function VectorizerStepConfig({
     return (
       <div className="vectorizer-step-config empty-state">
         <div className="empty-state-content">
-          <div className="empty-state-icon">⚙️</div>
+          {/* <div className="empty-state-icon">⚙️</div> */}
           <h3 className="empty-state-title">Select a step to configure</h3>
           <p className="empty-state-description">
             Click on any step in the vectorizer canvas to view and edit its
@@ -578,7 +586,7 @@ export default function VectorizerStepConfig({
       {/* Step Header */}
       <div className="step-config-header">
         <div className="step-info">
-          <span className="step-icon">{getStepIcon(stepData.type)}</span>
+          {/* <span className="step-icon">{getStepIcon(stepData.type)}</span> */}
           <div className="step-details">
             <h3 className="step-name">{stepData.name}</h3>
             <p className="step-description">{stepData.description}</p>

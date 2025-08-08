@@ -1,0 +1,129 @@
+// Vectorizer ConfigPanel Styles to match Figma design
+.config-panel {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  gap: 8px;
+  background: white;
+  border-left: 1px solid #e5e7eb;
+
+  .nav-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .nav-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 0;
+    flex: 1;
+  }
+
+  // Header with chevron on left and title - MATCH FIGMA
+  .config-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+
+    // Left side with chevron and title
+    .flex.items-center.gap-3.flex-1 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    // Chevron button styling
+    button {
+      padding: 4px;
+      border-radius: 4px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background-color: #f3f4f6;
+      }
+    }
+
+    // Step title styling
+    h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #111827;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    // Remove description for cleaner look
+    p {
+      display: none;
+    }
+  }
+
+  // When sidebar is collapsed, show minimal UI
+  &.shrinked {
+    width: 60px;
+    padding: 8px;
+
+    .config-panel-header {
+      justify-content: center;
+      border-bottom: none;
+      padding-bottom: 0;
+
+      .flex.items-center.gap-3.flex-1 {
+        display: none;
+      }
+
+      button:last-child {
+        display: none;
+      }
+    }
+
+    .nav-wrapper {
+      display: none;
+    }
+  }
+
+  // Content area styling
+  .nav-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .nav-container {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px; // Space for scrollbar
+    }
+  }
+}
+
+// Additional responsive styles
+@media (max-width: 768px) {
+  .config-panel {
+    padding: 12px;
+
+    .config-panel-header {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+
+      h3 {
+        font-size: 1rem;
+      }
+    }
+  }
+}
