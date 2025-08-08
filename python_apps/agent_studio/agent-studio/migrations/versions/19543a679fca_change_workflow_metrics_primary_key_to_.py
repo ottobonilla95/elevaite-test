@@ -48,6 +48,9 @@ def upgrade() -> None:
 
     # Step 6: Drop the old id column
     op.drop_column("workflow_metrics", "id")
+
+    # Step 7: Drop the sequence that was used by the id column
+    op.execute("DROP SEQUENCE IF EXISTS workflow_metrics_id_seq")
     # ### end Alembic commands ###
 
 
@@ -58,7 +61,10 @@ def downgrade() -> None:
     # Step 1: Drop the primary key constraint on execution_id
     op.drop_constraint("workflow_metrics_pkey", "workflow_metrics", type_="primary")
 
-    # Step 2: Add back the id column with auto-increment
+    # Step 2: Create the sequence for the id column
+    op.execute("CREATE SEQUENCE workflow_metrics_id_seq")
+
+    # Step 3: Add back the id column with auto-increment
     op.add_column(
         "workflow_metrics",
         sa.Column(
@@ -70,14 +76,14 @@ def downgrade() -> None:
         ),
     )
 
-    # Step 3: Set id as primary key
+    # Step 4: Set id as primary key
     op.create_primary_key("workflow_metrics_pkey", "workflow_metrics", ["id"])
 
-    # Step 4: Restore unique constraint on workflow_id
+    # Step 5: Restore unique constraint on workflow_id
     op.create_unique_constraint(
         "workflow_metrics_workflow_id_key", "workflow_metrics", ["workflow_id"]
     )
 
-    # Step 5: Drop execution_id column
+    # Step 6: Drop execution_id column
     op.drop_column("workflow_metrics", "execution_id")
     # ### end Alembic commands ###
