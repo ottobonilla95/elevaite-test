@@ -1,0 +1,171 @@
+name: PR Preview - Build, Push, Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - testing
+
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      toshiba_ui_changed: ${{ steps.check.outputs.toshiba_ui_changed }}
+      toshiba_backend_changed: ${{ steps.check.outputs.toshiba_backend_changed }}
+      toshiba_auth_changed: ${{ steps.check.outputs.toshiba_auth_changed }}
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=50
+
+      - name: Detect changes
+        id: check
+        run: |
+          git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD > changed_files.txt
+          echo "Changed Files: $(cat changed_files.txt)"
+
+          UI_CHANGED=false
+          BACKEND_CHANGED=false
+          AUTH_CHANGED=false
+
+          if grep -q '^apps/toshiba/' changed_files.txt; then
+            UI_CHANGED=true
+          fi
+
+          if grep -q '^python_apps/toshiba_backends/toshiba_backend/' changed_files.txt; then
+            BACKEND_CHANGED=true
+          fi
+
+          if grep -q '^python_apps/auth_api/' changed_files.txt; then
+            AUTH_CHANGED=true
+          fi
+
+          echo "UI_CHANGED=$UI_CHANGED" >> $GITHUB_OUTPUT
+          echo "BACKEND_CHANGED=$BACKEND_CHANGED" >> $GITHUB_OUTPUT
+          echo "AUTH_CHANGED=$AUTH_CHANGED" >> $GITHUB_OUTPUT
+          SHOULD_DEPLOY=$([[ "$UI_CHANGED" == "true" || "$BACKEND_CHANGED" == "true" || "$AUTH_CHANGED" == "true" ]] && echo "true" || echo "false")
+          echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+
+  build-and-push:
+    if: needs.check-changes.outputs.should_deploy == 'true'
+    needs: check-changes
+    runs-on: ubuntu-latest
+    outputs:
+      toshiba_ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
+      toshiba_backend_tag: ${{ steps.set_tags.outputs.backend_tag }}
+      toshiba_auth_tag: ${{ steps.set_tags.outputs.auth_tag }}
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate with ECR
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Compute image tag and preview host
+        id: meta
+        run: |
+          echo "branch_tag=pr-${{ github.event.pull_request.number }}-$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+          echo "preview_host=pr-${PR_NUMBER}.dev.iopex.ai" >> $GITHUB_OUTPUT
+
+      - name: Build and Push UI
+        if: needs.check-changes.outputs.toshiba_ui_changed == 'true'
+        run: |
+          IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-ui"
+          docker build \
+            --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
+            --build-arg NEXT_PUBLIC_AUTH_API_URL=https://${PREVIEW_HOST} \
+            --build-arg NEXT_PUBLIC_BACKEND_URL=https://${PREVIEW_HOST}/api/core/ \
+            --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
+            --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
+            -f apps/toshiba/Dockerfile \
+            -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
+            .
+
+            docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
+
+      - name: Build and Push Backend
+        if: needs.check-changes.outputs.toshiba_backend_changed == 'true'
+        run: |
+          IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-backend"
+          docker build \
+            -f python_apps/toshiba_backends/toshiba_backend/Dockerfile \
+            -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
+            python_apps/toshiba_backends/toshiba_backend
+
+            docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
+
+      - name: Build and Push Auth
+        if: needs.check-changes.outputs.toshiba_auth_changed == 'true'
+        run: |
+          IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-auth-api"
+          docker build \
+            -f python_apps/auth_api/Dockerfile \
+            -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
+            python_apps/auth_api
+
+            docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
+
+      - name: Set Tags
+        id: set_tags
+        run: |
+          if [[ "${{ needs.check-changes.outputs.toshiba_ui_changed }}" == "true" ]]; then
+            echo "ui_tag=${{ steps.meta.outputs.branch_tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ "${{ needs.check-changes.outputs.toshiba_backend_changed }}" == "true" ]]; then
+            echo "backend_tag=${{ steps.meta.outputs.branch_tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ "${{ needs.check-changes.outputs.toshiba_auth_changed }}" == "true" ]]; then
+            echo "auth_tag=${{ steps.meta.outputs.branch_tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy-preview:
+    if: needs.check-changes.outputs.should_deploy == 'true'
+    needs: [build-and-push, check-changes]
+    uses: iopexses/elev8s/.github/workflows/reusable-deploy-preview.yml@on-prem
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      chart_path: ./helm
+      host_domain: dev.iopex.ai
+      tls_secret_name: wildcard-cert-latest
+      toshiba_ui_tag: ${{ needs.build-and-push.outputs.toshiba_ui_tag }}
+      toshiba_api_tag: ${{ needs.build-and-push.outputs.toshiba_backend_tag }}
+      toshiba_auth_tag: ${{ needs.build-and-push.outputs.toshiba_auth_tag }}
+    secrets:
+      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+
+  comment-pr:
+    if: needs.check-changes.outputs.should_deploy == 'true'
+    needs: [deploy-preview, check-changes]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install GitHub CLI
+        run: sudo apt-get update && sudo apt-get install -y gh
+      - name: Comment on PR with preview URL
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PREVIEW_URL="https://pr-${{ github.event.pull_request.number }}.dev.iopex.ai"
+          gh pr comment ${{ github.event.pull_request.number }} --body "✅ Preview deployed: **${PREVIEW_URL}**"
