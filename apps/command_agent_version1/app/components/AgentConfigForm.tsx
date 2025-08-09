@@ -196,6 +196,7 @@ function AgentConfigForm(): JSX.Element {
 
   // Pipeline progress listener function using polling
 
+
 const startPipelineProgressListener = useCallback(
   (pipelineId: string, backendUrl: string) => {
     let isPolling = true;
@@ -205,20 +206,33 @@ const startPipelineProgressListener = useCallback(
     let currentProgressData: any = null;
     const maxPolls = 600; // 10 minutes max
 
-    // Function to update step status in UI
+    if ((window as any).currentPollingCleanup) {
+      (window as any).currentPollingCleanup();
+    }
+
     const updateStepStatus = (stepType: string, status: 'pending' | 'running' | 'completed' | 'error') => {
-      // Call the global function exposed by VectorizerBottomDrawer
       if (typeof (window as any).updateVectorizerStepStatus === 'function') {
-        console.log(`🔄 Updating step ${stepType} to ${status}`);
+        console.log(` Updating step ${stepType} to ${status}`);
         (window as any).updateVectorizerStepStatus(stepType, status);
-      } else {
-        console.warn('⚠️ updateVectorizerStepStatus function not found on window object');
       }
     };
 
+    const cleanup = () => {
+      console.log("🧹 Cleaning up pipeline polling");
+      isPolling = false;
+      if ((window as any).currentPollingTimeout) {
+        clearTimeout((window as any).currentPollingTimeout);
+        (window as any).currentPollingTimeout = null;
+      }
+    };
+
+    // Store cleanup function globally
+    (window as any).currentPollingCleanup = cleanup;
+
     const pollProgress = async () => {
       if (!isPolling || pollCount >= maxPolls) {
-        console.log("🛑 Stopping pipeline polling - max polls reached");
+        console.log(" Stopping pipeline polling - max polls reached");
+        cleanup();
         setIsPipelineRunning(false);
         return;
       }
@@ -239,7 +253,7 @@ const startPipelineProgressListener = useCallback(
           currentProgressData = progressData;
           
           // Debug logging (reduce frequency)
-          if (pollCount % 5 === 0) { // Only log every 5th poll
+          if (pollCount % 5 === 0) {
             console.log("🔍 Backend Response:", progressData);
             console.log("🔍 Status:", progressData.status);
             console.log("🔍 Current step:", progressData.current_step);
@@ -264,34 +278,29 @@ const startPipelineProgressListener = useCallback(
           if (isCompleted) {
             console.log("🎉 Pipeline completed! Stopping polling...");
             
-            // Mark all steps as completed
             Object.keys(stepMapping).forEach(backendStepName => {
               updateStepStatus(stepMapping[backendStepName], 'completed');
             });
             
-            // Stop polling
-            isPolling = false;
+            cleanup();
             setIsPipelineRunning(false);
 
             if (typeof (window as any).pipelineCompletionHandler === 'function') {
               (window as any).pipelineCompletionHandler();
             }
                       
-            // Show completion message
             console.log("🎉 All pipeline steps completed successfully!");
             return;
           }
 
-          // Check for failure
           if (progressData.status === "failed" || progressData.status === "error") {
             console.error(`❌ Pipeline failed: ${progressData.message || 'Unknown error'}`);
             
-            // Mark current step as error
             if (progressData.current_stage && stepMapping[progressData.current_stage]) {
               updateStepStatus(stepMapping[progressData.current_stage], 'error');
             }
             
-            isPolling = false;
+            cleanup();
             setIsPipelineRunning(false);
 
             if (typeof (window as any).pipelineCompletionHandler === 'function') {
@@ -300,56 +309,48 @@ const startPipelineProgressListener = useCallback(
             return;
           }
 
-          // Check for newly completed steps (only update what's new)
           if (progressData.completed_steps && Array.isArray(progressData.completed_steps)) {
             const newlyCompletedSteps = progressData.completed_steps.filter(
               (step: string) => !lastCompletedSteps.includes(step)
             );
             
-            // Update only newly completed steps
             newlyCompletedSteps.forEach((stepName: string) => {
               if (stepMapping[stepName]) {
                 updateStepStatus(stepMapping[stepName], 'completed');
               }
             });
             
-            // Update our tracking
             lastCompletedSteps = [...progressData.completed_steps];
           }
 
-          // Check for currently running step (only update if it changed)
           if (progressData.current_stage && 
               stepMapping[progressData.current_stage] && 
               progressData.current_stage !== lastCurrentStage) {
             
             const currentStepType = stepMapping[progressData.current_stage];
             
-            // Only mark as running if not already completed
             if (!progressData.completed_steps?.includes(progressData.current_stage)) {
               updateStepStatus(currentStepType, 'running');
             }
             
-            // Update our tracking
             lastCurrentStage = progressData.current_stage;
           }
 
         } else {
-          console.warn(`⚠️ Status check failed: ${response.status}`);
+          console.warn(` Status check failed: ${response.status}`);
           
-          // If we get 404, the pipeline might be completed or cleaned up
           if (response.status === 404) {
-            console.log("🔍 Pipeline not found (404) - assuming completion");
-            isPolling = false;
+            console.log(" Pipeline not found (404) - assuming completion");
+            cleanup();
             setIsPipelineRunning(false);
             return;
           }
         }
       } catch (error) {
         console.error("Error polling pipeline status:", error);
-        // Continue polling on errors, but limit retries
-        if (pollCount > 50) { // Stop after too many errors
-          console.log("🛑 Too many errors, stopping polling");
-          isPolling = false;
+        if (pollCount > 50) {
+          console.log(" Too many errors, stopping polling");
+          cleanup();
           setIsPipelineRunning(false);
           return;
         }
@@ -359,23 +360,19 @@ const startPipelineProgressListener = useCallback(
       if (isPolling) {
         let pollInterval = 1000; // Default 1 second
 
-        // Check what step we're on for dynamic intervals using stored data
         if (currentProgressData?.current_step >= 2) { // chunk and beyond
           pollInterval = 2000; // 2 seconds for later stages
         }
 
-        setTimeout(pollProgress, pollInterval);
+        (window as any).currentPollingTimeout = setTimeout(pollProgress, pollInterval);
       }
     };
 
     // Start polling after a short delay
-    setTimeout(pollProgress, 1000);
+    (window as any).currentPollingTimeout = setTimeout(pollProgress, 1000);
 
-    // Clean up function
-    return () => {
-      console.log("🧹 Cleaning up pipeline polling");
-      isPolling = false;
-    };
+    // Return cleanup function
+    return cleanup;
   },
   []
 );
