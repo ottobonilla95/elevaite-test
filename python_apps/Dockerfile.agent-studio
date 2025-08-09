@@ -1,9 +1,44 @@
-FROM python:3.11-buster AS builder
+FROM python:3.11-bullseye AS builder
 
-# The installer requires curl (and certificates) to download the release archive
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
+# Install system dependencies and build tools
+RUN apt-get update \
+    && apt-get -y install --no-install-recommends apt-utils dialog 2>&1 \
+    && apt-get -y install \
+        git \
+        openssh-client \
+        less \
+        iproute2 \
+        procps \
+        lsb-release \
+        ca-certificates \
+        libc6 \
+        libgcc1 \
+        libgssapi-krb5-2 \
+        libicu67 \
+        libssl1.1 \
+        libstdc++6 \
+        zlib1g \
+        curl \
+        wget \
+        gnupg2 \
+        software-properties-common \
+        build-essential \
+        libpq-dev \
+        libssl-dev \
+        libffi-dev \
+        libbz2-dev \
+        libreadline-dev \
+        libsqlite3-dev \
+        tk-dev \
+        libncurses5-dev \
+        libncursesw5-dev \
+        xz-utils \
+        llvm \
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
 
-# Download the latest installer
+# Download the latest uv installer
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
 
 # Run the installer then remove it
@@ -18,8 +53,9 @@ WORKDIR /elevaite
 # Copy workspace configuration
 COPY pyproject.toml ./
 
-# Copy the fastapi-logger package (workspace dependency)
+# Copy workspace dependencies
 COPY python_packages/fastapi-logger ./python_packages/fastapi-logger
+COPY python_packages/elevaite_ingestion ./python_packages/elevaite_ingestion
 
 # Copy agent-studio project files
 COPY python_apps/agent_studio ./python_apps/agent_studio
@@ -30,11 +66,14 @@ WORKDIR /elevaite/python_apps/agent_studio
 # Install dependencies using uv (this will create venv automatically)
 RUN uv sync
 
-FROM python:3.11-slim-buster AS runtime
+FROM python:3.11-slim-bullseye AS runtime
 
 # Install uv in runtime stage
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && \
+RUN apt-get update && apt-get install -y curl && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    apt-get remove -y curl && \
+    apt-get autoremove -y && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Ensure the installed binary is on the `PATH`
@@ -51,6 +90,9 @@ EXPOSE 9004
 
 # Set environment variable for port
 ENV PORT=9004
+
+# Create uploads directory
+RUN mkdir -p /elevaite/python_apps/agent_studio/agent-studio/uploads
 
 # Change to the agent-studio directory and run the application using uv
 WORKDIR /elevaite/python_apps/agent_studio/agent-studio
