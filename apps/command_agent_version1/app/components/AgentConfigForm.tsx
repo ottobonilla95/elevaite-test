@@ -196,8 +196,6 @@ function AgentConfigForm(): JSX.Element {
 
   // Pipeline progress listener function using polling
 
-// Replace your startPipelineProgressListener function in AgentConfigForm.tsx with this:
-
 const startPipelineProgressListener = useCallback(
   (pipelineId: string, backendUrl: string) => {
     let isPolling = true;
@@ -274,7 +272,11 @@ const startPipelineProgressListener = useCallback(
             // Stop polling
             isPolling = false;
             setIsPipelineRunning(false);
-            
+
+            if (typeof (window as any).pipelineCompletionHandler === 'function') {
+              (window as any).pipelineCompletionHandler();
+            }
+                      
             // Show completion message
             console.log("🎉 All pipeline steps completed successfully!");
             return;
@@ -291,6 +293,10 @@ const startPipelineProgressListener = useCallback(
             
             isPolling = false;
             setIsPipelineRunning(false);
+
+            if (typeof (window as any).pipelineCompletionHandler === 'function') {
+                (window as any).pipelineCompletionHandler();
+            }
             return;
           }
 

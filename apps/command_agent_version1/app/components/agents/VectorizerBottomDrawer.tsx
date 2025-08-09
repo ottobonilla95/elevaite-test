@@ -624,6 +624,7 @@ interface VectorizerBottomDrawerProps {
   isPipelineRunning?: boolean;
 }
 
+
 export default function VectorizerBottomDrawer({
   isOpen,
   onClose,
@@ -680,6 +681,38 @@ export default function VectorizerBottomDrawer({
       }
     }
   }, [isOpen]);
+
+  // Auto-reset button when all steps are completed
+  useEffect(() => {
+    const allStepsCompleted = pipeline.every(step => step.status === 'completed');
+    const hasSteps = pipeline.length > 0;
+    
+    if (allStepsCompleted && hasSteps && (isPipelineRunning || isExecutingPipeline)) {
+      console.log("🔧 All steps completed, auto-resetting button state");
+      
+      // Small delay to ensure completion animations finish
+      setTimeout(() => {
+        setIsExecutingPipeline(false);
+        
+        // Also trigger parent component reset if running
+        if (typeof (window as any).pipelineCompletionHandler === 'function') {
+          (window as any).pipelineCompletionHandler();
+        }
+      }, 1500); // 1.5 second delay to let completion animations show
+    }
+  }, [pipeline, isPipelineRunning, isExecutingPipeline]);
+
+  // Expose button reset function globally for parent component
+  useEffect(() => {
+    (window as any).resetVectorizerButton = () => {
+      console.log("🔧 Manual button reset triggered");
+      setIsExecutingPipeline(false);
+    };
+    
+    return () => {
+      delete (window as any).resetVectorizerButton;
+    };
+  }, []);
 
   // Custom run all steps function that syncs with backend
   const handleRunAllSteps = useCallback(async () => {
