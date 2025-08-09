@@ -33,7 +33,7 @@ def get_bedrock_client():
     try:
         return boto3.client(service_name="bedrock-runtime")
     except Exception as e:
-        print(f"❌ Failed to initialize AWS Bedrock client: {e}")
+        print(f" Failed to initialize AWS Bedrock client: {e}")
         return None
 
 
@@ -46,10 +46,10 @@ def get_embedder():
     elif DEFAULT_PROVIDER == "amazon_bedrock":
         bedrock_client = get_bedrock_client()
         if not bedrock_client:
-            raise ValueError("❌ Bedrock client initialization failed.")
+            raise ValueError(" Bedrock client initialization failed.")
         return BedrockEmbeddings(model_id=DEFAULT_MODEL, client=bedrock_client)
     else:
-        raise ValueError(f"❌ Unsupported embedding provider: {DEFAULT_PROVIDER}")
+        raise ValueError(f"Unsupported embedding provider: {DEFAULT_PROVIDER}")
 
 
 EMBEDDER_CONFIG = {
@@ -60,4 +60,4 @@ EMBEDDER_CONFIG = {
     .get("models", {}),
 }
 
-print("🔍 Loaded EMBEDDER_CONFIG:", json.dumps(EMBEDDER_CONFIG, indent=4))
+print(" Loaded EMBEDDER_CONFIG:", json.dumps(EMBEDDER_CONFIG, indent=4))

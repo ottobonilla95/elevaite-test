@@ -7,19 +7,19 @@ CONFIG_PATH = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__
 
 def load_config():
     """Loads the config.json file."""
-    print(f"🔍 Looking for config.json at: {CONFIG_PATH}")
+    print(f" Looking for config.json at: {CONFIG_PATH}")
 
     if os.path.exists(CONFIG_PATH):
         with open(CONFIG_PATH, "r") as file:
             try:
                 config = json.load(file)
-                print("✅ Successfully loaded config.json")
+                print("Successfully loaded config.json")
                 return config
             except json.JSONDecodeError as e:
-                print(f"❌ Error decoding config.json: {e}")
+                print(f" Error decoding config.json: {e}")
                 return {}
     else:
-        print("❌ config.json NOT FOUND")
+        print(" config.json NOT FOUND")
         return {}
 
 config = load_config()
