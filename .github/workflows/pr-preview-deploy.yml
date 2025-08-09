@@ -77,7 +77,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: us-east-2
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
@@ -136,6 +136,7 @@ jobs:
       chart_path: ./helm
       host_domain: dev.iopex.ai
       tls_secret_name: wildcard-cert-latest
+      tls_secret_namespace: default
       toshiba_ui_tag: ${{ needs.build-and-push.outputs.toshiba_ui_tag }}
       toshiba_api_tag: ${{ needs.build-and-push.outputs.toshiba_backend_tag }}
       toshiba_auth_tag: ${{ needs.build-and-push.outputs.toshiba_auth_tag }}
