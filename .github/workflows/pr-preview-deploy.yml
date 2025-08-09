@@ -49,9 +49,9 @@ jobs:
             AUTH_CHANGED=true
           fi
 
-          echo "UI_CHANGED=$UI_CHANGED" >> $GITHUB_OUTPUT
-          echo "BACKEND_CHANGED=$BACKEND_CHANGED" >> $GITHUB_OUTPUT
-          echo "AUTH_CHANGED=$AUTH_CHANGED" >> $GITHUB_OUTPUT
+          echo "toshiba_ui_changed=$UI_CHANGED" >> $GITHUB_OUTPUT
+          echo "toshiba_backend_changed=$BACKEND_CHANGED" >> $GITHUB_OUTPUT
+          echo "toshiba_auth_changed=$AUTH_CHANGED" >> $GITHUB_OUTPUT
           SHOULD_DEPLOY=$([[ "$UI_CHANGED" == "true" || "$BACKEND_CHANGED" == "true" || "$AUTH_CHANGED" == "true" ]] && echo "true" || echo "false")
           echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
 
@@ -92,39 +92,25 @@ jobs:
         if: needs.check-changes.outputs.toshiba_ui_changed == 'true'
         run: |
           IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-ui"
-          docker build \
-            --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
-            --build-arg NEXT_PUBLIC_AUTH_API_URL=https://${PREVIEW_HOST} \
-            --build-arg NEXT_PUBLIC_BACKEND_URL=https://${PREVIEW_HOST}/api/core/ \
-            --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
-            --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
-            -f apps/toshiba/Dockerfile \
-            -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
-            .
+          docker build             --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba             --build-arg NEXT_PUBLIC_AUTH_API_URL=https://${{ steps.meta.outputs.preview_host }}             --build-arg NEXT_PUBLIC_BACKEND_URL=https://${{ steps.meta.outputs.preview_host }}/api/core/             --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email             --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false             -f apps/toshiba/Dockerfile             -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }}             .
 
-            docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
+          docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
 
       - name: Build and Push Backend
         if: needs.check-changes.outputs.toshiba_backend_changed == 'true'
         run: |
           IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-backend"
-          docker build \
-            -f python_apps/toshiba_backends/toshiba_backend/Dockerfile \
-            -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
-            python_apps/toshiba_backends/toshiba_backend
+          docker build             -f python_apps/toshiba_backends/toshiba_backend/Dockerfile             -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }}             python_apps/toshiba_backends/toshiba_backend
 
-            docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
+          docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
 
       - name: Build and Push Auth
         if: needs.check-changes.outputs.toshiba_auth_changed == 'true'
         run: |
           IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-auth-api"
-          docker build \
-            -f python_apps/auth_api/Dockerfile \
-            -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
-            python_apps/auth_api
+          docker build             -f python_apps/auth_api/Dockerfile             -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }}             python_apps/auth_api
 
-            docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
+          docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
 
       - name: Set Tags
         id: set_tags
