@@ -16,6 +16,18 @@ from googleapiclient.errors import HttpError
 import json
 import re
 
+# Import ServiceNow tools
+from tools.servicenow.itsm_tools import (
+    servicenow_itsm_create_incident,
+    servicenow_itsm_get_incident,
+    servicenow_itsm_update_incident
+)
+from tools.servicenow.csm_tools import (
+    servicenow_csm_create_case,
+    servicenow_csm_get_case,
+    servicenow_csm_update_case
+)
+
 SEGMENT_NUM = 5
 
 dotenv.load_dotenv(".env.local")
@@ -3068,6 +3080,414 @@ def arlo_api(query: str) -> str:
     return response.json()["response"]
 
 
+# ==================== SERVICENOW ITSM TOOL ====================
+
+@function_schema
+def ServiceNow_ITSM(
+    operation: str,
+    short_description: Optional[str] = None,
+    description: Optional[str] = None,
+    priority: Optional[str] = "3",
+    impact: Optional[str] = "3",
+    urgency: Optional[str] = "3",
+    category: Optional[str] = "inquiry",
+    subcategory: Optional[str] = None,
+    assignment_group: Optional[str] = None,
+    assigned_to: Optional[str] = None,
+    caller_id: Optional[str] = None,
+    location: Optional[str] = None,
+    business_service: Optional[str] = None,
+    cmdb_ci: Optional[str] = None,
+    contact_type: Optional[str] = "phone",
+    sys_id: Optional[str] = None,
+    identifier: Optional[str] = None,
+    identifier_type: Optional[str] = "sys_id",
+    state: Optional[str] = None,
+    work_notes: Optional[str] = None,
+    close_notes: Optional[str] = None
+) -> str:
+    """
+    SERVICENOW ITSM (IT SERVICE MANAGEMENT) TOOL
+
+    This tool provides comprehensive ServiceNow ITSM incident management capabilities.
+    It handles creating, reading, and updating incidents in ServiceNow through a single interface.
+    The tool determines the specific action based on the 'operation' parameter.
+
+    OPERATIONS SUPPORTED:
+    1. "create" - Create a new incident
+    2. "read" or "get" - Retrieve an existing incident
+    3. "update" - Update an existing incident
+
+    OPERATION: CREATE
+    Use when users report IT issues, outages, or service disruptions.
+    Required: operation="create", short_description
+    Optional: description, priority, impact, urgency, category, subcategory, assignment_group, assigned_to, caller_id, location, business_service, cmdb_ci, contact_type
+
+    OPERATION: READ/GET
+    Use when users ask about incident status or need incident details.
+    Required: operation="read" or "get", identifier (sys_id or incident number)
+    Optional: identifier_type ("sys_id" or "number")
+
+    OPERATION: UPDATE
+    Use when updating incident status, adding notes, or modifying incident details.
+    Required: operation="update", sys_id
+    Optional: short_description, description, priority, impact, urgency, state, work_notes, close_notes
+
+    IMPORTANT FOR UPDATES: To update an incident, you MUST have the sys_id (not the incident number).
+    If you only have the incident number (e.g., INC0000123), you must FIRST use operation="read"
+    with the incident number to get the sys_id, then use that sys_id for the update operation.
+
+    UPDATE WORKFLOW:
+    1. Get incident number from user (e.g., "INC0000123")
+    2. Use operation="read", identifier="INC0000123", identifier_type="number" to get incident details
+    3. Extract the sys_id from the response
+    4. Use operation="update", sys_id="extracted_sys_id" with your update parameters
+
+    PRIORITY GUIDELINES:
+    - "1" (Critical): Complete service outage affecting multiple users
+    - "2" (High): Significant impact on business operations
+    - "3" (Moderate): Standard issues with workarounds available
+    - "4" (Low): Minor issues or enhancement requests
+    - "5" (Planning): Future planning items
+
+    IMPACT GUIDELINES:
+    - "1" (High): Affects large number of users or critical business functions
+    - "2" (Medium): Affects department or specific business function
+    - "3" (Low): Affects individual user or non-critical function
+
+    URGENCY GUIDELINES:
+    - "1" (High): Immediate attention required
+    - "2" (Medium): Response needed within business hours
+    - "3" (Low): Can be addressed in normal queue
+
+    ⚠️  CRITICAL: SERVICENOW PRIORITY AUTO-CALCULATION MATRIX ⚠️
+    ServiceNow automatically calculates Priority based on Impact + Urgency combination.
+    Setting priority alone will NOT work - it will be overridden by the system.
+
+    To achieve a specific priority, use these Impact + Urgency combinations:
+
+    FOR CRITICAL PRIORITY (1): impact="1" + urgency="1"
+    FOR HIGH PRIORITY (2): impact="1" + urgency="2" OR impact="2" + urgency="1"
+    FOR MODERATE PRIORITY (3): impact="2" + urgency="2" OR impact="3" + urgency="1"
+    FOR LOW PRIORITY (4): impact="2" + urgency="3" OR impact="3" + urgency="2"
+    FOR PLANNING PRIORITY (5): impact="3" + urgency="3"
+
+    Complete Matrix:
+    Impact 1 (High) + Urgency 1 (High) = Priority 1 (Critical)
+    Impact 1 (High) + Urgency 2 (Medium) = Priority 2 (High)
+    Impact 2 (Medium) + Urgency 1 (High) = Priority 2 (High)
+    Impact 2 (Medium) + Urgency 2 (Medium) = Priority 3 (Moderate)
+    Impact 2 (Medium) + Urgency 3 (Low) = Priority 4 (Low)
+    Impact 3 (Low) + Urgency 1 (High) = Priority 3 (Moderate)
+    Impact 3 (Low) + Urgency 2 (Medium) = Priority 4 (Low)
+    Impact 3 (Low) + Urgency 3 (Low) = Priority 5 (Planning)
+
+    STATE VALUES (for updates):
+    - "1" (New): Newly created incident
+    - "2" (In Progress): Work has started on the incident
+    - "3" (On Hold): Incident is temporarily paused
+    - "6" (Resolved): Issue has been resolved
+    - "7" (Closed): Incident is closed and complete
+
+    EXAMPLES:
+
+    Create incident:
+    operation="create", short_description="Email server down", description="Users cannot access email", impact="2", urgency="2"
+
+    Get incident by number:
+    operation="read", identifier="INC0000123", identifier_type="number"
+
+    Get incident by sys_id:
+    operation="get", identifier="a1b2c3d4e5f6789012345678901234567890abcd", identifier_type="sys_id"
+
+    Update incident to Critical priority (CORRECT WAY):
+    operation="update", sys_id="a1b2c3d4e5f6789012345678901234567890abcd", impact="1", urgency="1", work_notes="Escalating to critical priority"
+
+    Update incident to High priority (CORRECT WAY):
+    operation="update", sys_id="a1b2c3d4e5f6789012345678901234567890abcd", impact="1", urgency="2", work_notes="Setting to high priority"
+
+    Update incident status:
+    operation="update", sys_id="a1b2c3d4e5f6789012345678901234567890abcd", state="2", work_notes="Started investigating the issue"
+
+    Close incident:
+    operation="update", sys_id="a1b2c3d4e5f6789012345678901234567890abcd", state="6", close_notes="Issue resolved by restarting email service"
+
+    Update incident using incident number (two-step process):
+    Step 1: operation="read", identifier="INC0000123", identifier_type="number"
+    Step 2: operation="update", sys_id="sys_id_from_step1_response", state="2", work_notes="Started working on this"
+    """
+
+    # Validate operation parameter
+    if operation.lower() not in ["create", "read", "get", "update"]:
+        return json.dumps({
+            "success": False,
+            "message": f"Invalid operation: {operation}. Must be 'create', 'read', 'get', or 'update'",
+            "error": "Invalid operation parameter"
+        }, indent=2)
+
+    # Handle CREATE operation
+    if operation.lower() == "create":
+        if not short_description:
+            return json.dumps({
+                "success": False,
+                "message": "short_description is required for create operation",
+                "error": "Missing required parameter"
+            }, indent=2)
+
+        result = servicenow_itsm_create_incident(
+            short_description=short_description,
+            description=description,
+            priority=priority,
+            impact=impact,
+            urgency=urgency,
+            category=category,
+            subcategory=subcategory,
+            assignment_group=assignment_group,
+            assigned_to=assigned_to,
+            caller_id=caller_id,
+            location=location,
+            business_service=business_service,
+            cmdb_ci=cmdb_ci,
+            contact_type=contact_type
+        )
+        return json.dumps(result, indent=2)
+
+    # Handle READ/GET operation
+    elif operation.lower() in ["read", "get"]:
+        if not identifier:
+            return json.dumps({
+                "success": False,
+                "message": "identifier is required for read/get operation",
+                "error": "Missing required parameter"
+            }, indent=2)
+
+        result = servicenow_itsm_get_incident(
+            identifier=identifier,
+            identifier_type=identifier_type or "sys_id"
+        )
+        return json.dumps(result, indent=2)
+
+    # Handle UPDATE operation
+    elif operation.lower() == "update":
+        if not sys_id:
+            return json.dumps({
+                "success": False,
+                "message": "sys_id is required for update operation",
+                "error": "Missing required parameter"
+            }, indent=2)
+
+        result = servicenow_itsm_update_incident(
+            sys_id=sys_id,
+            short_description=short_description,
+            description=description,
+            priority=priority,
+            impact=impact,
+            urgency=urgency,
+            state=state,
+            work_notes=work_notes,
+            close_notes=close_notes
+        )
+        return json.dumps(result, indent=2)
+
+
+# ==================== SERVICENOW CSM TOOL ====================
+
+@function_schema
+def ServiceNow_CSM(
+    operation: str,
+    short_description: Optional[str] = None,
+    description: Optional[str] = None,
+    priority: Optional[str] = "4",
+    impact: Optional[str] = "3",
+    urgency: Optional[str] = "3",
+    category: Optional[str] = "inquiry",
+    subcategory: Optional[str] = None,
+    assignment_group: Optional[str] = None,
+    assigned_to: Optional[str] = None,
+    contact: Optional[str] = None,
+    consumer: Optional[str] = None,
+    account: Optional[str] = None,
+    contact_type: Optional[str] = "phone",
+    origin: Optional[str] = "phone",
+    escalation: Optional[str] = "0",
+    sys_id: Optional[str] = None,
+    identifier: Optional[str] = None,
+    identifier_type: Optional[str] = "sys_id",
+    state: Optional[str] = None,
+    work_notes: Optional[str] = None,
+    close_notes: Optional[str] = None
+) -> str:
+    """
+    SERVICENOW CSM (CUSTOMER SERVICE MANAGEMENT) TOOL
+
+    This tool provides comprehensive ServiceNow CSM case management capabilities.
+    It handles creating, reading, and updating customer service cases in ServiceNow through a single interface.
+    The tool determines the specific action based on the 'operation' parameter.
+
+    OPERATIONS SUPPORTED:
+    1. "create" - Create a new case
+    2. "read" or "get" - Retrieve an existing case
+    3. "update" - Update an existing case
+
+    OPERATION: CREATE
+    Use when customers contact support with questions, issues, or service requests.
+    Required: operation="create", short_description
+    Optional: description, priority, impact, urgency, category, subcategory, assignment_group, assigned_to, contact, consumer, account, contact_type, origin, escalation
+
+    OPERATION: READ/GET
+    Use when customers ask about case status or need case details.
+    Required: operation="read" or "get", identifier (sys_id or case number)
+    Optional: identifier_type ("sys_id" or "number")
+
+    OPERATION: UPDATE
+    Use when updating case status, adding notes, escalating, or modifying case details.
+    Required: operation="update", sys_id
+    Optional: short_description, description, priority, impact, urgency, state, work_notes, close_notes, escalation
+
+    IMPORTANT FOR UPDATES: To update a case, you MUST have the sys_id (not the case number).
+    If you only have the case number (e.g., CS0000123), you must FIRST use operation="read"
+    with the case number to get the sys_id, then use that sys_id for the update operation.
+
+    UPDATE WORKFLOW:
+    1. Get case number from user (e.g., "CS0000123")
+    2. Use operation="read", identifier="CS0000123", identifier_type="number" to get case details
+    3. Extract the sys_id from the response
+    4. Use operation="update", sys_id="extracted_sys_id" with your update parameters
+
+    PRIORITY GUIDELINES:
+    - "1" (Critical): Urgent customer issue affecting business operations
+    - "2" (High): Important customer issue requiring prompt attention
+    - "3" (Moderate): Standard customer inquiry or request
+    - "4" (Low): General questions or minor requests
+
+    IMPACT GUIDELINES:
+    - "1" (High): Affects large number of customers or critical business functions
+    - "2" (Medium): Affects specific customer segment or business function
+    - "3" (Low): Affects individual customer or non-critical function
+
+    URGENCY GUIDELINES:
+    - "1" (High): Immediate attention required
+    - "2" (Medium): Response needed within business hours
+    - "3" (Low): Can be addressed in normal queue
+
+    STATE VALUES (for updates):
+    - "1" (Open): Case is open and awaiting action
+    - "2" (Work in Progress): Work has started on the case
+    - "3" (Resolved): Issue has been resolved
+    - "4" (Closed): Case is closed and complete
+
+    ESCALATION LEVELS:
+    - "0" (Normal): Standard case handling
+    - "1" (Manager): Escalated to management level
+    - "2" (Executive): Escalated to executive level
+
+    ORIGIN TYPES:
+    - "phone": Customer called support
+    - "email": Customer sent email
+    - "web": Customer used web portal
+    - "walk-in": Customer visited in person
+    - "chat": Customer used chat support
+
+    EXAMPLES:
+
+    Create case:
+    operation="create", short_description="Billing inquiry", description="Customer has questions about charges", priority="3", category="billing", origin="email"
+
+    Get case by number:
+    operation="read", identifier="CS0000123", identifier_type="number"
+
+    Get case by sys_id:
+    operation="get", identifier="a1b2c3d4e5f6789012345678901234567890abcd", identifier_type="sys_id"
+
+    Update case status:
+    operation="update", sys_id="a1b2c3d4e5f6789012345678901234567890abcd", state="2", work_notes="Started investigating customer issue"
+
+    Escalate case:
+    operation="update", sys_id="a1b2c3d4e5f6789012345678901234567890abcd", escalation="1", work_notes="Escalating to manager due to customer request"
+
+    Close case:
+    operation="update", sys_id="a1b2c3d4e5f6789012345678901234567890abcd", state="3", close_notes="Customer issue resolved successfully"
+
+    Update case using case number (two-step process):
+    Step 1: operation="read", identifier="CS0000123", identifier_type="number"
+    Step 2: operation="update", sys_id="sys_id_from_step1_response", state="2", work_notes="Started investigating customer issue"
+    """
+
+    # Validate operation parameter
+    if operation.lower() not in ["create", "read", "get", "update"]:
+        return json.dumps({
+            "success": False,
+            "message": f"Invalid operation: {operation}. Must be 'create', 'read', 'get', or 'update'",
+            "error": "Invalid operation parameter"
+        }, indent=2)
+
+    # Handle CREATE operation
+    if operation.lower() == "create":
+        if not short_description:
+            return json.dumps({
+                "success": False,
+                "message": "short_description is required for create operation",
+                "error": "Missing required parameter"
+            }, indent=2)
+
+        result = servicenow_csm_create_case(
+            short_description=short_description,
+            description=description,
+            priority=priority,
+            impact=impact,
+            urgency=urgency,
+            category=category,
+            subcategory=subcategory,
+            assignment_group=assignment_group,
+            assigned_to=assigned_to,
+            contact=contact,
+            consumer=consumer,
+            account=account,
+            contact_type=contact_type,
+            origin=origin,
+            escalation=escalation
+        )
+        return json.dumps(result, indent=2)
+
+    # Handle READ/GET operation
+    elif operation.lower() in ["read", "get"]:
+        if not identifier:
+            return json.dumps({
+                "success": False,
+                "message": "identifier is required for read/get operation",
+                "error": "Missing required parameter"
+            }, indent=2)
+
+        result = servicenow_csm_get_case(
+            identifier=identifier,
+            identifier_type=identifier_type or "sys_id"
+        )
+        return json.dumps(result, indent=2)
+
+    # Handle UPDATE operation
+    elif operation.lower() == "update":
+        if not sys_id:
+            return json.dumps({
+                "success": False,
+                "message": "sys_id is required for update operation",
+                "error": "Missing required parameter"
+            }, indent=2)
+
+        result = servicenow_csm_update_case(
+            sys_id=sys_id,
+            short_description=short_description,
+            description=description,
+            priority=priority,
+            impact=impact,
+            urgency=urgency,
+            state=state,
+            work_notes=work_notes,
+            close_notes=close_notes,
+            escalation=escalation
+        )
+        return json.dumps(result, indent=2)
+
+
 tool_store = {
     "add_numbers": add_numbers,
     "weather_forecast": weather_forecast,
@@ -3097,6 +3517,9 @@ tool_store = {
     "customer_query_retriever": customer_query_retriever,
     "sql_database": sql_database,
     "arlo_api": arlo_api,
+    # ServiceNow Tools
+    "ServiceNow_ITSM": ServiceNow_ITSM,
+    "ServiceNow_CSM": ServiceNow_CSM,
 }
 
 
@@ -3129,4 +3552,7 @@ tool_schemas = {
     "customer_query_retriever": customer_query_retriever.openai_schema,
     "sql_database": sql_database.openai_schema,
     "arlo_api": arlo_api.openai_schema,
+    # ServiceNow Tools
+    "ServiceNow_ITSM": ServiceNow_ITSM.openai_schema,
+    "ServiceNow_CSM": ServiceNow_CSM.openai_schema,
 }
