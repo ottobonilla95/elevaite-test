@@ -76,7 +76,7 @@ def init_tools(db, categories):
         "add_customer": "Customer Service",
         "add_numbers": "Utilities",
         "print_to_console": "Utilities",
-        "qdrant_search": "Search & Retrieval",
+        "media_context_retriever": "Search & Retrieval",
         "redis_cache_operation": "Cache & Storage",
         "postgres_query": "Database",
         "create_insertion_order": "Web & API",
