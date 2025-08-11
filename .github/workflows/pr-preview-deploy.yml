@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   check-changes:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       toshiba_ui_changed: ${{ steps.check.outputs.toshiba_ui_changed }}
       toshiba_backend_changed: ${{ steps.check.outputs.toshiba_backend_changed }}
@@ -58,7 +58,7 @@ jobs:
   build-and-push:
     if: needs.check-changes.outputs.should_deploy == 'true'
     needs: check-changes
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       toshiba_ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
       toshiba_backend_tag: ${{ steps.set_tags.outputs.backend_tag }}
@@ -146,7 +146,7 @@ jobs:
   comment-pr:
     if: needs.check-changes.outputs.should_deploy == 'true'
     needs: [deploy-preview, check-changes]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Install GitHub CLI
         run: sudo apt-get update && sudo apt-get install -y gh
