@@ -39,13 +39,20 @@ jobs:
       #     fetch-depth: 0
 
       - name: Fetch base branch
-        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=50
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=0 || true
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=0 || true
 
       - name: Detect changes
         id: check
         run: |
-          git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD > changed_files.txt
-          echo "Changed Files: $(cat changed_files.txt)"
+          BASE=origin/${{ github.event.pull_request.base.ref }}
+          if git merge-base --is-ancestor "$BASE" HEAD || git merge-base "$BASE" HEAD >/dev/null 2>&1; then
+            git diff --name-only "$BASE"...HEAD > changed_files.txt
+          else
+            echo "No merge base; using two-dot diff"
+            git diff --name-only "$BASE" HEAD > changed_files.txt
+          fi
 
           UI_CHANGED=false
           BACKEND_CHANGED=false
