@@ -19,10 +19,32 @@ jobs:
       toshiba_auth_changed: ${{ steps.check.outputs.toshiba_auth_changed }}
       should_deploy: ${{ steps.check.outputs.should_deploy }}
     steps:
-      - name: Checkout
+      - name: Preflight network (debug)
+        run: |
+          set -x
+          curl -I https://github.com
+          nslookup github.com || true
+
+      - name: Clear git helpers (debug)
+        run: |
+          git config --global --unset-all credential.helper || true
+          git config --system --unset-all credential.helper || true
+          git config --global --list
+
+      - name: Checkout (shallow, no blobs, PAT)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: false
+          token: ${{ secrets.REPO_PAT }}
+          show-progress: true
+
+      # - name: Checkout
+      #   uses: actions/checkout@v4
+      #   with:
+      #     fetch-depth: 0
 
       - name: Fetch base branch
         run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=50
