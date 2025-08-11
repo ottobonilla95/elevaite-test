@@ -163,6 +163,7 @@ jobs:
       toshiba_auth_tag: ${{ needs.build-and-push.outputs.toshiba_auth_tag }}
     secrets:
       KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+      ELEV8S_READ_TOKEN: ${{ secrets.ELEV8S_READ_TOKEN }}
 
   comment-pr:
     if: needs.check-changes.outputs.should_deploy == 'true'
