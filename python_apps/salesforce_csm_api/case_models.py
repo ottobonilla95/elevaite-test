@@ -137,6 +137,7 @@ class CaseResponse(BaseModel):
     case_number: str
     status: str
     message: str
+    case_link: str
 
 class CaseCommentRequest(BaseModel):
     comment_body: str
@@ -194,7 +195,18 @@ class SalesforceCaseManager:
         except Exception as e:
             logger.error(f"Salesforce connection test failed: {str(e)}")
             return False
-    
+
+    def generate_case_link(self, case_id: str) -> str:
+        """Generate a direct link to the Salesforce case"""
+        base_url = os.getenv('SALESFORCE_BASE_URL', '')
+        if not base_url:
+            logger.warning("SALESFORCE_BASE_URL not configured, returning empty link")
+            return ""
+
+        # Construct the Lightning Experience case link
+        case_link = f"{base_url}/lightning/r/Case/{case_id}/view"
+        return case_link
+
     def is_valid_salesforce_id(self, id_value: str) -> bool:
         """Check if a string is a valid Salesforce ID (15 or 18 characters)"""
         if not id_value or id_value.lower() == "string" or len(id_value) < 15:

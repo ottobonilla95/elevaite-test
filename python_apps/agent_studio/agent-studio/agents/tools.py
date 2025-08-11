@@ -3542,7 +3542,8 @@ def Salesforce_CSM(
     OPERATION: CREATE
     Use when customers contact support with questions, issues, or service requests.
     Required: operation="create", first_name, last_name
-    Optional: status, case_origin, account_id, contact_id, email_address, contact_phone, case_sub_type, case_type, type, priority, case_reason, symptoms, rootcause, ux_version, case_summary, subject, description, internal_comments, web_email, web_company, web_name, web_phone
+    STRONGLY RECOMMENDED: email_address (helps find existing contacts and avoid duplicates)
+    Optional: status, case_origin, account_id, contact_id, contact_phone, case_sub_type, case_type, type, priority, case_reason, symptoms, rootcause, ux_version, case_summary, subject, description, internal_comments, web_email, web_company, web_name, web_phone
 
     OPERATION: READ/GET
     Use when customers ask about case status or need case details.
@@ -3553,6 +3554,11 @@ def Salesforce_CSM(
     Use when updating case status, adding notes, escalating, or modifying case details.
     Required: operation="update", case_id (Salesforce case ID)
     Optional: status, priority, case_reason, symptoms, rootcause, case_summary, subject, description, internal_comments, case_sub_type, case_type, type, ux_version
+
+    IMPORTANT FOR CASE CREATION: Always include email_address when creating cases as it helps:
+    - Find existing contacts and avoid duplicates
+    - Link cases to the correct customer records
+    - Prevent DUPLICATES_DETECTED errors
 
     IMPORTANT FOR UPDATES: To update a case, you MUST have the Salesforce case_id (not the case number).
     If you only have the case number (e.g., 00001234), you must FIRST use operation="read"
@@ -3596,8 +3602,10 @@ def Salesforce_CSM(
 
     EXAMPLES:
 
-    Create case:
-    operation="create", first_name="John", last_name="Smith", case_origin="Email", priority="High", case_reason="Bug", subject="Login issue", description="User cannot log into the application"
+    Create case (ALWAYS include email_address when available):
+    operation="create", first_name="John", last_name="Smith", email_address="john.smith@company.com", case_origin="Email", priority="High", case_reason="Bug", subject="Login issue", description="User cannot log into the application"
+
+    NOTE: All operations return a case_link field containing a direct URL to view the case in Salesforce.
 
     Get case by case number:
     operation="read", identifier="00001234", identifier_type="case_number"
