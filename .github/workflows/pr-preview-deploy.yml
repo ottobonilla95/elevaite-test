@@ -154,7 +154,7 @@ jobs:
     uses: iopexses/elev8s/.github/workflows/reusable-deploy-preview.yml@on-prem
     with:
       pr_number: ${{ github.event.pull_request.number }}
-      chart_path: ./helm
+      chart_path: ./elev8s/helm
       host_domain: dev.iopex.ai
       tls_secret_name: wildcard-cert-latest
       tls_secret_namespace: default
