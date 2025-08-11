@@ -1,0 +1,9 @@
+# Core FastAPI dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+# Salesforce integration
+simple-salesforce>=1.12.0
+# Data validation and serialization
+pydantic[email]>=2.5.0
+# Environment variables
+python-dotenv>=1.0.0

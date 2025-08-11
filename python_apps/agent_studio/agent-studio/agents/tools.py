@@ -27,6 +27,12 @@ from tools.servicenow.csm_tools import (
     servicenow_csm_get_case,
     servicenow_csm_update_case
 )
+# Import Salesforce tools
+from tools.salesforce.csm_tools import (
+    salesforce_csm_create_case,
+    salesforce_csm_get_case,
+    salesforce_csm_update_case
+)
 
 SEGMENT_NUM = 5
 
@@ -3488,6 +3494,216 @@ def ServiceNow_CSM(
         return json.dumps(result, indent=2)
 
 
+# ==================== SALESFORCE CSM TOOL ====================
+
+@function_schema
+def Salesforce_CSM(
+    operation: str,
+    status: Optional[str] = "New",
+    case_origin: Optional[str] = "Email",
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    account_id: Optional[str] = None,
+    contact_id: Optional[str] = None,
+    email_address: Optional[str] = None,
+    contact_phone: Optional[str] = None,
+    case_sub_type: Optional[str] = None,
+    case_type: Optional[str] = None,
+    type: Optional[str] = None,
+    priority: Optional[str] = "Medium",
+    case_reason: Optional[str] = None,
+    symptoms: Optional[str] = None,
+    rootcause: Optional[str] = None,
+    ux_version: Optional[str] = None,
+    case_summary: Optional[str] = None,
+    subject: Optional[str] = None,
+    description: Optional[str] = None,
+    internal_comments: Optional[str] = None,
+    web_email: Optional[str] = None,
+    web_company: Optional[str] = None,
+    web_name: Optional[str] = None,
+    web_phone: Optional[str] = None,
+    case_id: Optional[str] = None,
+    identifier: Optional[str] = None,
+    identifier_type: Optional[str] = "case_id"
+) -> str:
+    """
+    SALESFORCE CSM (CUSTOMER SERVICE MANAGEMENT) TOOL
+
+    This tool provides comprehensive Salesforce CSM case management capabilities.
+    It handles creating, reading, and updating customer service cases in Salesforce through a single interface.
+    The tool determines the specific action based on the 'operation' parameter.
+
+    OPERATIONS SUPPORTED:
+    1. "create" - Create a new case
+    2. "read" or "get" - Retrieve an existing case
+    3. "update" - Update an existing case
+
+    OPERATION: CREATE
+    Use when customers contact support with questions, issues, or service requests.
+    Required: operation="create", first_name, last_name
+    Optional: status, case_origin, account_id, contact_id, email_address, contact_phone, case_sub_type, case_type, type, priority, case_reason, symptoms, rootcause, ux_version, case_summary, subject, description, internal_comments, web_email, web_company, web_name, web_phone
+
+    OPERATION: READ/GET
+    Use when customers ask about case status or need case details.
+    Required: operation="read" or "get", identifier (Salesforce case ID or case number)
+    Optional: identifier_type ("case_id" or "case_number")
+
+    OPERATION: UPDATE
+    Use when updating case status, adding notes, escalating, or modifying case details.
+    Required: operation="update", case_id (Salesforce case ID)
+    Optional: status, priority, case_reason, symptoms, rootcause, case_summary, subject, description, internal_comments, case_sub_type, case_type, type, ux_version
+
+    IMPORTANT FOR UPDATES: To update a case, you MUST have the Salesforce case_id (not the case number).
+    If you only have the case number (e.g., 00001234), you must FIRST use operation="read"
+    with the case number to get the case_id, then use that case_id for the update operation.
+
+    UPDATE WORKFLOW:
+    1. Get case number from user (e.g., "00001234")
+    2. Use operation="read", identifier="00001234", identifier_type="case_number" to get case details
+    3. Extract the case_id from the response
+    4. Use operation="update", case_id="extracted_case_id" with your update parameters
+
+    STATUS VALUES:
+    - "New": Case is newly created and awaiting assignment
+    - "In Progress": Work has started on the case
+    - "Escalated": Case has been escalated to higher level support
+    - "On Hold": Case is temporarily on hold waiting for customer or internal response
+    - "Closed": Case is resolved and closed
+
+    PRIORITY VALUES:
+    - "High": Urgent customer issue requiring immediate attention
+    - "Medium": Standard customer inquiry or request (default)
+    - "Low": General questions or minor requests
+
+    CASE ORIGIN VALUES:
+    - "Email": Customer sent email (default)
+    - "Phone": Customer called support
+    - "Web": Customer used web portal
+    - "Chat": Customer used chat support
+    - "Social Media": Customer contacted via social media
+
+    CASE TYPE VALUES:
+    - "Problem": Technical issue or bug
+    - "Question": General inquiry
+    - "Feature Request": Request for new functionality
+
+    CASE REASON VALUES:
+    - "Bug": Software defect or error
+    - "Enhancement": Request for improvement
+    - "Question": General inquiry
+    - "Complaint": Customer complaint
+
+    EXAMPLES:
+
+    Create case:
+    operation="create", first_name="John", last_name="Smith", case_origin="Email", priority="High", case_reason="Bug", subject="Login issue", description="User cannot log into the application"
+
+    Get case by case number:
+    operation="read", identifier="00001234", identifier_type="case_number"
+
+    Get case by Salesforce case ID:
+    operation="get", identifier="5001234567890AB", identifier_type="case_id"
+
+    Update case status:
+    operation="update", case_id="5001234567890AB", status="In Progress", internal_comments="Started investigating the login issue"
+
+    Close case with resolution:
+    operation="update", case_id="5001234567890AB", status="Closed", rootcause="Fixed JavaScript authentication bug", internal_comments="Issue resolved and deployed to production"
+
+    Update case using case number (two-step process):
+    Step 1: operation="read", identifier="00001234", identifier_type="case_number"
+    Step 2: operation="update", case_id="case_id_from_step1_response", status="In Progress", internal_comments="Started working on customer issue"
+    """
+
+    # Validate operation parameter
+    if operation.lower() not in ["create", "read", "get", "update"]:
+        return json.dumps({
+            "success": False,
+            "message": f"Invalid operation: {operation}. Must be 'create', 'read', 'get', or 'update'",
+            "error": "Invalid operation parameter"
+        }, indent=2)
+
+    # Handle CREATE operation
+    if operation.lower() == "create":
+        if not first_name or not last_name:
+            return json.dumps({
+                "success": False,
+                "message": "first_name and last_name are required for create operation",
+                "error": "Missing required parameters"
+            }, indent=2)
+
+        result = salesforce_csm_create_case(
+            status=status,
+            case_origin=case_origin,
+            first_name=first_name,
+            last_name=last_name,
+            account_id=account_id,
+            contact_id=contact_id,
+            email_address=email_address,
+            contact_phone=contact_phone,
+            case_sub_type=case_sub_type,
+            case_type=case_type,
+            type=type,
+            priority=priority,
+            case_reason=case_reason,
+            symptoms=symptoms,
+            rootcause=rootcause,
+            ux_version=ux_version,
+            case_summary=case_summary,
+            subject=subject,
+            description=description,
+            internal_comments=internal_comments,
+            web_email=web_email,
+            web_company=web_company,
+            web_name=web_name,
+            web_phone=web_phone
+        )
+        return json.dumps(result, indent=2)
+
+    # Handle READ/GET operation
+    elif operation.lower() in ["read", "get"]:
+        if not identifier:
+            return json.dumps({
+                "success": False,
+                "message": "identifier is required for read/get operation",
+                "error": "Missing required parameter"
+            }, indent=2)
+
+        result = salesforce_csm_get_case(
+            identifier=identifier,
+            identifier_type=identifier_type or "case_id"
+        )
+        return json.dumps(result, indent=2)
+
+    # Handle UPDATE operation
+    elif operation.lower() == "update":
+        if not case_id:
+            return json.dumps({
+                "success": False,
+                "message": "case_id is required for update operation",
+                "error": "Missing required parameter"
+            }, indent=2)
+
+        result = salesforce_csm_update_case(
+            case_id=case_id,
+            status=status,
+            priority=priority,
+            case_reason=case_reason,
+            symptoms=symptoms,
+            rootcause=rootcause,
+            case_summary=case_summary,
+            subject=subject,
+            description=description,
+            internal_comments=internal_comments,
+            case_sub_type=case_sub_type,
+            case_type=case_type,
+            type=type,
+            ux_version=ux_version
+        )
+        return json.dumps(result, indent=2)
+
+
 tool_store = {
     "add_numbers": add_numbers,
     "weather_forecast": weather_forecast,
@@ -3520,6 +3736,8 @@ tool_store = {
     # ServiceNow Tools
     "ServiceNow_ITSM": ServiceNow_ITSM,
     "ServiceNow_CSM": ServiceNow_CSM,
+    # Salesforce Tools
+    "Salesforce_CSM": Salesforce_CSM,
 }
 
 
@@ -3555,4 +3773,6 @@ tool_schemas = {
     # ServiceNow Tools
     "ServiceNow_ITSM": ServiceNow_ITSM.openai_schema,
     "ServiceNow_CSM": ServiceNow_CSM.openai_schema,
+    # Salesforce Tools
+    "Salesforce_CSM": Salesforce_CSM.openai_schema,
 }
