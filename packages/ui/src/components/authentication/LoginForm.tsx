@@ -62,12 +62,14 @@ interface LoginFormProps {
   ) => Promise<
     | "Invalid credentials."
     | "Email not verified."
+    | "Account locked."
     | "Something went wrong."
     | undefined
   >;
   authenticateGoogle?: () => Promise<
     | "Invalid credentials."
     | "Email not verified."
+    | "Account locked."
     | "Something went wrong."
     | undefined
   >;
