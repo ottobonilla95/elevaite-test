@@ -6,7 +6,7 @@ These steps are designed for RAG workflows: file reading, text chunking,
 embedding generation, and vector storage.
 """
 
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, Optional
 from fastapi_logger import ElevaiteLogger
 
 
@@ -59,11 +59,15 @@ class TokenizerStepsRegistry:
         except ImportError as e:
             self.logger.warning(f"Could not import tokenizer step implementations: {e}")
 
-    def get_step_implementation(self, step_type: str) -> Callable:
+    def has_step(self, step_type: str) -> bool:
+        """Check if step type is available"""
+        return step_type in self._step_implementations
+
+    def get_step_implementation(self, step_type: str) -> Optional[Callable]:
         """Get step implementation by type"""
         return self._step_implementations.get(step_type)
 
-    def get_step_factory(self, step_type: str) -> Callable:
+    def get_step_factory(self, step_type: str) -> Optional[Callable]:
         """Get step factory by type"""
         return self._step_factories.get(step_type)
 
@@ -125,16 +129,21 @@ class TokenizerStepsRegistry:
             # Create step instance
             from steps.tokenizer.file_reader_step import create_file_reader_step
 
-            step = create_file_reader_step(step_config.get("config", {}))
+            # step_config is already the config dict, not a wrapper
+            step = create_file_reader_step(step_config)
 
             # Execute step with enhanced input data
             result = await step.execute(enhanced_input_data)
 
-            # Return result data
-            if result.status.value == "completed":
-                return result.data
-            else:
-                raise Exception(result.error or "File reader step failed")
+            # Convert StepResult to Dict for compatibility
+            return {
+                "status": result.status.value,
+                "data": result.data,
+                "error": result.error,
+                "progress": result.progress.model_dump() if result.progress else None,
+                "metadata": result.metadata,
+                "rollback_data": result.rollback_data,
+            }
 
         return execute_file_reader_step
 
@@ -144,21 +153,25 @@ class TokenizerStepsRegistry:
         async def execute_text_chunking_step(
             step_config: Dict[str, Any],
             input_data: Dict[str, Any],
-            execution_context: Dict[str, Any],
+            _execution_context: Dict[str, Any],
         ) -> Dict[str, Any]:
             # Create step instance
             from steps.tokenizer.text_chunking_step import create_text_chunking_step
 
-            step = create_text_chunking_step(step_config.get("config", {}))
+            step = create_text_chunking_step(step_config)
 
             # Execute step
             result = await step.execute(input_data)
 
-            # Return result data
-            if result.status.value == "completed":
-                return result.data
-            else:
-                raise Exception(result.error or "Text chunking step failed")
+            # Convert StepResult to Dict for compatibility
+            return {
+                "status": result.status.value,
+                "data": result.data,
+                "error": result.error,
+                "progress": result.progress.model_dump() if result.progress else None,
+                "metadata": result.metadata,
+                "rollback_data": result.rollback_data,
+            }
 
         return execute_text_chunking_step
 
@@ -168,23 +181,27 @@ class TokenizerStepsRegistry:
         async def execute_embedding_generation_step(
             step_config: Dict[str, Any],
             input_data: Dict[str, Any],
-            execution_context: Dict[str, Any],
+            _execution_context: Dict[str, Any],
         ) -> Dict[str, Any]:
             # Create step instance
             from steps.tokenizer.embedding_generation_step import (
                 create_embedding_generation_step,
             )
 
-            step = create_embedding_generation_step(step_config.get("config", {}))
+            step = create_embedding_generation_step(step_config)
 
             # Execute step
             result = await step.execute(input_data)
 
-            # Return result data
-            if result.status.value == "completed":
-                return result.data
-            else:
-                raise Exception(result.error or "Embedding generation step failed")
+            # Convert StepResult to Dict for compatibility
+            return {
+                "status": result.status.value,
+                "data": result.data,
+                "error": result.error,
+                "progress": result.progress.model_dump() if result.progress else None,
+                "metadata": result.metadata,
+                "rollback_data": result.rollback_data,
+            }
 
         return execute_embedding_generation_step
 
@@ -194,21 +211,25 @@ class TokenizerStepsRegistry:
         async def execute_vector_storage_step(
             step_config: Dict[str, Any],
             input_data: Dict[str, Any],
-            execution_context: Dict[str, Any],
+            _execution_context: Dict[str, Any],
         ) -> Dict[str, Any]:
             # Create step instance
             from steps.tokenizer.vector_storage_step import create_vector_storage_step
 
-            step = create_vector_storage_step(step_config.get("config", {}))
+            step = create_vector_storage_step(step_config)
 
             # Execute step
             result = await step.execute(input_data)
 
-            # Return result data
-            if result.status.value == "completed":
-                return result.data
-            else:
-                raise Exception(result.error or "Vector storage step failed")
+            # Convert StepResult to Dict for compatibility
+            return {
+                "status": result.status.value,
+                "data": result.data,
+                "error": result.error,
+                "progress": result.progress.model_dump() if result.progress else None,
+                "metadata": result.metadata,
+                "rollback_data": result.rollback_data,
+            }
 
         return execute_vector_storage_step
 

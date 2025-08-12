@@ -223,6 +223,10 @@ class FileReaderStep(DataInputStep):
                     error="No file path provided in config or input data",
                 )
 
+            # Handle S3 URLs by downloading the file first
+            if file_path.startswith("s3://"):
+                file_path = await self._download_from_s3(file_path)
+
             # Validate file exists and is accessible
             if not os.path.exists(file_path):
                 return StepResult(
@@ -328,6 +332,10 @@ class FileReaderStep(DataInputStep):
                     status=StepStatus.FAILED,
                     error="No file path provided in config or input data",
                 )
+
+            # Handle S3 URLs by downloading the file first
+            if file_path.startswith("s3://"):
+                file_path = await self._download_from_s3(file_path)
 
             # Validate file exists and is accessible
             if not os.path.exists(file_path):
@@ -610,6 +618,47 @@ class FileReaderStep(DataInputStep):
             )
         except Exception as e:
             raise Exception(f"Error reading HTML: {str(e)}")
+
+    async def _download_from_s3(self, s3_url: str) -> str:
+        """
+        Download a file from S3 and return the local path.
+
+        Args:
+            s3_url: S3 URL in format s3://bucket/key
+
+        Returns:
+            Local file path of downloaded file
+        """
+        import boto3
+        import tempfile
+        import os
+        from urllib.parse import urlparse
+
+        try:
+            # Parse S3 URL
+            parsed = urlparse(s3_url)
+            bucket = parsed.netloc
+            key = parsed.path.lstrip("/")
+
+            self.logger.info(f"Downloading from S3: bucket={bucket}, key={key}")
+
+            # Create S3 client
+            s3_client = boto3.client("s3")
+
+            # Create temporary file
+            temp_dir = tempfile.mkdtemp()
+            filename = os.path.basename(key)
+            local_path = os.path.join(temp_dir, filename)
+
+            # Download file
+            s3_client.download_file(bucket, key, local_path)
+
+            self.logger.info(f"Successfully downloaded S3 file to: {local_path}")
+            return local_path
+
+        except Exception as e:
+            self.logger.error(f"Failed to download from S3: {e}")
+            raise Exception(f"Failed to download from S3: {e}")
 
 
 # Factory function for easy creation
