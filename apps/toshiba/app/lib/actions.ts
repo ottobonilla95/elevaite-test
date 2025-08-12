@@ -26,7 +26,8 @@ export async function authenticate(
 ): Promise<
   | "Invalid credentials."
   | "Email not verified."
-  | "Account locked."
+  | "Account locked. Please try again later or reset your password."
+  | "Too many attempts. Please try again later."
   | "Admin access required."
   | "Something went wrong."
   | "MFA_REQUIRED_TOTP"
@@ -41,7 +42,107 @@ export async function authenticate(
     return undefined;
   } catch (error) {
     if (error instanceof AuthError) {
+      // Helper function to extract custom error message from various NextAuth error structures
+      const extractCustomError = (err: any): string | null => {
+        // Check direct message
+        if (typeof err.message === "string") {
+          if (err.message === "account_locked") return "Account locked.";
+          if (err.message === "rate_limit_exceeded")
+            return "Too many attempts. Please try again later.";
+          if (err.message === "email_not_verified")
+            return "Email not verified.";
+        }
+
+        // Check cause.message
+        if (err.cause && typeof err.cause.message === "string") {
+          if (err.cause.message === "account_locked") return "Account locked.";
+          if (err.cause.message === "rate_limit_exceeded")
+            return "Too many attempts. Please try again later.";
+          if (err.cause.message === "email_not_verified")
+            return "Email not verified.";
+        }
+
+        // Check cause.err.message (CallbackRouteError structure)
+        if (
+          err.cause &&
+          err.cause.err &&
+          typeof err.cause.err.message === "string"
+        ) {
+          if (err.cause.err.message === "account_locked")
+            return "Account locked.";
+          if (err.cause.err.message === "rate_limit_exceeded")
+            return "Too many attempts. Please try again later.";
+          if (err.cause.err.message === "email_not_verified")
+            return "Email not verified.";
+        }
+
+        return null;
+      };
+
+      // Try to extract custom error message
+      const customError = extractCustomError(error);
+      if (customError) {
+        console.log("DEBUG: Custom error extracted:", customError);
+        return customError;
+      }
+
+      // Handle CallbackRouteError (NextAuth wrapping our custom errors)
+      if (error.type === "CallbackRouteError") {
+        // Check for error in cause.err.message (NextAuth structure)
+        const causeErr = (error.cause as any)?.err;
+        if (causeErr && causeErr.message) {
+          if (causeErr.message === "account_locked") {
+            return "Account locked.";
+          }
+          if (causeErr.message === "rate_limit_exceeded") {
+            return "Too many attempts. Please try again later.";
+          }
+          if (causeErr.message === "email_not_verified") {
+            return "Email not verified.";
+          }
+        }
+      }
+
+      // Handle CredentialsSignin errors specifically
+      if (error.type === "CredentialsSignin") {
+        // Check the cause for specific error types
+        if (error.cause instanceof Error) {
+          if (error.cause.message === "account_locked") {
+            return "Account locked.";
+          }
+          if (error.cause.message === "rate_limit_exceeded") {
+            return "Too many attempts. Please try again later.";
+          }
+          if (error.cause.message === "email_not_verified") {
+            return "Email not verified.";
+          }
+        }
+        // If no specific cause, return generic invalid credentials
+        return "Invalid credentials.";
+      }
+
+      // Check for account locked in the main error message first
+      if (error.message?.includes("account_locked")) {
+        return "Account locked.";
+      }
+      // Check for rate limit in the main error message first
+      if (error.message?.includes("rate_limit_exceeded")) {
+        return "Too many attempts. Please try again later.";
+      }
+
       if (error.cause instanceof Error) {
+        // Handle account locked error
+        if (error.cause.message === "account_locked") {
+          return "Account locked.";
+        }
+        // Handle rate limit error
+        if (error.cause.message === "rate_limit_exceeded") {
+          return "Too many attempts. Please try again later.";
+        }
+        // Handle email not verified error
+        if (error.cause.message === "email_not_verified") {
+          return "Email not verified.";
+        }
         if (error.cause.message === "MFA_REQUIRED_TOTP") {
           return {
             type: "MFA_ERROR",
@@ -87,6 +188,22 @@ export async function authenticate(
           };
         }
       }
+
+      // Search for our error messages anywhere in the error object
+      const errorString = JSON.stringify(error);
+      if (errorString.includes("account_locked")) {
+        console.log("DEBUG: Found account_locked in error string");
+        return "Account locked.";
+      }
+      if (errorString.includes("rate_limit_exceeded")) {
+        console.log("DEBUG: Found rate_limit_exceeded in error string");
+        return "Too many attempts. Please try again later.";
+      }
+      if (errorString.includes("email_not_verified")) {
+        console.log("DEBUG: Found email_not_verified in error string");
+        return "Email not verified.";
+      }
+
       switch (error.type) {
         case "CredentialsSignin":
           return "Invalid credentials.";
@@ -98,6 +215,17 @@ export async function authenticate(
           ) {
             const causeError = error.cause.err;
             if (causeError instanceof Error) {
+              // Handle our custom authentication errors first
+              if (causeError.message === "account_locked") {
+                return "Account locked.";
+              }
+              if (causeError.message === "rate_limit_exceeded") {
+                return "Too many attempts. Please try again later.";
+              }
+              if (causeError.message === "email_not_verified") {
+                return "Email not verified.";
+              }
+
               if (causeError.message === "MFA_REQUIRED_TOTP") {
                 return {
                   type: "MFA_ERROR",
@@ -152,6 +280,10 @@ export async function authenticate(
           if (error.message?.includes("account_locked")) {
             return "Account locked.";
           }
+          // Check if this is a rate limit error
+          if (error.message?.includes("rate_limit_exceeded")) {
+            return "Too many attempts. Please try again later.";
+          }
           return "Invalid credentials.";
         default:
           // Check if this is an email verification error
@@ -161,6 +293,10 @@ export async function authenticate(
           // Check if this is an account locked error
           if (error.message?.includes("account_locked")) {
             return "Account locked.";
+          }
+          // Check if this is a rate limit error
+          if (error.message?.includes("rate_limit_exceeded")) {
+            return "Too many attempts. Please try again later.";
           }
           // Check if this is an admin access required error
           if (error.message?.includes("admin_access_required")) {
@@ -177,6 +313,9 @@ export async function authenticate(
       }
       if (error.message === "account_locked") {
         return "Account locked.";
+      }
+      if (error.message === "rate_limit_exceeded") {
+        return "Too many attempts. Please try again later.";
       }
       if (error.message === "MFA_REQUIRED_TOTP") {
         return "MFA_REQUIRED_TOTP";

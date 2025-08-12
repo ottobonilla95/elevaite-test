@@ -90,6 +90,11 @@ export const authOptions: NextAuthConfig = {
                 throw new Error("account_locked");
               }
 
+              // Check for rate limit error
+              if (error.message === "rate_limit_exceeded") {
+                throw new Error("rate_limit_exceeded");
+              }
+
               // For MFA challenges, throw with a specific format that we can catch
               if (error.message === "MFA_REQUIRED_MULTIPLE") {
                 const mfaError = new Error("MFA_REQUIRED_MULTIPLE");

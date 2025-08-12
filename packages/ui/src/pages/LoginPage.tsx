@@ -11,7 +11,9 @@ interface LoginPageProps {
     formData: Record<"email" | "password", string>
   ) => Promise<
     | "Invalid credentials."
-    | "Account locked."
+    | "Account locked. Please try again later or reset your password."
+    | "Email not verified."
+    | "Too many attempts. Please try again later."
     | "Something went wrong."
     | undefined
   >;

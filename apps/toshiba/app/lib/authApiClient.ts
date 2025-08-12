@@ -147,16 +147,28 @@ export class AuthApiClient {
       if (!response.ok) {
         const errorData = (await response.json()) as { detail?: string };
 
-        // Only log non-MFA errors to avoid cluttering console during normal MFA flow
+        // Only log unexpected errors to avoid cluttering console during normal auth flow
         if (
           response.status !== 400 ||
           !errorData.detail?.includes("code required")
         ) {
-          console.log(
-            "AuthApiClient error response:",
-            response.status,
-            errorData
-          );
+          // Don't log expected auth errors (403 email_not_verified, 423 account_locked, 429 rate_limit)
+          if (
+            !(
+              response.status === 403 &&
+              errorData.detail === "email_not_verified"
+            ) &&
+            !(
+              response.status === 423 && errorData.detail === "account_locked"
+            ) &&
+            !(response.status === 429) // Rate limit errors
+          ) {
+            console.log(
+              "AuthApiClient error response:",
+              response.status,
+              errorData
+            );
+          }
         }
 
         if (
@@ -168,6 +180,10 @@ export class AuthApiClient {
 
         if (response.status === 423 && errorData.detail === "account_locked") {
           throw new Error("account_locked");
+        }
+
+        if (response.status === 429) {
+          throw new Error("rate_limit_exceeded");
         }
 
         if (
