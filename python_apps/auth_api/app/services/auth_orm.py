@@ -285,7 +285,10 @@ async def authenticate_user(
         # Check if account is locked BEFORE attempting password verification
         if user.locked_until and user.locked_until > datetime.now(timezone.utc):
             print(f"Account is locked for user: {email}")
-            return None, False
+            raise HTTPException(
+                status_code=http_status.HTTP_423_LOCKED,
+                detail="account_locked",
+            )
 
         # If we get here, check the regular password
         try:

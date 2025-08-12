@@ -295,6 +295,16 @@ async def login(
             user_id_value = user_dict.get("id") or user.id
     except HTTPException as http_exc:
         if (
+            http_exc.status_code == status.HTTP_423_LOCKED
+            and http_exc.detail == "account_locked"
+        ):
+            logger.warning(f"Account locked for user: {login_data.email}")
+            raise HTTPException(
+                status_code=status.HTTP_423_LOCKED,
+                detail="account_locked",
+                headers={"X-Error-Type": "account_locked"},
+            )
+        elif (
             http_exc.status_code == status.HTTP_403_FORBIDDEN
             and http_exc.detail == "email_not_verified"
         ):
