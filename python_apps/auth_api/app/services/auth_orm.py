@@ -284,7 +284,11 @@ async def authenticate_user(
 
         # Check if account is locked BEFORE attempting password verification
         if user.locked_until and user.locked_until > datetime.now(timezone.utc):
-            print(f"Account is locked for user: {email}")
+            logger.warning(
+                f"Login attempt blocked - Account locked for user: {email}. "
+                f"Locked until: {user.locked_until}. "
+                f"Failed attempts: {user.failed_login_attempts}"
+            )
             raise HTTPException(
                 status_code=http_status.HTTP_423_LOCKED,
                 detail="account_locked",
@@ -293,30 +297,55 @@ async def authenticate_user(
         # If we get here, check the regular password
         try:
             if not verify_password(password, user.hashed_password):
-                print(f"Password verification failed for user: {email}")
+                logger.warning(
+                    f"Password verification failed for user: {email}. "
+                    f"Current failed attempts: {user.failed_login_attempts}"
+                )
                 try:
-                    # Increment failed login attempts
+                    # Increment failed login attempts with progressive lockout
+                    failed_attempts = user.failed_login_attempts + 1
+
+                    # Progressive lockout strategy:
+                    # 5 attempts: 5 minutes
+                    # 10 attempts: 15 minutes
+                    # 15 attempts: 30 minutes
+                    # 20+ attempts: 60 minutes
+                    lockout_duration = None
+                    if failed_attempts >= 5:
+                        if failed_attempts < 10:
+                            lockout_duration = now + timedelta(minutes=5)
+                        elif failed_attempts < 15:
+                            lockout_duration = now + timedelta(minutes=15)
+                        elif failed_attempts < 20:
+                            lockout_duration = now + timedelta(minutes=30)
+                        else:
+                            lockout_duration = now + timedelta(minutes=60)
+
                     stmt = (
                         update(User)
                         .where(User.id == user.id)
                         .values(
-                            failed_login_attempts=user.failed_login_attempts + 1,
-                            locked_until=(
-                                now + timedelta(minutes=1)
-                                if user.failed_login_attempts + 1 >= 5000
-                                else None
-                            ),
-                            updated_at=now,  # Ensure updated_at is also timezone-aware
+                            failed_login_attempts=failed_attempts,
+                            locked_until=lockout_duration,
+                            updated_at=now,
                         )
                     )
                     await session.execute(stmt)
                     await session.commit()
+
+                    # Log account lockout
+                    if lockout_duration:
+                        logger.warning(
+                            f"Account locked for user: {email}. "
+                            f"Failed attempts: {failed_attempts}. "
+                            f"Locked until: {lockout_duration}"
+                        )
                 except Exception as e:
-                    print(f"Error updating failed login attempts: {e}")
+                    logger.error(f"Error updating failed login attempts: {e}")
                     try:
                         await session.rollback()
                     except Exception as rollback_error:
-                        print(f"Error during rollback: {rollback_error}")
+                        logger.error(f"Error during rollback: {rollback_error}")
                 return None, False
         except Exception as e:
             print(f"Error verifying password: {e}")

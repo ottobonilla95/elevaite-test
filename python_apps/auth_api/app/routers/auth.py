@@ -210,7 +210,7 @@ async def admin_create_user(
 
 
 @router.post("/login", response_model=Token)
-@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+@limiter.limit(f"{settings.RATE_LIMIT_LOGIN_PER_MINUTE}/minute")
 async def login(
     request: Request,
     login_data: LoginRequest,
@@ -279,7 +279,11 @@ async def login(
     password_change_required = False
     try:
         user, password_change_required = await authenticate_user(
-            session, login_data.email, login_data.password, login_data.totp_code
+            session,
+            login_data.email,
+            login_data.password,
+            login_data.totp_code,
+            request,
         )
 
         if not user:
@@ -869,7 +873,7 @@ async def resend_sms_code_for_login(
 
 
 @router.post("/forgot-password")
-@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+@limiter.limit(f"{settings.RATE_LIMIT_PASSWORD_RESET_PER_MINUTE}/minute")
 async def forgot_password(
     request: Request,
     reset_data: PasswordResetRequest,
@@ -884,6 +888,23 @@ async def forgot_password(
 
     # Always return success even if email doesn't exist (security)
     if not user:
+        return {
+            "message": "If your email is registered, you will receive a password reset email"
+        }
+
+    # Check if account is locked and add additional logging
+    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+        logger.warning(
+            f"Password reset requested for locked account: {user.email}. "
+            f"Account locked until: {user.locked_until}"
+        )
+        # Still allow password reset but with enhanced monitoring
+
+    # Check if password reset was recently requested
+    if user.password_reset_expires and user.password_reset_expires > datetime.now(
+        timezone.utc
+    ):
+        # Password reset already in progress, don't send another email
         return {
             "message": "If your email is registered, you will receive a password reset email"
         }
@@ -2020,3 +2041,151 @@ async def admin_unlock_account(
     return {
         "message": f"Account {email} has been unlocked and failed login attempts reset"
     }
+
+
+@router.get("/admin/mfa-devices/{user_id}")
+async def admin_get_user_mfa_devices(
+    user_id: int,
+    current_user: User = Depends(get_current_superuser),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Get all MFA device verifications for a user (admin only)."""
+    logger.info(
+        f"Admin user {current_user.email} (ID: {current_user.id}) is viewing MFA devices for user {user_id}"
+    )
+
+    from app.services.mfa_device_service import mfa_device_service
+
+    verifications = await mfa_device_service.get_user_device_verifications(
+        user_id, session
+    )
+
+    return {
+        "user_id": user_id,
+        "device_verifications": [
+            {
+                "id": v.id,
+                "device_fingerprint": v.device_fingerprint[:16]
+                + "...",  # Truncate for privacy
+                "ip_address": v.ip_address,
+                "user_agent": v.user_agent,
+                "verified_at": v.verified_at,
+                "expires_at": v.expires_at,
+                "mfa_method": v.mfa_method,
+            }
+            for v in verifications
+        ],
+    }
+
+
+@router.post("/admin/revoke-mfa-devices/{user_id}")
+async def admin_revoke_user_mfa_devices(
+    user_id: int,
+    current_user: User = Depends(get_current_superuser),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Revoke all MFA device verifications for a user (admin only)."""
+    logger.info(
+        f"Admin user {current_user.email} (ID: {current_user.id}) is revoking MFA devices for user {user_id}"
+    )
+
+    from app.services.mfa_device_service import mfa_device_service
+
+    revoked_count = await mfa_device_service.revoke_all_user_verifications(
+        user_id, session
+    )
+
+    # Log activity
+    details = {
+        "admin_user_id": current_user.id,
+        "admin_email": current_user.email,
+        "target_user_id": user_id,
+        "revoked_devices_count": revoked_count,
+    }
+
+    await log_user_activity(
+        session,
+        current_user.id,
+        "mfa_devices_revoked_by_admin",
+        details=details,
+    )
+
+    logger.info(
+        f"Admin {current_user.email} revoked {revoked_count} MFA devices for user {user_id}"
+    )
+    return {
+        "message": f"Revoked {revoked_count} MFA device verifications for user {user_id}"
+    }
+
+
+@router.get("/me/mfa-devices")
+async def get_my_mfa_devices(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Get current user's MFA device verifications."""
+    from app.services.mfa_device_service import mfa_device_service
+
+    verifications = await mfa_device_service.get_user_device_verifications(
+        current_user.id, session
+    )
+
+    return {
+        "device_verifications": [
+            {
+                "id": v.id,
+                "device_fingerprint": v.device_fingerprint[:16]
+                + "...",  # Truncate for privacy
+                "ip_address": v.ip_address,
+                "verified_at": v.verified_at,
+                "expires_at": v.expires_at,
+                "mfa_method": v.mfa_method,
+                "platform": extract_platform_from_user_agent(v.user_agent or ""),
+            }
+            for v in verifications
+        ]
+    }
+
+
+@router.post("/me/revoke-mfa-devices")
+async def revoke_my_mfa_devices(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Revoke all of current user's MFA device verifications."""
+    from app.services.mfa_device_service import mfa_device_service
+
+    revoked_count = await mfa_device_service.revoke_all_user_verifications(
+        current_user.id, session
+    )
+
+    # Log activity
+    await log_user_activity(
+        session,
+        current_user.id,
+        "mfa_devices_revoked_by_user",
+        details={"revoked_devices_count": revoked_count},
+    )
+
+    logger.info(
+        f"User {current_user.email} revoked {revoked_count} of their MFA devices"
+    )
+    return {"message": f"Revoked {revoked_count} MFA device verifications"}
+
+
+def extract_platform_from_user_agent(user_agent: str) -> str:
+    """Extract platform information from user agent string."""
+    user_agent_lower = user_agent.lower()
+
+    if "windows" in user_agent_lower:
+        return "Windows"
+    elif "macintosh" in user_agent_lower or "mac os" in user_agent_lower:
+        return "macOS"
+    elif "linux" in user_agent_lower:
+        return "Linux"
+    elif "android" in user_agent_lower:
+        return "Android"
+    elif "iphone" in user_agent_lower or "ipad" in user_agent_lower:
+        return "iOS"
+    else:
+        return "Unknown"

@@ -40,8 +40,10 @@ class Settings(BaseSettings):
     PASSWORD_MIN_LENGTH: int = 9
     PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = 24
 
-    # Rate limiting
-    RATE_LIMIT_PER_MINUTE: int = 60
+    # Rate limiting - More restrictive for security
+    RATE_LIMIT_PER_MINUTE: int = 10  # Reduced from 60 to 10 for better security
+    RATE_LIMIT_LOGIN_PER_MINUTE: int = 5  # Specific limit for login attempts
+    RATE_LIMIT_PASSWORD_RESET_PER_MINUTE: int = 3  # Specific limit for password reset
 
     # MFA - Authenticator App
     MFA_ISSUER: str = os.environ.get("BRANDING_NAME", "ElevAIte")
