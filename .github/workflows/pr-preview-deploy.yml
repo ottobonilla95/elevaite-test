@@ -164,6 +164,9 @@ jobs:
     secrets:
       KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
       ELEV8S_READ_TOKEN: ${{ secrets.ELEV8S_READ_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: us-east-2
 
   comment-pr:
     if: needs.check-changes.outputs.should_deploy == 'true'
