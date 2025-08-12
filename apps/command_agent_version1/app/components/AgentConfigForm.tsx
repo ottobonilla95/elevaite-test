@@ -196,186 +196,217 @@ function AgentConfigForm(): JSX.Element {
 
   // Pipeline progress listener function using polling
 
+  const startPipelineProgressListener = useCallback(
+    (pipelineId: string, backendUrl: string) => {
+      let isPolling = true;
+      let pollCount = 0;
+      let lastCompletedSteps: string[] = [];
+      let lastCurrentStage: string = "";
+      let currentProgressData: any = null;
+      const maxPolls = 600; // 10 minutes max
 
-const startPipelineProgressListener = useCallback(
-  (pipelineId: string, backendUrl: string) => {
-    let isPolling = true;
-    let pollCount = 0;
-    let lastCompletedSteps: string[] = [];
-    let lastCurrentStage: string = '';
-    let currentProgressData: any = null;
-    const maxPolls = 600; // 10 minutes max
-
-    if ((window as any).currentPollingCleanup) {
-      (window as any).currentPollingCleanup();
-    }
-
-    const updateStepStatus = (stepType: string, status: 'pending' | 'running' | 'completed' | 'error') => {
-      if (typeof (window as any).updateVectorizerStepStatus === 'function') {
-        console.log(` Updating step ${stepType} to ${status}`);
-        (window as any).updateVectorizerStepStatus(stepType, status);
-      }
-    };
-
-    const cleanup = () => {
-      console.log("🧹 Cleaning up pipeline polling");
-      isPolling = false;
-      if ((window as any).currentPollingTimeout) {
-        clearTimeout((window as any).currentPollingTimeout);
-        (window as any).currentPollingTimeout = null;
-      }
-    };
-
-    // Store cleanup function globally
-    (window as any).currentPollingCleanup = cleanup;
-
-    const pollProgress = async () => {
-      if (!isPolling || pollCount >= maxPolls) {
-        console.log(" Stopping pipeline polling - max polls reached");
-        cleanup();
-        setIsPipelineRunning(false);
-        return;
+      if ((window as any).currentPollingCleanup) {
+        (window as any).currentPollingCleanup();
       }
 
-      try {
-        pollCount++;
-        const statusUrl = `${backendUrl.replace(/\/$/, "")}/api/vectorization/pipeline/${pipelineId}/status`;
-
-        const response = await fetch(statusUrl, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.ok) {
-          const progressData = await response.json();
-          currentProgressData = progressData;
-          
-          // Debug logging (reduce frequency)
-          if (pollCount % 5 === 0) {
-            console.log("🔍 Backend Response:", progressData);
-            console.log("🔍 Status:", progressData.status);
-            console.log("🔍 Current step:", progressData.current_step);
-            console.log("🔍 Total steps:", progressData.total_steps);
-          }
-          
-          // Map backend step names to frontend step types
-          const stepMapping: Record<string, string> = {
-            'load': 'load',
-            'parse': 'parse', 
-            'chunk': 'chunk',
-            'embed': 'embed',
-            'store': 'store'
-          };
-
-          // Check for pipeline completion FIRST (multiple conditions)
-          const isCompleted = progressData.status === "completed" || 
-                            progressData.status === "success" ||
-                            (progressData.current_step >= progressData.total_steps && progressData.total_steps > 0) ||
-                            (progressData.completed_steps && progressData.completed_steps.length >= 5);
-
-          if (isCompleted) {
-            console.log("🎉 Pipeline completed! Stopping polling...");
-            
-            Object.keys(stepMapping).forEach(backendStepName => {
-              updateStepStatus(stepMapping[backendStepName], 'completed');
-            });
-            
-            cleanup();
-            setIsPipelineRunning(false);
-
-            if (typeof (window as any).pipelineCompletionHandler === 'function') {
-              (window as any).pipelineCompletionHandler();
-            }
-                      
-            console.log("🎉 All pipeline steps completed successfully!");
-            return;
-          }
-
-          if (progressData.status === "failed" || progressData.status === "error") {
-            console.error(`❌ Pipeline failed: ${progressData.message || 'Unknown error'}`);
-            
-            if (progressData.current_stage && stepMapping[progressData.current_stage]) {
-              updateStepStatus(stepMapping[progressData.current_stage], 'error');
-            }
-            
-            cleanup();
-            setIsPipelineRunning(false);
-
-            if (typeof (window as any).pipelineCompletionHandler === 'function') {
-                (window as any).pipelineCompletionHandler();
-            }
-            return;
-          }
-
-          if (progressData.completed_steps && Array.isArray(progressData.completed_steps)) {
-            const newlyCompletedSteps = progressData.completed_steps.filter(
-              (step: string) => !lastCompletedSteps.includes(step)
-            );
-            
-            newlyCompletedSteps.forEach((stepName: string) => {
-              if (stepMapping[stepName]) {
-                updateStepStatus(stepMapping[stepName], 'completed');
-              }
-            });
-            
-            lastCompletedSteps = [...progressData.completed_steps];
-          }
-
-          if (progressData.current_stage && 
-              stepMapping[progressData.current_stage] && 
-              progressData.current_stage !== lastCurrentStage) {
-            
-            const currentStepType = stepMapping[progressData.current_stage];
-            
-            if (!progressData.completed_steps?.includes(progressData.current_stage)) {
-              updateStepStatus(currentStepType, 'running');
-            }
-            
-            lastCurrentStage = progressData.current_stage;
-          }
-
-        } else {
-          console.warn(` Status check failed: ${response.status}`);
-          
-          if (response.status === 404) {
-            console.log(" Pipeline not found (404) - assuming completion");
-            cleanup();
-            setIsPipelineRunning(false);
-            return;
-          }
+      const updateStepStatus = (
+        stepType: string,
+        status: "pending" | "running" | "completed" | "error"
+      ) => {
+        if (typeof (window as any).updateVectorizerStepStatus === "function") {
+          console.log(` Updating step ${stepType} to ${status}`);
+          (window as any).updateVectorizerStepStatus(stepType, status);
         }
-      } catch (error) {
-        console.error("Error polling pipeline status:", error);
-        if (pollCount > 50) {
-          console.log(" Too many errors, stopping polling");
+      };
+
+      const cleanup = () => {
+        console.log("🧹 Cleaning up pipeline polling");
+        isPolling = false;
+        if ((window as any).currentPollingTimeout) {
+          clearTimeout((window as any).currentPollingTimeout);
+          (window as any).currentPollingTimeout = null;
+        }
+      };
+
+      // Store cleanup function globally
+      (window as any).currentPollingCleanup = cleanup;
+
+      const pollProgress = async () => {
+        if (!isPolling || pollCount >= maxPolls) {
+          console.log(" Stopping pipeline polling - max polls reached");
           cleanup();
           setIsPipelineRunning(false);
           return;
         }
-      }
 
-      // Continue polling with dynamic interval
-      if (isPolling) {
-        let pollInterval = 1000; // Default 1 second
+        try {
+          pollCount++;
+          const statusUrl = `${backendUrl.replace(/\/$/, "")}/api/pipeline/${pipelineId}/status`;
 
-        if (currentProgressData?.current_step >= 2) { // chunk and beyond
-          pollInterval = 2000; // 2 seconds for later stages
+          const response = await fetch(statusUrl, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            const progressData = await response.json();
+            currentProgressData = progressData;
+
+            // Debug logging (reduce frequency)
+            if (pollCount % 5 === 0) {
+              console.log("🔍 Backend Response:", progressData);
+              console.log("🔍 Status:", progressData.status);
+              console.log("🔍 Current step:", progressData.current_step);
+              console.log("🔍 Total steps:", progressData.total_steps);
+            }
+
+            // Map backend step names to frontend step types
+            const stepMapping: Record<string, string> = {
+              load: "load",
+              parse: "parse",
+              chunk: "chunk",
+              embed: "embed",
+              store: "store",
+            };
+
+            // Check for pipeline completion FIRST (multiple conditions)
+            const isCompleted =
+              progressData.status === "completed" ||
+              progressData.status === "success" ||
+              (progressData.current_step >= progressData.total_steps &&
+                progressData.total_steps > 0) ||
+              (progressData.completed_steps &&
+                progressData.completed_steps.length >= 5);
+
+            if (isCompleted) {
+              console.log("🎉 Pipeline completed! Stopping polling...");
+
+              Object.keys(stepMapping).forEach((backendStepName) => {
+                updateStepStatus(stepMapping[backendStepName], "completed");
+              });
+
+              cleanup();
+              setIsPipelineRunning(false);
+
+              if (
+                typeof (window as any).pipelineCompletionHandler === "function"
+              ) {
+                (window as any).pipelineCompletionHandler();
+              }
+
+              console.log("🎉 All pipeline steps completed successfully!");
+              return;
+            }
+
+            if (
+              progressData.status === "failed" ||
+              progressData.status === "error"
+            ) {
+              console.error(
+                `❌ Pipeline failed: ${progressData.message || "Unknown error"}`
+              );
+
+              if (
+                progressData.current_stage &&
+                stepMapping[progressData.current_stage]
+              ) {
+                updateStepStatus(
+                  stepMapping[progressData.current_stage],
+                  "error"
+                );
+              }
+
+              cleanup();
+              setIsPipelineRunning(false);
+
+              if (
+                typeof (window as any).pipelineCompletionHandler === "function"
+              ) {
+                (window as any).pipelineCompletionHandler();
+              }
+              return;
+            }
+
+            if (
+              progressData.completed_steps &&
+              Array.isArray(progressData.completed_steps)
+            ) {
+              const newlyCompletedSteps = progressData.completed_steps.filter(
+                (step: string) => !lastCompletedSteps.includes(step)
+              );
+
+              newlyCompletedSteps.forEach((stepName: string) => {
+                if (stepMapping[stepName]) {
+                  updateStepStatus(stepMapping[stepName], "completed");
+                }
+              });
+
+              lastCompletedSteps = [...progressData.completed_steps];
+            }
+
+            if (
+              progressData.current_stage &&
+              stepMapping[progressData.current_stage] &&
+              progressData.current_stage !== lastCurrentStage
+            ) {
+              const currentStepType = stepMapping[progressData.current_stage];
+
+              if (
+                !progressData.completed_steps?.includes(
+                  progressData.current_stage
+                )
+              ) {
+                updateStepStatus(currentStepType, "running");
+              }
+
+              lastCurrentStage = progressData.current_stage;
+            }
+          } else {
+            console.warn(` Status check failed: ${response.status}`);
+
+            if (response.status === 404) {
+              console.log(" Pipeline not found (404) - assuming completion");
+              cleanup();
+              setIsPipelineRunning(false);
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("Error polling pipeline status:", error);
+          if (pollCount > 50) {
+            console.log(" Too many errors, stopping polling");
+            cleanup();
+            setIsPipelineRunning(false);
+            return;
+          }
         }
 
-        (window as any).currentPollingTimeout = setTimeout(pollProgress, pollInterval);
-      }
-    };
+        // Continue polling with dynamic interval
+        if (isPolling) {
+          let pollInterval = 1000; // Default 1 second
 
-    // Start polling after a short delay
-    (window as any).currentPollingTimeout = setTimeout(pollProgress, 1000);
+          if (currentProgressData?.current_step >= 2) {
+            // chunk and beyond
+            pollInterval = 2000; // 2 seconds for later stages
+          }
 
-    // Return cleanup function
-    return cleanup;
-  },
-  []
-);
+          (window as any).currentPollingTimeout = setTimeout(
+            pollProgress,
+            pollInterval
+          );
+        }
+      };
+
+      // Start polling after a short delay
+      (window as any).currentPollingTimeout = setTimeout(pollProgress, 1000);
+
+      // Return cleanup function
+      return cleanup;
+    },
+    []
+  );
   // Vectorizer pipeline state - persists when drawer is closed, per agent
   const [vectorizerPipelines, setVectorizerPipelines] = useState<
     Record<string, PipelineStep[]>
@@ -464,130 +495,148 @@ const startPipelineProgressListener = useCallback(
     [vectorizerAgentId]
   );
   // Vectorizer action handlers
- const handleVectorizerRunAllSteps = useCallback(async () => {
-  setIsPipelineRunning(true);
-  try {
-    console.log("Running all vectorizer steps for agent:", vectorizerAgentId);
+  const handleVectorizerRunAllSteps = useCallback(async () => {
+    setIsPipelineRunning(true);
+    try {
+      console.log("Running all vectorizer steps for agent:", vectorizerAgentId);
 
-    // Get current pipeline steps
-    const currentPipeline = vectorizerPipelines[vectorizerAgentId] ?? [];
+      // Get current pipeline steps
+      const currentPipeline = vectorizerPipelines[vectorizerAgentId] ?? [];
 
-    if (currentPipeline.length === 0) {
-      console.error("No pipeline steps configured. Please add steps before running.");
-      setIsPipelineRunning(false);
-      return;
-    }
-
-    // Convert pipeline steps to API format
-    const steps = currentPipeline.map((step) => ({
-      step_type: step.type,
-      config: vectorizerStepConfigs[step.id] ?? {},
-    }));
-
-    // Automatically collect file IDs from Load steps
-    const loadSteps = currentPipeline.filter((step) => step.type === "load");
-    const allFileIds: string[] = [];
-
-    for (const loadStep of loadSteps) {
-      const stepConfig = vectorizerStepConfigs[loadStep.id];
-      const uploadedFileIds = stepConfig?.uploaded_file_ids as string[] | undefined;
-      if (uploadedFileIds && uploadedFileIds.length > 0) {
-        allFileIds.push(...uploadedFileIds);
-      }
-    }
-
-    console.log("Found uploaded files:", allFileIds);
-
-    // Check if any load step uses S3
-    const s3LoadSteps = loadSteps.filter((step) => {
-      const stepConfig = vectorizerStepConfigs[step.id];
-      return stepConfig?.provider === "s3";
-    });
-
-    if (s3LoadSteps.length > 0 && allFileIds.length > 0) {
-      console.log("S3 load steps detected. Files should already be uploaded directly to S3.");
-
-      const s3StepConfig = vectorizerStepConfigs[s3LoadSteps[0].id];
-      const bucketName = s3StepConfig?.bucket_name as string;
-
-      if (!bucketName) {
-        console.error("S3 bucket name is required for S3 pipeline. Please configure the bucket name in the load step.");
+      if (currentPipeline.length === 0) {
+        console.error(
+          "No pipeline steps configured. Please add steps before running."
+        );
         setIsPipelineRunning(false);
         return;
       }
 
-      console.log(`Using S3 bucket: ${bucketName} for pipeline execution`);
-    }
+      // Convert pipeline steps to API format
+      const steps = currentPipeline.map((step) => ({
+        step_type: step.type,
+        config: vectorizerStepConfigs[step.id] ?? {},
+      }));
 
-    console.log("Executing pipeline with steps:", steps);
-    console.log("Step configurations:", vectorizerStepConfigs);
+      // Automatically collect file IDs from Load steps
+      const loadSteps = currentPipeline.filter((step) => step.type === "load");
+      const allFileIds: string[] = [];
 
-    // Create the request payload
-    const requestPayload = {
-      steps,
-      file_id: allFileIds[0], // Use the first file ID for backward compatibility
-      file_ids: allFileIds, // Pass all file IDs for multi-file support
-      pipeline_name: `${vectorizerAgentName}-pipeline`,
-    };
-
-    console.log("Full request payload:", JSON.stringify(requestPayload, null, 2));
-
-    // Import the action dynamically to avoid server-side issues
-    const { executeVectorizationPipeline } = await import("../lib/actions/vectorization");
-
-    // Generate pipeline ID on frontend to establish connection early
-    const pipelineId = `frontend-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000").replace("127.0.0.1", "localhost");
-
-    // Create a completion handler that will stop the running state
-    const completionHandler = () => {
-      console.log("🎉 Pipeline execution completed - stopping UI loading state");
-      setIsPipelineRunning(false);
-    };
-
-    // Store completion handler globally so polling can access it
-    (window as any).pipelineCompletionHandler = completionHandler;
-
-    // Start pipeline progress monitoring BEFORE starting the pipeline
-    startPipelineProgressListener(pipelineId, backendUrl);
-
-    // Add pipeline_id to request payload
-    const requestWithId = {
-      ...requestPayload,
-      pipeline_id: pipelineId,
-    };
-
-    const result = await executeVectorizationPipeline(requestWithId);
-    console.log("Pipeline execution started:", result);
-
-    // Set a backup timeout to stop the loading state (10 minutes max)
-    setTimeout(() => {
-      console.log("⏰ Checking if pipeline is still running after 10 minutes...");
-      if (isPipelineRunning) {
-        console.log("⏰ Pipeline timeout reached - stopping loading state");
-        setIsPipelineRunning(false);
+      for (const loadStep of loadSteps) {
+        const stepConfig = vectorizerStepConfigs[loadStep.id];
+        const uploadedFileIds = stepConfig?.uploaded_file_ids as
+          | string[]
+          | undefined;
+        if (uploadedFileIds && uploadedFileIds.length > 0) {
+          allFileIds.push(...uploadedFileIds);
+        }
       }
-    }, 600000); // 10 minutes
 
-    // Pipeline started successfully - polling will handle status updates and completion
-    
-  } catch (error) {
-    console.error("Failed to execute vectorization pipeline:", error);
-    setIsPipelineRunning(false);
-    
-    // Mark the first step as error if execution failed to start
-    if (typeof (window as any).updateVectorizerStepStatus === 'function') {
-      (window as any).updateVectorizerStepStatus('load', 'error');
+      console.log("Found uploaded files:", allFileIds);
+
+      // Check if any load step uses S3
+      const s3LoadSteps = loadSteps.filter((step) => {
+        const stepConfig = vectorizerStepConfigs[step.id];
+        return stepConfig?.provider === "s3";
+      });
+
+      if (s3LoadSteps.length > 0 && allFileIds.length > 0) {
+        console.log(
+          "S3 load steps detected. Files should already be uploaded directly to S3."
+        );
+
+        const s3StepConfig = vectorizerStepConfigs[s3LoadSteps[0].id];
+        const bucketName = s3StepConfig?.bucket_name as string;
+
+        if (!bucketName) {
+          console.error(
+            "S3 bucket name is required for S3 pipeline. Please configure the bucket name in the load step."
+          );
+          setIsPipelineRunning(false);
+          return;
+        }
+
+        console.log(`Using S3 bucket: ${bucketName} for pipeline execution`);
+      }
+
+      console.log("Executing pipeline with steps:", steps);
+      console.log("Step configurations:", vectorizerStepConfigs);
+
+      // Create the request payload
+      const requestPayload = {
+        steps,
+        file_id: allFileIds[0], // Use the first file ID for backward compatibility
+        file_ids: allFileIds, // Pass all file IDs for multi-file support
+        pipeline_name: `${vectorizerAgentName}-pipeline`,
+      };
+
+      console.log(
+        "Full request payload:",
+        JSON.stringify(requestPayload, null, 2)
+      );
+
+      // Import the action dynamically to avoid server-side issues
+      const { executeVectorizationPipeline } = await import(
+        "../lib/actions/vectorization"
+      );
+
+      // Generate pipeline ID on frontend to establish connection early
+      const pipelineId = `frontend-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const backendUrl = (
+        process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000"
+      ).replace("127.0.0.1", "localhost");
+
+      // Create a completion handler that will stop the running state
+      const completionHandler = () => {
+        console.log(
+          "🎉 Pipeline execution completed - stopping UI loading state"
+        );
+        setIsPipelineRunning(false);
+      };
+
+      // Store completion handler globally so polling can access it
+      (window as any).pipelineCompletionHandler = completionHandler;
+
+      // Start pipeline progress monitoring BEFORE starting the pipeline
+      startPipelineProgressListener(pipelineId, backendUrl);
+
+      // Add pipeline_id to request payload
+      const requestWithId = {
+        ...requestPayload,
+        pipeline_id: pipelineId,
+      };
+
+      const result = await executeVectorizationPipeline(requestWithId);
+      console.log("Pipeline execution started:", result);
+
+      // Set a backup timeout to stop the loading state (10 minutes max)
+      setTimeout(() => {
+        console.log(
+          "⏰ Checking if pipeline is still running after 10 minutes..."
+        );
+        if (isPipelineRunning) {
+          console.log("⏰ Pipeline timeout reached - stopping loading state");
+          setIsPipelineRunning(false);
+        }
+      }, 600000); // 10 minutes
+
+      // Pipeline started successfully - polling will handle status updates and completion
+    } catch (error) {
+      console.error("Failed to execute vectorization pipeline:", error);
+      setIsPipelineRunning(false);
+
+      // Mark the first step as error if execution failed to start
+      if (typeof (window as any).updateVectorizerStepStatus === "function") {
+        (window as any).updateVectorizerStepStatus("load", "error");
+      }
     }
-  }
-}, [
-  vectorizerAgentId,
-  vectorizerPipelines,
-  vectorizerStepConfigs,
-  vectorizerAgentName,
-  startPipelineProgressListener,
-  isPipelineRunning,
-]);
+  }, [
+    vectorizerAgentId,
+    vectorizerPipelines,
+    vectorizerStepConfigs,
+    vectorizerAgentName,
+    startPipelineProgressListener,
+    isPipelineRunning,
+  ]);
 
   const handleVectorizerDeploy = useCallback(() => {
     // TODO: Implement deploy functionality

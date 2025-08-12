@@ -44,7 +44,7 @@ export interface VectorizationPipelineResponse {
 export async function executeVectorizationPipeline(
   request: VectorizationPipelineRequest
 ): Promise<VectorizationPipelineResponse> {
-  const url = buildApiUrl("api/vectorization/pipeline/execute");
+  const url = buildApiUrl("api/pipeline/execute");
 
   try {
     const response = await fetch(url, {
@@ -74,7 +74,7 @@ export async function executeVectorizationPipeline(
 export async function getVectorizationPipelineStatus(
   pipelineId: string
 ): Promise<VectorizationPipelineResponse> {
-  const url = buildApiUrl(`api/vectorization/pipeline/${pipelineId}/status`);
+  const url = buildApiUrl(`api/pipeline/${pipelineId}/status`);
 
   try {
     const response = await fetch(url, {
@@ -103,7 +103,7 @@ export async function getVectorizationPipelineStatus(
 export async function getVectorizationConfigTemplate(): Promise<
   Record<string, unknown>
 > {
-  const url = buildApiUrl("api/vectorization/config/template");
+  const url = buildApiUrl("api/pipeline/config/template");
 
   try {
     const response = await fetch(url, {
