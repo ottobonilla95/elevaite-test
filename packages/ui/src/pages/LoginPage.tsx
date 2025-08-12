@@ -12,14 +12,27 @@ interface LoginPageProps {
   ) => Promise<"Invalid credentials." | "Something went wrong." | undefined>;
 }
 
-export function LoginPage({ signUp, mode, authenticate }: LoginPageProps): JSX.Element {
+export function LoginPage({
+  signUp,
+  mode,
+  authenticate,
+}: LoginPageProps): JSX.Element {
   return (
     <div className="ui-w-screen ui-h-screen">
       <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#161616] ui-w-1/2 ui-h-full ui-float-left">
         <AuthFluff mode={mode} />
       </div>
       <div className="ui-flex ui-items-center ui-justify-center ui-bg-[#282828] ui-h-full ui-w-1/2 ui-float-right">
-        {signUp ? <SignUpForm /> : <LogInForm authenticate={authenticate} authenticateGoogle={async () => { return undefined; }} />}
+        {signUp ? (
+          <SignUpForm />
+        ) : (
+          <LogInForm
+            authenticate={authenticate}
+            authenticateGoogle={() => {
+              return Promise.resolve(undefined);
+            }}
+          />
+        )}
       </div>
     </div>
   );
