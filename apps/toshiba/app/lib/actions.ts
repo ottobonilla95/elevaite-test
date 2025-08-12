@@ -26,6 +26,7 @@ export async function authenticate(
 ): Promise<
   | "Invalid credentials."
   | "Email not verified."
+  | "Account locked."
   | "Admin access required."
   | "Something went wrong."
   | "MFA_REQUIRED_TOTP"
@@ -147,11 +148,19 @@ export async function authenticate(
           if (error.message?.includes("email_not_verified")) {
             return "Email not verified.";
           }
+          // Check if this is an account locked error
+          if (error.message?.includes("account_locked")) {
+            return "Account locked.";
+          }
           return "Invalid credentials.";
         default:
           // Check if this is an email verification error
           if (error.message?.includes("email_not_verified")) {
             return "Email not verified.";
+          }
+          // Check if this is an account locked error
+          if (error.message?.includes("account_locked")) {
+            return "Account locked.";
           }
           // Check if this is an admin access required error
           if (error.message?.includes("admin_access_required")) {
@@ -165,6 +174,9 @@ export async function authenticate(
     if (error instanceof Error) {
       if (error.message === "email_not_verified") {
         return "Email not verified.";
+      }
+      if (error.message === "account_locked") {
+        return "Account locked.";
       }
       if (error.message === "MFA_REQUIRED_TOTP") {
         return "MFA_REQUIRED_TOTP";

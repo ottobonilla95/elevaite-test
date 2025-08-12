@@ -166,6 +166,10 @@ export class AuthApiClient {
           throw new Error("email_not_verified");
         }
 
+        if (response.status === 423 && errorData.detail === "account_locked") {
+          throw new Error("account_locked");
+        }
+
         if (
           response.status === 400 &&
           errorData.detail?.includes("MFA code required")

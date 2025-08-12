@@ -85,6 +85,11 @@ export const authOptions: NextAuthConfig = {
                 throw new Error("email_not_verified");
               }
 
+              // Check for account locked error
+              if (error.message === "account_locked") {
+                throw new Error("account_locked");
+              }
+
               // For MFA challenges, throw with a specific format that we can catch
               if (error.message === "MFA_REQUIRED_MULTIPLE") {
                 const mfaError = new Error("MFA_REQUIRED_MULTIPLE");

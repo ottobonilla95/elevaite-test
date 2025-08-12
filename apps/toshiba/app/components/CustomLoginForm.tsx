@@ -12,6 +12,7 @@ interface CustomLoginFormProps {
   ) => Promise<
     | "Invalid credentials."
     | "Email not verified."
+    | "Account locked."
     | "Admin access required."
     | "Something went wrong."
     | "MFA_REQUIRED_TOTP"
@@ -143,6 +144,7 @@ export function CustomLoginForm({
   ): Promise<
     | "Invalid credentials."
     | "Email not verified."
+    | "Account locked."
     | "Something went wrong."
     | undefined
   > => {
