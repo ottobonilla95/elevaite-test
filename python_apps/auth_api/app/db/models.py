@@ -149,6 +149,38 @@ class Session(Base, TimestampMixin):
         return f"<Session {self.id} for User {self.user_id}>"
 
 
+class MfaDeviceVerification(Base, TimestampMixin):
+    """MFA device verification tracking for 24-hour MFA bypass."""
+
+    __tablename__ = "mfa_device_verifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    device_fingerprint: Mapped[str] = mapped_column(
+        String(255), nullable=False, index=True
+    )
+    ip_address: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    verified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    mfa_method: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # 'totp', 'sms', 'email'
+
+    # Relationship to User
+    user: Mapped["User"] = relationship("User")
+
+    def __repr__(self) -> str:
+        """String representation."""
+        return f"<MfaDeviceVerification {self.id} for User {self.user_id}>"
+
+
 class UserActivity(Base, TimestampMixin):
     """User activity logging model for audit purposes."""
 
