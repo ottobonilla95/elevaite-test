@@ -33,11 +33,6 @@ jobs:
           persist-credentials: true
           token: ${{ github.token }}
 
-      # - name: Checkout
-      #   uses: actions/checkout@v4
-      #   with:
-      #     fetch-depth: 0
-
       - name: Fetch base branch
         run: |
           git fetch origin ${{ github.event.pull_request.base.ref }} --depth=0 || true
@@ -173,9 +168,39 @@ jobs:
     needs: [deploy-preview, check-changes]
     runs-on: self-hosted
     steps:
-      - name: Comment on PR with preview URL
+      - name: Comment on PR with preview + logs links
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PREVIEW_URL="https://pr-${{ github.event.pull_request.number }}.dev.iopex.ai"
-          gh pr comment ${{ github.event.pull_request.number }} --body "✅ Preview deployed: **${PREVIEW_URL}**"
+          PR=${{ github.event.pull_request.number }}
+          PREVIEW_URL="https://pr-${PR}.dev.iopex.ai"
+
+          GRAFANA_HOST="https://grafana.dev.iopex.ai"
+
+          NAMESPACE="elevaite-pr-${PR}"
+          LOGQL="{namespace=\"${NAMESPACE}\"}"
+
+          JSON=$(cat <<EOF
+          {"datasource":"Loki","queries":[{"expr":"$LOGQL"}],"range":{"from":"now-1h","to":"now"}}
+          EOF
+          )
+
+          url_encode() {
+            local LANG=C i c o
+            for ((i=0;i<${#1};i++)); do
+              c=${1:$i:1}
+              case "$c" in
+                [a-zA-Z0-9._~-]) o+="$c" ;;
+                ' ') o+='%20' ;;
+                *) printf -v hex '%%%02X' "'$c"; o+="$hex" ;;
+              esac
+            done
+            echo -n "$o"
+          }
+          LEFT_ENC=$(url_encode "$JSON")
+          LOGS_URL="${GRAFANA_HOST}/explore?orgId=1&left=${LEFT_ENC}"
+
+          MSG=$'✅ Preview deployed:\n- App: '"**${PREVIEW_URL}**"$'\n- Logs: '"**${LOGS_URL}**"$'\n\nTip: timeframe = last 1h. Adjust in Grafana as needed.'
+
+          echo "$MSG"
+          gh pr comment ${{ github.event.pull_request.number }} --body "$MSG"
