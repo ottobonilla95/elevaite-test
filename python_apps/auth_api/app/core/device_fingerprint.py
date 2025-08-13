@@ -134,15 +134,16 @@ def extract_platform_from_user_agent(user_agent: str) -> str:
     """
     user_agent_lower = user_agent.lower()
 
-    if "windows" in user_agent_lower:
+    # Check for mobile platforms first (more specific)
+    if "android" in user_agent_lower:
+        return "Android"
+    elif "iphone" in user_agent_lower or "ipad" in user_agent_lower:
+        return "iOS"
+    elif "windows" in user_agent_lower:
         return "Windows"
     elif "macintosh" in user_agent_lower or "mac os" in user_agent_lower:
         return "macOS"
     elif "linux" in user_agent_lower:
         return "Linux"
-    elif "android" in user_agent_lower:
-        return "Android"
-    elif "iphone" in user_agent_lower or "ipad" in user_agent_lower:
-        return "iOS"
     else:
         return "Unknown"
