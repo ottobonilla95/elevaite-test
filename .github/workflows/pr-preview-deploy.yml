@@ -172,35 +172,43 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           PR=${{ github.event.pull_request.number }}
           PREVIEW_URL="https://pr-${PR}.dev.iopex.ai"
 
           GRAFANA_HOST="https://grafana.dev.iopex.ai"
+          ORG_ID="1"
 
-          NAMESPACE="elevaite-pr-${PR}"
-          LOGQL="{namespace=\"${NAMESPACE}\"}"
+          NS="elevaite-pr-${PR}"
+          LOGQL="{namespace=\"${NS}\"}"
 
-          JSON=$(cat <<EOF
-          {"datasource":"Loki","queries":[{"expr":"$LOGQL"}],"range":{"from":"now-1h","to":"now"}}
-          EOF
-          )
+          LEFT_JSON='{"queries":[{"refId":"A","expr":"'"$LOGQL"'"}],"range":{"from":"now-1h","to":"now"}}'
 
           url_encode() {
-            local LANG=C i c o
-            for ((i=0;i<${#1};i++)); do
+            local i c out
+            out=''
+            for (( i=0; i<${#1}; i++ )); do
               c=${1:$i:1}
               case "$c" in
-                [a-zA-Z0-9._~-]) o+="$c" ;;
-                ' ') o+='%20' ;;
-                *) printf -v hex '%%%02X' "'$c"; o+="$hex" ;;
+                [a-zA-Z0-9._~-]) out+="$c" ;;
+                ' ') out+='%20' ;;
+                *) printf -v hex '%%%02X' "'$c"; out+="$hex" ;;
               esac
             done
-            echo -n "$o"
+            printf '%s' "$out"
           }
-          LEFT_ENC=$(url_encode "$JSON")
-          LOGS_URL="${GRAFANA_HOST}/explore?orgId=1&left=${LEFT_ENC}"
 
-          MSG=$'✅ Preview deployed:\n- App: '"**${PREVIEW_URL}**"$'\n- Logs: '"**${LOGS_URL}**"$'\n\nTip: timeframe = last 1h. Adjust in Grafana as needed.'
+          LEFT_ENC=$(url_encode "$LEFT_JSON")
+          LOGS_URL="${GRAFANA_HOST}/explore?orgId=${ORG_ID}&left=${LEFT_ENC}"
+
+          MSG=$'✅ Preview deployed:\n'\
+          $'- App: **'"${PREVIEW_URL}"$'**\n'\
+          $'- Logs (namespace filtered): **'"${LOGS_URL}"$'**\n\n'\
+          $'_Tip: Cmd/Ctrl‑click to open in a new tab. Time range = last 1h; adjust in Grafana as needed._\n\n'\
+          $'Raw logs URL (copy if needed):\n'\
+          \`\`\`
+          ${LOGS_URL}
+          \`\`\`
 
           echo "$MSG"
           gh pr comment ${{ github.event.pull_request.number }} --body "$MSG"
