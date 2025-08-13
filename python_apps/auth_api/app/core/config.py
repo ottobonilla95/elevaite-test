@@ -1,6 +1,6 @@
 import os
 import secrets
-from typing import List, Union, Optional
+from typing import List, Union
 
 from pydantic import field_validator, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     # Specifies which MFA method to auto-enable after grace period expires
     # Options: "email", "sms", "totp", "none"
     MFA_AUTO_ENABLE_METHOD: str = os.environ.get("MFA_AUTO_ENABLE_METHOD", "email")
+
+    # MFA Device Bypass Configuration
+    MFA_DEVICE_BYPASS_HOURS: int = int(os.environ.get("MFA_DEVICE_BYPASS_HOURS", "24"))
 
     # MFA Email Theme Configuration
     MFA_EMAIL_PRIMARY_COLOR: str = os.environ.get("MFA_EMAIL_PRIMARY_COLOR", "e75f33")

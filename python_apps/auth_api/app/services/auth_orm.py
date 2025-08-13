@@ -42,7 +42,11 @@ async def get_user_by_email(session: AsyncSession, email: str) -> Optional[User]
 
 
 async def authenticate_user(
-    session: AsyncSession, email: str, password: str, totp_code: Optional[str] = None
+    session: AsyncSession,
+    email: str,
+    password: str,
+    totp_code: Optional[str] = None,
+    request: Optional[Request] = None,
 ) -> Tuple[Optional[User], bool]:
     """
     Authenticate a user with email and password.
@@ -385,7 +389,22 @@ async def authenticate_user(
             f"MFA check for user {user.id}: TOTP={has_totp_mfa}, SMS={has_sms_mfa}, Email={has_email_mfa}"
         )
 
-        if (has_totp_mfa or has_sms_mfa or has_email_mfa) and not totp_code:
+        # Check if device has valid MFA bypass (24-hour window)
+        device_has_mfa_bypass = False
+        if request and (has_totp_mfa or has_sms_mfa or has_email_mfa):
+            from app.services.mfa_device_service import mfa_device_service
+
+            device_has_mfa_bypass = await mfa_device_service.check_device_mfa_bypass(
+                user, request, session
+            )
+            if device_has_mfa_bypass:
+                logger.info(f"Device has valid MFA bypass for user {user.id}")
+
+        if (
+            (has_totp_mfa or has_sms_mfa or has_email_mfa)
+            and not totp_code
+            and not device_has_mfa_bypass
+        ):
             # Determine which MFA methods are available and build appropriate message
             available_methods = []
             if has_totp_mfa:
@@ -420,6 +439,7 @@ async def authenticate_user(
         # Verify MFA code if provided
         if totp_code:
             mfa_valid = False
+            mfa_method_used = None
 
             # Try TOTP verification first
             if (
@@ -428,6 +448,7 @@ async def authenticate_user(
                 and verify_totp(totp_code, user.mfa_secret)
             ):
                 mfa_valid = True
+                mfa_method_used = "totp"
 
             # Try SMS verification if TOTP failed or not available
             if not mfa_valid and has_sms_mfa:
@@ -438,6 +459,7 @@ async def authenticate_user(
                     # Verify SMS MFA code
                     await sms_mfa_service.verify_mfa_code(user, totp_code, session)
                     mfa_valid = True
+                    mfa_method_used = "sms"
                 except HTTPException:
                     # SMS verification failed
                     pass
@@ -448,6 +470,7 @@ async def authenticate_user(
                     # Verify Email MFA code
                     await email_mfa_service.verify_mfa_code(user, totp_code, session)
                     mfa_valid = True
+                    mfa_method_used = "email"
                 except HTTPException:
                     # Email verification failed
                     pass
@@ -457,6 +480,20 @@ async def authenticate_user(
                     status_code=http_status.HTTP_400_BAD_REQUEST,
                     detail="Invalid MFA code",
                 )
+
+            # Record successful MFA verification for 24-hour bypass
+            if mfa_valid and mfa_method_used and request:
+                try:
+                    from app.services.mfa_device_service import mfa_device_service
+
+                    await mfa_device_service.record_mfa_verification(
+                        user, request, session, mfa_method_used
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Error recording MFA verification for user {user.id}: {str(e)}"
+                    )
+                    # Don't fail the login if we can't record the bypass
 
         try:
             # Reset failed login attempts and update last login
