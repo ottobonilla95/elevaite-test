@@ -5,13 +5,15 @@
     "**/*.css"
   ],
   "exports": {
+    ".": "./src/index.ts",
     "./styles.css": "./dist/index.css",
     "./card": "./src/card.tsx",
     "./components": "./src/components/index.ts",
     "./hooks": "./src/hooks/index.ts",
     "./helpers": "./src/helpers/index.ts",
     "./contexts": "./src/contexts/index.ts",
-    "./pages": "./src/pages/index.ts"
+    "./pages": "./src/pages/index.ts",
+    "./types": "./src/types/auth.ts"
   },
   "license": "MIT",
   "scripts": {

@@ -4,25 +4,17 @@ import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { MFALoginVerification, MFAMethodSelection } from "./mfa";
 import { getMFAConfig } from "../lib/mfaConfig";
+import type {
+  AuthResult,
+  SimpleAuthResult,
+  ExtendedAuthFormData,
+} from "@repo/ui";
 
 interface CustomLoginFormProps {
   authenticate: (
     prevstate: string,
-    formData: Record<"email" | "password", string> & { totp_code?: string }
-  ) => Promise<
-    | "Invalid credentials."
-    | "Email not verified."
-    | "Account locked. Please try again later or reset your password."
-    | "Too many attempts. Please try again later."
-    | "Admin access required."
-    | "Something went wrong."
-    | "MFA_REQUIRED_TOTP"
-    | "MFA_REQUIRED_SMS"
-    | "MFA_REQUIRED_EMAIL"
-    | "MFA_REQUIRED_MULTIPLE"
-    | { type: "MFA_ERROR"; error: any }
-    | undefined
-  >;
+    formData: ExtendedAuthFormData
+  ) => Promise<AuthResult>;
 }
 
 export function CustomLoginForm({
@@ -142,14 +134,7 @@ export function CustomLoginForm({
   const adaptedAuthenticate = async (
     prevstate: string,
     formData: { email: string; password: string; rememberMe: boolean }
-  ): Promise<
-    | "Invalid credentials."
-    | "Email not verified."
-    | "Account locked. Please try again later or reset your password."
-    | "Too many attempts. Please try again later."
-    | "Something went wrong."
-    | undefined
-  > => {
+  ): Promise<SimpleAuthResult> => {
     setError("");
 
     try {

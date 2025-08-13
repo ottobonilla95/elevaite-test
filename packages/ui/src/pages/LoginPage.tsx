@@ -2,6 +2,7 @@
 import type { JSX } from "react";
 import { LogInForm, SignUpForm } from "../components/authentication";
 import { AuthFluff } from "../components/AuthFluff";
+import type { SimpleAuthResult } from "../types/auth";
 
 interface LoginPageProps {
   signUp: boolean;
@@ -9,14 +10,7 @@ interface LoginPageProps {
   authenticate: (
     prevstate: string,
     formData: Record<"email" | "password", string>
-  ) => Promise<
-    | "Invalid credentials."
-    | "Account locked. Please try again later or reset your password."
-    | "Email not verified."
-    | "Too many attempts. Please try again later."
-    | "Something went wrong."
-    | undefined
-  >;
+  ) => Promise<SimpleAuthResult>;
 }
 
 export function LoginPage({

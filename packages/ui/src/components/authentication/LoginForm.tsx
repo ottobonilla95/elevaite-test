@@ -7,6 +7,7 @@ import { type SVGProps, useEffect, useState } from "react";
 import Link from "next/link";
 import { GoogleColorIcon } from "../icons/GoogleColor";
 import { CommonCheckbox } from "../common/CommonCheckbox";
+import type { SimpleAuthResult } from "../../types/auth";
 
 // Eye icons for password visibility toggle
 function EyeIcon({ size = 16 }: { size?: number }): JSX.Element {
@@ -59,22 +60,8 @@ interface LoginFormProps {
   authenticate: (
     prevstate: string,
     formData: FormValues
-  ) => Promise<
-    | "Invalid credentials."
-    | "Email not verified."
-    | "Account locked. Please try again later or reset your password."
-    | "Too many attempts. Please try again later."
-    | "Something went wrong."
-    | undefined
-  >;
-  authenticateGoogle?: () => Promise<
-    | "Invalid credentials."
-    | "Email not verified."
-    | "Account locked. Please try again later or reset your password."
-    | "Too many attempts. Please try again later."
-    | "Something went wrong."
-    | undefined
-  >;
+  ) => Promise<SimpleAuthResult>;
+  authenticateGoogle?: () => Promise<SimpleAuthResult>;
 }
 
 export function LogInForm({
