@@ -171,48 +171,25 @@ jobs:
       - name: Comment on PR with preview + logs links
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GRAFANA_HOST: https://grafana.dev.iopex.ai
+          GRAFANA_DASH_UID: e866a19b-3229-478c-9a16-fd00b35c04ba
+          ORG_ID: "1"
         run: |
           set -euo pipefail
 
           PR=${{ github.event.pull_request.number }}
-          PREVIEW_URL="https://pr-${PR}.dev.iopex.ai"
-
-          GRAFANA_HOST="https://grafana.dev.iopex.ai"
-          ORG_ID="1"
-
           NS="elevaite-pr-${PR}"
-          LOGQL="{namespace=\"${NS}\"}"
 
-          LEFT_JSON='{"queries":[{"refId":"A","expr":"'"$LOGQL"'"}],"range":{"from":"now-1h","to":"now"}}'
+          PREVIEW_URL="https://pr-${PR}.dev.iopex.ai"
+          DASH_SLUG="toshiba-test-logs"
 
-          url_encode() {
-            local i c out
-            out=''
-            for (( i=0; i<${#1}; i++ )); do
-              c=${1:$i:1}
-              case "$c" in
-                [a-zA-Z0-9._~-]) out+="$c" ;;
-                ' ') out+='%20' ;;
-                *) printf -v hex '%%%02X' "'$c"; out+="$hex" ;;
-              esac
-            done
-            printf '%s' "$out"
-          }
+          LOGS_URL="${GRAFANA_HOST}/d/${GRAFANA_DASH_UID}/${DASH_SLUG}?orgId=${ORG_ID}&var-namespace=${NS}&from=now-1h&to=now"
 
-          LEFT_ENC=$(url_encode "$LEFT_JSON")
-          LOGS_URL="${GRAFANA_HOST}/explore?orgId=${ORG_ID}&left=${LEFT_ENC}"
+          BODY=$'✅ Preview deployed:\n'\
 
-          MSG=$(cat <<EOF
-          ✅ Preview deployed:
-          - App: **${PREVIEW_URL}**
-          - Logs (namespace filtered): **${LOGS_URL}**
+          $'- App: **'"${PREVIEW_URL}"$'**\n'\
+          $'- Logs: **'"${LOGS_URL}"$'**'
 
-          _Tip: Cmd/Ctrl click to open in a new tab. Time range = last 1h; adjust in Grafana as needed._
+          gh pr comment "$PR" --body "$BODY"
 
-          Raw logs URL (copy if needed):
-          ${LOGS_URL}
-          EOF
-          )
-
-          echo "$MSG"
-          gh pr comment "$PR" --body "$MSG"
+  
