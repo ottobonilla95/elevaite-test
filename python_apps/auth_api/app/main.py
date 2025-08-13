@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request  
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -19,19 +19,22 @@ attach_logger_to_app()
 
 security = HTTPBearer()
 
+
 class NoCacheMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
-        
 
-        if (request.url.path.startswith("/api/auth") or 
-            request.url.path.startswith("/api/email-mfa") or
-            request.url.path.startswith("/api/sms-mfa")):
+        if (
+            request.url.path.startswith("/api/auth")
+            or request.url.path.startswith("/api/email-mfa")
+            or request.url.path.startswith("/api/sms-mfa")
+        ):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
-        
+
         return response
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
@@ -47,9 +50,24 @@ async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
 
         ElevaiteLogger.force_reattach_to_uvicorn()
 
+        # Start background task for cleaning up expired MFA verifications
+        import asyncio
+        from app.tasks.cleanup_tasks import start_mfa_cleanup_task
+
+        cleanup_task = asyncio.create_task(start_mfa_cleanup_task())
+        logger.info("Started MFA device verification cleanup task")
+
         yield
+
+        # Cancel cleanup task on shutdown
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            logger.info("MFA cleanup task cancelled")
     finally:
         logger.info("Shutting down Auth API application")
+
 
 app = FastAPI(
     title="Minimal Auth API",
@@ -94,11 +112,13 @@ from app.routers import email_mfa
 
 app.include_router(email_mfa.router, prefix="/api/email-mfa", tags=["email-mfa"])
 
+
 @app.get("/api/health", tags=["health"])
 def health_check():
     """Health check endpoint."""
     logger.info("Health check endpoint called")
     return {"status": "healthy"}
+
 
 @app.get("/api/test-logs", tags=["testing"])
 def test_logs():
@@ -109,6 +129,7 @@ def test_logs():
     logger.error("This is an error message")
     logger.critical("This is a critical message")
     return {"message": "Check the logs to see different colored log levels!"}
+
 
 if __name__ == "__main__":
     import uvicorn
