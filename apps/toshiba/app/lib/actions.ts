@@ -30,6 +30,13 @@ export async function authenticate(
     await signIn("credentials", formData);
     return undefined;
   } catch (error) {
+    // Check if this is a redirect error (successful authentication)
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      // This is a successful authentication that's redirecting
+      // Re-throw the error to allow the redirect to happen
+      throw error;
+    }
+
     if (error instanceof AuthError) {
       // Use centralized error extraction and mapping
       const errorCode = extractErrorCode(error);

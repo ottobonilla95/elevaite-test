@@ -1,6 +1,12 @@
+"use client";
+
 import { useState, useEffect } from "react";
 
-export const useTypewriter = (texts: string[], speed = 50, stallCycles = 0): string => {
+export const useTypewriter = (
+  texts: string[],
+  speed = 50,
+  stallCycles = 0
+): string => {
   const [displayText, setDisplayText] = useState("");
 
   useEffect(() => {

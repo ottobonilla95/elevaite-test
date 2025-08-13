@@ -9,7 +9,7 @@
   font-family: Inter;
 }
 
-body {
+:root {
   --ev-colors-primary: #282828;
   --ev-colors-secondary: #424242;
   --ev-colors-tertiary: #4e332a;
@@ -30,4 +30,11 @@ body {
   --ev-colors-uiIcon: #93939380;
   --ev-colors-uiHover: #363636;
   --ev-colors-uiBackground: #161616;
+}
+
+body {
+  background-color: var(--ev-colors-background);
+  color: var(--ev-colors-text);
+  margin: 0;
+  padding: 0;
 }

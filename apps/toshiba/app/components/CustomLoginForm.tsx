@@ -143,6 +143,11 @@ export function CustomLoginForm({
         password: formData.password,
       });
 
+      // If result is undefined, authentication was successful
+      if (result === undefined) {
+        return undefined; // Let the form handle success normally
+      }
+
       if (result && typeof result === "object" && result.type === "MFA_ERROR") {
         const error = result.error;
 
@@ -247,6 +252,12 @@ export function CustomLoginForm({
 
       return typeof result === "string" ? result : "Something went wrong.";
     } catch (error: any) {
+      // Check if this is a redirect error (successful authentication)
+      if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+        // This is a successful authentication that's redirecting
+        // Re-throw the error to allow the redirect to happen
+        throw error;
+      }
       // Handle MFA errors with masked phone number and email
       if (error.message === "MFA_REQUIRED_MULTIPLE") {
         // Parse available methods from error

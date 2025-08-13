@@ -104,6 +104,9 @@ export function LogInForm({
       setError("root.credentials", { message: res });
       resetField("password");
     } else {
+      // If login is successful, show success message briefly
+      setError("root.credentials", { message: "Success!" });
+
       // If login is successful and remember me is not checked, clear the storage
       if (!data.rememberMe) {
         localStorage.removeItem("rememberedEmail");
@@ -226,7 +229,13 @@ export function LogInForm({
           <p className="ui-text-sm ui-text-red-500">
             {errors.password?.message}
           </p>
-          <p className="ui-text-sm ui-text-red-500">
+          <p
+            className={`ui-text-sm ${
+              errors.root?.credentials?.message === "Success!"
+                ? "ui-text-green-500"
+                : "ui-text-red-500"
+            }`}
+          >
             {errors.root?.credentials?.message}
           </p>
 
