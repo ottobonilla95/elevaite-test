@@ -173,6 +173,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+
           PR=${{ github.event.pull_request.number }}
           PREVIEW_URL="https://pr-${PR}.dev.iopex.ai"
 
@@ -201,16 +202,17 @@ jobs:
           LEFT_ENC=$(url_encode "$LEFT_JSON")
           LOGS_URL="${GRAFANA_HOST}/explore?orgId=${ORG_ID}&left=${LEFT_ENC}"
 
-          read -r -d '' MSG <<EOF
+          MSG=$(cat <<EOF
           ✅ Preview deployed:
           - App: **${PREVIEW_URL}**
           - Logs (namespace filtered): **${LOGS_URL}**
 
-          _Tip: Cmd/Ctrl-click to open in a new tab. Time range = last 1h; adjust in Grafana as needed._
+          _Tip: Cmd/Ctrl click to open in a new tab. Time range = last 1h; adjust in Grafana as needed._
 
           Raw logs URL (copy if needed):
           ${LOGS_URL}
           EOF
+          )
 
           echo "$MSG"
-          gh pr comment $PR --body "$MSG"
+          gh pr comment "$PR" --body "$MSG"
