@@ -1,6 +1,42 @@
 import hashlib
+import ipaddress
 from typing import Optional
 from fastapi import Request
+
+
+def _anonymize_ip_for_fingerprint(ip_address: str) -> str:
+    """
+    Anonymize IP address for fingerprinting to balance security with privacy.
+
+    For IPv4: Uses first 3 octets (e.g., 192.168.1.100 -> 192.168.1.0)
+    For IPv6: Uses first 64 bits (network portion)
+
+    Args:
+        ip_address: The IP address to anonymize
+
+    Returns:
+        Anonymized IP address string
+    """
+    if not ip_address or ip_address == "unknown":
+        return "unknown"
+
+    try:
+        ip = ipaddress.ip_address(ip_address)
+
+        if isinstance(ip, ipaddress.IPv4Address):
+            # For IPv4, use /24 network (first 3 octets)
+            network = ipaddress.IPv4Network(f"{ip}/24", strict=False)
+            return str(network.network_address)
+        elif isinstance(ip, ipaddress.IPv6Address):
+            # For IPv6, use /64 network (standard subnet size)
+            network = ipaddress.IPv6Network(f"{ip}/64", strict=False)
+            return str(network.network_address)
+        else:
+            return "unknown"
+
+    except (ipaddress.AddressValueError, ValueError):
+        # If IP parsing fails, return a generic identifier
+        return "unknown"
 
 
 def generate_device_fingerprint(
@@ -11,6 +47,11 @@ def generate_device_fingerprint(
 
     This creates a semi-persistent identifier for a device/browser combination
     that can be used to track MFA verifications for 24-hour bypass.
+
+    Privacy Features:
+    - IP addresses are anonymized to network level (IPv4 /24, IPv6 /64)
+    - Only essential headers are used for fingerprinting
+    - No personally identifiable information is stored
 
     Args:
         request: FastAPI request object
@@ -42,11 +83,11 @@ def generate_device_fingerprint(
     accept_encoding = request.headers.get("accept-encoding", "")
     fingerprint_data.append(accept_encoding)
 
-    # Client IP (with some privacy considerations)
-    # Note: In production, consider using only the first 3 octets for IPv4
-    # or a subnet for IPv6 to balance security with privacy
+    # Client IP (with privacy considerations)
+    # Use only network portion to balance security with privacy
     client_ip = get_client_ip(request)
-    fingerprint_data.append(client_ip)
+    privacy_ip = _anonymize_ip_for_fingerprint(client_ip)
+    fingerprint_data.append(privacy_ip)
 
     # Custom headers that might indicate device type
     x_forwarded_for = request.headers.get("x-forwarded-for", "")
@@ -114,11 +155,14 @@ def get_device_info_for_logging(request: Request) -> dict:
     """
     Extract device information for logging purposes.
 
+    Uses anonymized IP for privacy while maintaining security value.
+
     Returns a dictionary with device/browser information.
     """
+    client_ip = get_client_ip(request)
     return {
         "user_agent": request.headers.get("user-agent", "unknown"),
-        "ip_address": get_client_ip(request),
+        "ip_address": _anonymize_ip_for_fingerprint(client_ip),
         "accept_language": request.headers.get("accept-language", ""),
         "platform": extract_platform_from_user_agent(
             request.headers.get("user-agent", "")

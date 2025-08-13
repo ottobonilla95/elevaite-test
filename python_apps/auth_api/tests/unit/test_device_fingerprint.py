@@ -8,6 +8,7 @@ from app.core.device_fingerprint import (
     is_device_fingerprint_valid,
     get_device_info_for_logging,
     extract_platform_from_user_agent,
+    _anonymize_ip_for_fingerprint,
 )
 
 pytestmark = [pytest.mark.unit, pytest.mark.mfa]
@@ -162,7 +163,7 @@ class TestDeviceFingerprinting:
         assert "ip_address" in device_info
         assert "accept_language" in device_info
         assert "platform" in device_info
-        assert device_info["ip_address"] == "192.168.1.100"
+        assert device_info["ip_address"] == "192.168.1.0"  # Now anonymized
         assert device_info["platform"] == "Windows"
 
     def test_extract_platform_from_user_agent_windows(self):
@@ -229,3 +230,90 @@ class TestDeviceFingerprinting:
         assert len(fingerprint) == 64
         assert isinstance(fingerprint, str)
         assert fingerprint.isalnum()
+
+    def test_anonymize_ip_for_fingerprint_ipv4(self):
+        """Test IPv4 anonymization for fingerprinting."""
+        # Test standard IPv4 address
+        result = _anonymize_ip_for_fingerprint("192.168.1.100")
+        assert result == "192.168.1.0"
+
+        # Test different IPv4 address
+        result = _anonymize_ip_for_fingerprint("10.0.0.50")
+        assert result == "10.0.0.0"
+
+        # Test edge case
+        result = _anonymize_ip_for_fingerprint("255.255.255.255")
+        assert result == "255.255.255.0"
+
+    def test_anonymize_ip_for_fingerprint_ipv6(self):
+        """Test IPv6 anonymization for fingerprinting."""
+        # Test standard IPv6 address
+        result = _anonymize_ip_for_fingerprint("2001:db8:85a3::8a2e:370:7334")
+        assert result == "2001:db8:85a3::"
+
+        # Test localhost IPv6
+        result = _anonymize_ip_for_fingerprint("::1")
+        assert result == "::"
+
+    def test_anonymize_ip_for_fingerprint_invalid(self):
+        """Test IP anonymization with invalid inputs."""
+        # Test invalid IP
+        result = _anonymize_ip_for_fingerprint("not.an.ip")
+        assert result == "unknown"
+
+        # Test empty string
+        result = _anonymize_ip_for_fingerprint("")
+        assert result == "unknown"
+
+        # Test None (converted to empty string)
+        result = _anonymize_ip_for_fingerprint("unknown")
+        assert result == "unknown"
+
+    def test_device_info_logging_uses_anonymized_ip(self):
+        """Test that device info for logging uses anonymized IP."""
+        headers_dict = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "accept-language": "en-US,en;q=0.5",
+        }
+        request = self._create_mock_request(headers_dict, "192.168.1.100")
+
+        device_info = get_device_info_for_logging(request)
+
+        assert device_info["ip_address"] == "192.168.1.0"  # Anonymized
+        assert (
+            device_info["user_agent"]
+            == "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        )
+        assert device_info["platform"] == "Windows"
+
+    def test_fingerprint_uses_anonymized_ip(self):
+        """Test that device fingerprint uses anonymized IP."""
+        headers_dict = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        }
+
+        # Two requests from same subnet should have same fingerprint
+        request1 = self._create_mock_request(headers_dict, "192.168.1.100")
+        request2 = self._create_mock_request(headers_dict, "192.168.1.200")
+
+        fingerprint1 = generate_device_fingerprint(request1, 123)
+        fingerprint2 = generate_device_fingerprint(request2, 123)
+
+        # Should be the same because they're in the same /24 subnet
+        assert fingerprint1 == fingerprint2
+
+    def test_fingerprint_different_subnets(self):
+        """Test that different subnets produce different fingerprints."""
+        headers_dict = {
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        }
+
+        # Two requests from different subnets
+        request1 = self._create_mock_request(headers_dict, "192.168.1.100")
+        request2 = self._create_mock_request(headers_dict, "192.168.2.100")
+
+        fingerprint1 = generate_device_fingerprint(request1, 123)
+        fingerprint2 = generate_device_fingerprint(request2, 123)
+
+        # Should be different because they're in different /24 subnets
+        assert fingerprint1 != fingerprint2
