@@ -1950,6 +1950,141 @@ async def validate_session(
         )
 
 
+@router.post("/extend-session")
+async def extend_session(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Extend user session based on activity."""
+    try:
+        # Verify token
+        payload = verify_token(token, "access")
+        user_id = int(payload["sub"])
+
+        # Get user from database
+        result = await session.execute(async_select(User).where(User.id == user_id))
+        user = result.scalars().first()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="user_not_found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Check if user is active
+        if user.status != UserStatus.ACTIVE.value:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="user_inactive",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Get the refresh token from the header
+        refresh_token = request.headers.get("X-Refresh-Token")
+
+        if refresh_token:
+            # Find the specific session to extend
+            result = await session.execute(
+                async_select(Session).where(
+                    and_(
+                        Session.refresh_token == refresh_token,
+                        Session.user_id == user_id,
+                        Session.is_active.is_(True),
+                        Session.expires_at > datetime.now(timezone.utc),
+                    )
+                )
+            )
+            user_session = result.scalars().first()
+
+            if user_session:
+                # Extend the session by the configured extension time
+                from app.core.config import settings
+
+                extension_time = timedelta(minutes=settings.SESSION_EXTENSION_MINUTES)
+                user_session.expires_at = datetime.now(timezone.utc) + extension_time
+
+                # Update the session in the database
+                await session.commit()
+
+                # Log the activity
+                await log_user_activity(
+                    session,
+                    user_id,
+                    "session_extended",
+                    ip_address=request.client.host if request.client else None,
+                    user_agent=request.headers.get("user-agent"),
+                    details={"extension_minutes": settings.SESSION_EXTENSION_MINUTES},
+                )
+
+                return {
+                    "extended": True,
+                    "new_expires_at": user_session.expires_at.isoformat(),
+                    "extension_minutes": settings.SESSION_EXTENSION_MINUTES,
+                }
+
+        # If no specific session found or no refresh token, extend all active sessions
+        result = await session.execute(
+            async_select(Session).where(
+                and_(
+                    Session.user_id == user_id,
+                    Session.is_active.is_(True),
+                    Session.expires_at > datetime.now(timezone.utc),
+                )
+            )
+        )
+        active_sessions = result.scalars().all()
+
+        if active_sessions:
+            from app.core.config import settings
+
+            extension_time = timedelta(minutes=settings.SESSION_EXTENSION_MINUTES)
+            new_expires_at = datetime.now(timezone.utc) + extension_time
+
+            for user_session in active_sessions:
+                user_session.expires_at = new_expires_at
+
+            await session.commit()
+
+            # Log the activity
+            await log_user_activity(
+                session,
+                user_id,
+                "sessions_extended",
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                details={
+                    "extension_minutes": settings.SESSION_EXTENSION_MINUTES,
+                    "sessions_count": len(active_sessions),
+                },
+            )
+
+            return {
+                "extended": True,
+                "new_expires_at": new_expires_at.isoformat(),
+                "extension_minutes": settings.SESSION_EXTENSION_MINUTES,
+                "sessions_extended": len(active_sessions),
+            }
+
+        # No active sessions found
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="no_active_sessions",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    except HTTPException:
+        # Re-raise HTTPExceptions (like 401 Unauthorized) without modification
+        raise
+    except Exception as e:
+        print(f"Error extending session: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="server_error",
+        )
+
+
 @router.get("/users")
 async def get_users(session: AsyncSession = Depends(get_async_session)):
     """Get all users."""

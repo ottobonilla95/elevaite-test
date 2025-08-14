@@ -27,11 +27,24 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(32)
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 90
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
+        os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "90")
+    )
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(
         os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS", "90")
     )
     ALGORITHM: str = "HS256"
+
+    # Session Management Configuration
+    INACTIVITY_TIMEOUT_MINUTES: int = int(
+        os.environ.get("SESSION_INACTIVITY_TIMEOUT_MINUTES", "90")
+    )
+    ACTIVITY_CHECK_INTERVAL_MINUTES: int = int(
+        os.environ.get("ACTIVITY_CHECK_INTERVAL_MINUTES", "5")
+    )
+    SESSION_EXTENSION_MINUTES: int = int(
+        os.environ.get("SESSION_EXTENSION_MINUTES", "30")
+    )
 
     # 32-bytes key for HMAC operations (e.g., CSRF token)
     SECURITY_KEY: str = secrets.token_urlsafe(32)
