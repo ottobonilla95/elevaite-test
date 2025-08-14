@@ -5,6 +5,41 @@ import { z } from "zod";
 import { authConfig } from "./auth.config";
 import { AuthApiClient } from "./app/lib/authApiClient";
 
+const getDomainWithoutSubdomain = (url: string | URL): string => {
+  const urlParts = new URL(url).hostname.split(".");
+
+  return urlParts
+    .slice(0)
+    .slice(-(urlParts.length === 4 ? 3 : 2))
+    .join(".");
+};
+
+const NEXTAUTH_URL_INTERNAL = process.env.NEXTAUTH_URL_INTERNAL;
+if (!NEXTAUTH_URL_INTERNAL) {
+  throw new Error("NEXTAUTH_URL_INTERNAL does not exist in the env");
+}
+
+const useSecureCookies = NEXTAUTH_URL_INTERNAL.startsWith("https://");
+const cookiePrefix = useSecureCookies ? "__Secure-" : "";
+const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL_INTERNAL);
+
+type LaxType = "lax";
+
+const LAX: LaxType = "lax";
+
+const cookies = {
+  sessionToken: {
+    name: `${cookiePrefix}toshiba.session-token`,
+    options: {
+      httpOnly: true,
+      sameSite: LAX,
+      path: "/",
+      secure: useSecureCookies,
+      domain: hostName === "localhost" ? hostName : `.${hostName}`, // add a . in front so that subdomains are included
+    },
+  },
+};
+
 const authApiUrl =
   process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://127.0.0.1:8004";
 
@@ -27,6 +62,7 @@ export async function logoutUser(): Promise<void> {
 
 export const authOptions: NextAuthConfig = {
   ...authConfig,
+  cookies,
   debug: process.env.NODE_ENV !== "production",
   providers: [
     Credentials({

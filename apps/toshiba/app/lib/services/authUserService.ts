@@ -181,8 +181,8 @@ export async function resetUserPassword(
     const { email, password, isOneTimePassword } = params;
 
     const sessionCookie =
-      cookies().get("__Secure-authjs.session-token") ??
-      cookies().get("authjs.session-token");
+      cookies().get("__Secure-toshiba.session-token") ??
+      cookies().get("toshiba.session-token");
 
     if (!sessionCookie) {
       return {
