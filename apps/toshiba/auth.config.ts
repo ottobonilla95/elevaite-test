@@ -2,7 +2,10 @@ import type { NextAuthConfig } from "next-auth";
 import { stockConfig } from "@repo/lib";
 
 export const authConfig = {
-  session: { strategy: "jwt", maxAge: 3600 },
+  session: {
+    strategy: "jwt",
+    maxAge: 120 * 60, // 2 hours
+  },
   pages: {
     signIn: "/login",
   },
@@ -247,5 +250,8 @@ export const authConfig = {
   providers: [], // Add providers with an empty array for now
   trustHost: true,
   secret: process.env.AUTH_SECRET,
-  jwt: { maxAge: 60 * 60 },
+  jwt: {
+    maxAge:
+      parseInt(process.env.NEXT_PUBLIC_SESSION_TIMEOUT_MINUTES || "90") * 60,
+  },
 } satisfies NextAuthConfig;
