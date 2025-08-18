@@ -134,8 +134,24 @@ export const authConfig = {
         stockSession.user.email_mfa_enabled = token.email_mfa_enabled;
       }
 
-      if (token.grace_period !== undefined && token.grace_period !== null) {
-        stockSession.user.grace_period = token.grace_period;
+      if (
+        token.grace_period !== undefined &&
+        token.grace_period !== null &&
+        typeof token.grace_period === "object" &&
+        "in_grace_period" in token.grace_period &&
+        "days_remaining" in token.grace_period &&
+        "grace_period_days" in token.grace_period &&
+        "auto_enable_method" in token.grace_period
+      ) {
+        stockSession.user.grace_period = token.grace_period as {
+          in_grace_period: boolean;
+          days_remaining: number;
+          grace_period_days: number;
+          expires_at?: string;
+          auto_enable_at?: string;
+          auto_enable_method: string;
+          error?: string;
+        };
       }
 
       if (token.refresh_token) {
