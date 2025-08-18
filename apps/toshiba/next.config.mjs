@@ -2,9 +2,6 @@
 const nextConfig = {
   output: "standalone",
   transpilePackages: ["@repo/ui"],
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   sassOptions: {
     includePaths: ["./app/ui"],
     prependData: `@use "@repo/sass-config/mainSass.scss" as *;`,
