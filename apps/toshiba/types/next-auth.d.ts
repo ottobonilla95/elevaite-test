@@ -53,10 +53,11 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
-    access_token?: string;
-    expires_at?: number;
-    refresh_token?: string;
-    provider?: "google" | "credentials";
+    access_token: string | undefined;
+    expires_at: number;
+    refresh_token: string | undefined;
+    provider: "google" | "credentials";
+    error?: "RefreshAccessTokenError";
     needsPasswordReset?: boolean;
     is_superuser?: boolean;
     application_admin?: boolean;
