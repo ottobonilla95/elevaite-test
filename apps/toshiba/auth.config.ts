@@ -45,7 +45,7 @@ export const authConfig = {
         : session;
 
       if (!stockSession.user) {
-        stockSession.user = {} as NonNullable<typeof stockSession.user>;
+        stockSession.user = {};
       }
 
       Object.assign(stockSession, { authToken: token.access_token });
