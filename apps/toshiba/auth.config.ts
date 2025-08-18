@@ -338,7 +338,7 @@ export const authConfig = {
             password_change_required?: boolean;
           };
 
-          const refreshedToken = {
+          const refreshedToken: typeof token = {
             ...token,
             access_token: tokensOrError.access_token,
             expires_at: Math.floor(Date.now() / 1000 + 3600),
@@ -347,7 +347,10 @@ export const authConfig = {
           };
 
           // Preserve or update the needsPasswordReset flag from refresh response
-          if (tokensOrError.password_change_required !== undefined) {
+          if (
+            tokensOrError.password_change_required !== undefined &&
+            typeof tokensOrError.password_change_required === "boolean"
+          ) {
             refreshedToken.needsPasswordReset =
               tokensOrError.password_change_required;
           }
