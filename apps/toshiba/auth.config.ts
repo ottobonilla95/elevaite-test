@@ -1,5 +1,4 @@
 import type { NextAuthConfig } from "next-auth";
-import type { DefaultSession } from "next-auth";
 import { stockConfig } from "@repo/lib";
 
 export const authConfig = {
@@ -46,26 +45,7 @@ export const authConfig = {
         : session;
 
       if (!stockSession.user) {
-        stockSession.user = {} as DefaultSession["user"] & {
-          needsPasswordReset?: boolean;
-          is_superuser?: boolean;
-          application_admin?: boolean;
-          mfa_enabled?: boolean;
-          sms_mfa_enabled?: boolean;
-          phone_verified?: boolean;
-          phone_number?: string;
-          email_mfa_enabled?: boolean;
-          grace_period?: {
-            in_grace_period: boolean;
-            days_remaining: number;
-            grace_period_days: number;
-            expires_at?: string;
-            auto_enable_at?: string;
-            auto_enable_method: string;
-            error?: string;
-          };
-          refreshToken?: string;
-        };
+        stockSession.user = {};
       }
 
       Object.assign(stockSession, { authToken: token.access_token });
