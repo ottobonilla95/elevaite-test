@@ -22,6 +22,7 @@ import pandas as pd
 from openai import AsyncOpenAI
 import re
 import tools
+from data_classes import SRNumberRequest
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
     dotenv.load_dotenv(".env")
@@ -432,6 +433,10 @@ async def get_past_sessions(request: Request):
                 )
             )
 
+        sr_number = await database_connection.get_sr_number(res[0].session_id)
+        if not sr_number:
+            sr_number = ""
+
         # Create session object
         session_info = SessionObject(
             id=res[0].session_id,
@@ -442,6 +447,7 @@ async def get_past_sessions(request: Request):
             ),
             creationDate=res[0].request_timestamp,
             messages=messages,
+            srNumber=sr_number
         )
         past_sessions.append(session_info)
 
@@ -584,6 +590,31 @@ async def batch_evaluation(request: Request):
 
     # except Exception as e:
     #     return {"message": f"Error processing batch file: {str(e)}"}
+
+@app.post("/addSRNumber")
+async def add_sr_number(sr_number_request: SRNumberRequest = Body(...)):
+    """Add the SR number to the session."""
+    try:
+        # Validate and convert session_id to UUID
+        try:
+            session_id = uuid.UUID(sr_number_request.session_id)
+        except ValueError:
+            return {"message": f"Invalid session_id format: {sr_number_request.session_id}"}
+
+        # Call the dedicated add_sr_number function
+        success = await database_connection.add_sr_number(
+            session_id=session_id,
+            sr_number=sr_number_request.sr_number
+        )
+
+        if success:
+            return {"message": "SR number added successfully"}
+        else:
+            return {"message": "Failed to add SR number"}
+    except Exception as e:
+        error_type = type(e).__name__
+        print(f"Error adding SR number: {error_type} - {str(e)}")
+        return {"message": f"Error adding SR number: {str(e)}"}
 
 if __name__ == "__main__":
     asyncio.run(add_columns())

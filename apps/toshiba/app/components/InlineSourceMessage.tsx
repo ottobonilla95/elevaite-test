@@ -91,26 +91,49 @@ export function InlineSourceMessage({ text, sources }: InlineSourceMessageProps)
   const imageLinks: string[] = [];
   const imageNames: string[] = [];
   const imageType: "image"[] = [];
-  const indexMap = {}
+  const indexMap: { [key: number]: number } = {};
+
+  // Helper function to generate page URLs with bounds checking
+  const generatePageUrls = (source: any, centerPage: number) => {
+    const urls: any[] = [];
+    const names: any[] = [];
+    
+    // You might want to add maxPages from source metadata if available
+    // For now, we'll generate all pages and let the modal handle failures
+    for (let offset = -2; offset <= 2; offset++) {
+      const pageNum = centerPage + offset;
+      if (pageNum > 0) { // Only positive page numbers
+        const baseFilename = source.filename.replace('.pdf', '');
+        const pageUrl = source.url.replace(`_page_${centerPage}`, `_page_${pageNum}`);
+        urls.push(pageUrl);
+        names.push(`${source.filename} Page ${pageNum}`);
+      }
+    }
+    
+    return { urls, names };
+  };
 
   parts.forEach((part, index) => {
     const pillMatch = part.match(/__SOURCE_PILL_(.*?)__/);
-    console.log("pillMatch:", index);
-
+    
     if (pillMatch) {
-      // This is a placeholder for a source pill
       const awsId = pillMatch[1];
       const source = sourceMap.get(awsId);
-      console.log("source:", source);
+      
       if (source && source.url) {
-        imageLinks.push(source.url);
-        imageNames.push(`${source.filename} ${source.pages.includes(",")
-          ? `Pages ${source.pages}`
-          : source.pages.includes("-")
-            ? `Pages ${source.pages}`
-            : `Page ${source.pages}`}`);
-        imageType.push("image");
-        indexMap[index] = imageLinks.length - 1;
+        // Extract center page number from source
+        const centerPage = parseInt(source.pages.split(',')[0].split('-')[0].trim());
+        const { urls, names } = generatePageUrls(source, centerPage);
+        
+        // Add all pages to arrays
+        urls.forEach((url, idx) => {
+          imageLinks.push(url);
+          imageNames.push(names[idx]);
+          imageType.push("image");
+        });
+        
+        // Set index to center page (offset 2 in the 5-page array)
+        indexMap[index] = imageLinks.length - 3; // Points to center page
       }
     }
   });

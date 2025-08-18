@@ -25,6 +25,10 @@
     }
   }
 
+  .sr-ticket > input {
+    padding: 5px;
+  }
+
   //&.active-case {
   //    grid-template-columns: 1fr 2fr;
   //    grid-template-rows: auto auto 1fr auto;
@@ -80,7 +84,13 @@
   &.toshiba1 {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
-    background-color: var(--ev-colors-primary);
+    //background-color: var(--ev-colors-primary);
+	background: var(--ev-colors-background);
+
+	.toshiba1 {
+		background: var(--ev-colors-primary);
+	}
+
 
     // &.sidebar-collapsed{
     //     margin-left: 250px;
@@ -110,6 +120,11 @@
   & .chat {
     grid-area: chat;
   }
+
+  & .chat-results {
+	grid-area: chat-results;
+  }
+
   & .chat-input {
     grid-area: input;
   }

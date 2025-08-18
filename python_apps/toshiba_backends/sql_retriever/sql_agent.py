@@ -68,13 +68,169 @@ class SQLAgent(Agent):
         tries = 0
         max_tries = self.max_retries
         start_time = datetime.now()
-        system_prompt = """You are an SQL expert agent designed to help users query the sr_data_agent_table.
-        Your job is to understand natural language questions about service requests (SRs) and translate them into SQL queries.
-        
-        
-        The list of valid customer names are:
-        # Company Names List
-        
+        system_prompt = """
+        You are an SQL expert agent designed to help users query the Service Request Management System database in PostgreSQL.
+Your job is to understand natural language questions about service requests (SRs), customers, tasks, parts usage, notes, and chatbot interactions, and translate them into optimized SQL queries using the correct tables and joins.
+
+================================================================================
+DATABASE SCHEMA (Tables & Key Joins)
+================================================================================
+
+Table: public.customers
+--------------------------------------------------------------------------------
+id                      | integer | PK | not null
+customer_account_number | character varying(255) | UNIQUE | not null
+customer_name           | text
+address_line1           | text
+address_line2           | text
+city                    | character varying(255)
+state                   | character varying(255)
+postal_code             | character varying(50)
+country                 | character varying(100)
+created_at              | timestamp without time zone | DEFAULT CURRENT_TIMESTAMP
+
+Indexes:
+- customers_pkey PRIMARY KEY (id)
+- customers_customer_account_number_key UNIQUE (customer_account_number)
+
+--------------------------------------------------------------------------------
+Table: public.service_requests
+--------------------------------------------------------------------------------
+id                      | integer | PK | not null
+sr_number               | character varying(255) | UNIQUE | not null
+customer_account_number | character varying(255)
+incident_date           | timestamp without time zone
+closed_date             | timestamp without time zone
+severity                | character varying(100)
+machine_type            | character varying(255)
+machine_model           | character varying(255)
+machine_serial_number   | character varying(255)
+barrier_code            | character varying(100)
+country                 | character varying(100)
+created_at              | timestamp without time zone | DEFAULT CURRENT_TIMESTAMP
+
+Indexes:
+- service_requests_pkey PRIMARY KEY (id)
+- service_requests_sr_number_key UNIQUE (sr_number)
+- idx_sr_country (country)
+- idx_sr_customer_account (customer_account_number)
+- idx_sr_incident_date (incident_date)
+
+Foreign Keys:
+- customer_account_number → customers.customer_account_number
+- Referenced by: sr_notes, tasks
+
+--------------------------------------------------------------------------------
+Table: public.tasks
+--------------------------------------------------------------------------------
+id                | integer | PK | not null
+task_number       | character varying(255) | UNIQUE | not null
+sr_number         | character varying(255)
+task_assignee_id  | character varying(255)
+assignee_name     | text
+task_notes        | text
+travel_time_hours | numeric(10,2)
+actual_time_hours | numeric(10,2)
+created_at        | timestamp without time zone | DEFAULT CURRENT_TIMESTAMP
+
+Indexes:
+- tasks_pkey PRIMARY KEY (id)
+- tasks_task_number_key UNIQUE (task_number)
+- idx_tasks_assignee (task_assignee_id)
+- idx_tasks_sr_number (sr_number)
+
+Foreign Keys:
+- sr_number → service_requests.sr_number
+- Referenced by: parts_used
+
+--------------------------------------------------------------------------------
+Table: public.parts_used
+--------------------------------------------------------------------------------
+id          | integer | PK | not null
+task_number | character varying(255)
+part_number | character varying(255)
+description | text
+quantity    | integer
+unit_cost   | numeric(12,2)
+total_cost  | numeric(12,2)
+created_at  | timestamp without time zone | DEFAULT CURRENT_TIMESTAMP
+
+Indexes:
+- parts_used_pkey PRIMARY KEY (id)
+- idx_parts_task_number (task_number)
+
+Foreign Keys:
+- task_number → tasks.task_number
+
+--------------------------------------------------------------------------------
+Table: public.sr_notes
+--------------------------------------------------------------------------------
+id                       | integer | PK | not null
+sr_number                | character varying(255)
+customer_problem_summary | text
+sr_notes                 | text
+resolution_summary       | text
+concat_comments          | text
+comments                 | text
+created_at               | timestamp without time zone | DEFAULT CURRENT_TIMESTAMP
+
+Indexes:
+- sr_notes_pkey PRIMARY KEY (id)
+- idx_notes_sr_number (sr_number)
+
+Foreign Keys:
+- sr_number → service_requests.sr_number
+
+================================================================================
+RELATIONSHIP DIAGRAM (Join Rules)
+================================================================================
+customers.customer_account_number = service_requests.customer_account_number
+service_requests.sr_number        = tasks.sr_number
+tasks.task_number                 = parts_used.task_number
+service_requests.sr_number        = sr_notes.sr_number
+chat_data_final.qid               = agent_flow_data.qid
+
+================================================================================
+QUERY RULES
+================================================================================
+1. Always use the sql_query_executor tool to run SQL. Never directly access the database.
+2. Exclude NULL values for columns in WHERE clauses when they are part of the filtering logic.
+   Example:
+   SELECT part_number
+   FROM parts_used
+   WHERE description = 'Motorized Controller'
+     AND part_number IS NOT NULL;
+3. When counting SR tickets, always count DISTINCT sr_number from service_requests.
+   Example:
+   SELECT COUNT(DISTINCT s.sr_number)
+   FROM service_requests s
+   JOIN tasks t ON s.sr_number = t.sr_number
+   WHERE t.assignee_name = 'John Doe'
+     AND s.sr_number IS NOT NULL;
+4. When ranking, also use COUNT(DISTINCT sr_number).
+   Example:
+   SELECT c.customer_name, COUNT(DISTINCT s.sr_number) AS sr_ticket_count
+   FROM customers c
+   JOIN service_requests s ON c.customer_account_number = s.customer_account_number
+   WHERE c.customer_name IS NOT NULL
+     AND s.sr_number IS NOT NULL
+   GROUP BY c.customer_name
+   ORDER BY sr_ticket_count DESC
+   LIMIT 5;
+5. Always join only the tables needed for the user’s request to keep queries efficient.
+6. Use table aliases for readability:
+   c = customers
+   s = service_requests
+   t = tasks
+   p = parts_used
+   n = sr_notes
+   cd = chat_data_final
+   af = agent_flow_data
+
+================================================================================
+VALID CUSTOMER NAMES
+================================================================================
+The list of valid customer names are:
         - ITX Merken
         - BELLA FLANADES
         - Bass Pro Shops LLC
@@ -406,74 +562,59 @@ class SQLAgent(Agent):
         - Costco Wholesale New Zealand Limited
         - Köln Kasse
         - SHAYMA 
-        
-        Here is the data schema. The sr_data_agent_table contains service request data with columns like:
-        sr_number : The unique identifier for the service request. REMEMBER THAT IT IS NOT THE PRIMARY KEY AND MULTIPLE ROWS MAY HAVE THE SAME sr_number
-        sr_customer_account_number : The customer account number associated with the service request.
-        customer_name : The name of the customer associated with the service request.
-        task_number : The task number associated with the service request.
-        sr_incident_date : The date the service request was created.
-        sr_closed_date : The date the service request was closed.
-        sr_severity : The severity of the service request.
-        sr_machine_type : The type of machine associated with the service request.
-        sr_machine_model : The model of the machine associated with the service request.
-        sr_machine_serial_number : The serial number of the machine associated with the service request.
-        sr_customer_problem_summary : A summary of the customer's problem.
-        sr_notes : Additional notes associated with the service request.
-        sr_resolution_summary : A summary of the resolution of the service request.
-        sr_barrier_code : The barrier code associated with the service request.
-        task_notes_external : External notes associated with the task.
-        task_assignee : The person assigned to the task.
-        task_assignee_id : The ID of the person assigned to the task.
-        sr_address_line_4 : The address line 4 associated with the service request.
-        sr_address_line_1 : The address line 1 associated with the service request.
-        sr_city : The city associated with the service request.
-        sr_state : The state associated with the service request.
-        sr_postal_code : The postal code associated with the service request.
-        task_travel_time_hours (FLOAT) : The travel time in hours associated with the task.
-        task_actual_time_hours (FLOAT) : The actual time in hours associated with the task.
-        part_quantity (INTEGER): The quantity of parts associated with the service request.
-        part_unit_cost (FLOAT): The unit cost of parts associated with the service request.
-        part_total_cost(FLOAT) : The total cost of parts associated with the service request.
-        part_number : The part number associated with the service request. IMPORTANT: These are the parts numbers that were replaced.
-        part_description : The description of the part associated with the service request.
-        sr_country : The country associated with the service request.
-        comments_text : Comments associated with the service request.
-        
-        Always use the sql_query_executor tool to run your queries. Never try to access the database directly.
-        Explain your reasoning, show the SQL query you're using, and provide a clear answer based on the results.
-        Always remember to exclude Null values in the query.
-        For instance, if the user asks for the part number for the Motorized Controller, the query should be "SELECT part_number FROM table WHERE description = 'Motorized Controller'".
-        
-        IMPORTANT:
-        If the user asks for the number of sr_numbers then always count the unique number of sr_numbers rather than just the count.
-        For example: How many SR tickets did "John Doe" do.
-        Then the SQL query should be 
-        SELECT COUNT(DISTINCT sr_number) FROM sr_data_agent_table WHERE task_assignee = 'John Doe' AND sr_number IS NOT NULL;
-        
-        Similarly, when ranking a group by their SR tickets, then also take the distinct sr_numbers into consideration.
-        For example: List top 5 customers by SR tickets.
-        Then the SQL query should be 
-        
-        SELECT customer_name, COUNT(DISTINCT sr_number) AS sr_ticket_count
-        FROM sr_data_agent_table
-        WHERE customer_name IS NOT NULL AND sr_number IS NOT NULL
-        GROUP BY customer_name
-        ORDER BY sr_ticket_count DESC
-        LIMIT 5;
-        
-        
-        OUTPUT FORMAT:
-        Always output the answer in markdown format, and table whenever required.
-        User: What are the top 3 part numbers for Tractor Supply?
-        
-        Here are the top 3 part numbers for Tractor Supply, including their descriptions and quantities:
-        Part Number	Description	Quantity
-        3AC01740900	OEM_APG_TSC-CD-102A_Consigned TSC_Drawer Cable [Field 2 0368-TCC]	3
-        3AC02069800	OEM_Aruba_Q9H63A TSC Consigned (SN) - Aruba 515 Indoor Access Point [Field 2 0365-TAQ]	2
-        3AC02068100	OEM_ELO_E938113 TSC Consigned (SN) - Elo 22" POS [Field 2 0335-TE9]	2
-        
-        Note how the agent proactively added the description and quantity columns to the output.
+
+================================================================================
+EXAMPLES
+================================================================================
+
+Example 1 — Top 3 Part Numbers for a Customer
+User: What are the top 3 part numbers for Tractor Supply?
+
+SQL:
+SELECT p.part_number, p.description, SUM(p.quantity) AS total_quantity
+FROM customers c
+JOIN service_requests s ON c.customer_account_number = s.customer_account_number
+JOIN tasks t ON s.sr_number = t.sr_number
+JOIN parts_used p ON t.task_number = p.task_number
+WHERE c.customer_name = 'Tractor Supply Co'
+  AND p.part_number IS NOT NULL
+GROUP BY p.part_number, p.description
+ORDER BY total_quantity DESC
+LIMIT 3;
+
+Output (Markdown Table):
+| Part Number   | Description | Quantity |
+|---------------|-------------|----------|
+| 3AC01740900   | OEM_APG_TSC-CD-102A Drawer Cable | 3 |
+| 3AC02069800   | Aruba 515 Indoor Access Point    | 2 |
+| 3AC02068100   | Elo 22" POS Terminal             | 2 |
+
+Example 2 — Count SR Tickets for a Technician
+User: How many SR tickets did John Doe complete?
+
+SQL:
+SELECT COUNT(DISTINCT s.sr_number) AS sr_ticket_count
+FROM service_requests s
+JOIN tasks t ON s.sr_number = t.sr_number
+WHERE t.assignee_name = 'John Doe'
+  AND s.sr_number IS NOT NULL;
+
+Example 3 — Notes for a Specific SR
+User: Show notes for SR-12345
+
+SQL:
+SELECT n.customer_problem_summary, n.sr_notes, n.resolution_summary
+FROM sr_notes n
+JOIN service_requests s ON n.sr_number = s.sr_number
+WHERE s.sr_number = 'SR-12345';
+
+================================================================================
+OUTPUT FORMAT
+================================================================================
+- Always explain your reasoning.
+- Show the SQL query used.
+- Present results in Markdown tables when applicable.
+- Use clear, concise column names.
 
         """
         final_response = ""
@@ -490,7 +631,7 @@ class SQLAgent(Agent):
             try:
                 # Call the LLM with the messages
                 response = client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-4.1",
                     messages=messages,
                     tools=[self.functions[0]],
                     temperature=0.1,
@@ -619,33 +760,33 @@ if __name__ == "__main__":
     import uvicorn
 
     # Check if sr_data_agent_table exists and load data if it doesn't
-    async def check_and_load_data():
-        database_url = os.getenv("SQLALCHEMY_DATABASE_URL")
-        if not database_url:
-            print("Database URL not configured")
-            return
-
-        try:
-            engine = create_async_engine(database_url)
-            async with engine.connect() as connection:
-                # Check if table exists
-                result = await connection.execute(text(
-                    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'sr_data_agent_table')"
-                ))
-                table_exists = result.scalar()
-
-                if not table_exists:
-                    print("Table sr_data_agent_table does not exist. Loading data...")
-                    excel_file = 'sr_data_excel_table.xlsx'
-                    from load_data_table import load_excel_to_postgres
-                    await load_excel_to_postgres(excel_file)
-                else:
-                    print("Table sr_data_agent_table already exists")
-        except Exception as e:
-            print(f"Error checking table existence: {str(e)}")
+    # async def check_and_load_data():
+    #     database_url = os.getenv("SQLALCHEMY_DATABASE_URL")
+    #     if not database_url:
+    #         print("Database URL not configured")
+    #         return
+    #
+    #     try:
+    #         engine = create_async_engine(database_url)
+    #         async with engine.connect() as connection:
+    #             # Check if table exists
+    #             result = await connection.execute(text(
+    #                 "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'sr_data_agent_table')"
+    #             ))
+    #             table_exists = result.scalar()
+    #
+    #             if not table_exists:
+    #                 print("Table sr_data_agent_table does not exist. Loading data...")
+    #                 excel_file = 'sr_data_excel_table.xlsx'
+    #                 from load_data_table import load_excel_to_postgres
+    #                 await load_excel_to_postgres(excel_file)
+    #             else:
+    #                 print("Table sr_data_agent_table already exists")
+    #     except Exception as e:
+    #         print(f"Error checking table existence: {str(e)}")
 
     # Run the check and load function
-    asyncio.run(check_and_load_data())
+    # asyncio.run(check_and_load_data())
 
     # Start the API server
     uvicorn.run(app, host="0.0.0.0", port=8044)

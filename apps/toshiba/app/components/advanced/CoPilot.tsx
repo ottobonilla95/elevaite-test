@@ -1,5 +1,5 @@
 import { CommonButton, CommonModal, ElevaiteIcons } from "@repo/ui/components";
-import { useState } from "react";
+import {useEffect, useState} from "react";
 import "./CoPilot.scss";
 import { UploadTranscript } from "./UploadTranscript";
 
@@ -9,6 +9,7 @@ interface CoPilotProps {
     label?: string;
     noUpload?: boolean;
     children?: React.ReactNode | React.ReactNode[];
+    extras?: React.ReactNode;
 }
 
 export function CoPilot(props: CoPilotProps): JSX.Element {
@@ -34,6 +35,7 @@ export function CoPilot(props: CoPilotProps): JSX.Element {
                     //     Upload Transcript
                     // </CommonButton>
                 }
+                {props.extras ? props.extras : undefined}
             </div>
 
             <div className="co-pilot-main">

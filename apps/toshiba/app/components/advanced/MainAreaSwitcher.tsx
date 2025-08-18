@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import {useContext, useEffect, useState} from "react";
 import { WindowGrid } from "../../lib/interfaces";
-import {ChatContextProvider, useChat} from "../../ui/contexts/ChatContext";
+import {ChatContext, ChatContextProvider, useChat} from "../../ui/contexts/ChatContext";
 import { ChatbotInput } from "../ChatbotInput";
 import { ChatbotWindow } from "../ChatbotWindow";
 import { CaseDetails } from "./CaseDetails";
@@ -15,19 +15,24 @@ import { Recents } from "./Recents";
 import { Discover } from "./Discover";
 import { Tabs } from "./Tabs";
 import { ChatFeedback } from "./ChatFeedback";
-import { CommonButton, CommonModal } from "@repo/ui/components";
+import { CommonButton, CommonInput, CommonModal } from "@repo/ui/components";
 import { BatchEvaluationModal } from "./BatchEvaluationModal";
 
 export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
-    const chatContext = useChat();
+    const chatContext = useContext(ChatContext);
     const [activeWindow, setActiveWindow] = useState<React.ReactNode[]>([]);
     const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
     const [isAllowed, setIsAllowed] = useState(false);
+    const [srInputValue, setSrInputValue] = useState("");
     // const allowedEmails = ["somansh.budhwar@iopex.com,nikhitha.kandula@iopex.com","binu.ramachandran@iopex.com","Walker.Franklin@toshibagcs.com","thomas.conway@toshibagcs.com","dheeraj.kumar@iopex.com","somansh@gmail.com"]
     // console.log("Allowed emails:", allowedEmails);
     // const isAllowed = allowedEmails.includes(chatContext.userEmail);
     // console.log("activeWindow", activeWindow);
     // console.log("chatcontext", chatContext.activeWindowGrid);
+
+    useEffect(() => {
+        setSrInputValue("");
+    }, [chatContext.selectedSession?.id]);
 
     useEffect(() => {
         console.log("----Effect in MainAreaSwitcher Context----");
@@ -58,8 +63,8 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
         } else {
             getActiveWindow(chatContext.activeWindowGrid);
         }
-    }, [chatContext.activeWindowGrid]);
-    
+    }, [chatContext.activeWindowGrid, chatContext.selectedSession?.id,srInputValue]);
+
     function handleBatchEvaluation(): void {
         setIsBatchModalOpen(true);
     }
@@ -72,6 +77,12 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
 
         setIsBatchModalOpen(false);
     }
+
+
+    function updateSRTicket(input: string): void {
+        chatContext.addSRNumberToCurrentSession(input);
+    }
+
 
     function getActiveWindow(type?: WindowGrid): void {
         switch (type) {
@@ -89,7 +100,18 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
                 // This is the active chat interface for ongoing conversations
                 setActiveWindow([
                     <div key="chat" className="chat">
-                        <CoPilot>
+                        <CoPilot extras={
+                                <CommonInput
+                                    controlledValue={srInputValue}
+                                    onChange={val => {
+                                        const trimmedVal = val.slice(0, 20);
+                                        setSrInputValue(trimmedVal);
+                                        updateSRTicket(trimmedVal);
+                                    }}
+                                    className="sr-ticket"
+                                    placeholder={srInputValue === "" ? (chatContext.selectedSession?.srNumber ?? "SR Ticket #") : ""}
+                                />
+                            }>
                             <ChatbotWindow
                                 noSession
                                 noSummary
@@ -123,7 +145,15 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
                 console.log("Rendering toshiba1 window, isAllowed =", isAllowed);
                 setActiveWindow([
                     <div key="toshiba1" className="toshiba1">
-                        <CoPilot noUpload label="Ask Toshiba">
+                        <CoPilot noUpload label="Ask Toshiba"
+                            // extras={
+                            //     <CommonInput
+                            //         onChange={handleSRTicket}
+                            //         className="sr-ticket"
+                            //         placeholder="SR Ticket #"
+                            //     />
+                            // }
+                        >
                             <CoPilotStart
                                 wide
                                 addedControls

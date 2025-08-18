@@ -50,7 +50,6 @@ export function ChatbotWindow(props: ChatbotWindowProps): JSX.Element {
 
     return (
         <div className="chatbot-window-container">
-
              {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- The suggestion isn't logically equivalent */}
             {props.noSummary || !chatContext.selectedSession?.summary ? undefined :
                 <div className={[

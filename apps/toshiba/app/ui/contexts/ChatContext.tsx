@@ -5,6 +5,7 @@ import {
   fetchPastSessions,
   fetchSessionSummary,
   getImageUrl,
+  addSRNumberToSession
 } from "../../lib/actions";
 import { extractSourcesFromText } from "../../lib/sourceUtils";
 import { isSessionObject } from "../../lib/discriminators";
@@ -52,6 +53,7 @@ export interface ChatContextStructure {
   setRecentChatsMessage: (message: string) => void;
   processExcelFile: (file: File) => Promise<void>;
   isBatchEvaluationUser: boolean;
+  addSRNumberToCurrentSession:(srNumber: string) => void;
 }
 
 export const ChatContext = createContext<ChatContextStructure>({
@@ -101,6 +103,10 @@ export const ChatContext = createContext<ChatContextStructure>({
   processExcelFile: (file: File) => Promise.resolve(),
   userEmail: "",
   isBatchEvaluationUser: false,
+
+  addSRNumberToCurrentSession: () => {
+    /**/
+  },
 });
 
 // PROVIDER
@@ -278,6 +284,12 @@ export function ChatContextProvider(
 
   function clearAllSessions(): void {
     setSessions([]);
+  }
+
+  function addSRNumberToCurrentSession(srNumber: string): void {
+    if (!srNumber || !selectedSession) return;
+    selectedSession.srNumber = srNumber;
+    void addSRNumberToSession(selectedSession.id, srNumber);
   }
 
   async function processExcelFile(file: File): Promise<void> {
@@ -996,6 +1008,7 @@ export function ChatContextProvider(
         processExcelFile,
         userEmail,
         isBatchEvaluationUser,
+        addSRNumberToCurrentSession,
       }}
     >
       {props.children}

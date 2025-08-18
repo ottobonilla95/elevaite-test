@@ -336,3 +336,19 @@ export async function batchEvaluation(formData: FormData): Promise<any> {
   if (!response.ok) throw new Error("Failed to upload file");
   return await response.json();
 }
+
+export async function addSRNumberToSession(sessionId: string, srNumber: string) {
+  const url = new URL(`${BACKEND_URL ?? ""}addSRNumber`);
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      session_id: sessionId,
+      sr_number: srNumber,
+    }),
+  });
+  if (!response.ok) throw new Error("Failed to add SR number");
+  return await response.json();
+}

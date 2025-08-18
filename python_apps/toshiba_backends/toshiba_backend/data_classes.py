@@ -187,5 +187,10 @@ class SessionObject(BaseModel):
     messages: List[MessageObject]
     creationDate: datetime = Field(default_factory=lambda: datetime.now())
     summary: Optional[str] = None
+    srNumber: Optional[str] = None
+
+class SRNumberRequest(BaseModel):
+    session_id: str
+    sr_number: str
 
 

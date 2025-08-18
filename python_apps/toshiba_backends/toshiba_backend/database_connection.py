@@ -51,6 +51,14 @@ class AgentFlowTable(Base):
     chat_history = Column(String, nullable=True)
 
 
+class SRNumberTable(Base):
+    __tablename__ = 'sr_number_data'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id = Column(UUID(as_uuid=True), nullable=False)
+    sr_number = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.now())
+
+
 
 class DatabaseConnection:
     def __init__(self):
@@ -308,10 +316,23 @@ class DatabaseConnection:
                     .limit(10)
                 result = await session.execute(stmt)
                 chat_requests = result.scalars().all()
+
                 return chat_requests
             except Exception as e:
                 print(f"Error fetching past sessions: {str(e)}")
                 return []
+
+    async def get_sr_number(self, session_id: str):
+        async with self.SessionLocal() as session:
+            try:
+                stmt = select(SRNumberTable.sr_number).where(SRNumberTable.session_id == session_id)
+                result = await session.execute(stmt)
+                sr_number = result.scalars().first()
+                print(f"SR number: {sr_number} for session {session_id}")
+                return sr_number
+            except Exception as e:
+                print(f"Error fetching SR number: {str(e)}")
+                return None
 
     async def get_session_messages(self, session_id: str):
         async with self.SessionLocal() as session:
@@ -325,3 +346,23 @@ class DatabaseConnection:
             except Exception as e:
                 print(f"Error fetching session messages: {str(e)}")
                 return []
+
+    async def add_sr_number(self, session_id: uuid.UUID, sr_number: str):
+        async with self.SessionLocal() as session:
+            # If a record for the session_id exists, update the sr_number
+            # Otherwise, create a new record
+            try:
+                stmt = select(SRNumberTable).where(SRNumberTable.session_id == session_id)
+                result = await session.execute(stmt)
+                existing_record = result.scalars().first()
+                if existing_record:
+                    existing_record.sr_number = sr_number
+                else:
+                    new_record = SRNumberTable(session_id=session_id, sr_number=sr_number)
+                    session.add(new_record)
+                await session.flush()
+                await session.commit()
+                return True
+            except Exception as e:
+                print(f"Error adding SR number: {str(e)}")
+                return False

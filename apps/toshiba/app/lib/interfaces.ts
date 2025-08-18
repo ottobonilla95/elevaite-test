@@ -196,6 +196,7 @@ export interface SessionObject {
   messages: ChatMessageObject[];
   creationDate: string;
   summary?: SessionSummaryObject;
+  srNumber?: string;
 }
 
 export interface SessionSummaryObject {
