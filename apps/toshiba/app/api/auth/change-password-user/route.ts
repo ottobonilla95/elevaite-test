@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../auth";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,8 +33,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const authApiUrl =
-      process.env.NEXT_PUBLIC_AUTH_API_URL ?? "http://localhost:8004";
+    const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    if (!authApiUrl) {
+      console.error(
+        "Change Password User API - NEXT_PUBLIC_AUTH_API_URL not found in environment variables"
+      );
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 }
+      );
+    }
 
     const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
     const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID || "default";
