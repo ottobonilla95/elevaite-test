@@ -14,14 +14,11 @@ const getDomainWithoutSubdomain = (url: string | URL): string => {
     .join(".");
 };
 
-const NEXTAUTH_URL_INTERNAL = process.env.NEXTAUTH_URL_INTERNAL;
-if (!NEXTAUTH_URL_INTERNAL) {
-  throw new Error("NEXTAUTH_URL_INTERNAL does not exist in the env");
-}
+const NEXTAUTH_URL = process.env.NEXTAUTH_URL || "http://localhost:3002";
 
-const useSecureCookies = NEXTAUTH_URL_INTERNAL.startsWith("https://");
+const useSecureCookies = NEXTAUTH_URL.startsWith("https://");
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
-const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL_INTERNAL);
+const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL);
 
 type LaxType = "lax";
 
