@@ -50,39 +50,51 @@ export const authConfig = {
 
       Object.assign(stockSession, { authToken: token.access_token });
 
-      if (token.needsPasswordReset !== undefined) {
+      if (
+        token.needsPasswordReset !== undefined &&
+        token.needsPasswordReset !== null
+      ) {
         stockSession.user.needsPasswordReset = token.needsPasswordReset;
       }
 
-      if (token.is_superuser !== undefined) {
+      if (token.is_superuser !== undefined && token.is_superuser !== null) {
         stockSession.user.is_superuser = token.is_superuser;
       }
 
-      if (token.application_admin !== undefined) {
+      if (
+        token.application_admin !== undefined &&
+        token.application_admin !== null
+      ) {
         stockSession.user.application_admin = token.application_admin;
       }
 
-      if (token.mfa_enabled !== undefined) {
+      if (token.mfa_enabled !== undefined && token.mfa_enabled !== null) {
         stockSession.user.mfa_enabled = token.mfa_enabled;
       }
 
-      if (token.sms_mfa_enabled !== undefined) {
+      if (
+        token.sms_mfa_enabled !== undefined &&
+        token.sms_mfa_enabled !== null
+      ) {
         stockSession.user.sms_mfa_enabled = token.sms_mfa_enabled;
       }
 
-      if (token.phone_verified !== undefined) {
+      if (token.phone_verified !== undefined && token.phone_verified !== null) {
         stockSession.user.phone_verified = token.phone_verified;
       }
 
-      if (token.phone_number !== undefined) {
+      if (token.phone_number !== undefined && token.phone_number !== null) {
         stockSession.user.phone_number = token.phone_number;
       }
 
-      if (token.email_mfa_enabled !== undefined) {
+      if (
+        token.email_mfa_enabled !== undefined &&
+        token.email_mfa_enabled !== null
+      ) {
         stockSession.user.email_mfa_enabled = token.email_mfa_enabled;
       }
 
-      if (token.grace_period !== undefined) {
+      if (token.grace_period !== undefined && token.grace_period !== null) {
         stockSession.user.grace_period = token.grace_period;
       }
 
