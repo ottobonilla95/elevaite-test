@@ -50,10 +50,7 @@ export const authConfig = {
 
       Object.assign(stockSession, { authToken: token.access_token });
 
-      if (
-        token.needsPasswordReset !== undefined &&
-        token.needsPasswordReset !== null
-      ) {
+      if (token.needsPasswordReset !== undefined) {
         stockSession.user.needsPasswordReset = token.needsPasswordReset;
       }
 
@@ -153,7 +150,7 @@ export const authConfig = {
             expires_at: Math.floor(Date.now() / 1000 + 3600),
             refresh_token: user.refreshToken,
             provider: "credentials" as const,
-          } as typeof token;
+          };
 
           if (user?.needsPasswordReset !== undefined) {
             newToken.needsPasswordReset = user.needsPasswordReset;
@@ -222,7 +219,7 @@ export const authConfig = {
             access_token: string;
             refresh_token: string;
             token_type: string;
-            password_change_required?: boolean | null;
+            password_change_required?: boolean;
           };
 
           const refreshedToken = {
@@ -231,13 +228,10 @@ export const authConfig = {
             expires_at: Math.floor(Date.now() / 1000 + 3600),
             refresh_token: tokensOrError.refresh_token,
             provider: "credentials" as const,
-          } as typeof token;
+          };
 
           // Preserve or update the needsPasswordReset flag from refresh response
-          if (
-            tokensOrError.password_change_required !== undefined &&
-            tokensOrError.password_change_required !== null
-          ) {
+          if (tokensOrError.password_change_required !== undefined) {
             refreshedToken.needsPasswordReset =
               tokensOrError.password_change_required;
           }
