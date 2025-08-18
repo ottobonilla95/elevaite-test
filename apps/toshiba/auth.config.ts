@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import type { DefaultSession } from "next-auth";
 import { stockConfig } from "@repo/lib";
 
 export const authConfig = {
@@ -45,32 +46,75 @@ export const authConfig = {
         : session;
 
       if (!stockSession.user) {
-        stockSession.user = {};
+        stockSession.user = {} as DefaultSession["user"] & {
+          needsPasswordReset?: boolean;
+          is_superuser?: boolean;
+          application_admin?: boolean;
+          mfa_enabled?: boolean;
+          sms_mfa_enabled?: boolean;
+          phone_verified?: boolean;
+          phone_number?: string;
+          email_mfa_enabled?: boolean;
+          grace_period?: {
+            in_grace_period: boolean;
+            days_remaining: number;
+            grace_period_days: number;
+            expires_at?: string;
+            auto_enable_at?: string;
+            auto_enable_method: string;
+            error?: string;
+          };
+          refreshToken?: string;
+        };
       }
 
       Object.assign(stockSession, { authToken: token.access_token });
 
-      if (token.needsPasswordReset !== undefined) {
+      if (
+        token.needsPasswordReset !== undefined &&
+        token.needsPasswordReset !== null &&
+        typeof token.needsPasswordReset === "boolean"
+      ) {
         stockSession.user.needsPasswordReset = token.needsPasswordReset;
       }
 
-      if (token.is_superuser !== undefined) {
+      if (
+        token.is_superuser !== undefined &&
+        token.is_superuser !== null &&
+        typeof token.is_superuser === "boolean"
+      ) {
         stockSession.user.is_superuser = token.is_superuser;
       }
 
-      if (token.application_admin !== undefined) {
+      if (
+        token.application_admin !== undefined &&
+        token.application_admin !== null &&
+        typeof token.application_admin === "boolean"
+      ) {
         stockSession.user.application_admin = token.application_admin;
       }
 
-      if (token.mfa_enabled !== undefined) {
+      if (
+        token.mfa_enabled !== undefined &&
+        token.mfa_enabled !== null &&
+        typeof token.mfa_enabled === "boolean"
+      ) {
         stockSession.user.mfa_enabled = token.mfa_enabled;
       }
 
-      if (token.sms_mfa_enabled !== undefined) {
+      if (
+        token.sms_mfa_enabled !== undefined &&
+        token.sms_mfa_enabled !== null &&
+        typeof token.sms_mfa_enabled === "boolean"
+      ) {
         stockSession.user.sms_mfa_enabled = token.sms_mfa_enabled;
       }
 
-      if (token.phone_verified !== undefined) {
+      if (
+        token.phone_verified !== undefined &&
+        token.phone_verified !== null &&
+        typeof token.phone_verified === "boolean"
+      ) {
         stockSession.user.phone_verified = token.phone_verified;
       }
 
@@ -78,7 +122,11 @@ export const authConfig = {
         stockSession.user.phone_number = token.phone_number;
       }
 
-      if (token.email_mfa_enabled !== undefined) {
+      if (
+        token.email_mfa_enabled !== undefined &&
+        token.email_mfa_enabled !== null &&
+        typeof token.email_mfa_enabled === "boolean"
+      ) {
         stockSession.user.email_mfa_enabled = token.email_mfa_enabled;
       }
 
