@@ -118,7 +118,11 @@ export const authConfig = {
         stockSession.user.phone_verified = token.phone_verified;
       }
 
-      if (token.phone_number !== undefined) {
+      if (
+        token.phone_number !== undefined &&
+        token.phone_number !== null &&
+        typeof token.phone_number === "string"
+      ) {
         stockSession.user.phone_number = token.phone_number;
       }
 
@@ -130,7 +134,7 @@ export const authConfig = {
         stockSession.user.email_mfa_enabled = token.email_mfa_enabled;
       }
 
-      if (token.grace_period !== undefined) {
+      if (token.grace_period !== undefined && token.grace_period !== null) {
         stockSession.user.grace_period = token.grace_period;
       }
 
