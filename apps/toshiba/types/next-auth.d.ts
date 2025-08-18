@@ -53,14 +53,14 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
-    needsPasswordReset?: boolean | null;
-    is_superuser?: boolean | null;
-    application_admin?: boolean | null;
-    mfa_enabled?: boolean | null;
-    sms_mfa_enabled?: boolean | null;
-    phone_verified?: boolean | null;
-    phone_number?: string | null;
-    email_mfa_enabled?: boolean | null;
+    needsPasswordReset?: boolean;
+    is_superuser?: boolean;
+    application_admin?: boolean;
+    mfa_enabled?: boolean;
+    sms_mfa_enabled?: boolean;
+    phone_verified?: boolean;
+    phone_number?: string;
+    email_mfa_enabled?: boolean;
     grace_period?: {
       in_grace_period: boolean;
       days_remaining: number;
@@ -69,6 +69,6 @@ declare module "next-auth/jwt" {
       auto_enable_at?: string;
       auto_enable_method: string;
       error?: string;
-    } | null;
+    };
   }
 }
