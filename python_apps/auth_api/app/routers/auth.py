@@ -15,7 +15,7 @@ from app.db.orm import get_async_session
 from app.core.deps import get_current_superuser
 from app.db.activity_log import log_user_activity
 from app.core.password_utils import normalize_email
-from app.db.models import Session, User
+from app.db.models import Session, User, UserStatus
 from app.schemas.user import (
     AdminPasswordReset,
     LoginRequest,
@@ -33,6 +33,7 @@ from app.schemas.user import (
 from app.core.security import (
     get_password_hash,
     oauth2_scheme,
+    verify_password,
     verify_token,
     get_current_user,
 )
@@ -221,8 +222,6 @@ async def login(
     # Step 1: Check if user exists
     user_id_value = None
     try:
-        from app.services.auth_orm import get_user_by_email
-
         user_check = await get_user_by_email(session, login_data.email)
         if not user_check:
             logger.info(f"User not found during login attempt: {login_data.email}")
@@ -787,8 +786,6 @@ async def resend_sms_code_for_login(
                 detail="Invalid credentials",
             )
 
-        # Verify password
-        from app.core.password_utils import verify_password
 
         if not verify_password(login_data.password, user.hashed_password):
             raise HTTPException(
