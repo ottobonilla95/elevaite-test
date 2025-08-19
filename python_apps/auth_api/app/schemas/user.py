@@ -1,17 +1,24 @@
-"""User schemas."""
-
 import re
 from datetime import datetime
-from typing import List, Optional, Union, ClassVar
-from uuid import UUID
+from typing import Optional, Union, ClassVar, Annotated 
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict, BeforeValidator
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
+from app.core.password_utils import normalize_email
+
+def normalize_email_validator(v):
+    """Normalize email to lowercase and strip whitespace."""
+    if isinstance(v, str):
+        return normalize_email(v)
+    return v
+
+
+NormalizedEmailStr = Annotated[EmailStr, BeforeValidator(normalize_email_validator)]
 
 
 class UserBase(BaseModel):
     """Base user schema."""
 
-    email: EmailStr
+    email: NormalizedEmailStr
     full_name: Optional[str] = None
 
 
@@ -45,7 +52,7 @@ class UserCreate(UserBase):
 class AdminPasswordReset(BaseModel):
     """Admin password reset schema."""
 
-    email: EmailStr
+    email: NormalizedEmailStr
     new_password: str = Field(..., min_length=9)
     is_one_time_password: bool = Field(default=True)
 
@@ -73,7 +80,7 @@ class UserUpdate(BaseModel):
     """User update schema."""
 
     full_name: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[NormalizedEmailStr] = None
 
 
 class PasswordUpdate(BaseModel):
@@ -150,7 +157,7 @@ class TokenPayload(BaseModel):
 class LoginRequest(BaseModel):
     """Login request schema."""
 
-    email: EmailStr
+    email: NormalizedEmailStr
     password: str
     totp_code: Optional[str] = None
 
@@ -164,7 +171,7 @@ class RefreshTokenRequest(BaseModel):
 class PasswordResetRequest(BaseModel):
     """Password reset request schema."""
 
-    email: EmailStr
+    email: NormalizedEmailStr
 
 
 class PasswordResetConfirm(BaseModel):
