@@ -138,7 +138,7 @@ jobs:
           docker build \
           -f python_apps/auth_api/Dockerfile \
           -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
-          python_apps/auth_api
+          .
 
           docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
 
