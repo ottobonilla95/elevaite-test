@@ -397,7 +397,7 @@ export default function Settings(): JSX.Element {
     isSubmittingRef.current = true; // Set immediately to prevent double calls
 
     try {
-      const response = await fetch("/api/auth/change-password-user", {
+      const response = await fetch("/api/user/change-password-user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

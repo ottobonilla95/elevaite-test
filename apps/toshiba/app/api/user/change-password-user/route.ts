@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     console.log("Change Password User API - Using auth API URL:", apiUrl);
     console.log("Change Password User API - Using tenant ID:", tenantId);
 
-    const response = await fetch(`${apiUrl}/api/auth/change-password-user`, {
+    const response = await fetch(`${apiUrl}/api/user/change-password-user`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
