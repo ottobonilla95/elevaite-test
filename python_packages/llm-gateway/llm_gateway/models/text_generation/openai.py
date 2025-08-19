@@ -1,10 +1,11 @@
 import logging
 import time
-from typing import Dict, Any, Optional
+import json
+from typing import Dict, Any, Optional, List
 import openai
 
 from .core.base import BaseTextGenerationProvider
-from .core.interfaces import TextGenerationResponse
+from .core.interfaces import TextGenerationResponse, ToolCall
 
 
 class OpenAITextGenerationProvider(BaseTextGenerationProvider):
@@ -21,6 +22,8 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         prompt: Optional[str],
         retries: Optional[int],
         config: Optional[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
     ) -> TextGenerationResponse:
         model_name = model_name or "gpt-4o"
         temperature = temperature or 0.5
@@ -37,26 +40,58 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
             try:
                 start_time = time.time()
                 if model_name.startswith("gpt-"):
-                    response = self.client.chat.completions.create(
-                        model=model_name,
-                        messages=[
+                    # Prepare the API call parameters
+                    api_params = {
+                        "model": model_name,
+                        "messages": [
                             {"role": role, "content": sys_msg},
                             {"role": "user", "content": prompt},
                         ],
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                    )
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                    }
+
+                    # Add tools if provided
+                    if tools:
+                        api_params["tools"] = tools
+                        if tool_choice:
+                            api_params["tool_choice"] = tool_choice
+
+                    response = self.client.chat.completions.create(**api_params)
                     latency = time.time() - start_time
                     if response.usage:
                         tokens_in = response.usage.prompt_tokens
                         tokens_out = response.usage.completion_tokens
 
-                    message_content = response.choices[0].message.content or ""
+                    message = response.choices[0].message
+                    message_content = message.content or ""
+                    finish_reason = response.choices[0].finish_reason
+
+                    # Extract tool calls if present
+                    tool_calls = []
+                    if hasattr(message, "tool_calls") and message.tool_calls:
+                        for tool_call in message.tool_calls:
+                            try:
+                                arguments = json.loads(tool_call.function.arguments)
+                            except json.JSONDecodeError:
+                                # If arguments can't be parsed as JSON, store as string
+                                arguments = {"raw": tool_call.function.arguments}
+
+                            tool_calls.append(
+                                ToolCall(
+                                    id=tool_call.id,
+                                    name=tool_call.function.name,
+                                    arguments=arguments,
+                                )
+                            )
+
                     return TextGenerationResponse(
                         text=message_content.strip(),
                         tokens_in=tokens_in,
                         tokens_out=tokens_out,
                         latency=latency,
+                        tool_calls=tool_calls if tool_calls else None,
+                        finish_reason=finish_reason,
                     )
 
                 else:

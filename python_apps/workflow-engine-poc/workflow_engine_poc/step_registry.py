@@ -1,0 +1,449 @@
+"""
+Step Registry System
+
+Manages registration and execution of workflow steps.
+Supports local functions, RPC endpoints, and API calls.
+"""
+
+import uuid
+import importlib
+import asyncio
+import aiohttp
+from typing import Dict, Any, List, Optional, Callable, Union
+from datetime import datetime
+import logging
+
+from .execution_context import ExecutionContext, StepResult, StepStatus
+from .monitoring import monitoring
+
+
+logger = logging.getLogger(__name__)
+
+
+class StepExecutionError(Exception):
+    """Exception raised during step execution"""
+
+    pass
+
+
+class StepRegistry:
+    """
+    Registry for workflow step functions.
+
+    Supports:
+    - Local Python functions
+    - RPC endpoints
+    - REST API calls
+    - Dynamic registration
+    """
+
+    def __init__(self):
+        self.registered_steps: Dict[str, Dict[str, Any]] = {}
+        self.step_functions: Dict[str, Callable] = {}
+
+    async def register_step(self, step_config: Dict[str, Any]) -> str:
+        """Register a new step type"""
+        step_type = step_config["step_type"]
+        step_id = str(uuid.uuid4())
+
+        # Validate step configuration
+        required_fields = ["step_type", "name", "function_reference", "execution_type"]
+        for field in required_fields:
+            if field not in step_config:
+                raise ValueError(f"Missing required field: {field}")
+
+        # Store step configuration
+        self.registered_steps[step_type] = {
+            "step_id": step_id,
+            "step_type": step_type,
+            "name": step_config["name"],
+            "description": step_config.get("description", ""),
+            "function_reference": step_config["function_reference"],
+            "execution_type": step_config["execution_type"],
+            "parameters_schema": step_config.get("parameters_schema", {}),
+            "output_schema": step_config.get("output_schema", {}),
+            "endpoint_config": step_config.get("endpoint_config", {}),
+            "tags": step_config.get("tags", []),
+            "registered_at": datetime.now().isoformat(),
+        }
+
+        # Load function if it's a local execution type
+        if step_config["execution_type"] == "local":
+            await self._load_local_function(
+                step_type, step_config["function_reference"]
+            )
+
+        logger.info(
+            f"Registered step type: {step_type} ({step_config['execution_type']})"
+        )
+        return step_id
+
+    async def _load_local_function(self, step_type: str, function_reference: str):
+        """Load a local Python function"""
+        try:
+            # Parse module.function format
+            if "." not in function_reference:
+                raise ValueError(f"Invalid function reference: {function_reference}")
+
+            module_path, function_name = function_reference.rsplit(".", 1)
+
+            # Import module and get function
+            module = importlib.import_module(module_path)
+            function = getattr(module, function_name)
+
+            # Store function
+            self.step_functions[step_type] = function
+
+        except Exception as e:
+            logger.error(f"Failed to load function {function_reference}: {e}")
+            raise StepExecutionError(f"Failed to load function: {e}")
+
+    async def execute_step(
+        self,
+        step_type: str,
+        step_config: Dict[str, Any],
+        input_data: Dict[str, Any],
+        execution_context: ExecutionContext,
+    ) -> StepResult:
+        """Execute a step based on its type"""
+
+        if step_type not in self.registered_steps:
+            raise StepExecutionError(f"Unknown step type: {step_type}")
+
+        step_info = self.registered_steps[step_type]
+        execution_type = step_info["execution_type"]
+
+        start_time = datetime.now()
+        step_id = step_config.get("step_id", "unknown")
+
+        # Start step tracing
+        with monitoring.trace_step_execution(
+            step_id=step_id,
+            step_type=step_type,
+            execution_id=execution_context.execution_id,
+        ):
+            try:
+                # Execute based on execution type
+                if execution_type == "local":
+                    result = await self._execute_local_step(
+                        step_type, step_config, input_data, execution_context
+                    )
+                elif execution_type == "rpc":
+                    result = await self._execute_rpc_step(
+                        step_type, step_config, input_data, execution_context
+                    )
+                elif execution_type == "api":
+                    result = await self._execute_api_step(
+                        step_type, step_config, input_data, execution_context
+                    )
+                else:
+                    raise Exception(f"Unknown execution type: {execution_type}")
+
+                # Calculate execution time
+                end_time = datetime.now()
+                execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
+
+                return StepResult(
+                    step_id=step_id,
+                    status=StepStatus.COMPLETED,
+                    output_data=result,
+                    execution_time_ms=execution_time_ms,
+                )
+
+            except Exception as e:
+                # Calculate execution time even for failed steps
+                end_time = datetime.now()
+                execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
+
+                # Return failed step result
+                return StepResult(
+                    step_id=step_id,
+                    status=StepStatus.FAILED,
+                    error_message=str(e),
+                    execution_time_ms=execution_time_ms,
+                )
+
+    async def _execute_local_step(
+        self,
+        step_type: str,
+        step_config: Dict[str, Any],
+        input_data: Dict[str, Any],
+        execution_context: ExecutionContext,
+    ) -> Dict[str, Any]:
+        """Execute a local Python function"""
+
+        if step_type not in self.step_functions:
+            raise StepExecutionError(f"Function not loaded for step type: {step_type}")
+
+        function = self.step_functions[step_type]
+
+        # Prepare function arguments
+        kwargs = {
+            "step_config": step_config,
+            "input_data": input_data,
+            "execution_context": execution_context,
+        }
+
+        # Execute function (handle both sync and async)
+        if asyncio.iscoroutinefunction(function):
+            result = await function(**kwargs)
+        else:
+            result = function(**kwargs)
+
+        return result
+
+    async def _execute_rpc_step(
+        self,
+        step_type: str,
+        step_config: Dict[str, Any],
+        input_data: Dict[str, Any],
+        execution_context: ExecutionContext,
+    ) -> Dict[str, Any]:
+        """Execute an RPC step"""
+        step_info = self.registered_steps[step_type]
+        endpoint_config = step_info["endpoint_config"]
+
+        # Prepare RPC call
+        rpc_url = endpoint_config.get("url")
+        if not rpc_url:
+            raise StepExecutionError("RPC URL not configured")
+
+        payload = {
+            "step_config": step_config,
+            "input_data": input_data,
+            "execution_context": {
+                "execution_id": execution_context.execution_id,
+                "workflow_id": execution_context.workflow_id,
+                "user_context": {
+                    "user_id": execution_context.user_context.user_id,
+                    "session_id": execution_context.user_context.session_id,
+                },
+            },
+        }
+
+        # Make RPC call
+        timeout = endpoint_config.get("timeout", 30)
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                rpc_url, json=payload, timeout=aiohttp.ClientTimeout(total=timeout)
+            ) as response:
+                if response.status != 200:
+                    raise StepExecutionError(f"RPC call failed: {response.status}")
+
+                result = await response.json()
+                return result
+
+    async def _execute_api_step(
+        self,
+        step_type: str,
+        step_config: Dict[str, Any],
+        input_data: Dict[str, Any],
+        execution_context: ExecutionContext,
+    ) -> Dict[str, Any]:
+        """Execute an API step"""
+        step_info = self.registered_steps[step_type]
+        endpoint_config = step_info["endpoint_config"]
+
+        # Prepare API call
+        api_url = endpoint_config.get("url")
+        method = endpoint_config.get("method", "POST").upper()
+        headers = endpoint_config.get("headers", {})
+
+        if not api_url:
+            raise StepExecutionError("API URL not configured")
+
+        # Prepare request data
+        request_data = {"step_config": step_config, "input_data": input_data}
+
+        # Make API call
+        timeout = endpoint_config.get("timeout", 30)
+        async with aiohttp.ClientSession() as session:
+            async with session.request(
+                method,
+                api_url,
+                json=request_data,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=timeout),
+            ) as response:
+                if response.status not in [200, 201]:
+                    raise StepExecutionError(f"API call failed: {response.status}")
+
+                result = await response.json()
+                return result
+
+    async def get_registered_steps(self) -> List[Dict[str, Any]]:
+        """Get list of all registered steps"""
+        return list(self.registered_steps.values())
+
+    async def get_step_info(self, step_type: str) -> Optional[Dict[str, Any]]:
+        """Get information about a specific step type"""
+        return self.registered_steps.get(step_type)
+
+    async def unregister_step(self, step_type: str) -> bool:
+        """Unregister a step type"""
+        if step_type in self.registered_steps:
+            del self.registered_steps[step_type]
+            if step_type in self.step_functions:
+                del self.step_functions[step_type]
+            logger.info(f"Unregistered step type: {step_type}")
+            return True
+        return False
+
+    async def register_builtin_steps(self):
+        """Register built-in step types"""
+
+        # Register basic data processing steps
+        await self.register_step(
+            {
+                "step_type": "data_input",
+                "name": "Data Input",
+                "description": "Provides static or dynamic input data",
+                "function_reference": "workflow_engine_poc.builtin_steps.data_input_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "input_type": {"type": "string", "enum": ["static", "dynamic"]},
+                        "data": {"type": "object"},
+                    },
+                },
+            }
+        )
+
+        await self.register_step(
+            {
+                "step_type": "data_processing",
+                "name": "Data Processing",
+                "description": "Processes input data with various transformations",
+                "function_reference": "workflow_engine_poc.builtin_steps.data_processing_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "processing_type": {"type": "string"},
+                        "options": {"type": "object"},
+                    },
+                },
+            }
+        )
+
+        await self.register_step(
+            {
+                "step_type": "data_merge",
+                "name": "Data Merge",
+                "description": "Merges data from multiple sources",
+                "function_reference": "workflow_engine_poc.builtin_steps.data_merge_step",
+                "execution_type": "local",
+            }
+        )
+
+        # Register agent execution step
+        await self.register_step(
+            {
+                "step_type": "agent_execution",
+                "name": "Agent Execution",
+                "description": "Executes AI agents with various configurations",
+                "function_reference": "workflow_engine_poc.agent_steps.agent_execution_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "agent_config": {"type": "object"},
+                        "query": {"type": "string"},
+                        "return_simplified": {"type": "boolean"},
+                    },
+                },
+            }
+        )
+
+        # Register tokenizer steps for RAG workflows
+        await self.register_step(
+            {
+                "step_type": "file_reader",
+                "name": "File Reader",
+                "description": "Reads and extracts content from various document formats (PDF, DOCX, XLSX, TXT)",
+                "function_reference": "workflow_engine_poc.tokenizer_steps.file_reader_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "pdf_method": {
+                            "type": "string",
+                            "enum": ["pypdf2", "pdfplumber"],
+                        },
+                        "extract_images": {"type": "boolean"},
+                        "extract_tables": {"type": "boolean"},
+                    },
+                },
+            }
+        )
+
+        await self.register_step(
+            {
+                "step_type": "text_chunking",
+                "name": "Text Chunking",
+                "description": "Divides text into manageable, semantically meaningful chunks",
+                "function_reference": "workflow_engine_poc.tokenizer_steps.text_chunking_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "strategy": {
+                            "type": "string",
+                            "enum": ["sliding_window", "semantic"],
+                        },
+                        "chunk_size": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 5000,
+                        },
+                        "overlap": {"type": "integer", "minimum": 0, "maximum": 1000},
+                    },
+                },
+            }
+        )
+
+        await self.register_step(
+            {
+                "step_type": "embedding_generation",
+                "name": "Embedding Generation",
+                "description": "Generates vector embeddings for text chunks using various providers",
+                "function_reference": "workflow_engine_poc.tokenizer_steps.embedding_generation_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": ["openai", "sentence_transformers"],
+                        },
+                        "model": {"type": "string"},
+                        "batch_size": {"type": "integer", "minimum": 1, "maximum": 100},
+                    },
+                },
+            }
+        )
+
+        await self.register_step(
+            {
+                "step_type": "vector_storage",
+                "name": "Vector Storage",
+                "description": "Stores vector embeddings in vector databases for retrieval",
+                "function_reference": "workflow_engine_poc.tokenizer_steps.vector_storage_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "storage_type": {
+                            "type": "string",
+                            "enum": ["qdrant", "in_memory"],
+                        },
+                        "collection_name": {"type": "string"},
+                        "qdrant_host": {"type": "string"},
+                        "qdrant_port": {"type": "integer"},
+                    },
+                },
+            }
+        )
+
+        logger.info("Built-in steps registered successfully")

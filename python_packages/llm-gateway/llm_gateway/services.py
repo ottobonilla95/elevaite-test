@@ -50,6 +50,8 @@ class TextGenerationService:
         sys_msg: Optional[str] = None,
         retries: Optional[int] = None,
         temperature: Optional[float] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
     ) -> TextGenerationResponse:
         provider = self.factory.get_provider(config["type"])
 
@@ -64,6 +66,8 @@ class TextGenerationService:
                 sys_msg=sys_msg,
                 retries=retries,
                 temperature=temperature,
+                tools=tools,
+                tool_choice=tool_choice,
             )
         except Exception as e:
             error_msg = (
@@ -170,6 +174,8 @@ class UniversalService:
                     sys_msg=kwargs.get("sys_msg"),
                     retries=kwargs.get("retries"),
                     temperature=kwargs.get("temperature"),
+                    tools=kwargs.get("tools"),
+                    tool_choice=kwargs.get("tool_choice"),
                 )
 
             elif request_type == RequestType.VISION:

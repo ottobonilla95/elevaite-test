@@ -3,7 +3,7 @@ import base64
 import logging
 import requests
 import textwrap
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 
 from ...utilities.onprem import get_model_endpoint
@@ -31,6 +31,8 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         prompt: Optional[str],
         retries: Optional[int],
         config: Optional[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
     ) -> TextGenerationResponse:
         model_name = model_name or "Llama-3.1-8B-Instruct"
         temperature = temperature if temperature is not None else 0.5
@@ -39,6 +41,12 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         prompt = prompt or ""
         retries = retries if retries is not None else 5
         config = config or {}
+
+        # Tools not yet supported in OnPrem provider
+        if tools:
+            logging.warning(
+                "Tools are not yet supported by the OnPrem provider. Ignoring tools parameter."
+            )
 
         role: str = config.get("role", "assistant")
         task_prop: str = config.get("task", "")

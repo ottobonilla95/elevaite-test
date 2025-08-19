@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.11.11"
 resolution-markers = [
     "sys_platform == 'darwin'",
@@ -21,8 +21,11 @@ members = [
     "llm-gateway",
     "rbac-api",
     "rbac-lib",
+    "salesforce-csm-api",
+    "servicenow-connector",
     "worker",
     "workers",
+    "workflow-engine-poc",
 ]
 
 [[package]]
@@ -75,6 +78,7 @@ source = { virtual = "python_apps/agent_studio" }
 dependencies = [
     { name = "aiofiles" },
     { name = "alembic" },
+    { name = "boto3" },
     { name = "bs4" },
     { name = "elevaite-ingestion" },
     { name = "elevaite-logger" },
@@ -112,6 +116,7 @@ dev = [
 requires-dist = [
     { name = "aiofiles", specifier = ">=23.2.0" },
     { name = "alembic", specifier = ">=1.13.1" },
+    { name = "boto3", specifier = ">=1.34.0" },
     { name = "bs4", specifier = ">=0.0.2" },
     { name = "elevaite-ingestion", editable = "python_packages/elevaite_ingestion" },
     { name = "elevaite-logger", editable = "python_packages/fastapi-logger" },
@@ -303,15 +308,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/3e/38/7859ff46355f76f8d
 
 [[package]]
 name = "anyio"
-version = "4.2.0"
+version = "4.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "idna" },
     { name = "sniffio" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2d/b8/7333d87d5f03247215d86a86362fd3e324111788c6cdd8d2e6196a6ba833/anyio-4.2.0.tar.gz", hash = "sha256:e1875bb4b4e2de1669f4bc7869b6d3f54231cdced71605e6e64c9be77e3be50f", size = 158770, upload-time = "2023-12-16T17:06:57.709Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/73/199a98fc2dae33535d6b8e8e6ec01f8c1d76c9adb096c6b7d64823038cde/anyio-4.8.0.tar.gz", hash = "sha256:1d9fe889df5212298c0c0723fa20479d1b94883a2df44bd3897aa91083316f7a", size = 181126, upload-time = "2025-01-05T13:13:11.095Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/cd/d6d9bb1dadf73e7af02d18225cbd2c93f8552e13130484f1c8dcfece292b/anyio-4.2.0-py3-none-any.whl", hash = "sha256:745843b39e829e108e518c489b31dc757de7d2131d53fac32bd8df268227bfee", size = 85481, upload-time = "2023-12-16T17:06:55.989Z" },
+    { url = "https://files.pythonhosted.org/packages/46/eb/e7f063ad1fec6b3178a3cd82d1a3c4de82cccf283fc42746168188e1cdd5/anyio-4.8.0-py3-none-any.whl", hash = "sha256:b5011f270ab5eb0abf13385f851315585cc37ef330dd88e27ec3d34d651fd47a", size = 96041, upload-time = "2025-01-05T13:13:07.985Z" },
 ]
 
 [[package]]
@@ -1845,21 +1851,6 @@ wheels = [
 ]
 
 [[package]]
-name = "google-ai-generativelanguage"
-version = "0.6.15"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "google-api-core", extra = ["grpc"] },
-    { name = "google-auth" },
-    { name = "proto-plus" },
-    { name = "protobuf" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/11/d1/48fe5d7a43d278e9f6b5ada810b0a3530bbeac7ed7fcbcd366f932f05316/google_ai_generativelanguage-0.6.15.tar.gz", hash = "sha256:8f6d9dc4c12b065fe2d0289026171acea5183ebf2d0b11cefe12f3821e159ec3", size = 1375443, upload-time = "2025-01-13T21:50:47.459Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7c/a3/67b8a6ff5001a1d8864922f2d6488dc2a14367ceb651bc3f09a947f2f306/google_ai_generativelanguage-0.6.15-py3-none-any.whl", hash = "sha256:5a03ef86377aa184ffef3662ca28f19eeee158733e45d7947982eb953c6ebb6c", size = 1327356, upload-time = "2025-01-13T21:50:44.174Z" },
-]
-
-[[package]]
 name = "google-api-core"
 version = "2.24.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1873,12 +1864,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/09/5c/085bcb872556934bb119e5e09de54daa07873f6866b8f0303c49e72287f7/google_api_core-2.24.2.tar.gz", hash = "sha256:81718493daf06d96d6bc76a91c23874dbf2fac0adbbf542831b805ee6e974696", size = 163516, upload-time = "2025-03-10T15:55:26.201Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/95/f472d85adab6e538da2025dfca9e976a0d125cc0af2301f190e77b76e51c/google_api_core-2.24.2-py3-none-any.whl", hash = "sha256:810a63ac95f3c441b7c0e43d344e372887f62ce9071ba972eacf32672e072de9", size = 160061, upload-time = "2025-03-10T15:55:24.386Z" },
-]
-
-[package.optional-dependencies]
-grpc = [
-    { name = "grpcio" },
-    { name = "grpcio-status" },
 ]
 
 [[package]]
@@ -1983,21 +1968,22 @@ wheels = [
 ]
 
 [[package]]
-name = "google-generativeai"
-version = "0.8.5"
+name = "google-genai"
+version = "1.31.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-ai-generativelanguage" },
-    { name = "google-api-core" },
-    { name = "google-api-python-client" },
+    { name = "anyio" },
     { name = "google-auth" },
-    { name = "protobuf" },
+    { name = "httpx" },
     { name = "pydantic" },
-    { name = "tqdm" },
+    { name = "requests" },
+    { name = "tenacity" },
     { name = "typing-extensions" },
+    { name = "websockets" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/e0/1b/da30fa6e2966942d7028a58eb7aa7d04544dcc3aa66194365b2e0adac570/google_genai-1.31.0.tar.gz", hash = "sha256:8572b47aa684357c3e5e10d290ec772c65414114939e3ad2955203e27cd2fcbc", size = 233482, upload-time = "2025-08-18T23:40:21.733Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6e/40/c42ff9ded9f09ec9392879a8e6538a00b2dc185e834a3392917626255419/google_generativeai-0.8.5-py3-none-any.whl", hash = "sha256:22b420817fb263f8ed520b33285f45976d5b21e904da32b80d4fd20c055123a2", size = 155427, upload-time = "2025-04-17T00:40:00.67Z" },
+    { url = "https://files.pythonhosted.org/packages/41/27/1525bc9cbec58660f0842ebcbfe910a1dde908c2672373804879666e0bb8/google_genai-1.31.0-py3-none-any.whl", hash = "sha256:5c6959bcf862714e8ed0922db3aaf41885bacf6318751b3421bf1e459f78892f", size = 231876, upload-time = "2025-08-18T23:40:20.385Z" },
 ]
 
 [[package]]
@@ -2937,7 +2923,7 @@ source = { editable = "python_packages/llm-gateway" }
 dependencies = [
     { name = "aiohttp" },
     { name = "boto3" },
-    { name = "google-generativeai" },
+    { name = "google-genai" },
     { name = "openai" },
     { name = "pytest" },
     { name = "tiktoken" },
@@ -2947,7 +2933,7 @@ dependencies = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.11.11" },
     { name = "boto3", specifier = ">=1.35.91" },
-    { name = "google-generativeai", specifier = ">=0.8.3" },
+    { name = "google-genai", specifier = ">=1.31.0" },
     { name = "openai", specifier = ">=1.33.0" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "tiktoken", specifier = ">=0.8.0" },
@@ -4168,6 +4154,15 @@ wheels = [
 ]
 
 [[package]]
+name = "prometheus-client"
+version = "0.22.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/cf/40dde0a2be27cc1eb41e333d1a674a74ce8b8b0457269cc640fd42b07cf7/prometheus_client-0.22.1.tar.gz", hash = "sha256:190f1331e783cf21eb60bca559354e0a4d4378facecf78f5428c39b675d20d28", size = 69746, upload-time = "2025-06-02T14:29:01.152Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/32/ae/ec06af4fe3ee72d16973474f122541746196aaa16cea6f66d18b963c6177/prometheus_client-0.22.1-py3-none-any.whl", hash = "sha256:cca895342e308174341b2cbf99a56bef291fbc0ef7b9e5412a0f26d653ba7094", size = 58694, upload-time = "2025-06-02T14:29:00.068Z" },
+]
+
+[[package]]
 name = "propcache"
 version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -4957,7 +4952,7 @@ dependencies = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.13.1" },
     { name = "annotated-types", specifier = "==0.6.0" },
-    { name = "anyio", specifier = "==4.2.0" },
+    { name = "anyio", specifier = "==4.8.0" },
     { name = "certifi", specifier = ">=2024.2.2" },
     { name = "cffi", specifier = "==1.16.0" },
     { name = "charset-normalizer", specifier = "==3.3.2" },
@@ -5344,6 +5339,11 @@ wheels = [
 ]
 
 [[package]]
+name = "salesforce-csm-api"
+version = "0.1.0"
+source = { virtual = "python_apps/salesforce_csm_api" }
+
+[[package]]
 name = "schema"
 version = "0.7.7"
 source = { registry = "https://pypi.org/simple" }
@@ -5458,6 +5458,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/46/b8/1b99379b730bc403d
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6d/70/2b5b76e98191ec3b8b0d1dde52d00ddcc3806799149a9ce987b0d2d31015/sentence_transformers-5.1.0-py3-none-any.whl", hash = "sha256:fc803929f6a3ce82e2b2c06e0efed7a36de535c633d5ce55efac0b710ea5643e", size = 483377, upload-time = "2025-08-06T13:48:53.627Z" },
 ]
+
+[[package]]
+name = "servicenow-connector"
+version = "0.1.0"
+source = { virtual = "python_apps/servicenow_connector" }
 
 [[package]]
 name = "setuptools"
@@ -6194,6 +6199,68 @@ requires-dist = [
     { name = "redis", specifier = ">=5.0.4" },
     { name = "tiktoken", specifier = ">=0.6.0" },
     { name = "unstructured", specifier = ">=0.13.6" },
+]
+
+[[package]]
+name = "workflow-engine-poc"
+version = "0.1.0"
+source = { editable = "python_apps/workflow-engine-poc" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "alembic" },
+    { name = "asyncpg" },
+    { name = "db-core" },
+    { name = "elevaite-ingestion" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "llm-gateway" },
+    { name = "prometheus-client" },
+    { name = "pydantic" },
+    { name = "python-multipart" },
+    { name = "sqlalchemy" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", specifier = ">=3.9.1" },
+    { name = "alembic", specifier = ">=1.13.0" },
+    { name = "asyncpg", specifier = ">=0.29.0" },
+    { name = "db-core", editable = "python_packages/db-core" },
+    { name = "elevaite-ingestion", editable = "python_packages/elevaite_ingestion" },
+    { name = "fastapi", specifier = ">=0.104.1" },
+    { name = "httpx", specifier = ">=0.25.0" },
+    { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.25.2" },
+    { name = "llm-gateway", editable = "python_packages/llm-gateway" },
+    { name = "prometheus-client", specifier = ">=0.17.0" },
+    { name = "pydantic", specifier = ">=2.5.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
+    { name = "python-multipart", specifier = ">=0.0.6" },
+    { name = "sqlalchemy", specifier = ">=2.0.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
+]
+provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.25.2" },
+    { name = "pytest", specifier = ">=7.4.3" },
+    { name = "pytest-asyncio", specifier = ">=0.21.1" },
 ]
 
 [[package]]

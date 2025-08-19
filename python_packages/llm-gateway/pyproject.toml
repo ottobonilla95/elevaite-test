@@ -7,19 +7,19 @@ name = "llm-gateway"
 version = "1.0.0"
 description = ""
 authors = [
-    {name="vuxxs", email="57200277+vuxxs@users.noreply.github.com"}
+    { name = "vuxxs", email = "57200277+vuxxs@users.noreply.github.com" },
 ]
 readme = "README.md"
 requires-python = "~=3.11"
 
 
 dependencies = [
-"tiktoken>=0.8.0",
-"boto3>=1.35.91",
-"openai>=1.33.0",
-"google-generativeai>=0.8.3",
-"pytest>=8.3.4",
-"aiohttp>=3.11.11"
+    "tiktoken>=0.8.0",
+    "boto3>=1.35.91",
+    "openai>=1.33.0",
+    "google-genai>=1.31.0",
+    "pytest>=8.3.4",
+    "aiohttp>=3.11.11",
 ]
 
 [tool.hatch.build.targets.wheel]

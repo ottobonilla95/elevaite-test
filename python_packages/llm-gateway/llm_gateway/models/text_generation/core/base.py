@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from .interfaces import TextGenerationResponse
 
@@ -15,6 +15,8 @@ class BaseTextGenerationProvider(ABC):
         prompt: Optional[str],
         retries: Optional[int],
         config: Optional[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
     ) -> TextGenerationResponse:
         """
         Abstract method to generate text based on a given prompt and configuration.
@@ -26,11 +28,15 @@ class BaseTextGenerationProvider(ABC):
         :param prompt: The user-provided input text prompt. Defaults to blank.
         :param retries: The number of times to retry text generation in case of failure. Defaults to 5.
         :param config: Additional configuration options as a dictionary, e.g., {'role': assistant }. Defaults to {}.
+        :param tools: List of tool/function definitions available to the model. Defaults to None.
+        :param tool_choice: How the model should choose tools ('auto', 'none', or specific tool name). Defaults to None.
         :return: A `TextGenerationResponse` containing:
                  - 'text': The generated text as a string.
                  - 'tokens_in': Number of input tokens.
                  - 'tokens_out': Number of output tokens.
                  - 'latency': The time taken for the response in seconds.
+                 - 'tool_calls': List of tool calls made by the model (if any).
+                 - 'finish_reason': Reason the model stopped generating ('stop', 'tool_calls', etc.).
         """
         pass
 

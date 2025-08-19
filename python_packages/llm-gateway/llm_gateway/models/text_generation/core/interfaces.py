@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import List, Dict, Any, Optional
 
 from openai import BaseModel
 
@@ -19,8 +20,18 @@ class TextGenerationModelName(str, Enum):
     BEDROCK_llama3_3_70b_instruct_v1 = "meta.llama3-3-70b-instruct-v1:0"
 
 
+class ToolCall(BaseModel):
+    """Represents a tool/function call from the LLM"""
+
+    id: str
+    name: str
+    arguments: Dict[str, Any]
+
+
 class TextGenerationResponse(BaseModel):
     latency: float
     text: str
     tokens_in: int
     tokens_out: int
+    tool_calls: Optional[List[ToolCall]] = None
+    finish_reason: Optional[str] = None

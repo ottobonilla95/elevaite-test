@@ -1,7 +1,8 @@
 import logging
 import time
 from typing import List
-import google.generativeai as genai
+
+from google import genai
 
 from ...utilities.tokens import count_tokens
 from .core.base import BaseEmbeddingProvider
@@ -10,7 +11,7 @@ from .core.interfaces import EmbeddingInfo, EmbeddingResponse, EmbeddingType
 
 class GeminiEmbeddingProvider(BaseEmbeddingProvider):
     def __init__(self, api_key: str):
-        genai.configure(api_key=api_key)
+        self.client = genai.Client(api_key=api_key)
 
     def embed_documents(
         self, texts: List[str], info: EmbeddingInfo
@@ -40,8 +41,10 @@ class GeminiEmbeddingProvider(BaseEmbeddingProvider):
         for attempt in range(max_retries):
             try:
                 time.sleep((1 * attempt) + (6 / 1000))
-                result = genai.embed_content(model=embedding_model, content=text)
-                return result["embedding"]
+                result = self.client.models.embed_content(
+                    model=embedding_model, content=text
+                )
+                return result.embedding
             except Exception as e:
                 logging.warning(
                     f"Retrying embedding for '{text[:30]}...'. Attempt {attempt + 1}. Error: {e}"

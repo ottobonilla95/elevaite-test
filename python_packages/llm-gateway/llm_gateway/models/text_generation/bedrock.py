@@ -1,13 +1,13 @@
 import json
 import logging
 import time
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import boto3
 from botocore.exceptions import ClientError
 
 
 from .core.base import BaseTextGenerationProvider
-from .core.interfaces import TextGenerationResponse
+from .core.interfaces import TextGenerationResponse, ToolCall
 
 
 class BedrockTextGenerationProvider(BaseTextGenerationProvider):
@@ -30,14 +30,67 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         prompt: Optional[str],
         retries: Optional[int],
         config: Optional[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
     ) -> TextGenerationResponse:
         model_name = model_name or "anthropic.claude-instant-v1"
         temperature = temperature if temperature is not None else 0.5
+
         max_tokens = max_tokens if max_tokens is not None else 100
         sys_msg = sys_msg or ""
         prompt = prompt or ""
         retries = retries if retries is not None else 5
         config = config or {}
+
+        # Check if model supports function calling
+        supports_tools = self._model_supports_tools(model_name)
+
+        if tools and not supports_tools:
+            logging.warning(
+                f"Model {model_name} does not support function calling. Ignoring tools parameter."
+            )
+            tools = None
+
+        # Use Converse API if tools are provided or model supports it
+        if supports_tools:
+            return self._generate_with_converse_api(
+                model_name,
+                temperature,
+                max_tokens,
+                sys_msg,
+                prompt,
+                retries,
+                tools,
+                tool_choice,
+            )
+        else:
+            return self._generate_with_legacy_api(
+                model_name, temperature, max_tokens, sys_msg, prompt, retries
+            )
+
+    def _model_supports_tools(self, model_name: str) -> bool:
+        """Check if the model supports function calling"""
+        # Models that support function calling in Bedrock
+        tool_supporting_models = [
+            "anthropic.claude-3",
+            "anthropic.claude-3-5",
+            "meta.llama3-1",
+            "meta.llama3-2",
+            "cohere.command-r",
+        ]
+
+        return any(model_id in model_name for model_id in tool_supporting_models)
+
+    def _generate_with_legacy_api(
+        self,
+        model_name: str,
+        temperature: float,
+        max_tokens: int,
+        sys_msg: str,
+        prompt: str,
+        retries: int,
+    ) -> TextGenerationResponse:
+        """Generate text using legacy Bedrock API (for models without tool support)"""
 
         formatted_prompt = f"Human: {prompt}\n\nAssistant:{sys_msg}"
 
@@ -97,7 +150,131 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
             except ValueError as ve:
                 logging.error(f"ValueError encountered: {ve}")
                 raise ve
-        raise Exception
+
+        raise RuntimeError(f"Text generation failed after {retries} attempts")
+
+    def _generate_with_converse_api(
+        self,
+        model_name: str,
+        temperature: float,
+        max_tokens: int,
+        sys_msg: str,
+        prompt: str,
+        retries: int,
+        tools: Optional[List[Dict[str, Any]]],
+        tool_choice: Optional[str],
+    ) -> TextGenerationResponse:
+        """Generate text using Bedrock Converse API with tool support"""
+
+        # Prepare messages
+        messages = [{"role": "user", "content": [{"text": prompt}]}]
+
+        # Prepare inference config
+        inference_config = {
+            "temperature": temperature,
+            "maxTokens": max_tokens,
+        }
+
+        # Prepare system messages
+        system_messages = []
+        if sys_msg:
+            system_messages.append({"text": sys_msg})
+
+        # Convert tools to Bedrock format
+        tool_config = None
+        if tools:
+            tool_config = self._convert_tools_to_bedrock_format(tools)
+
+        for attempt in range(retries):
+            try:
+                start_time = time.time()
+
+                # Prepare converse parameters
+                converse_params = {
+                    "modelId": model_name,
+                    "messages": messages,
+                    "inferenceConfig": inference_config,
+                }
+
+                if system_messages:
+                    converse_params["system"] = system_messages
+
+                if tool_config:
+                    converse_params["toolConfig"] = tool_config
+
+                response = self.client.converse(**converse_params)
+                latency = time.time() - start_time
+
+                # Extract response content
+                output = response.get("output", {})
+                message = output.get("message", {})
+                content = message.get("content", [])
+
+                text_content = ""
+                tool_calls = []
+                finish_reason = response.get("stopReason", "stop")
+
+                for content_block in content:
+                    if "text" in content_block:
+                        text_content += content_block["text"]
+                    elif "toolUse" in content_block:
+                        tool_use = content_block["toolUse"]
+                        tool_calls.append(
+                            ToolCall(
+                                id=tool_use.get("toolUseId", f"call_{len(tool_calls)}"),
+                                name=tool_use.get("name", "unknown_function"),
+                                arguments=tool_use.get("input", {}),
+                            )
+                        )
+
+                # Get token usage
+                usage = response.get("usage", {})
+                tokens_in = usage.get("inputTokens", len(prompt.split()))
+                tokens_out = usage.get(
+                    "outputTokens", len(text_content.split()) if text_content else 0
+                )
+
+                return TextGenerationResponse(
+                    text=text_content.strip(),
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                    latency=latency,
+                    tool_calls=tool_calls if tool_calls else None,
+                    finish_reason=finish_reason,
+                )
+
+            except ClientError as e:
+                logging.warning(
+                    f"Attempt {attempt + 1}/{retries} failed due to ClientError: {e}. Retrying..."
+                )
+                if attempt == retries - 1:
+                    raise RuntimeError(
+                        f"Text generation failed after {retries} attempts: {e}"
+                    )
+                time.sleep((2**attempt) * 0.5)
+
+        raise RuntimeError(f"Text generation failed after {retries} attempts")
+
+    def _convert_tools_to_bedrock_format(
+        self, openai_tools: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Convert OpenAI-style tools to Bedrock toolConfig format"""
+
+        tool_specs = []
+        for tool in openai_tools:
+            if tool.get("type") == "function":
+                func_def = tool["function"]
+
+                tool_spec = {
+                    "toolSpec": {
+                        "name": func_def["name"],
+                        "description": func_def.get("description", ""),
+                        "inputSchema": {"json": func_def.get("parameters", {})},
+                    }
+                }
+                tool_specs.append(tool_spec)
+
+        return {"tools": tool_specs} if tool_specs else {}
 
     def get_inference_profile_for_model(self, model_name: str) -> str:
         """

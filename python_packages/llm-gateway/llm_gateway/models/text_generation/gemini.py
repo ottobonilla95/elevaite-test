@@ -1,16 +1,18 @@
 import logging
 import time
-from typing import Dict, Any, Optional
-import google.generativeai as genai
+import json
+from typing import Dict, Any, Optional, List
 
 from .core.base import BaseTextGenerationProvider
-from .core.interfaces import TextGenerationResponse
+from .core.interfaces import TextGenerationResponse, ToolCall
+
+from google import genai
+from google.genai import types
 
 
 class GeminiTextGenerationProvider(BaseTextGenerationProvider):
     def __init__(self, api_key: str):
-        genai.configure(api_key=api_key)
-        self.client = genai
+        self.client = genai.Client(api_key=api_key)
 
     def generate_text(
         self,
@@ -21,6 +23,8 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         prompt: Optional[str],
         retries: Optional[int],
         config: Optional[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
     ) -> TextGenerationResponse:
         model_name = model_name or "gemini-1.5-flash"
         temperature = temperature or 0.5
@@ -29,38 +33,81 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         retries = retries or 5
         config = config or {}
 
-        model = self.client.GenerativeModel(
-            model_name=model_name, system_instruction=sys_msg
+        # Convert OpenAI-style tools to Gemini format
+        gemini_tools = None
+        if tools:
+            gemini_tools = self._convert_tools_to_gemini_format(tools)
+
+        # Create generation config
+        generation_config = types.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=max_tokens,
         )
+
+        if gemini_tools:
+            generation_config.tools = gemini_tools
+
+        # Create content with system instruction
+        contents = []
+        if sys_msg:
+            contents.append(
+                types.Content(
+                    role="user",
+                    parts=[types.Part(text=f"System: {sys_msg}\n\nUser: {prompt}")],
+                )
+            )
+        else:
+            contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
 
         for attempt in range(retries):
             try:
                 start_time = time.time()
-                response = model.generate_content(
-                    prompt,
-                    generation_config=self.client.GenerationConfig(
-                        temperature=temperature,
-                        max_output_tokens=max_tokens,
-                    ),
+
+                # Make the API call
+                response = self.client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=generation_config,
                 )
+
                 latency = time.time() - start_time
 
+                # Handle response with potential function calls
+                text_content = ""
+                tool_calls = []
+                finish_reason = "stop"
+
+                # Check for function calls in the modern API
+                if hasattr(response, "function_calls") and response.function_calls:
+                    for func_call in response.function_calls:
+                        tool_calls.append(
+                            ToolCall(
+                                id=f"call_{len(tool_calls)}",
+                                name=func_call.name or "unknown_function",
+                                arguments=func_call.args or {},
+                            )
+                        )
+                        finish_reason = "tool_calls"
+
+                # Get text content
                 if hasattr(response, "text") and response.text:
-                    # Retrieve token counts from the Gemini API if available
-                    tokens_in = getattr(response, "input_tokens", len(prompt.split()))
-                    tokens_out = getattr(
-                        response, "output_tokens", len(response.text.split())
-                    )
+                    text_content = response.text
 
-                    return TextGenerationResponse(
-                        text=response.text.strip(),
-                        tokens_in=tokens_in,
-                        tokens_out=tokens_out,
-                        latency=latency,
-                    )
+                # Get token counts (if available)
+                tokens_in = getattr(response, "input_tokens", len(prompt.split()))
+                tokens_out = getattr(
+                    response,
+                    "output_tokens",
+                    len(text_content.split()) if text_content else 0,
+                )
 
-                raise ValueError(
-                    "Invalid response structure: 'text' attribute missing or empty"
+                return TextGenerationResponse(
+                    text=text_content.strip(),
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                    latency=latency,
+                    tool_calls=tool_calls if tool_calls else None,
+                    finish_reason=finish_reason,
                 )
 
             except Exception as e:
@@ -73,19 +120,58 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     )
                 time.sleep((2**attempt) * 0.5)
 
-        raise Exception
+        # This should never be reached due to the exception handling above,
+        # but adding for type safety
+        raise RuntimeError("Text generation failed: unexpected code path")
+
+    def _convert_tools_to_gemini_format(
+        self, openai_tools: List[Dict[str, Any]]
+    ) -> List[Any]:
+        """
+        Convert OpenAI-style tool definitions to Gemini format.
+
+        OpenAI format:
+        {
+            "type": "function",
+            "function": {
+                "name": "function_name",
+                "description": "Function description",
+                "parameters": {...}
+            }
+        }
+
+        Gemini format uses google.genai.types.Tool
+        """
+        try:
+            gemini_functions = []
+            for tool in openai_tools:
+                if tool.get("type") == "function":
+                    func_def = tool["function"]
+
+                    # Create Gemini function declaration
+                    gemini_func = types.FunctionDeclaration(
+                        name=func_def["name"],
+                        description=func_def.get("description", ""),
+                        parameters=func_def.get("parameters", {}),
+                    )
+                    gemini_functions.append(gemini_func)
+
+            # Return as Gemini Tool
+            if gemini_functions:
+                return [types.Tool(function_declarations=gemini_functions)]
+
+        except Exception as e:
+            logging.warning(f"Could not convert tools to Gemini format: {e}")
+            logging.warning("Tools will be ignored for Gemini provider")
+
+        return []
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:
             assert isinstance(config, dict), "Config must be a dictionary"
             assert "model" in config, "Model name is required in config"
-            assert isinstance(
-                config.get("temperature", 0.7), (float, int)
-            ), "Temperature must be a number"
-            assert isinstance(
-                config.get("max_tokens", 256), int
-            ), "Max output tokens must be an integer"
+            assert isinstance(config["model"], str), "Model name must be a string"
             return True
         except AssertionError as e:
-            logging.error(f"Google Gemini Provider Validation Failed: {e}")
+            logging.error(f"Config validation failed: {e}")
             return False
