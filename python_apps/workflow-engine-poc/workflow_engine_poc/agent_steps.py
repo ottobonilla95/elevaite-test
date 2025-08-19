@@ -72,6 +72,7 @@ class SimpleAgent:
         tool_handlers: Optional[Dict[str, Callable]] = None,
         tool_names: Optional[List[str]] = None,
         provider_type: str = "openai_textgen",
+        force_real_llm: bool = False,
     ):
         self.name = name
         self.model = model
@@ -79,6 +80,7 @@ class SimpleAgent:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.provider_type = provider_type
+        self.force_real_llm = force_real_llm
         self.agent_id = str(uuid.uuid4())
 
         # Initialize tools and handlers
@@ -130,9 +132,14 @@ class SimpleAgent:
         start_time = datetime.now()
 
         try:
-            if self.llm_service and LLM_GATEWAY_AVAILABLE:
-                # Use real LLM via llm-gateway
-                response = await self._execute_with_llm_gateway(query, context)
+            if (self.llm_service and LLM_GATEWAY_AVAILABLE) or self.force_real_llm:
+                # Use real LLM via llm-gateway or direct API
+                if self.llm_service and LLM_GATEWAY_AVAILABLE:
+                    response = await self._execute_with_llm_gateway(query, context)
+                elif self.force_real_llm:
+                    response = await self._execute_with_direct_api(query, context)
+                else:
+                    response = await self._simulate_agent_response(query, context)
             else:
                 # Fallback to simulation
                 logger.info(f"Using simulation for agent {self.name}")
@@ -242,6 +249,46 @@ class SimpleAgent:
             logger.error(f"LLM gateway execution failed: {e}")
             # Fallback to simulation on error
             logger.info("Falling back to simulation due to LLM error")
+            return await self._simulate_agent_response(query, context)
+
+    async def _execute_with_direct_api(
+        self, query: str, context: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """
+        Execute query using direct OpenAI API calls when llm-gateway is not available
+        but we want to force real LLM usage.
+        """
+        import os
+
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            logger.warning("OPENAI_API_KEY not found, falling back to simulation")
+            return await self._simulate_agent_response(query, context)
+
+        try:
+            import openai
+
+            client = openai.AsyncOpenAI(api_key=api_key)
+
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": query},
+            ]
+
+            response = await client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+            )
+
+            return response.choices[0].message.content or "No response generated"
+
+        except ImportError:
+            logger.warning("OpenAI package not available, falling back to simulation")
+            return await self._simulate_agent_response(query, context)
+        except Exception as e:
+            logger.error(f"Direct API call failed: {e}")
             return await self._simulate_agent_response(query, context)
 
     async def _handle_tool_calls(self, tool_calls: List[Any]) -> Dict[str, Any]:

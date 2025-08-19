@@ -8,6 +8,9 @@ pydantic==2.5.0
 # HTTP client for RPC calls
 aiohttp==3.9.1
 
+# LLM API clients
+openai==1.54.3
+
 # Development and testing
 pytest==7.4.3
 pytest-asyncio==0.21.1

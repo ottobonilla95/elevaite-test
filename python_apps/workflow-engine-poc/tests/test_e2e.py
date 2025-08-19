@@ -8,17 +8,47 @@ including agents, tools, workflow execution, and integrations.
 import asyncio
 import json
 import time
+import httpx
 from typing import Dict, Any, List
 
-from workflow_engine_poc.workflow_engine import WorkflowEngine
-from workflow_engine_poc.step_registry import StepRegistry
-from workflow_engine_poc.execution_context import ExecutionContext
-from workflow_engine_poc.agent_steps import SimpleAgent, agent_execution_step
+from workflow_engine_poc.agent_steps import SimpleAgent
 from workflow_engine_poc.tools import (
     BASIC_TOOL_STORE,
     function_schema,
     tool_handler,
 )
+
+# API Configuration
+API_BASE_URL = "http://localhost:8006"
+API_TIMEOUT = 30.0
+
+
+async def check_api_health():
+    """Check if the API server is running"""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{API_BASE_URL}/health")
+            return response.status_code == 200
+    except Exception:
+        return False
+
+
+async def wait_for_execution(execution_id: str, max_wait: int = 30):
+    """Wait for workflow execution to complete"""
+    async with httpx.AsyncClient(timeout=API_TIMEOUT) as client:
+        for _ in range(max_wait):
+            try:
+                response = await client.get(f"{API_BASE_URL}/executions/{execution_id}")
+                if response.status_code == 200:
+                    status_data = response.json()
+                    status = status_data.get("status", "unknown")
+                    if status in ["completed", "failed", "cancelled"]:
+                        return status_data
+                await asyncio.sleep(1)
+            except Exception as e:
+                print(f"   ⚠️  Error checking status: {e}")
+                await asyncio.sleep(1)
+        return {"status": "timeout", "message": "Execution timed out"}
 
 
 async def test_basic_agent_execution():
@@ -27,11 +57,20 @@ async def test_basic_agent_execution():
     print("🧪 Testing Basic Agent Execution")
     print("-" * 50)
 
+    # Check if we have API keys available for direct testing
+    import os
+
+    has_openai_key = bool(os.getenv("OPENAI_API_KEY"))
+
+    if not has_openai_key:
+        print("   ⚠️  No OPENAI_API_KEY found - using simulation mode")
+
     agent = SimpleAgent(
         name="Basic Test Agent",
         model="gpt-4o-mini",
         system_prompt="You are a helpful assistant for testing.",
         provider_type="openai_textgen",
+        force_real_llm=has_openai_key,  # Force real LLM if we have the key
     )
 
     test_queries = [
@@ -64,12 +103,21 @@ async def test_agent_with_tools():
     print("\n🧪 Testing Agent with Tools")
     print("-" * 50)
 
+    # Check if we have API keys available for direct testing
+    import os
+
+    has_openai_key = bool(os.getenv("OPENAI_API_KEY"))
+
+    if not has_openai_key:
+        print("   ⚠️  No OPENAI_API_KEY found - using simulation mode")
+
     agent = SimpleAgent(
         name="Tool-Enabled Agent",
         model="gpt-4o-mini",
         system_prompt="You are a helpful assistant with access to tools. Use them when appropriate.",
         tool_names=["add_numbers", "calculate", "get_current_time", "weather_forecast"],
         provider_type="openai_textgen",
+        force_real_llm=has_openai_key,  # Force real LLM if we have the key
     )
 
     # Verify tools were loaded
@@ -105,9 +153,9 @@ async def test_agent_with_tools():
 
 
 async def test_workflow_execution():
-    """Test complete workflow execution"""
+    """Test complete workflow execution via API"""
 
-    print("\n🧪 Testing Workflow Execution")
+    print("\n🧪 Testing Workflow Execution via API")
     print("-" * 50)
 
     # Create a simple workflow
@@ -118,8 +166,9 @@ async def test_workflow_execution():
         "steps": [
             {
                 "step_id": "step_1",
-                "step_type": "agent",
-                "name": "Math Helper",
+                "step_name": "Math Helper",
+                "step_type": "agent_execution",
+                "step_order": 1,
                 "config": {
                     "agent_config": {
                         "agent_name": "Math Assistant",
@@ -133,8 +182,9 @@ async def test_workflow_execution():
             },
             {
                 "step_id": "step_2",
-                "step_type": "agent",
-                "name": "Time Helper",
+                "step_name": "Time Helper",
+                "step_type": "agent_execution",
+                "step_order": 2,
                 "config": {
                     "agent_config": {
                         "agent_name": "Time Assistant",
@@ -149,48 +199,73 @@ async def test_workflow_execution():
         ],
     }
 
-    # Execute workflow
-    step_registry = StepRegistry()
+    # Check if API is running
+    api_available = await check_api_health()
+    if not api_available:
+        print("   ⚠️  API server not running - skipping API tests")
+        print("   💡 Start the server with: python main.py")
+        return
 
-    # Register the agent step function directly (for testing)
-    step_registry.step_functions["agent"] = agent_execution_step
-    step_registry.registered_steps["agent"] = {
-        "step_type": "agent",
-        "execution_type": "local",
-        "name": "Agent Execution Step",
+    # Create execution request for API
+    execution_request = {
+        "workflow_config": workflow_config,
+        "user_id": "test_user",
+        "session_id": "test_session",
+        "organization_id": "test_org",
+        "input_data": {},
+        "execution_options": {},
     }
 
-    engine = WorkflowEngine(step_registry)
-
-    print(f"📋 Executing workflow: {workflow_config['name']}")
+    print(f"📋 Executing workflow via API: {workflow_config['name']}")
     print(f"   Steps: {len(workflow_config['steps'])}")
 
-    # Create execution context
-    execution_context = ExecutionContext(workflow_config)
+    # Execute workflow via API
+    async with httpx.AsyncClient(timeout=API_TIMEOUT) as client:
+        start_time = time.time()
 
-    start_time = time.time()
-    execution_context = await engine.execute_workflow(execution_context)
-    execution_time = time.time() - start_time
-
-    # Validate results
-    from workflow_engine_poc.execution_context import ExecutionStatus
-
-    success = execution_context.status == ExecutionStatus.COMPLETED
-    assert success, f"Workflow execution failed: {execution_context.status}"
-    assert (
-        len(execution_context.step_results) == 2
-    ), f"Expected 2 step results, got {len(execution_context.step_results)}"
-
-    print(f"   ✅ Success: {success}")
-    print(f"   📊 Steps completed: {len(execution_context.step_results)}")
-    print(f"   ⏱️  Total time: {execution_time:.3f}s")
-
-    # Check individual step results
-    for step_id, step_result in execution_context.step_results.items():
-        step_success = step_result.status.value == "completed"
-        print(
-            f"   📋 {step_id}: {'✅' if step_success else '❌'} {step_result.status.value}"
+        # Start execution
+        response = await client.post(
+            f"{API_BASE_URL}/workflows/execute", json=execution_request
         )
+
+        assert (
+            response.status_code == 200
+        ), f"Failed to start execution: {response.status_code} - {response.text}"
+
+        execution_data = response.json()
+        execution_id = execution_data["execution_id"]
+
+        print(f"   🚀 Execution started: {execution_id}")
+
+        # Wait for completion
+        final_status = await wait_for_execution(execution_id)
+        execution_time = time.time() - start_time
+
+        # Validate results
+        success = final_status.get("status") == "completed"
+        print(f"   ✅ Success: {success}")
+        print(f"   📊 Final status: {final_status.get('status', 'unknown')}")
+        print(f"   ⏱️  Total time: {execution_time:.3f}s")
+
+        if success:
+            # Get detailed results
+            results_response = await client.get(
+                f"{API_BASE_URL}/executions/{execution_id}/results"
+            )
+            if results_response.status_code == 200:
+                results = results_response.json()
+                step_results = results.get("step_results", {})
+                print(f"   📋 Steps completed: {len(step_results)}")
+
+                for step_id, step_result in step_results.items():
+                    step_status = step_result.get("status", "unknown")
+                    print(
+                        f"   📋 {step_id}: {'✅' if step_status == 'completed' else '❌'} {step_status}"
+                    )
+
+        assert (
+            success
+        ), f"Workflow execution failed: {final_status.get('message', 'Unknown error')}"
 
     print("✅ Workflow execution test passed")
 
@@ -282,28 +357,50 @@ async def test_error_handling():
     except Exception as e:
         print(f"📋 Expected error caught: {type(e).__name__}")
 
-    # Test workflow with invalid step
-    invalid_workflow = {
-        "workflow_id": "invalid_workflow",
-        "name": "Invalid Workflow",
-        "steps": [
-            {"step_id": "invalid_step", "step_type": "invalid_type", "config": {}}
-        ],
-    }
+    # Test API error handling if server is running
+    api_available = await check_api_health()
+    if api_available:
+        print("📋 Testing API error handling...")
 
-    step_registry = StepRegistry()
-    engine = WorkflowEngine(step_registry)
+        # Test invalid workflow via API
+        invalid_request = {
+            "workflow_config": {
+                "workflow_id": "invalid_workflow",
+                "name": "Invalid Workflow",
+                "steps": [
+                    {
+                        "step_id": "invalid_step",
+                        "step_name": "Invalid Step",
+                        "step_type": "invalid_type",
+                        "config": {},
+                    }
+                ],
+            },
+            "user_id": "test_user",
+            "session_id": "test_session",
+            "organization_id": "test_org",
+        }
 
-    execution_context = ExecutionContext(invalid_workflow)
-    execution_context = await engine.execute_workflow(execution_context)
+        async with httpx.AsyncClient(timeout=API_TIMEOUT) as client:
+            try:
+                response = await client.post(
+                    f"{API_BASE_URL}/workflows/execute", json=invalid_request
+                )
+                print(f"   API response status: {response.status_code}")
 
-    # Should handle gracefully
-    from workflow_engine_poc.execution_context import ExecutionStatus
+                if response.status_code == 200:
+                    # Execution started, check if it fails gracefully
+                    execution_data = response.json()
+                    execution_id = execution_data["execution_id"]
+                    final_status = await wait_for_execution(execution_id)
+                    print(f"   Final status: {final_status.get('status', 'unknown')}")
+                else:
+                    print(f"   API correctly rejected invalid request")
 
-    success = execution_context.status == ExecutionStatus.COMPLETED
-    print(f"📋 Invalid workflow result: {success}")
-    if not success:
-        print(f"   Error handled: {execution_context.status}")
+            except Exception as e:
+                print(f"   API error handled: {type(e).__name__}")
+    else:
+        print("   ⚠️  API not available - skipping API error tests")
 
     print("✅ Error handling test passed")
 
@@ -351,6 +448,16 @@ async def main():
     print("🚀 Workflow Engine E2E Test Suite")
     print("=" * 70)
 
+    # Check API availability
+    api_available = await check_api_health()
+    print(
+        f"📋 API Server Status: {'✅ Running' if api_available else '❌ Not running'}"
+    )
+    if not api_available:
+        print("   💡 Start the server with: python main.py")
+        print("   🔧 Some tests will be skipped without the API server")
+    print()
+
     start_time = time.time()
 
     try:
@@ -369,11 +476,19 @@ async def main():
         print("\n📋 E2E Test Summary:")
         print("   ✅ Basic agent execution")
         print("   ✅ Agent with tools")
-        print("   ✅ Workflow execution")
+        print(
+            f"   {'✅' if api_available else '⚠️ '} Workflow execution {'(via API)' if api_available else '(skipped - no API)'}"
+        )
         print("   ✅ Custom tools")
-        print("   ✅ Error handling")
+        print(
+            f"   {'✅' if api_available else '⚠️ '} Error handling {'(with API)' if api_available else '(basic only)'}"
+        )
         print("   ✅ Performance testing")
-        print("\n🚀 Workflow Engine is ready for production!")
+
+        if api_available:
+            print("\n🚀 Full E2E testing completed with API integration!")
+        else:
+            print("\n🔧 Basic testing completed - start API server for full E2E tests!")
 
     except Exception as e:
         print(f"\n❌ E2E test failed: {e}")

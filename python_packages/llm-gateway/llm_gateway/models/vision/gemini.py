@@ -2,7 +2,8 @@ import base64
 import httpx
 import logging
 import time
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from typing import Any, Dict, List, Optional, Union
 
@@ -12,8 +13,7 @@ from .core.base import BaseVisionProvider
 
 class GeminiVisionProvider(BaseVisionProvider):
     def __init__(self, api_key: str):
-        genai.configure(api_key=api_key)
-        self.client = genai
+        self.client = genai.Client(api_key=api_key)
 
     def generate_text(
         self,
@@ -58,29 +58,63 @@ class GeminiVisionProvider(BaseVisionProvider):
 
         input_data = prepared_images + [prompt]
 
+        # Create generation config
+        generation_config = types.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+        )
+
+        # Create content with system instruction, text, and images
+        parts = []
+
+        # Add text part
+        if sys_msg:
+            parts.append(types.Part(text=f"System: {sys_msg}\n\nUser: {prompt}"))
+        else:
+            parts.append(types.Part(text=prompt))
+
+        # Add image parts
+        for image_data in prepared_images:
+            parts.append(
+                types.Part(
+                    inline_data=types.Blob(
+                        mime_type=image_data["mime_type"], data=image_data["data"]
+                    )
+                )
+            )
+
+        contents = [types.Content(role="user", parts=parts)]
+
         for attempt in range(retries):
             tokens_in = -1
             tokens_out = -1
             try:
                 start_time = time.time()
-                response = self.client.GenerativeModel(
-                    model_name=model_name,
-                    system_instruction=sys_msg,
-                ).generate_content(
-                    input_data,
-                    generation_config=self.client.GenerationConfig(
-                        max_output_tokens=max_tokens, temperature=temperature
-                    ),
+
+                # Make the API call using the new client
+                response = self.client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=generation_config,
                 )
+
                 latency = time.time() - start_time
 
+                # Get text content
+                text_content = ""
+                if hasattr(response, "text") and response.text:
+                    text_content = response.text
+
+                # Get token counts (if available)
                 tokens_in = getattr(response, "input_tokens", len(prompt.split()))
                 tokens_out = getattr(
-                    response, "output_tokens", len(response.text.split())
+                    response,
+                    "output_tokens",
+                    len(text_content.split()) if text_content else 0,
                 )
 
                 return TextGenerationResponse(
-                    text=response.text.strip(),
+                    text=text_content.strip() if text_content else "",
                     tokens_in=tokens_in,
                     tokens_out=tokens_out,
                     latency=latency,

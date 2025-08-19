@@ -118,9 +118,10 @@ class WorkflowEngine:
     async def _execute_sequential(self, execution_context: ExecutionContext):
         """Execute steps sequentially based on step_order"""
 
-        # Sort steps by step_order
+        # Sort steps by step_order (handle None values)
         steps = sorted(
-            execution_context.steps_config, key=lambda s: s.get("step_order", 0)
+            execution_context.steps_config,
+            key=lambda s: s.get("step_order") if s.get("step_order") is not None else 0,
         )
 
         for step_config in steps:
