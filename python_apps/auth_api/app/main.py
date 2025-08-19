@@ -1,18 +1,20 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.security import HTTPBearer
-
+from fastapi.middleware.cors import CORSMiddleware
 from db_core.middleware import add_tenant_middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
+from fastapi_logger import ElevaiteLogger
+
+from app.routers import auth
+from app.routers import user
 from app.core.config import settings
+from app.db.tenant_db import initialize_db
 from app.core.logging import attach_logger_to_app, logger
 from app.core.multitenancy import multitenancy_settings
-from app.db.tenant_db import initialize_db
-from app.routers import auth
 
 # Configure the logger for FastAPI and Uvicorn
 attach_logger_to_app()
@@ -26,6 +28,7 @@ class NoCacheMiddleware(BaseHTTPMiddleware):
 
         if (
             request.url.path.startswith("/api/auth")
+            or request.url.path.startswith("/api/user")
             or request.url.path.startswith("/api/email-mfa")
             or request.url.path.startswith("/api/sms-mfa")
         ):
@@ -45,8 +48,6 @@ async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
         await initialize_db()
         logger.info("Database initialization completed successfully")
 
-        # Force re-attachment to handle uvicorn command-line override
-        from fastapi_logger import ElevaiteLogger
 
         ElevaiteLogger.force_reattach_to_uvicorn()
 
@@ -101,6 +102,7 @@ app.add_middleware(NoCacheMiddleware)
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(user.router, prefix="/api/user", tags=["user"])
 
 # Include SMS MFA router
 from app.routers import sms_mfa
