@@ -14,11 +14,12 @@ const getDomainWithoutSubdomain = (url: string | URL): string => {
     .join(".");
 };
 
-const NEXTAUTH_URL = process.env.NEXTAUTH_URL || "http://localhost:3002";
+const NEXT_PUBLIC_AUTH_API_URL =
+  process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3002";
 
-const useSecureCookies = NEXTAUTH_URL.startsWith("https://");
+const useSecureCookies = NEXT_PUBLIC_AUTH_API_URL.startsWith("https://");
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
-const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL);
+const hostName = getDomainWithoutSubdomain(NEXT_PUBLIC_AUTH_API_URL);
 
 type LaxType = "lax";
 
