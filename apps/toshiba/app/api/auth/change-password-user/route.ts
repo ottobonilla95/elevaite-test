@@ -6,7 +6,13 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    console.log("Change Password User API - Session:", session?.user?.email);
+    if (!session) {
+      console.error("Change Password User API - Session is null");
+      return NextResponse.json(
+        { error: "No session found. Please log in again." },
+        { status: 401 }
+      );
+    }
 
     const accessToken =
       session?.authToken ??
