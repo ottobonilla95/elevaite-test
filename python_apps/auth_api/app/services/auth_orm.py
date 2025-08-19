@@ -1,9 +1,6 @@
-"""Authentication services using SQLAlchemy ORM."""
-
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, TypeVar
-from app.core.password_utils import is_password_temporary, normalize_email
 
 from fastapi import HTTPException, Request
 from fastapi import status as http_status
@@ -13,6 +10,11 @@ from sqlalchemy.future import select
 
 from app.core.config import settings
 from app.core.logging import logger
+from app.db.activity_log import log_user_activity
+from app.core.password_utils import normalize_email
+from app.db.models import Session, User, UserStatus
+# from app.db.orm import get_async_session
+from app.schemas.user import UserCreate
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -22,12 +24,6 @@ from app.core.security import (
     verify_password,
     verify_totp,
 )
-from app.db.activity_log import log_user_activity
-
-# from app.db.orm import get_async_session  # Uncomment if needed
-from app.db.models import Session, User, UserStatus
-from app.schemas.user import UserCreate
-
 
 # Type variable for User model
 T = TypeVar("T", bound=User)
@@ -576,7 +572,7 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
         print(f"Error refreshing user: {e}")
 
         # Get the user from the database instead of refreshing
-        stmt = select(User).where(User.email == user_data.email)
+        stmt = select(User).where(User.email == normalized_email)
         result = await session.execute(stmt)
         found_user = result.scalars().first()
         if found_user is not None:

@@ -33,19 +33,21 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import text, select, update
-
-from app.core.security import get_password_hash
-from app.db.models import User, UserStatus
-from app.core.multitenancy import DEFAULT_TENANTS, multitenancy_settings
 from db_core.utils import (
     get_schema_name,
 )
+
+from app.db.models import User, UserStatus
+from app.core.security import get_password_hash
+from app.core.password_utils import normalize_email
 from app.core.password_utils import generate_secure_password
+from app.core.multitenancy import DEFAULT_TENANTS, multitenancy_settings
 
 
 async def get_user_by_email(session: AsyncSession, email: str) -> User:
     """Get user by email in the current tenant context."""
-    result = await session.execute(select(User).where(User.email == email))
+    normalized_email = normalize_email(email)
+    result = await session.execute(select(User).where(User.email == normalized_email))
     return result.scalars().first()
 
 
@@ -59,6 +61,8 @@ async def create_user_in_tenant(
     is_one_time_password: bool,
 ) -> None:
     """Create a user in a specific tenant schema."""
+    email = normalize_email(email)
+
     # Create session factory
     async_session = async_sessionmaker(engine, expire_on_commit=False)
 
@@ -212,6 +216,8 @@ async def main():
         if validate_email(email):
             break
         print("Invalid email format. Please try again.")
+
+    email = normalize_email(email)
 
     # Check if user exists in any tenant
     user_exists = False

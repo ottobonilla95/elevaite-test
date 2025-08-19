@@ -3,17 +3,18 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models import User
 from app.core.config import settings
 from app.core.logging import logger
 from app.core.deps import get_current_user
 from app.db.orm import get_async_session
+from app.core.password_utils import normalize_email
 from app.services.email_mfa import email_mfa_service
 from app.schemas.mfa import (
     EmailMFASetupRequest,
     EmailMFAVerifyRequest,
     EmailMFAResponse,
 )
-from app.db.models import User
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -171,6 +172,8 @@ async def send_email_mfa_code_for_login(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email and password are required",
         )
+
+    email = normalize_email(email)
 
     logger.info(f"Email MFA login code request for email: {email}")
 

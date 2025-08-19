@@ -1,31 +1,23 @@
 import re
-from datetime import datetime, timedelta, timezone
 from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field, field_validator
-
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy import and_, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select as async_select
-
 from app.core.config import settings
+from slowapi.util import get_remote_address
+from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timedelta, timezone
+from sqlalchemy.future import select as async_select
+from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+
 from app.core.logging import logger
-from app.core.security import (
-    get_password_hash,
-    oauth2_scheme,
-    verify_token,
-    get_current_user,
-)
+from app.db.orm import get_async_session
 from app.core.deps import get_current_superuser
 from app.db.activity_log import log_user_activity
-from app.db.orm import get_async_session
+from app.core.password_utils import normalize_email
 from app.db.models import Session, User
 from app.schemas.user import (
     AdminPasswordReset,
-    EmailVerificationRequest,
     LoginRequest,
     MfaSetupResponse,
     MfaVerifyRequest,
@@ -37,6 +29,12 @@ from app.schemas.user import (
     UserCreate,
     UserResponse,
     UserDetail,
+)
+from app.core.security import (
+    get_password_hash,
+    oauth2_scheme,
+    verify_token,
+    get_current_user,
 )
 from app.services.auth_orm import (
     activate_mfa,
@@ -2121,6 +2119,8 @@ async def admin_unlock_account(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Unlock a user account and reset failed login attempts (admin only)."""
+    email = normalize_email(email)
+
     logger.info(
         f"Admin user {current_user.email} (ID: {current_user.id}) is unlocking account for {email}"
     )
