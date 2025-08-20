@@ -1,8 +1,31 @@
 import asyncio
+from datetime import datetime, timezone
 
 from app.core.logging import logger
 from app.db.orm import get_async_session
 from app.services.mfa_device_service import mfa_device_service
+from app.db.models import Session
+from sqlalchemy import delete
+
+
+async def cleanup_expired_sessions():
+    try:
+        async for session in get_async_session():
+            now = datetime.now(timezone.utc)
+
+            result = await session.execute(
+                delete(Session).where(Session.expires_at <= now)
+            )
+
+            deleted_count = result.rowcount
+            await session.commit()
+
+            if deleted_count > 0:
+                logger.info(f"Cleaned up {deleted_count} expired sessions")
+
+            break
+    except Exception as e:
+        logger.error(f"Error during session cleanup: {str(e)}")
 
 
 async def cleanup_expired_mfa_verifications():
@@ -21,22 +44,23 @@ async def cleanup_expired_mfa_verifications():
         logger.error(f"Error during MFA verification cleanup: {str(e)}")
 
 
-async def start_mfa_cleanup_task():
-    """Start the background task for cleaning up expired MFA verifications."""
-    logger.info("Starting MFA device verification cleanup task")
+async def start_cleanup_tasks():
+    """Start the background tasks for cleaning up expired data."""
+    logger.info("Starting cleanup tasks (sessions and MFA verifications)")
 
     while True:
         try:
             # Run cleanup every hour
             await asyncio.sleep(3600)  # 1 hour
 
-            logger.debug("Running scheduled MFA device verification cleanup")
+            logger.debug("Running scheduled cleanup tasks")
+            await cleanup_expired_sessions()
             await cleanup_expired_mfa_verifications()
 
         except asyncio.CancelledError:
-            logger.info("MFA cleanup task cancelled")
+            logger.info("Cleanup tasks cancelled")
             break
         except Exception as e:
-            logger.error(f"Unexpected error in MFA cleanup task: {str(e)}")
+            logger.error(f"Unexpected error in cleanup tasks: {str(e)}")
             # Continue running even if there's an error
             await asyncio.sleep(60)  # Wait 1 minute before retrying

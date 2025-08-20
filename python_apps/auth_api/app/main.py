@@ -48,15 +48,14 @@ async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
         await initialize_db()
         logger.info("Database initialization completed successfully")
 
-
         ElevaiteLogger.force_reattach_to_uvicorn()
 
-        # Start background task for cleaning up expired MFA verifications
+        # Start background tasks for cleaning up expired data
         import asyncio
-        from app.tasks.cleanup_tasks import start_mfa_cleanup_task
+        from app.tasks.cleanup_tasks import start_cleanup_tasks
 
-        cleanup_task = asyncio.create_task(start_mfa_cleanup_task())
-        logger.info("Started MFA device verification cleanup task")
+        cleanup_task = asyncio.create_task(start_cleanup_tasks())
+        logger.info("Started cleanup tasks (sessions and MFA verifications)")
 
         yield
 
@@ -65,7 +64,7 @@ async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
         try:
             await cleanup_task
         except asyncio.CancelledError:
-            logger.info("MFA cleanup task cancelled")
+            logger.info("Cleanup tasks cancelled")
     finally:
         logger.info("Shutting down Auth API application")
 
