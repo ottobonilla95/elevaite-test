@@ -13,6 +13,7 @@ from app.core.logging import logger
 from app.db.activity_log import log_user_activity
 from app.core.password_utils import normalize_email
 from app.db.models import Session, User, UserStatus
+
 # from app.db.orm import get_async_session
 from app.schemas.user import UserCreate
 from app.core.security import (
@@ -687,7 +688,7 @@ async def create_user_session(
             user_id=user_id,
             refresh_token=refresh_token,
             expires_at=datetime.now(timezone.utc)
-            + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+            + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES),
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
         )

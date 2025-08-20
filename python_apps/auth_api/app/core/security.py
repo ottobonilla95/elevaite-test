@@ -83,7 +83,7 @@ def create_refresh_token(
 ) -> str:
     """Create a JWT refresh token."""
     expire = datetime.now(timezone.utc) + timedelta(
-        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+        days=settings.REFRESH_TOKEN_EXPIRE_MINUTES
     )
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
 

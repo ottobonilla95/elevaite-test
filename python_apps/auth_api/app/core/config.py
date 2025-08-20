@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
         os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "90")
     )
-    REFRESH_TOKEN_EXPIRE_DAYS: int = int(
-        os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS", "90")
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = int(
+        os.environ.get("REFRESH_TOKEN_EXPIRE_MINUTES", "90")
     )
     ALGORITHM: str = "HS256"
 
