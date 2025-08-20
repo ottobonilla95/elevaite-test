@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 from app.tasks.cleanup_tasks import (
     cleanup_expired_mfa_verifications,
-    start_mfa_cleanup_task,
+    start_cleanup_tasks,
 )
 
 pytestmark = [pytest.mark.unit, pytest.mark.mfa, pytest.mark.cleanup]
@@ -88,7 +88,7 @@ class TestCleanupTasks:
 
             # Run the task until it's cancelled
             with pytest.raises(asyncio.CancelledError):
-                await start_mfa_cleanup_task()
+                await start_cleanup_tasks()
 
             # Verify cleanup was called multiple times
             assert mock_cleanup.call_count >= 2
@@ -124,7 +124,7 @@ class TestCleanupTasks:
 
             # Run the task until it's cancelled
             with pytest.raises(asyncio.CancelledError):
-                await start_mfa_cleanup_task()
+                await start_cleanup_tasks()
 
             # Verify cleanup was attempted multiple times
             assert mock_cleanup_patch.call_count >= 2
@@ -154,7 +154,7 @@ class TestCleanupTasks:
 
             # Run the task and expect cancellation
             with pytest.raises(asyncio.CancelledError):
-                await start_mfa_cleanup_task()
+                await start_cleanup_tasks()
 
             # Verify cancellation was logged
             mock_logger.info.assert_called_with("MFA cleanup task cancelled")
@@ -189,7 +189,7 @@ class TestCleanupTasks:
         ):
 
             # Run the task for a short time
-            task = asyncio.create_task(start_mfa_cleanup_task())
+            task = asyncio.create_task(start_cleanup_tasks())
 
             # Let it run for a bit
             await asyncio.sleep(0.3)  # 300ms
@@ -237,7 +237,7 @@ class TestCleanupTasks:
         # This test ensures all imports work correctly
         from app.tasks.cleanup_tasks import (
             cleanup_expired_mfa_verifications,
-            start_mfa_cleanup_task,
+            start_cleanup_tasks,
         )
         from app.core.logging import logger
         from app.db.orm import get_async_session
@@ -245,7 +245,7 @@ class TestCleanupTasks:
 
         # Verify functions are callable
         assert callable(cleanup_expired_mfa_verifications)
-        assert callable(start_mfa_cleanup_task)
+        assert callable(start_cleanup_tasks)
 
     @pytest.mark.asyncio
     async def test_cleanup_task_logging_levels(self):
@@ -295,7 +295,7 @@ class TestCleanupTasks:
 
             # Run the task and expect immediate cancellation
             with pytest.raises(asyncio.CancelledError):
-                await start_mfa_cleanup_task()
+                await start_cleanup_tasks()
 
             # Verify startup message was logged
             mock_logger.info.assert_any_call(
@@ -323,7 +323,7 @@ class TestCleanupTasks:
 
             # Run the task until it's cancelled
             with pytest.raises(asyncio.CancelledError):
-                await start_mfa_cleanup_task()
+                await start_cleanup_tasks()
 
             # Verify debug message was logged
             mock_logger.debug.assert_called_with(
