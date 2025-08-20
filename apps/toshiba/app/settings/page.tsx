@@ -6,6 +6,7 @@ import { ProjectSidebar } from "../components/advanced/ProjectSidebar";
 import { TOTPSetup, SMSMFASetup, EmailMFASetup } from "../components/mfa";
 import { UserDetailResponse, MfaSetupResponse } from "../lib/authApiClient";
 import { getMFAConfig, isMFADisableAllowed } from "../lib/mfaConfig";
+import { changeUserPassword } from "../lib/actions";
 import "./page.scss";
 
 const LockIcon = ({ size = 14 }: { size?: number }) => (
@@ -397,27 +398,15 @@ export default function Settings(): JSX.Element {
     isSubmittingRef.current = true; // Set immediately to prevent double calls
 
     try {
-      const response = await fetch("/api/user/change-password-user", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          current_password: currentPassword,
-          new_password: newPassword,
-        }),
-      });
+      const result = await changeUserPassword(currentPassword, newPassword);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (result.success) {
         setIsSuccess(true);
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       } else {
-        setError(data.detail || "Failed to change password. Please try again.");
+        setError(result.message);
         isSubmittingRef.current = false; // Reset on error to allow retry
       }
     } catch (err) {

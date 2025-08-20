@@ -107,6 +107,68 @@ export async function logout(): Promise<void> {
   await signOut({ redirectTo: "/login" });
 }
 
+export async function changeUserPassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const session = await auth();
+    const accessToken = session?.authToken;
+
+    if (!accessToken) {
+      return {
+        success: false,
+        message: "Authentication required. Please log in again.",
+      };
+    }
+
+    const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    if (!authApiUrl) {
+      return {
+        success: false,
+        message: "Server configuration error. Please contact support.",
+      };
+    }
+
+    const apiUrl = authApiUrl.replace("localhost", "127.0.0.1");
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
+
+    const response = await fetch(`${apiUrl}/api/user/change-password-user`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "X-Tenant-ID": tenantId,
+      },
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return {
+        success: false,
+        message:
+          errorData.detail || "Failed to change password. Please try again.",
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      message: data.message || "Password changed successfully.",
+    };
+  } catch (error) {
+    console.error("Error changing user password:", error);
+    return {
+      success: false,
+      message: "An unexpected error occurred. Please try again.",
+    };
+  }
+}
+
 export async function recoverSession(): Promise<boolean> {
   try {
     const session = await auth();
@@ -337,7 +399,10 @@ export async function batchEvaluation(formData: FormData): Promise<any> {
   return await response.json();
 }
 
-export async function addSRNumberToSession(sessionId: string, srNumber: string) {
+export async function addSRNumberToSession(
+  sessionId: string,
+  srNumber: string
+) {
   const url = new URL(`${BACKEND_URL ?? ""}addSRNumber`);
   const response = await fetch(url, {
     method: "POST",
