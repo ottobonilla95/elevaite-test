@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const accessToken =
       session?.authToken ??
       session?.user?.accessToken ??
-      (session as { accessToken?: string }).accessToken;
+      (session as { accessToken?: string })?.accessToken;
 
     if (!accessToken) {
       console.error("Change Password API - No auth token found in session");
