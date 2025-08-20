@@ -5,7 +5,6 @@ import { stockConfig } from "@repo/lib";
 export const authConfig = {
   session: {
     strategy: "jwt",
-    maxAge: 120 * 60, // 2 hours
   },
   pages: {
     signIn: "/login",
@@ -341,7 +340,7 @@ export const authConfig = {
           const refreshedToken: typeof token = {
             ...token,
             access_token: tokensOrError.access_token,
-            expires_at: Math.floor(Date.now() / 1000 + 3600),
+            expires_at: Math.floor(Date.now() / 1000 + 3600), // Default 1 hour, backend will enforce actual limits
             refresh_token: tokensOrError.refresh_token,
             provider: "credentials" as const,
           };
@@ -369,8 +368,5 @@ export const authConfig = {
   providers: [], // Add providers with an empty array for now
   trustHost: true,
   secret: process.env.AUTH_SECRET,
-  jwt: {
-    maxAge:
-      parseInt(process.env.NEXT_PUBLIC_SESSION_TIMEOUT_MINUTES || "90") * 60,
-  },
+  jwt: {},
 } satisfies NextAuthConfig;

@@ -30,8 +30,8 @@ export function useSessionValidation(): {
     ? window.sessionConfig
     : null) || {
     inactivityTimeoutMinutes: 90,
-    activityCheckIntervalMinutes: 5,
-    sessionExtensionMinutes: 30,
+    activityCheckIntervalMinutes: 10,
+    sessionExtensionMinutes: 90,
   };
 
   // Set up activity tracking
@@ -116,15 +116,15 @@ export function useSessionValidation(): {
     if (
       typeof window !== "undefined" &&
       window.lastSessionValidation &&
-      now - window.lastSessionValidation < 500
+      now - window.lastSessionValidation < 30000 // 30 seconds protection against multiple checks
     ) {
       return true;
     }
 
-    // Check for inactivity before validating session
     const inactivityTimeoutMs =
       sessionConfig.inactivityTimeoutMinutes * 60 * 1000;
     if (isUserInactive(inactivityTimeoutMs)) {
+      // User has been inactive - logout due to inactivity
       await logout();
       return false;
     }
@@ -135,15 +135,23 @@ export function useSessionValidation(): {
     }
 
     try {
-      const response = await fetch("/api/auth/validate-session");
+      const response = await fetch("/api/auth/validate-session", {
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
 
-      if (!response.ok && response.status === 401) {
-        await logout();
-        return false;
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Only logout on explicit 401 (unauthorized)
+          await logout();
+          return false;
+        }
+        // For other errors (500, 503, etc.), don't logout - might be temporary backend issues
+        return true;
       }
 
       return true;
     } catch (error) {
+      // Network errors, timeouts, etc. - don't logout, might be temporary
       return true;
     } finally {
       setIsValidating(false);
