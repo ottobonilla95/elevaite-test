@@ -81,9 +81,6 @@ export function useSessionValidation(): {
         await response.json();
         lastExtensionRef.current = Date.now();
         return true;
-      } else if (response.status === 401) {
-        await logout();
-        return false;
       }
 
       return true;

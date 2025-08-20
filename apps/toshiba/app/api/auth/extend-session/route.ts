@@ -7,15 +7,8 @@ export async function POST(_request: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.authToken) {
-      return NextResponse.json(
-        { extended: false, reason: "no_session" },
-        { status: 401 }
-      );
-    }
-
-    const accessToken = session.authToken;
-    const refreshToken = session.user?.refreshToken;
+    const accessToken = session?.authToken;
+    const refreshToken = session?.user?.refreshToken;
 
     const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
     if (!authApiUrl) {
@@ -38,7 +31,7 @@ export async function POST(_request: NextRequest) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken || ""}`,
           "X-Refresh-Token": refreshToken || "",
           "X-Tenant-ID": tenantId,
         },
