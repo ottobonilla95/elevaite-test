@@ -17,9 +17,6 @@ const nextConfig = {
       },
     ],
   },
-  env: {
-    NEXTAUTH_URL_INTERNAL: process.env.NEXTAUTH_URL_INTERNAL,
-  },
 };
 
 export default nextConfig;
