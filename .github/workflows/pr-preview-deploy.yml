@@ -208,8 +208,6 @@ jobs:
 
           _Tip: Cmd/Ctrl click to open in a new tab. Time range = last 1h; adjust in Grafana as needed._
 
-          Raw logs URL (copy if needed):
-          ${LOGS_URL}
           EOF
           )
 
