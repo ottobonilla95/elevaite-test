@@ -199,7 +199,7 @@ jobs:
           ORG_ID="1"
           DASH_SLUG="elevaite-pr-logs"
 
-          LOGS_URL="${GRAFANA_HOST}/d/${GRAFANA_DASH_UID}/${DASH_SLUG}?orgId=${ORG_ID}&var-namespace=${NS}&from=now-1h&to=now"
+          LOGS_URL="${GRAFANA_HOST}/d/${GRAFANA_DASH_UID}/${DASH_SLUG}?orgId=${ORG_ID}&var-namespace=${NS}&from=now-15m&to=now"
 
           MSG=$(cat <<EOF
           ✅ Preview deployed:
