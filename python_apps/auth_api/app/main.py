@@ -74,6 +74,7 @@ app = FastAPI(
     description="Minimal test version",
     version="0.1.0",
     lifespan=lifespan,
+    root_path="/auth-api"
 )
 
 excluded_paths = {
@@ -131,6 +132,9 @@ def test_logs():
     logger.critical("This is a critical message")
     return {"message": "Check the logs to see different colored log levels!"}
 
+@app.get("/")
+def root():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
