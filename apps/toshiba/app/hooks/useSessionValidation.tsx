@@ -75,16 +75,41 @@ export function useSessionValidation(): {
     try {
       const response = await fetch("/api/auth/extend-session", {
         method: "POST",
+        signal: AbortSignal.timeout(10000),
       });
 
       if (response.ok) {
-        await response.json();
+        const data = await response.json();
         lastExtensionRef.current = Date.now();
+        console.debug("Session extended successfully:", data.message);
         return true;
       }
 
+      if (response.status === 401) {
+        console.info("Session extension failed: session expired, logging out");
+        await logout();
+        return false;
+      }
+
+      try {
+        const errorData = await response.json();
+        console.warn(
+          `Session extension failed (${response.status}):`,
+          errorData.message || errorData.reason
+        );
+      } catch {
+        console.warn(`Session extension failed with status ${response.status}`);
+      }
+
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === "TimeoutError" || error.name === "AbortError") {
+        console.warn(
+          "Session extension timed out - this may be a temporary issue"
+        );
+      } else {
+        console.warn("Session extension network error:", error.message);
+      }
       return true;
     } finally {
       setIsExtending(false);
