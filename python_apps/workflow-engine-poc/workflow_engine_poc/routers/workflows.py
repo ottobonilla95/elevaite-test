@@ -1,12 +1,23 @@
 """
 Workflow management endpoints
 """
+
 import logging
-from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, UploadFile, File, Form
+from fastapi import (
+    APIRouter,
+    Request,
+    HTTPException,
+    BackgroundTasks,
+    UploadFile,
+    File,
+    Form,
+)
 from typing import Dict, Any, Optional
 from datetime import datetime
 
 from ..models import WorkflowConfig, ExecutionRequest, ExecutionResponse
+from ..db.models import Workflow, WorkflowRead, WorkflowUpdate
+from ..db.database import get_db_session
 from ..workflow_engine import WorkflowEngine
 from ..execution_context import ExecutionContext, UserContext
 from ..database import get_database
@@ -40,6 +51,7 @@ async def execute_workflow(
         execution_context = ExecutionContext(
             workflow_config=request.workflow_config.model_dump(),
             user_context=user_context,
+            workflow_engine=workflow_engine,
         )
 
         # Start execution in background
@@ -193,6 +205,7 @@ async def execute_workflow_with_file(
         execution_context = ExecutionContext(
             workflow_config=execution_request.workflow_config.model_dump(),
             user_context=user_context,
+            workflow_engine=workflow_engine,
         )
         execution_context.step_io_data["file_upload"] = {
             "file_path": str(file_path),
@@ -211,4 +224,95 @@ async def execute_workflow_with_file(
 
     except Exception as e:
         logger.error(f"Failed to execute workflow with file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# New SQLModel-based endpoints
+from fastapi import Depends
+from sqlmodel import Session
+from ..db.service import DatabaseService
+
+
+@router.post("/", response_model=WorkflowRead)
+async def create_workflow(
+    workflow_data: Dict[str, Any], session: Session = Depends(get_db_session)
+) -> WorkflowRead:
+    """Create a new workflow using SQLModel"""
+    try:
+        db_service = DatabaseService()
+
+        # Generate a new workflow ID
+        import uuid
+
+        workflow_id = str(uuid.uuid4())
+
+        # Save the workflow
+        saved_id = await db_service.save_workflow(workflow_id, workflow_data)
+
+        # Get the saved workflow
+        saved_workflow = await db_service.get_workflow(saved_id)
+        if not saved_workflow:
+            raise HTTPException(
+                status_code=500, detail="Failed to retrieve saved workflow"
+            )
+
+        # Convert to response model
+        return WorkflowRead(
+            id=1,  # This would come from the database
+            uuid=uuid.UUID(workflow_id),
+            workflow_id=uuid.UUID(workflow_id),
+            name=saved_workflow.get("name", ""),
+            description=saved_workflow.get("description"),
+            version=saved_workflow.get("version", "1.0.0"),
+            execution_pattern=saved_workflow.get("execution_pattern", "sequential"),
+            configuration=saved_workflow.get("configuration", {}),
+            global_config=saved_workflow.get("global_config", {}),
+            tags=saved_workflow.get("tags", []),
+            timeout_seconds=saved_workflow.get("timeout_seconds"),
+            status=saved_workflow.get("status", "draft"),
+            created_by=saved_workflow.get("created_by"),
+            created_at=datetime.now().isoformat(),
+            updated_at=None,
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to create workflow: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{workflow_id}", response_model=WorkflowRead)
+async def get_workflow_by_id(
+    workflow_id: str, session: Session = Depends(get_db_session)
+) -> WorkflowRead:
+    """Get a workflow by ID using SQLModel"""
+    try:
+        db_service = DatabaseService()
+        workflow = await db_service.get_workflow(workflow_id)
+
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+
+        # Convert to response model (simplified for now)
+        return WorkflowRead(
+            id=1,
+            uuid=uuid.UUID(workflow_id),
+            workflow_id=uuid.UUID(workflow_id),
+            name=workflow.get("name", ""),
+            description=workflow.get("description"),
+            version=workflow.get("version", "1.0.0"),
+            execution_pattern=workflow.get("execution_pattern", "sequential"),
+            configuration=workflow.get("configuration", {}),
+            global_config=workflow.get("global_config", {}),
+            tags=workflow.get("tags", []),
+            timeout_seconds=workflow.get("timeout_seconds"),
+            status=workflow.get("status", "draft"),
+            created_by=workflow.get("created_by"),
+            created_at=datetime.now().isoformat(),
+            updated_at=None,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get workflow {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

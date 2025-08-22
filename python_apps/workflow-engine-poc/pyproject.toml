@@ -18,6 +18,8 @@ dependencies = [
     "python-multipart>=0.0.6",
     "httpx>=0.25.0",
     "prometheus-client>=0.17.0",
+    "sqlmodel>=0.0.24",
+    "opentelemetry-exporter-jaeger>=1.11.1",
 ]
 
 [tool.uv.sources]

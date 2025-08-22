@@ -16,7 +16,7 @@ import logging
 
 from workflow_engine_poc.step_registry import StepRegistry
 from workflow_engine_poc.workflow_engine import WorkflowEngine
-from workflow_engine_poc.database import get_database
+from workflow_engine_poc.db.database import get_database
 from workflow_engine_poc.monitoring import monitoring
 
 # Import all routers

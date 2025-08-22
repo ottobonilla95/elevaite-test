@@ -12,9 +12,12 @@ The execution context is the heart of the workflow engine. It:
 import uuid
 import json
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, List, Optional, Set, TYPE_CHECKING
 from dataclasses import dataclass, field
 from enum import Enum
+
+if TYPE_CHECKING:
+    from .workflow_engine import WorkflowEngine
 
 
 class ExecutionStatus(str, Enum):
@@ -80,6 +83,7 @@ class ExecutionContext:
         workflow_config: Dict[str, Any],
         user_context: Optional[UserContext] = None,
         execution_id: Optional[str] = None,
+        workflow_engine: Optional["WorkflowEngine"] = None,
     ):
         # Core identifiers
         self.execution_id = execution_id or str(uuid.uuid4())
@@ -115,6 +119,9 @@ class ExecutionContext:
             "created_at": datetime.now().isoformat(),
             "engine_version": "1.0.0-poc",
         }
+
+        # Reference to workflow engine for subflow execution
+        self.workflow_engine = workflow_engine
 
         # Build dependency graph
         self.dependency_graph = self._build_dependency_graph()
@@ -217,6 +224,9 @@ class ExecutionContext:
         elif step_result.status == StepStatus.FAILED:
             self.failed_steps.add(step_id)
             self.pending_steps.discard(step_id)
+            # Store output data for failed steps as well (for error analysis and subflow results)
+            if step_result.output_data:
+                self.step_io_data[step_id] = step_result.output_data
 
         # Update current step tracking
         if self.current_step == step_id:

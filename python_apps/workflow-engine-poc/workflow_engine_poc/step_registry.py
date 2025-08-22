@@ -298,7 +298,7 @@ class StepRegistry:
                 "step_type": "data_input",
                 "name": "Data Input",
                 "description": "Provides static or dynamic input data",
-                "function_reference": "workflow_engine_poc.builtin_steps.data_input_step",
+                "function_reference": "workflow_engine_poc.steps.data_steps.data_input_step",
                 "execution_type": "local",
                 "parameters_schema": {
                     "type": "object",
@@ -315,7 +315,7 @@ class StepRegistry:
                 "step_type": "data_processing",
                 "name": "Data Processing",
                 "description": "Processes input data with various transformations",
-                "function_reference": "workflow_engine_poc.builtin_steps.data_processing_step",
+                "function_reference": "workflow_engine_poc.steps.data_steps.data_processing_step",
                 "execution_type": "local",
                 "parameters_schema": {
                     "type": "object",
@@ -332,7 +332,7 @@ class StepRegistry:
                 "step_type": "data_merge",
                 "name": "Data Merge",
                 "description": "Merges data from multiple sources",
-                "function_reference": "workflow_engine_poc.builtin_steps.data_merge_step",
+                "function_reference": "workflow_engine_poc.steps.data_steps.data_merge_step",
                 "execution_type": "local",
             }
         )
@@ -343,26 +343,28 @@ class StepRegistry:
                 "step_type": "agent_execution",
                 "name": "Agent Execution",
                 "description": "Executes AI agents with various configurations",
-                "function_reference": "workflow_engine_poc.agent_steps.agent_execution_step",
+                "function_reference": "workflow_engine_poc.steps.ai_steps.agent_execution_step",
                 "execution_type": "local",
                 "parameters_schema": {
                     "type": "object",
                     "properties": {
-                        "agent_config": {"type": "object"},
+                        "agent_name": {"type": "string"},
+                        "system_prompt": {"type": "string"},
                         "query": {"type": "string"},
-                        "return_simplified": {"type": "boolean"},
+                        "tools": {"type": "array"},
+                        "force_real_llm": {"type": "boolean"},
                     },
                 },
             }
         )
 
-        # Register tokenizer steps for RAG workflows
+        # Register file processing steps for RAG workflows
         await self.register_step(
             {
                 "step_type": "file_reader",
                 "name": "File Reader",
                 "description": "Reads and extracts content from various document formats (PDF, DOCX, XLSX, TXT)",
-                "function_reference": "workflow_engine_poc.tokenizer_steps.file_reader_step",
+                "function_reference": "workflow_engine_poc.steps.file_steps.file_reader_step",
                 "execution_type": "local",
                 "parameters_schema": {
                     "type": "object",
@@ -383,7 +385,7 @@ class StepRegistry:
                 "step_type": "text_chunking",
                 "name": "Text Chunking",
                 "description": "Divides text into manageable, semantically meaningful chunks",
-                "function_reference": "workflow_engine_poc.tokenizer_steps.text_chunking_step",
+                "function_reference": "workflow_engine_poc.steps.file_steps.text_chunking_step",
                 "execution_type": "local",
                 "parameters_schema": {
                     "type": "object",
@@ -408,7 +410,7 @@ class StepRegistry:
                 "step_type": "embedding_generation",
                 "name": "Embedding Generation",
                 "description": "Generates vector embeddings for text chunks using various providers",
-                "function_reference": "workflow_engine_poc.tokenizer_steps.embedding_generation_step",
+                "function_reference": "workflow_engine_poc.steps.file_steps.embedding_generation_step",
                 "execution_type": "local",
                 "parameters_schema": {
                     "type": "object",
@@ -429,7 +431,7 @@ class StepRegistry:
                 "step_type": "vector_storage",
                 "name": "Vector Storage",
                 "description": "Stores vector embeddings in vector databases for retrieval",
-                "function_reference": "workflow_engine_poc.tokenizer_steps.vector_storage_step",
+                "function_reference": "workflow_engine_poc.steps.file_steps.vector_storage_step",
                 "execution_type": "local",
                 "parameters_schema": {
                     "type": "object",
@@ -442,6 +444,42 @@ class StepRegistry:
                         "qdrant_host": {"type": "string"},
                         "qdrant_port": {"type": "integer"},
                     },
+                },
+            }
+        )
+
+        # Register subflow step for nested workflow execution
+        await self.register_step(
+            {
+                "step_type": "subflow",
+                "name": "Subflow Execution",
+                "description": "Executes another workflow as a nested component, enabling composition of complex workflows from smaller reusable components",
+                "function_reference": "workflow_engine_poc.steps.flow_steps.subflow_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "workflow_id": {
+                            "type": "string",
+                            "description": "ID of the workflow to execute as a subflow",
+                        },
+                        "input_mapping": {
+                            "type": "object",
+                            "description": "How to map current input data to subflow input (dot notation supported)",
+                            "additionalProperties": {"type": "string"},
+                        },
+                        "output_mapping": {
+                            "type": "object",
+                            "description": "How to map subflow output back to current workflow (dot notation supported)",
+                            "additionalProperties": {"type": "string"},
+                        },
+                        "inherit_context": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": "Whether to inherit user context from parent workflow",
+                        },
+                    },
+                    "required": ["workflow_id"],
                 },
             }
         )
