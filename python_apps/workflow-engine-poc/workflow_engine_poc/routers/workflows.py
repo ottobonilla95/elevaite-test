@@ -3,6 +3,7 @@ Workflow management endpoints
 """
 
 import logging
+import uuid
 from fastapi import (
     APIRouter,
     Request,
@@ -14,13 +15,31 @@ from fastapi import (
 )
 from typing import Dict, Any, Optional
 from datetime import datetime
+from pydantic import BaseModel
 
-from ..models import WorkflowConfig, ExecutionRequest, ExecutionResponse
-from ..db.models import Workflow, WorkflowRead, WorkflowUpdate
+from fastapi import Depends
+from sqlmodel import Session
 from ..db.database import get_db_session
+from ..db.models import WorkflowRead, WorkflowBase
+from ..db.service import DatabaseService
 from ..workflow_engine import WorkflowEngine
 from ..execution_context import ExecutionContext, UserContext
-from ..database import get_database
+
+
+class ExecutionRequest(BaseModel):
+    workflow_config: WorkflowBase
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+    organization_id: Optional[str] = None
+    input_data: Dict[str, Any] = {}
+
+
+class ExecutionResponse(BaseModel):
+    execution_id: str
+    status: str
+    message: str
+    started_at: str
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +48,9 @@ router = APIRouter(prefix="/workflows", tags=["workflows"])
 
 @router.post("/execute", response_model=ExecutionResponse)
 async def execute_workflow(
-    request: ExecutionRequest, background_tasks: BackgroundTasks, app_request: Request
+    request: ExecutionRequest,
+    background_tasks: BackgroundTasks,
+    app_request: Request,
 ):
     """
     Execute a workflow configuration.
@@ -53,6 +74,9 @@ async def execute_workflow(
             user_context=user_context,
             workflow_engine=workflow_engine,
         )
+        # Include any input_data at top-level
+        if request.input_data:
+            execution_context.step_io_data.update(request.input_data)
 
         # Start execution in background
         background_tasks.add_task(workflow_engine.execute_workflow, execution_context)
@@ -70,7 +94,7 @@ async def execute_workflow(
 
 
 @router.post("/validate")
-async def validate_workflow(workflow_config: WorkflowConfig, request: Request):
+async def validate_workflow(workflow_config: WorkflowBase, request: Request):
     """Validate a workflow configuration"""
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
@@ -84,17 +108,17 @@ async def validate_workflow(workflow_config: WorkflowConfig, request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/")
-async def save_workflow(workflow_config: WorkflowConfig, request: Request):
+@router.post("/config")
+async def save_workflow(
+    workflow_config: WorkflowBase,
+    session: Session = Depends(get_db_session),
+):
     """Save a workflow configuration to the database"""
     try:
-        database = request.app.state.database
-        workflow_id = (
-            workflow_config.workflow_id
-            or f"workflow-{workflow_config.name.lower().replace(' ', '-')}"
-        )
-        workflow_id = await database.save_workflow(
-            workflow_id, workflow_config.model_dump()
+        db_service = DatabaseService()
+        workflow_id = f"workflow-{workflow_config.name.lower().replace(' ', '-') }"
+        workflow_id = db_service.save_workflow(
+            session, workflow_id, workflow_config.model_dump()
         )
 
         return {"workflow_id": workflow_id, "message": "Workflow saved successfully"}
@@ -104,12 +128,12 @@ async def save_workflow(workflow_config: WorkflowConfig, request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{workflow_id}")
-async def get_workflow(workflow_id: str, request: Request):
+@router.get("/config/{workflow_id}")
+async def get_workflow(workflow_id: str, session: Session = Depends(get_db_session)):
     """Get a workflow configuration by ID"""
     try:
-        database = request.app.state.database
-        workflow = await database.get_workflow(workflow_id)
+        db_service = DatabaseService()
+        workflow = db_service.get_workflow(session, workflow_id)
 
         if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")
@@ -123,11 +147,13 @@ async def get_workflow(workflow_id: str, request: Request):
 
 
 @router.get("/")
-async def list_workflows(limit: int = 100, offset: int = 0, request: Request = None):
+async def list_workflows(
+    session: Session = Depends(get_db_session), limit: int = 100, offset: int = 0
+):
     """List all saved workflows"""
     try:
-        database = request.app.state.database
-        workflows = await database.list_workflows(limit=limit, offset=offset)
+        db_service = DatabaseService()
+        workflows = db_service.list_workflows(session, limit=limit, offset=offset)
 
         return {
             "workflows": workflows,
@@ -141,11 +167,11 @@ async def list_workflows(limit: int = 100, offset: int = 0, request: Request = N
 
 
 @router.delete("/{workflow_id}")
-async def delete_workflow(workflow_id: str, request: Request):
+async def delete_workflow(workflow_id: str, session: Session = Depends(get_db_session)):
     """Delete a workflow configuration"""
     try:
-        database = request.app.state.database
-        deleted = await database.delete_workflow(workflow_id)
+        db_service = DatabaseService()
+        deleted = db_service.delete_workflow(session, workflow_id)
 
         if not deleted:
             raise HTTPException(status_code=404, detail="Workflow not found")
@@ -161,11 +187,11 @@ async def delete_workflow(workflow_id: str, request: Request):
 
 @router.post("/execute-with-file")
 async def execute_workflow_with_file(
+    request: Request,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     workflow_config: str = Form(...),
     user_id: Optional[str] = Form("file_user"),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
-    request: Request = None,
 ):
     """Execute a workflow with an uploaded file"""
     try:
@@ -174,19 +200,19 @@ async def execute_workflow_with_file(
 
         # Parse workflow config
         workflow_data = json.loads(workflow_config)
-        workflow_config_obj = WorkflowConfig(**workflow_data)
+        workflow_config_obj = WorkflowBase.model_validate(workflow_data)
 
         # Save uploaded file
         upload_dir = Path("uploads")
         upload_dir.mkdir(exist_ok=True)
-        file_path = upload_dir / file.filename
+        file_path = f"{upload_dir}/{file.filename}"
 
         with open(file_path, "wb") as buffer:
             content = await file.read()
             buffer.write(content)
 
         # Create execution request
-        execution_request = ExecutionRequest(
+        exec_request = ExecutionRequest(
             workflow_config=workflow_config_obj,
             user_id=user_id,
             session_id=f"file-session-{datetime.now().isoformat()}",
@@ -197,13 +223,13 @@ async def execute_workflow_with_file(
         # Execute workflow
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
         user_context = UserContext(
-            user_id=execution_request.user_id,
-            session_id=execution_request.session_id,
-            organization_id=execution_request.organization_id,
+            user_id=exec_request.user_id,
+            session_id=exec_request.session_id,
+            organization_id=exec_request.organization_id,
         )
 
         execution_context = ExecutionContext(
-            workflow_config=execution_request.workflow_config.model_dump(),
+            workflow_config=exec_request.workflow_config.model_dump(),
             user_context=user_context,
             workflow_engine=workflow_engine,
         )
@@ -247,10 +273,10 @@ async def create_workflow(
         workflow_id = str(uuid.uuid4())
 
         # Save the workflow
-        saved_id = await db_service.save_workflow(workflow_id, workflow_data)
+        saved_id = db_service.save_workflow(session, workflow_id, workflow_data)
 
         # Get the saved workflow
-        saved_workflow = await db_service.get_workflow(saved_id)
+        saved_workflow = db_service.get_workflow(session, saved_id)
         if not saved_workflow:
             raise HTTPException(
                 status_code=500, detail="Failed to retrieve saved workflow"
@@ -287,7 +313,7 @@ async def get_workflow_by_id(
     """Get a workflow by ID using SQLModel"""
     try:
         db_service = DatabaseService()
-        workflow = await db_service.get_workflow(workflow_id)
+        workflow = db_service.get_workflow(session, workflow_id)
 
         if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")

@@ -32,6 +32,20 @@ from .step_registry import (
     StepTypeRead,
     StepTypeUpdate,
 )
+from .agents import (
+    Agent,
+    AgentBase,
+    AgentCreate,
+    AgentRead,
+    AgentUpdate,
+    AgentToolBinding,
+)
+from .prompts import (
+    Prompt,
+    PromptCreate,
+    PromptRead,
+    PromptUpdate,
+)
 
 __all__ = [
     # Base mixins
@@ -60,4 +74,16 @@ __all__ = [
     "StepTypeCreate",
     "StepTypeRead",
     "StepTypeUpdate",
+    # Agent models
+    "Agent",
+    "AgentBase",
+    "AgentCreate",
+    "AgentRead",
+    "AgentUpdate",
+    "AgentToolBinding",
+    # Prompt models
+    "Prompt",
+    "PromptCreate",
+    "PromptRead",
+    "PromptUpdate",
 ]

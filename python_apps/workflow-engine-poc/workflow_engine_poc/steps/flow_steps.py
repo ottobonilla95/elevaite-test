@@ -31,7 +31,9 @@ async def subflow_step(
     - inherit_context: Whether to inherit user context from parent workflow (default: True)
     """
     from ..workflow_engine import WorkflowEngine
-    from ..db.database import get_database
+    from ..db.service import DatabaseService
+    from ..db.database import engine
+    from sqlmodel import Session
 
     config = step_config.get("config", {})
     workflow_id = config.get("workflow_id")
@@ -46,10 +48,11 @@ async def subflow_step(
             "success": False,
         }
 
-    # Get database instance to load the subflow workflow
+    # Load the subflow workflow using a session-injected DatabaseService
     try:
-        database = await get_database()
-        subflow_config = await database.get_workflow(workflow_id)
+        db_service = DatabaseService()
+        with Session(engine) as session:
+            subflow_config = db_service.get_workflow(session, workflow_id)
 
         if not subflow_config:
             return {

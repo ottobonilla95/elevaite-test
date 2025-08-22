@@ -134,10 +134,10 @@ async def create_execution(
         }
 
         # Create the execution
-        execution_id = await db_service.create_execution(execution_request)
+        execution_id = db_service.create_execution(session, execution_request)
 
         # Get the created execution
-        execution = await db_service.get_execution(execution_id)
+        execution = db_service.get_execution(session, execution_id)
         if not execution:
             raise HTTPException(
                 status_code=500, detail="Failed to retrieve created execution"
@@ -179,7 +179,7 @@ async def get_execution_sqlmodel(
     """Get execution details using SQLModel"""
     try:
         db_service = DatabaseService()
-        execution = await db_service.get_execution(execution_id)
+        execution = db_service.get_execution(session, execution_id)
 
         if not execution:
             raise HTTPException(status_code=404, detail="Execution not found")
@@ -226,38 +226,36 @@ async def list_executions_sqlmodel(
     """List executions using SQLModel"""
     try:
         db_service = DatabaseService()
-        executions = await db_service.list_executions(
-            workflow_id=workflow_id, status=status, limit=limit, offset=offset
+        executions = db_service.list_executions(
+            session, workflow_id=workflow_id, status=status, limit=limit, offset=offset
         )
 
         # Convert to response models
         import uuid
 
-        result = []
-        for execution in executions:
-            result.append(
-                WorkflowExecutionRead(
-                    id=1,  # This would come from the database
-                    uuid=uuid.UUID(execution["execution_id"]),
-                    execution_id=uuid.UUID(execution["execution_id"]),
-                    workflow_id=uuid.UUID(execution["workflow_id"]),
-                    user_id=execution.get("user_id"),
-                    session_id=execution.get("session_id"),
-                    organization_id=execution.get("organization_id"),
-                    status=ExecutionStatus(execution["status"]),
-                    input_data={},  # Simplified for list view
-                    output_data={},
-                    step_io_data={},
-                    execution_metadata={},
-                    error_message=execution.get("error_message"),
-                    started_at=execution.get("started_at"),
-                    completed_at=execution.get("completed_at"),
-                    execution_time_seconds=execution.get("execution_time_seconds"),
-                    created_at=execution["created_at"],
-                    updated_at=execution.get("updated_at"),
-                )
+        result = [
+            WorkflowExecutionRead(
+                id=1,
+                uuid=uuid.UUID(exe["execution_id"]),
+                execution_id=uuid.UUID(exe["execution_id"]),
+                workflow_id=uuid.UUID(exe["workflow_id"]),
+                user_id=exe.get("user_id"),
+                session_id=exe.get("session_id"),
+                organization_id=exe.get("organization_id"),
+                status=ExecutionStatus(exe["status"]),
+                input_data={},
+                output_data={},
+                step_io_data={},
+                execution_metadata={},
+                error_message=exe.get("error_message"),
+                started_at=exe.get("started_at"),
+                completed_at=exe.get("completed_at"),
+                execution_time_seconds=exe.get("execution_time_seconds"),
+                created_at=exe["created_at"],
+                updated_at=exe.get("updated_at"),
             )
-
+            for exe in executions
+        ]
         return result
 
     except Exception as e:

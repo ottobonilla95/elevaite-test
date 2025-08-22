@@ -1,0 +1,153 @@
+{
+  "workflows": [
+    {
+      "workflow_id": "file-processing-subflow",
+      "name": "File Processing Subflow",
+      "description": "Reads a document, chunks it, generates embeddings, and stores vectors for RAG.",
+      "execution_pattern": "sequential",
+      "steps": [
+        {
+          "step_id": "read_file",
+          "step_name": "Read File",
+          "step_type": "file_reader",
+          "step_order": 1,
+          "config": {
+            "supported_formats": ["pdf", "docx", "txt", "xlsx"]
+          }
+        },
+        {
+          "step_id": "chunk_text",
+          "step_name": "Chunk Text",
+          "step_type": "text_chunking",
+          "step_order": 2,
+          "dependencies": ["read_file"],
+          "input_mapping": {"content": "read_file.content"},
+          "config": {
+            "strategy": "sliding_window",
+            "chunk_size": 1000,
+            "overlap": 100
+          }
+        },
+        {
+          "step_id": "generate_embeddings",
+          "step_name": "Generate Embeddings",
+          "step_type": "embedding_generation",
+          "step_order": 3,
+          "dependencies": ["chunk_text"],
+          "input_mapping": {"chunks": "chunk_text.chunks"},
+          "config": {
+            "model": "text-embedding-ada-002",
+            "batch_size": 10
+          }
+        },
+        {
+          "step_id": "store_vectors",
+          "step_name": "Store Vectors",
+          "step_type": "vector_storage",
+          "step_order": 4,
+          "dependencies": ["generate_embeddings"],
+          "input_mapping": {
+            "embeddings": "generate_embeddings.embeddings",
+            "chunks": "chunk_text.chunks"
+          },
+          "config": {
+            "storage_type": "qdrant",
+            "collection_name": "rag_documents",
+            "qdrant_host": "localhost",
+            "qdrant_port": 6333
+          }
+        }
+      ]
+    },
+
+    {
+      "workflow_id": "agent-with-file-subflow",
+      "name": "Agent with File Processing Subflow (RAG + Weather)",
+      "description": "Runs a file processing subflow to prepare RAG data, then executes an agent with RAG and weather tools.",
+      "execution_pattern": "sequential",
+      "steps": [
+        {
+          "step_id": "init",
+          "step_name": "Initialize Inputs",
+          "step_type": "data_input",
+          "step_order": 1,
+          "config": {
+            "input_type": "static",
+            "data": {
+              "file_path": "/path/to/document.pdf",
+              "question": "What is the document about? Summarize key points."
+            }
+          }
+        },
+        {
+          "step_id": "process_file",
+          "step_name": "Process File (Subflow)",
+          "step_type": "subflow",
+          "step_order": 2,
+          "dependencies": ["init"],
+          "config": {
+            "workflow_id": "file-processing-subflow",
+            "input_mapping": {"file_path": "init.data.file_path"},
+            "output_mapping": {
+              "vector_collection": "store_vectors.collection_name",
+              "chunk_count": "chunk_text.chunk_count"
+            },
+            "inherit_context": true
+          }
+        },
+        {
+          "step_id": "ask_agent",
+          "step_name": "Agent Answers Question (RAG + Weather)",
+          "step_type": "agent_execution",
+          "step_order": 3,
+          "dependencies": ["init", "process_file"],
+          "input_mapping": {
+            "question": "init.data.question",
+            "vector_collection": "process_file.subflow_output.vector_collection"
+          },
+          "config": {
+            "agent_name": "RAG Assistant",
+            "system_prompt": "You are a helpful assistant. Use the tools when helpful. Use document_search to search the vector store for relevant chunks from the processed document. Use weather_forecast if the user asks about weather.",
+            "query": "Answer the user's question: {question}. If needed, search collection '{vector_collection}' for context.",
+            "force_real_llm": false,
+            "tools": [
+              {
+                "type": "function",
+                "function": {
+                  "name": "document_search",
+                  "description": "Search vectorized documents for relevant chunks (RAG).",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "query": {"type": "string", "description": "The search query"},
+                      "collection_name": {"type": "string", "default": "rag_documents"},
+                      "top_k": {"type": "integer", "default": 5},
+                      "score_threshold": {"type": "number", "default": 0.7}
+                    },
+                    "required": ["query"]
+                  }
+                }
+              },
+              {
+                "type": "function",
+                "function": {
+                  "name": "weather_forecast",
+                  "description": "Get a simple weather forecast for a location.",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "location": {"type": "string"},
+                      "days": {"type": "integer", "default": 1}
+                    },
+                    "required": ["location"]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+

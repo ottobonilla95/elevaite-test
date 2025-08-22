@@ -16,7 +16,7 @@ import logging
 
 from workflow_engine_poc.step_registry import StepRegistry
 from workflow_engine_poc.workflow_engine import WorkflowEngine
-from workflow_engine_poc.db.database import get_database
+from workflow_engine_poc.db.database import get_database, create_db_and_tables
 from workflow_engine_poc.monitoring import monitoring
 
 # Import all routers
@@ -27,6 +27,7 @@ from workflow_engine_poc.routers import (
     steps,
     files,
     monitoring as monitoring_router,
+    agents,
 )
 
 
@@ -41,6 +42,7 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Workflow Execution Engine PoC")
 
     # Initialize database
+    create_db_and_tables()
     database = await get_database()
     logger.info("✅ Database initialized")
     app.state.database = database
@@ -77,12 +79,13 @@ app.add_middleware(
 )
 
 # Include all routers
-app.include_router(health.router)
-app.include_router(workflows.router)
-app.include_router(executions.router)
-app.include_router(steps.router)
-app.include_router(files.router)
-app.include_router(monitoring_router.router)
+app.include_router(health)
+app.include_router(workflows)
+app.include_router(executions)
+app.include_router(steps)
+app.include_router(files)
+app.include_router(monitoring_router)
+app.include_router(agents)
 
 
 # All endpoints are now defined in routers
