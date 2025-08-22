@@ -3752,6 +3752,48 @@ wheels = [
 ]
 
 [[package]]
+name = "opentelemetry-exporter-jaeger"
+version = "1.11.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-exporter-jaeger-proto-grpc" },
+    { name = "opentelemetry-exporter-jaeger-thrift" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3b/24/7d6816194eebc5fd0d30c8df758a08fc173d351c4a39b18fb3fddac48051/opentelemetry-exporter-jaeger-1.11.1.tar.gz", hash = "sha256:eaba2302839ba5579a10bc49eb585fdc59684e5edf53a1563e228d2a73c2dab7", size = 6377, upload-time = "2022-04-21T21:02:39.889Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/30/6c/e0eeb03f49e48a54772228e83c692ba7a4cd6309810f39963788b57106f7/opentelemetry_exporter_jaeger-1.11.1-py3-none-any.whl", hash = "sha256:d8bffdf0c0a588000ad227feaa5dfbc15becdb428058903d6cc4719e5368048e", size = 6978, upload-time = "2022-04-21T21:02:12.641Z" },
+]
+
+[[package]]
+name = "opentelemetry-exporter-jaeger-proto-grpc"
+version = "1.11.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "googleapis-common-protos" },
+    { name = "grpcio" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-sdk" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4d/c2/c7c07a66088b1616fc15e778890beab868240941decef0c1cf39805e0c1c/opentelemetry-exporter-jaeger-proto-grpc-1.11.1.tar.gz", hash = "sha256:e4ee0ede2cf5e45044ad97aa47d0114847143ffa707fffec32b368c76117832f", size = 33915, upload-time = "2022-04-21T21:02:41.336Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7d/3f/b436ea5fa24e21931e73e8127010cad4b0b32deb9a7ddecaa81523fb40c5/opentelemetry_exporter_jaeger_proto_grpc-1.11.1-py3-none-any.whl", hash = "sha256:0851c4024285604fedeae01e840a6cb52f5ca15dbe2566eca1e61106b0c0ff99", size = 37309, upload-time = "2022-04-21T21:02:14.239Z" },
+]
+
+[[package]]
+name = "opentelemetry-exporter-jaeger-thrift"
+version = "1.11.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-sdk" },
+    { name = "thrift" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e7/39/e990c8e92fa9d6c7276e2b10ba45436370b58c4c3175a7515eb3ab721c83/opentelemetry-exporter-jaeger-thrift-1.11.1.tar.gz", hash = "sha256:9171c23b6ecf3fb89d326008826e85c8192a4ffa0d172a7a5931f2825b405d20", size = 28869, upload-time = "2022-04-21T21:02:42.493Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/96/e811ed9d615fdda94f6172c8b39ff9dcac8e5feb723af91f58fa22259d83/opentelemetry_exporter_jaeger_thrift-1.11.1-py3-none-any.whl", hash = "sha256:431bc3e9020cd42bd785979f9394ab492967af5b6adad24763291dcb95cea2a2", size = 31925, upload-time = "2022-04-21T21:02:15.739Z" },
+]
+
+[[package]]
 name = "opentelemetry-exporter-otlp"
 version = "1.33.1"
 source = { registry = "https://pypi.org/simple" }
@@ -5613,6 +5655,19 @@ wheels = [
 ]
 
 [[package]]
+name = "sqlmodel"
+version = "0.0.24"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "sqlalchemy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/86/4b/c2ad0496f5bdc6073d9b4cef52be9c04f2b37a5773441cc6600b1857648b/sqlmodel-0.0.24.tar.gz", hash = "sha256:cc5c7613c1a5533c9c7867e1aab2fd489a76c9e8a061984da11b4e613c182423", size = 116780, upload-time = "2025-03-07T05:43:32.887Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/16/91/484cd2d05569892b7fef7f5ceab3bc89fb0f8a8c0cde1030d383dbc5449c/sqlmodel-0.0.24-py3-none-any.whl", hash = "sha256:6778852f09370908985b667d6a3ab92910d0d5ec88adcaf23dbc242715ff7193", size = 28622, upload-time = "2025-03-07T05:43:30.37Z" },
+]
+
+[[package]]
 name = "starlette"
 version = "0.37.2"
 source = { registry = "https://pypi.org/simple" }
@@ -5693,6 +5748,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/b7/4d/08c89e34946fce2ae
 wheels = [
     { url = "https://files.pythonhosted.org/packages/32/d5/f9a850d79b0851d1d4ef6456097579a9005b31fea68726a4ae5f2d82ddd9/threadpoolctl-3.6.0-py3-none-any.whl", hash = "sha256:43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb", size = 18638, upload-time = "2025-03-13T13:49:21.846Z" },
 ]
+
+[[package]]
+name = "thrift"
+version = "0.22.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/c2/db648cc10dd7d15560f2eafd92a27cd280811924696e0b4a87175fb28c94/thrift-0.22.0.tar.gz", hash = "sha256:42e8276afbd5f54fe1d364858b6877bc5e5a4a5ed69f6a005b94ca4918fe1466", size = 62303, upload-time = "2025-05-23T20:49:33.309Z" }
 
 [[package]]
 name = "tifffile"
@@ -6214,10 +6275,12 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "llm-gateway" },
+    { name = "opentelemetry-exporter-jaeger" },
     { name = "prometheus-client" },
     { name = "pydantic" },
     { name = "python-multipart" },
     { name = "sqlalchemy" },
+    { name = "sqlmodel" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -6246,12 +6309,14 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.25.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.25.2" },
     { name = "llm-gateway", editable = "python_packages/llm-gateway" },
+    { name = "opentelemetry-exporter-jaeger", specifier = ">=1.11.1" },
     { name = "prometheus-client", specifier = ">=0.17.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
     { name = "python-multipart", specifier = ">=0.0.6" },
     { name = "sqlalchemy", specifier = ">=2.0.0" },
+    { name = "sqlmodel", specifier = ">=0.0.24" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
 ]
 provides-extras = ["dev"]
