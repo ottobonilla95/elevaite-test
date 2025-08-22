@@ -3313,19 +3313,24 @@ def get_salesforce_opportunities() -> str:
             close_date = opp.get("CloseDate", "N/A")
             opp_type = opp.get("Type", "N/A")
 
-            # Get account name (try different fields)
+            # Get account name and ID (try different fields)
             account_name = "N/A"
+            account_id = "N/A"
             if opp.get("Account") and opp["Account"].get("Name"):
                 account_name = opp["Account"]["Name"]
+                account_id = opp.get("AccountId", "N/A")
             elif opp.get("Account__r") and opp["Account__r"].get("Name"):
                 account_name = opp["Account__r"]["Name"]
+                account_id = opp.get("Account__c", "N/A")
+            else:
+                account_id = opp.get("AccountId") or opp.get("Account__c", "N/A")
 
             # Format amount
             amount_str = f"${amount:,.2f}" if amount else "N/A"
 
             response += f"{i:3d}. {opp_name}\n"
             response += f"     ID: {opp_id}\n"
-            response += f"     Account: {account_name}\n"
+            response += f"     Account: {account_name} (ID: {account_id})\n"
             response += f"     Stage: {stage}\n"
             response += f"     Amount: {amount_str}\n"
             response += f"     Close Date: {close_date}\n"
