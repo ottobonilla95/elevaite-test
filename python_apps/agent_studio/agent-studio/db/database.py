@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -25,11 +26,13 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SQLAlchemyInstrumentor().instrument(engine=engine)  # OTEL
 
 Base = declarative_base()
 
+
 def get_db():
-    
+
     db = SessionLocal()
     try:
         yield db
