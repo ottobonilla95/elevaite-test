@@ -1,7 +1,7 @@
 """
 Database engine and session management using SQLModel
 
-This module provides the database engine, session management, and 
+This module provides the database engine, session management, and
 database initialization functionality for the workflow engine.
 """
 
@@ -9,11 +9,12 @@ import os
 from typing import Generator
 from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.pool import StaticPool
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
 # Database configuration
 DATABASE_URL = os.getenv(
     "WORKFLOW_ENGINE_DATABASE_URL",
-    "postgresql://elevaite:elevaite@localhost:5433/workflow_engine"
+    "postgresql://elevaite:elevaite@localhost:5433/workflow_engine",
 )
 
 # For development, fall back to SQLite if PostgreSQL is not available
@@ -25,7 +26,7 @@ try:
     test_engine = create_engine(DATABASE_URL, echo=False)
     with test_engine.connect():
         pass
-    
+
     # PostgreSQL is available
     engine = create_engine(
         DATABASE_URL,
@@ -34,7 +35,7 @@ try:
         max_overflow=10,
     )
     print(f"Connected to PostgreSQL: {DATABASE_URL}")
-    
+
 except Exception as e:
     # Fall back to SQLite for development
     print(f"PostgreSQL connection failed ({e}), falling back to SQLite")
@@ -45,6 +46,8 @@ except Exception as e:
         poolclass=StaticPool,
     )
     print(f"Connected to SQLite: {SQLITE_DATABASE_URL}")
+
+SQLAlchemyInstrumentor().instrument(engine=engine)  # OTEL
 
 
 def create_db_and_tables():
@@ -68,4 +71,5 @@ def get_db_session():
 async def get_database():
     """Legacy compatibility function"""
     from .service import DatabaseService
+
     return DatabaseService()
