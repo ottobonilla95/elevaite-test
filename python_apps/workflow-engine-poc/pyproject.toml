@@ -20,6 +20,8 @@ dependencies = [
     "prometheus-client>=0.17.0",
     "sqlmodel>=0.0.24",
     "opentelemetry-exporter-jaeger>=1.11.1",
+    "opentelemetry-instrumentation-fastapi>=0.57b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.57b0",
 ]
 
 [tool.uv.sources]
