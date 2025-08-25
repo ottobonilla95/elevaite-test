@@ -7,7 +7,11 @@ from typing import Optional, TextIO, Dict, Any
 import boto3
 from opentelemetry import trace
 
-from fastapi_logger.core.telemetry import configure_tracer, default_tracer
+from fastapi_logger.core.telemetry import (
+    configure_tracer,
+    configure_metrics,
+    default_tracer,
+)
 from fastapi_logger.core.cloudwatch import CloudWatchHandler
 
 # Global flag to prevent multiple uvicorn attachments
@@ -159,6 +163,7 @@ class BaseLogger:
         resource_attributes: Optional[Dict[str, str]] = None,
         otlp_insecure: bool = False,
         otlp_timeout: int = 5,
+        configure_metrics_provider: bool = False,
     ):
         """
         Attach this logger to Uvicorn and FastAPI logs with optional CloudWatch and OpenTelemetry integration.
@@ -174,6 +179,7 @@ class BaseLogger:
             resource_attributes: Additional resource attributes for OpenTelemetry
             otlp_insecure: Whether to use insecure connection for OTLP (default: False for security)
             otlp_timeout: Timeout in seconds for OTLP exporter (default: 5)
+            configure_metrics_provider: Whether to configure an OTEL MeterProvider with OTLP exporter
         """
         global _uvicorn_attached
 
@@ -202,6 +208,19 @@ class BaseLogger:
             otlp_insecure=otlp_insecure,
             otlp_timeout=otlp_timeout,
         ).get_logger()
+
+        # OTEL metrics provider (global)
+        if configure_metrics_provider:
+            try:
+                configure_metrics(
+                    service_name=service_name,
+                    otlp_endpoint=otlp_endpoint,
+                    resource_attributes=resource_attributes,
+                    otlp_insecure=otlp_insecure,
+                    otlp_timeout=otlp_timeout,
+                )
+            except Exception as e:
+                print(f"Warning: Failed to configure OTEL metrics provider: {e}")
 
         # Mark our handlers to avoid duplicates
         for handler in custom_logger.handlers:
