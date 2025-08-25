@@ -8,7 +8,7 @@ on:
 
 jobs:
   cleanup-preview:
-    uses: iopexses/elev8s/.github/workflows/reusable-cleanup-preview.yml@on-prem
+    uses: iopexses/elev8s/.github/workflows/reusable-cleanup-preview.yml@main
     with:
       pr_number: ${{ github.event.pull_request.number }}
     secrets:
