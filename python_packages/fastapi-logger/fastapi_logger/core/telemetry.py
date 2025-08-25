@@ -4,8 +4,18 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.semconv.resource import ResourceAttributes
-from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.semconv.attributes.resource import SERVICE_NAME as SERVICE_NAME_KEY  # type: ignore
+from opentelemetry.metrics import set_meter_provider
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+
+# Import both exporters under different names to avoid shadowing
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
+    OTLPMetricExporter as _GrpcMetricExporter,
+)
+from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
+    OTLPMetricExporter as _HttpMetricExporter,
+)
 
 
 def configure_tracer(
@@ -32,7 +42,7 @@ def configure_tracer(
     """
     # Create resource with service info
     attributes = {
-        ResourceAttributes.SERVICE_NAME: service_name,
+        SERVICE_NAME_KEY: service_name,
     }
 
     # Add any additional attributes
@@ -81,3 +91,65 @@ default_tracer = trace.get_tracer(__name__)
 
 # Only set up OpenTelemetry if explicitly requested
 # Don't automatically instrument logging or set up exporters
+
+# Simple guard to avoid re-setting MeterProvider multiple times in one process
+_metrics_provider_initialized = False
+
+
+def configure_metrics(
+    service_name: str = "fastapi-service",
+    otlp_endpoint: Optional[str] = None,
+    resource_attributes: Optional[Dict[str, Any]] = None,
+    otlp_insecure: bool = False,
+    otlp_timeout: int = 5,
+) -> Optional[MeterProvider]:
+    """Configure OpenTelemetry metrics with optional OTLP exporter.
+
+    Returns the configured MeterProvider or None if exporter unavailable or not configured.
+    """
+    global _metrics_provider_initialized
+    try:
+        # We will not override the global provider if already set; still return a provider instance
+
+        attributes = {SERVICE_NAME_KEY: service_name}
+        if resource_attributes:
+            attributes.update(resource_attributes)
+        resource = Resource.create(attributes)
+
+        readers = []
+        if otlp_endpoint:
+            # Choose exporter based on path: HTTP exporter uses /v1/metrics path, gRPC usually plain host:port
+            try:
+                endpoint_str = str(otlp_endpoint)
+                if "/v1/metrics" in endpoint_str:
+                    # HTTP exporter does not accept 'insecure'
+                    exporter = _HttpMetricExporter(
+                        endpoint=otlp_endpoint, timeout=otlp_timeout
+                    )
+                else:
+                    # gRPC exporter typically at host:port or http://host:4317; supports 'insecure'
+                    exporter = _GrpcMetricExporter(
+                        endpoint=otlp_endpoint,
+                        timeout=otlp_timeout,
+                        insecure=otlp_insecure,
+                    )
+                reader = PeriodicExportingMetricReader(exporter)
+                readers.append(reader)
+            except Exception as exp:
+                # Exporter failed to init; continue with provider without readers
+                print(f"⚠️  OTEL metrics exporter init failed: {exp}")
+        # No endpoint -> allow provider with no readers
+
+        provider = MeterProvider(resource=resource, metric_readers=readers)
+        try:
+            if not _metrics_provider_initialized:
+                set_meter_provider(provider)
+                _metrics_provider_initialized = True
+        except Exception:
+            # Overriding existing MeterProvider is not allowed; proceed without setting global
+            pass
+
+        return provider
+    except Exception as e:
+        print(f"⚠️  Failed to configure OTEL metrics: {e}")
+        return None
