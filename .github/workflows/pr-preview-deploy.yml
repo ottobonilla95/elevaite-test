@@ -160,7 +160,7 @@ jobs:
   deploy-preview:
     if: needs.check-changes.outputs.should_deploy == 'true'
     needs: [build-and-push, check-changes]
-    uses: iopexses/elev8s/.github/workflows/reusable-deploy-preview.yml@on-prem
+    uses: iopexses/elev8s/.github/workflows/reusable-deploy-preview.yml@main
     with:
       pr_number: ${{ github.event.pull_request.number }}
       chart_path: ./elev8s/helm
