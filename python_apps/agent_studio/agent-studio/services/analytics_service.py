@@ -1,13 +1,14 @@
+import uuid
+from db import models
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any, List, Literal
 from contextlib import contextmanager
-import uuid
 from sqlalchemy.orm import Session
 from threading import Lock
 from pydantic import BaseModel
+from opentelemetry import trace
 
 from fastapi_logger import ElevaiteLogger
-from db import models
 
 
 class WorkflowStep(BaseModel):
@@ -658,25 +659,47 @@ class AnalyticsService:
         user_id: Optional[str] = None,
         db: Optional[Session] = None,
     ):
+        tracer = trace.get_tracer("agent-studio.analytics")
         workflow_id = str(uuid.uuid4())
 
         try:
-            self.start_workflow(
-                workflow_id=workflow_id,
-                workflow_type=workflow_type,
-                agents_involved=agents_involved,
-                session_id=session_id,
-                user_id=user_id,
-            )
+            with tracer.start_as_current_span(
+                "workflow_execution",
+                attributes={
+                    "workflow.type": workflow_type,
+                    "workflow.id": workflow_id,
+                    "session.id": session_id or "",
+                    "user.id": user_id or "",
+                },
+            ) as span:
+                try:
+                    self.start_workflow(
+                        workflow_id=workflow_id,
+                        workflow_type=workflow_type,
+                        agents_involved=agents_involved,
+                        session_id=session_id,
+                        user_id=user_id,
+                    )
 
-            if session_id and db:
-                self.create_or_update_session(
-                    session_id=session_id,
-                    user_id=user_id,
-                    db=db,
-                )
+                    if session_id and db:
+                        self.create_or_update_session(
+                            session_id=session_id,
+                            user_id=user_id,
+                            db=db,
+                        )
 
-            yield workflow_id
+                    yield workflow_id
+
+                    # mark success
+                    span.set_status(trace.Status(trace.StatusCode.OK))
+                except Exception as e:
+                    # record exception on span and re-raise
+                    span.record_exception(e)
+                    try:
+                        span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                    except Exception:
+                        span.set_status(trace.Status(trace.StatusCode.ERROR))
+                    raise
 
             self.end_workflow(
                 workflow_id=workflow_id,
@@ -704,14 +727,15 @@ class AnalyticsService:
         db: Optional[Session] = None,
         execution_id: Optional[str] = None,  # Allow custom execution_id
     ):
+        from opentelemetry import trace
+
+        tracer = trace.get_tracer("agent-studio.analytics")
 
         # Use provided execution_id or generate new one
         original_execution_id = execution_id
         if execution_id is None:
             execution_id = str(uuid.uuid4())
         else:
-            # If execution_id is provided, use it as-is (for workflow context)
-            # This allows agents to share the same execution_id as their parent workflow
             self.logger.info(
                 f"Using provided execution_id {execution_id} for agent execution"
             )
@@ -719,8 +743,6 @@ class AnalyticsService:
         workflow_step_id = None
         parent_workflow_execution_id = None
 
-        # Check if this agent execution is part of a workflow execution
-        # This happens when original_execution_id was provided and matches a workflow execution
         is_sub_agent_in_workflow = False
         if original_execution_id:
             with self._lock:
@@ -732,9 +754,8 @@ class AnalyticsService:
                     )
                     parent_workflow_execution_id = original_execution_id
 
-        # If this is a sub-agent in a workflow, create a workflow step
         if is_sub_agent_in_workflow:
-            workflow_step_id = str(uuid.uuid4())  # Use proper UUID format
+            workflow_step_id = str(uuid.uuid4())
             agent_step = WorkflowStep(
                 step_id=workflow_step_id,
                 step_type="agent_execution",
@@ -748,34 +769,57 @@ class AnalyticsService:
                     "auto_created": True,
                 },
             )
-            self.add_workflow_step(parent_workflow_execution_id, agent_step)
+            self.add_workflow_step(
+                parent_workflow_execution_id or "unknown", agent_step
+            )
             self.logger.info(f"Auto-created workflow step for agent: {agent_name}")
 
         try:
-            self.start_agent_execution(
-                execution_id=execution_id,
-                agent_name=agent_name,
-                user_id=user_id,
-                session_id=session_id,
-                query=query,
-                agent_id=agent_id,
-                db=db,
-            )
+            with tracer.start_as_current_span(
+                "agent_execution",
+                attributes={
+                    "agent.id": str(agent_id),
+                    "agent.name": agent_name,
+                    "session.id": session_id or "",
+                    "user.id": user_id or "",
+                    "execution.id": execution_id,
+                },
+            ) as span:
+                try:
+                    self.start_agent_execution(
+                        execution_id=execution_id,
+                        agent_name=agent_name,
+                        user_id=user_id,
+                        session_id=session_id,
+                        query=query,
+                        agent_id=agent_id,
+                        db=db,
+                    )
 
-            # Create or update session if session_id is provided
-            if session_id and db:
-                self.create_or_update_session(
-                    session_id=session_id,
-                    user_id=user_id,
-                    db=db,
-                )
+                    if session_id and db:
+                        self.create_or_update_session(
+                            session_id=session_id,
+                            user_id=user_id,
+                            db=db,
+                        )
 
-            yield execution_id
+                    yield execution_id
+
+                    span.set_status(trace.Status(trace.StatusCode.OK))
+                except Exception as inner_e:
+                    span.record_exception(inner_e)
+                    try:
+                        span.set_status(
+                            trace.Status(trace.StatusCode.ERROR, str(inner_e))
+                        )
+                    except Exception:
+                        span.set_status(trace.Status(trace.StatusCode.ERROR))
+                    raise
 
             # Update workflow step as completed if it was created
             if workflow_step_id and parent_workflow_execution_id:
                 self.update_workflow_step(
-                    parent_workflow_execution_id,
+                    parent_workflow_execution_id or "",
                     workflow_step_id,
                     status="completed",
                     output_data={"status": "success"},
@@ -791,7 +835,7 @@ class AnalyticsService:
             # Update workflow step as failed if it was created
             if workflow_step_id and parent_workflow_execution_id:
                 self.update_workflow_step(
-                    parent_workflow_execution_id,
+                    parent_workflow_execution_id or "",
                     workflow_step_id,
                     status="failed",
                     error=str(e),
@@ -813,17 +857,16 @@ class AnalyticsService:
         input_data: Optional[Dict[str, Any]] = None,
         db: Optional[Session] = None,
     ):
+        tracer = trace.get_tracer("agent-studio.analytics")
         usage_id = str(uuid.uuid4())
         workflow_step_id = None
-        skip_db_tracking = False  # Flag to control database persistence
+        skip_db_tracking = False
+        db_session = None  # Initialize to ensure it's always defined
 
-        # Check if this is happening during workflow execution
-        # We need to check both the current execution_id and see if there's a parent workflow
         is_workflow_execution = False
         workflow_execution_id = None
 
         with self._lock:
-            # First check if this execution_id is directly a workflow
             if execution_id in self._live_executions:
                 execution = self._live_executions[execution_id]
                 if (
@@ -844,15 +887,12 @@ class AnalyticsService:
                     f"Tool tracking for {tool_name}: execution_id={execution_id} not found in live executions, checking for active workflows"
                 )
 
-            # If not a direct workflow execution, check for any active workflow executions
-            # Tool calls during workflow execution should be added as workflow steps
             if not is_workflow_execution:
                 for live_exec_id, live_exec in self._live_executions.items():
                     if (
                         live_exec.type == "workflow"
                         and live_exec.workflow_trace is not None
                     ):
-                        # Found an active workflow - associate this tool call with it
                         is_workflow_execution = True
                         workflow_execution_id = live_exec_id
                         self.logger.info(
@@ -860,7 +900,6 @@ class AnalyticsService:
                         )
                         break
 
-        # If this is a workflow execution, create a workflow step for the tool call
         if is_workflow_execution and workflow_execution_id:
             workflow_step_id = str(uuid.uuid4())  # Use proper UUID format
             tool_step = WorkflowStep(
@@ -933,7 +972,6 @@ class AnalyticsService:
                                 live_exec.type == "agent"
                                 and live_exec_id != workflow_execution_id
                             ):
-                                # Found an agent execution - use it for tool tracking
                                 tool_tracking_execution_id = live_exec_id
                                 agent_execution_found = True
                                 self.logger.info(
@@ -1005,29 +1043,48 @@ class AnalyticsService:
                     )
                     skip_db_tracking = True
 
-            yield usage_id
-
-            # Update workflow step as completed if it was created
-            if workflow_step_id and workflow_execution_id:
-                self.update_workflow_step(
-                    workflow_execution_id,
-                    workflow_step_id,
-                    status="completed",
-                    output_data={
-                        "status": "success",
-                        "skipped_db_tracking": skip_db_tracking,
+            try:
+                with tracer.start_as_current_span(
+                    "tool_call",
+                    attributes={
+                        "tool.name": tool_name,
+                        "execution.id": execution_id,
                     },
-                )
+                ) as span:
+                    try:
+                        yield usage_id
+                        span.set_status(trace.Status(trace.StatusCode.OK))
+                    except Exception as inner_e:
+                        span.record_exception(inner_e)
+                        try:
+                            span.set_status(
+                                trace.Status(trace.StatusCode.ERROR, str(inner_e))
+                            )
+                        except Exception:
+                            span.set_status(trace.Status(trace.StatusCode.ERROR))
+                        raise
+            finally:
+                # Update workflow step as completed if it was created
+                if workflow_step_id and workflow_execution_id:
+                    self.update_workflow_step(
+                        workflow_execution_id,
+                        workflow_step_id,
+                        status="completed",
+                        output_data={
+                            "status": "success",
+                            "skipped_db_tracking": skip_db_tracking,
+                        },
+                    )
 
-            # Only end tool usage tracking if we started it
-            if not skip_db_tracking:
-                # Use the database session we created or received
-                final_db_session = db_session if "db_session" in locals() else db
-                self.end_tool_usage(
-                    usage_id=usage_id,
-                    status="success",
-                    db=final_db_session,
-                )
+                # Only end tool usage tracking if we started it
+                if not skip_db_tracking:
+                    # Use the database session we created or received
+                    final_db_session = db_session if "db_session" in locals() else db
+                    self.end_tool_usage(
+                        usage_id=usage_id,
+                        status="success",
+                        db=final_db_session,
+                    )
 
         except Exception as e:
             # Update workflow step as failed if it was created
