@@ -1,13 +1,18 @@
 import os
-import uuid
 import dotenv
 import fastapi
-from datetime import datetime
+import asyncio
+import logging
 from starlette.middleware.cors import CORSMiddleware
 from fastapi import Depends
 from sqlalchemy.orm import Session
+from contextlib import asynccontextmanager
+from services.shared_state import session_status, update_status, get_status
+from fastapi.responses import StreamingResponse
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
-from services.analytics_service import analytics_service
+from fastapi_logger import ElevaiteLogger
+
 from db.database import Base, engine, get_db
 from api import (
     prompt_router,
@@ -25,11 +30,19 @@ from db import crud
 # Temporarily comment out workflow service to test
 # from services.workflow_service import workflow_service
 
-from contextlib import asynccontextmanager
-from services.shared_state import session_status, update_status, get_status
-from fastapi.responses import StreamingResponse
-import logging
-import asyncio
+
+# Initialize ElevaiteLogger and OpenTelemetry provider (if configured)
+try:
+    ElevaiteLogger.attach_to_uvicorn(
+        service_name="agent-studio",
+        configure_otel=True,
+        otlp_endpoint=os.getenv("OTLP_ENDPOINT"),
+        resource_attributes={
+            "deployment.environment": os.getenv("ENVIRONMENT", "development"),
+        },
+    )
+except Exception as e:
+    pass
 
 
 # Configure logging with a custom filter to suppress CancelledError
@@ -153,6 +166,8 @@ async def lifespan(app_instance: fastapi.FastAPI):  # noqa: ARG001
 
 
 app = fastapi.FastAPI(title="Agent Studio Backend", version="0.1.0", lifespan=lifespan)
+
+FastAPIInstrumentor.instrument_app(app)  # OTEL
 
 # Add CORS middleware
 app.add_middleware(
