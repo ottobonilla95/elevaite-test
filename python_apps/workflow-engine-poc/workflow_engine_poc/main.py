@@ -8,6 +8,7 @@ A clean, agnostic workflow execution engine that supports:
 - Database-backed configuration
 """
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -17,9 +18,10 @@ import logging
 from workflow_engine_poc.step_registry import StepRegistry
 from workflow_engine_poc.workflow_engine import WorkflowEngine
 from workflow_engine_poc.db.database import get_database, create_db_and_tables
-from workflow_engine_poc.monitoring import monitoring
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
-# Import all routers
+from fastapi_logger import ElevaiteLogger
+
 from workflow_engine_poc.routers import (
     health,
     workflows,
@@ -29,6 +31,16 @@ from workflow_engine_poc.routers import (
     monitoring as monitoring_router,
     agents,
 )
+
+
+ElevaiteLogger.attach_to_uvicorn(
+    service_name="workflow-engine",
+    configure_otel=True,
+    otlp_endpoint=os.getenv("OTLP_ENDPOINT"),
+    resource_attributes={
+        "deployment.environment": os.getenv("ENVIRONMENT", "development"),
+    },
+)  # OTEL
 
 
 # Configure logging
@@ -77,6 +89,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+FastAPIInstrumentor.instrument_app(app)  # OTEL
 
 # Include all routers
 app.include_router(health)
