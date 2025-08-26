@@ -1,0 +1,58 @@
+name: Nightly Baselines
+on:
+    schedule:
+        - cron: "15 3 * * *"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    build-baselines:
+        runs-on: self-hosted
+        env:
+            ECR_REGISTRY: ${{ secrets.TGCS_ECR_REGISTRY }}
+            DATE_TAG: baseline-${{ github.run_id }}
+        strategy:
+            matrix:
+                include:
+                    - name: ui
+                      repo_path: apps/toshiba
+                      dockerfile: apps/toshiba/Dockerfile
+                      image: elevaite-toshiba-ui
+                      context: .
+                    - name: api
+                      repo_path: python_apps/toshiba_backends/toshiba_backend
+                      dockerfile: python_apps/toshiba_backends/toshiba_backend/Dockerfile
+                      image: elevaite-toshiba-backend
+                      context: python_apps/toshiba_backends/toshiba_backend
+                    - name: auth
+                      repo_path: python_apps/auth_api
+                      dockerfile: python_apps/auth_api/Dockerfile
+                      image: elevaite-auth-api
+                      context: python_apps/auth_api
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: docker/setup-buildx-action@v3
+
+            - uses: aws-actions/configure-aws-credentials@v3
+              with:
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: ${{ secrets.AWS_REGION }}
+
+            - uses: aws-actions/amazon-ecr-login@v1
+            - name: Build & push ${{ matrix.name }}
+              run: |
+                set -euo pipefail
+                IMAGE="${ECR_REGISTRY}/${{ matrix.image }}"
+
+                docker build \
+                    -f "${{ matrix.dockerfile }}" \
+                    -t "${IMAGE}:latest" \
+                    -t "${IMAGE}:${DATE_TAG}" \
+                    "${{ matrix.context }}"
+
+                docker push "${IMAGE}:latest"
+                docker push "${IMAGE}:${DATE_TAG}"

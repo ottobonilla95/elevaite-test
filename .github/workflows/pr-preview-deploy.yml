@@ -18,11 +18,37 @@ jobs:
   check-changes:
     runs-on: self-hosted
     outputs:
-      toshiba_ui_changed: ${{ steps.check.outputs.toshiba_ui_changed }}
-      toshiba_backend_changed: ${{ steps.check.outputs.toshiba_backend_changed }}
-      toshiba_auth_changed: ${{ steps.check.outputs.toshiba_auth_changed }}
+      toshiba_ui_changed: ${{ steps.filter.outputs.ui }}
+      toshiba_backend_changed: ${{ steps.filter.outputs.backend }}
+      toshiba_auth_changed: ${{ steps.filter.outputs.auth }}
       should_deploy: ${{ steps.check.outputs.should_deploy }}
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Paths Filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            ui:
+              - 'apps/toshiba/**'
+            backend:
+              - 'python_apps/toshiba_backends/toshiba_backend/**'
+            auth:
+              - 'python_apps/auth_api/**'            
+
+      - name: Decide deploy
+        id: set
+        run: |
+          if [[ "${{ steps.filter.outputs.ui }}" == "true" || \
+            "${{ steps.filter.outputs.backend }}" == "true" || \
+            "${{ steps.filter.outputs.auth }}" == "true" ]]; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout (shallow, no blobs, PAT)
         uses: actions/checkout@v4
         with:
