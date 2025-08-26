@@ -4,7 +4,17 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.semconv.attributes.resource import SERVICE_NAME as SERVICE_NAME_KEY  # type: ignore
+
+# Resolve service.name key across semconv versions
+try:
+    from opentelemetry.semconv.attributes.resource import SERVICE_NAME as SERVICE_NAME_KEY  # type: ignore
+except Exception:
+    try:
+        from opentelemetry.semconv.resource import ResourceAttributes as _ResAttrs  # type: ignore
+
+        SERVICE_NAME_KEY = getattr(_ResAttrs, "SERVICE_NAME", "service.name")
+    except Exception:
+        SERVICE_NAME_KEY = "service.name"
 from opentelemetry.metrics import set_meter_provider
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader

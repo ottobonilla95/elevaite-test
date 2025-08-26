@@ -1,5 +1,9 @@
+import os
+import sys
 import unittest
 from unittest import mock
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi_logger.core.telemetry import configure_metrics
 
