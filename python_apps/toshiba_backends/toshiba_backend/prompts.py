@@ -19,3 +19,4 @@ toshiba_agent_system_prompt = PromptObject(pid=uuid.uuid4(),
                                              tags=["search", "web"],
                                              hyper_parameters={"temperature": "0.7"},
                                              variables={"search_engine": "google"})
+

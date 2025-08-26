@@ -40,7 +40,7 @@ async def fetch_response(session, url, params):
         print(f"Failed to call retriever: {e}")
         return ""
 
-async def power_search(query: str) -> list:
+async def power_search(query: str) -> str:
     """
     Asynchronous retriever tool that goes through all collections and returns the best answer.
     """
@@ -445,6 +445,16 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
     54. Simmons Bank: toshiba_simmons_bank
     55. GNC: toshiba_GNC
     56. Zara: toshiba_Zara
+    57. STCR: toshiba_stcr
+    58. Boston Pizza: toshiba_boston_pizza
+    59. LCBO (Liquor Control Board of Ontario): toshiba_lcbo
+    60. NLLC (Newfoundland and Labrador Liquor Corporation): toshiba_nllc
+    61. Husky: toshiba_husky
+    62. Princess Auto: toshiba_princess_auto
+    63. Albertson (Also knows as Safeway): toshiba_albertson
+    64. Signature Aviation: toshiba_signature_aviation
+    65 New Brunswick Liquor Corporation (Alcool NB Liquor Corporation): toshiba_anbl_nb_liquor
+
 
     Use toshiba_demo_4 if the customer retriever fails to return any relevant results
 
@@ -559,10 +569,158 @@ def sql_database(query: str) -> list:
         print(f"Failed to call SR database: {e}")
         return []
 
+@function_schema
+def video_retriever(query: str, collection_id: str) -> list:
+    """"
+    TOSHIBA CUSTOMER DATA RETRIEVER TOOL
+
+    Use this tool to query the Toshiba's Customer knowledge base.
+    This tool is only used for customer-specific information.
+    List of customers and their collection_ids:
+    1. Walgreens: toshiba_walgreens
+    2. Kroger: toshiba_kroger (Note that Harris Teeter is also included in this collection)
+    3. Sam's Club: toshiba_sams_club
+    4. Tractor Supply: toshiba_tractor_supply
+    5. Dollar General: toshiba_dollar_general
+    6. Wegmans: toshiba_wegmans
+    7. Ross: toshiba_ross
+    8. Costco: toshiba_costco
+    9. Whole Foods: toshiba_whole_foods
+    10. BJs: toshiba_bjs
+    11. Alex Lee: toshiba_alex_lee
+    12. Badger: toshiba_badger
+    13. Best Buy: toshiba_best_buy
+    14. CAM: toshiba_cameras_al
+    15. Hudson News: toshiba_hudson_news
+    16. IDKIDS: toshiba_idkids
+    17. Saks: toshiba_saks * For Saks, if the user asks for client advocates, use query "Client Advocate" instead of "Client Advocates list"
+    18. CVS: toshiba_cvs
+    19. At Home: toshiba_at_home
+    20. Harbor Freight: toshiba_harbor_freight
+    21. Spartan Nash: toshiba_spartan_nash
+    22. Event network: toshiba_event_network
+    23. Foodland: toshiba_foodland
+    24. Cost Plus World Market: toshiba_cost_plus_world_market
+    25. Enterprise: toshiba_enterprise
+    26. Red Apple: toshiba_red_apple
+    27. Yum Brands: toshiba_yum_brands * Note that KFC is also included in this collection
+    28. Bealls: toshiba_bealls
+    29. Disney: toshiba_disney
+    30. Ovation Foods: toshiba_ovation_foods
+    31. Nike: toshiba_nike
+    32. ABC Stores: toshiba_abc_stores
+    33. Tommy Bahama: toshiba_tommy_bahama
+    34. Gordon Food Service: toshiba_gordon_food_service
+    35. Michaels: toshiba_michaels
+    36. Dunn Edwards: toshiba_dunn_edwards
+    37. BP: toshiba_bp
+    38. Northern Tool: toshiba_northern_tool
+    39. Winn Dixie: toshiba_winn_dixie
+    40. PVH: toshiba_pvh_tommy_hilfiger_and_calvin_klein
+    41. Tommy Hilfiger: toshiba_pvh_tommy_hilfiger_and_calvin_klein
+    42. Calvin Klein: toshiba_pvh_tommy_hilfiger_and_calvin_klein
+    43. Ahold: toshiba_ahold_stopshop_giant_martins_bfresh
+    44. Stop & Shop: toshiba_ahold_stopshop_giant_martins_bfresh
+    45. Giant Martin's: toshiba_ahold_stopshop_giant_martins_bfresh
+    46. Bfresh: toshiba_ahold_stopshop_giant_martins_bfresh
+    47. Fresh Market: toshiba_fresh_market
+    48. Times Supermarkets: toshiba_times_supermarkets
+    49. MLSE (Maple Leaf Sports & Entertainment): toshiba_mlse
+    50. Coach: toshiba_coach
+    51. TCA (Travel Centers of America): toshiba_tca
+    52. Bass Pro: toshiba_bass_pro * For Bass Pro, if the user asks for client advocates, use query "Client Advocate" instead of "Client Advocates list"
+    53. Kirkland: toshiba_kirklands
+    54. Simmons Bank: toshiba_simmons_bank
+    55. GNC: toshiba_GNC
+    56. Zara: toshiba_Zara
+    57. STCR: toshiba_stcr
+    58. Boston Pizza: toshiba_boston_pizza
+    59. LCBO (Liquor Control Board of Ontario): toshiba_lcbo
+    60. NLLC (Newfoundland and Labrador Liquor Corporation): toshiba_nllc
+    61. Husky: toshiba_husky
+    62. Princess Auto: toshiba_princess_auto
+    63. Albertson (Also knows as Safeway): toshiba_albertson
+    64. Signature Aviation: toshiba_signature_aviation
+    65 New Brunswick Liquor Corporation (Alcool NB Liquor Corporation): toshiba_anbl_nb_liquor
+
+
+    Use toshiba_demo_4 if the customer retriever fails to return any relevant results
+
+    Questions can include part numbers, assembly names, abbreviations, descriptions and general queries.
+
+    EXAMPLES:
+    Example: query="part number AC01548000"
+    Example: query="What is 2110"
+    Example: query="stock room camera part number"
+    Example: query="assembly name for part number 3AC01548000"
+    Example: query="TAL parts list"
+    Example: query="Client Advocates list"
+
+    Essentially, if the user asks "Walgreens <question>" then the query should be "<question>" and the collection_id should be "toshiba_walgreens"
+
+    Never query just the part number. Add a description. For example, if the user asks for "3AC01548000", query with "part number 3AC01548000".
+    If the user asks a query with "MTM <model>" then query with "MTM <model>". For example, if the user asks "What is the part number for the MTM 036-W21 camera?", query with "MTM 036-W21 camera part number".
+    """
+
+
+    def get_response(url, params):
+    # Make the POST request
+        try:
+            response = requests.post(url, params=params)
+            res = ""
+            sources = []
+            segments = response.json()["selected_segments"][:SEGMENT_NUM]
+            for i,segment in enumerate(segments):
+                res += "*"*5+f"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
+                references = ""
+
+                for j,chunk in enumerate(segment["chunks"]):
+                    res += f"Chunk {j}: "+chunk["chunk_text"]
+                    res += f"\nTimestamps: {chunk['timestamp_indices']}"
+                    res += f"\nSource for Chunk {j}: "
+                    filename = chunk.get("filename", "")
+                    res += f"{filename}\n\n" # TBD + f" [aws_id: {filename}]\n"
+
+                res += "Segment Ends\n"+"-"*5+"\n\n"
+                print(res)
+
+            return [res, sources]
+        except Exception as e:
+            print(f"Failed to call retriever: {e}")
+            return ["",[]]
+
+    url = os.getenv("VIDEO_RETRIEVER_URL") + "/query-chunks"
+    if collection_id == "toshiba_walgreens":
+        collection_id = "toshiba_walgreen"
+    if collection_id == "toshiba_harbor_freight":
+        collection_id = "toshiba_harbour_frieght"
+    params = {
+        "query": query,
+        "top_k": 60,
+        "collection_id": "toshiba_video"
+    }
+    first_response, sources = ["", []]
+    try:
+        first_response, sources = get_response(url, params)
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+
+    try:
+        # second_response, second_sources = top_gun_query_retriever(query, collection_id=collection_id)
+        second_response, second_sources = ["",[]]
+    except Exception as e:
+        print(f"Failed to call retriever: {e}")
+        second_response, second_sources = ["",[]]
+    res = "CONTEXT FROM RETRIEVER: \n\n"
+    # top_gun_header = "\n\nCONTEXT FROM TOSHIBA TOP GUN EMAILS: \n\n"
+    # return [res+first_response+top_gun_header+second_response, sources+second_sources]
+    return [res+first_response, sources]
+
 tool_store = {
     "query_retriever": query_retriever,
     "sql_database": sql_database,
     "customer_query_retriever": customer_query_retriever,
+    "video_retriever": video_retriever,
 }
 
 
@@ -570,4 +728,5 @@ tool_schemas = {
     "query_retriever": query_retriever.openai_schema,
     "sql_database": sql_database.openai_schema,
     "customer_query_retriever": customer_query_retriever.openai_schema,
+    "video_retriever": video_retriever.openai_schema,
 }

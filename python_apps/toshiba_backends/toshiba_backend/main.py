@@ -229,6 +229,24 @@ async def run(request: Request):
 
                     full_response += chunk
                     yield f"{chunk if isinstance(chunk, str) else ''}"
+
+
+                # async for chunk in toshiba_video_agent.execute3(
+                #     query=query,
+                #     qid=data.get("qid"),
+                #     session_id=data.get("sid"),
+                #     chat_history=chat_history,
+                #     user_id=user_id,
+                #     agent_flow_id=agent_flow_id,
+                # ):
+                #     if chunk:
+                #         if isinstance(chunk, dict):
+                #             await update_status(user_id, chunk[user_id])
+                #             await asyncio.sleep(0.1)
+                #             continue
+                #
+                #     full_response += chunk
+                #     yield f"{chunk if isinstance(chunk, str) else ''}"
             # yield "Hi."
 
         except Exception as e:

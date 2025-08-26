@@ -76,7 +76,8 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     Tommy Bahama, Gordon Food Service, Michaels, Dunn Edwards, BP, Northern Tool, Winn Dixie, PVH, 
     Tommy Hilfiger, Calvin Klein, Ahold, Stop & Shop, Giant Martin's, Bfresh, Fresh Market, Times Supermarkets, 
     MLSE (Maple Leaf Sports & Entertainment), Coach, TCA (Travel Centers of America), Bass Pro, Kirkland, 
-    Simmons Bank, GNC, Zara.
+    Simmons Bank, GNC, Zara, STCR, Boston Pizza, LCBO (Liquor Control Board of Ontario), NLLC (Newfoundland and Labrador Liquor Corporation)
+    , Husky, Princess Auto, Albertson, Signature Aviation, New Brunswick Liquor Corporation (Alcool NB Liquor Corporation or ANBL).
 
     ### DO NOT EXPAND:
     - Invalid machine types (not in the list)
