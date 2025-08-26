@@ -56,9 +56,21 @@ class TraceManager:
                 for param_name, param_value in bound_args.arguments.items():
                     arg_values.append(f"{param_name}={param_value}")
 
-                self.logger.info(
+                message_called = (
                     f"Function {func.__name__} called with: {', '.join(arg_values)}"
                 )
+                self.logger.info(message_called)
+                # Also log to module-level 'logger' if present and different
+                try:
+                    module_logger = func.__globals__.get("logger")
+                    if (
+                        module_logger is not None
+                        and hasattr(module_logger, "info")
+                        and module_logger is not self.logger
+                    ):
+                        module_logger.info(message_called)
+                except Exception:
+                    pass
 
                 # Execute function with annotations processing
                 frame = inspect.currentframe()
@@ -69,7 +81,18 @@ class TraceManager:
                     )
 
                     # Log the function result
-                    self.logger.info(f"Function {func.__name__} returned: {result}")
+                    message_returned = f"Function {func.__name__} returned: {result}"
+                    self.logger.info(message_returned)
+                    try:
+                        module_logger = func.__globals__.get("logger")
+                        if (
+                            module_logger is not None
+                            and hasattr(module_logger, "info")
+                            and module_logger is not self.logger
+                        ):
+                            module_logger.info(message_returned)
+                    except Exception:
+                        pass
                     return result
                 finally:
                     del frame  # Avoid reference cycles

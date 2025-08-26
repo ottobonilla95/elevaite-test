@@ -93,54 +93,44 @@ class BaseLogger:
                 self.cloudwatch_enabled = False
                 self.cloudwatch_client = None
 
-        # Prevent duplicate handlers if already configured
-        # Also check if any handler has our marker to avoid duplicates
+        # Prevent duplicate handlers; always ensure our provided stream is used
         ELEVAITE_HANDLER_MARKER = "_elevaite_handler"
-        has_elevaite_handler = any(
-            hasattr(h, ELEVAITE_HANDLER_MARKER) for h in self.logger.handlers
-        )
 
-        if not self.logger.handlers or not has_elevaite_handler:
-            # Clear existing handlers to prevent accumulation
-            if has_elevaite_handler:
-                self.logger.handlers = [
-                    h
-                    for h in self.logger.handlers
-                    if not hasattr(h, ELEVAITE_HANDLER_MARKER)
-                ]
+        # Clear all existing handlers to avoid mixed outputs to unexpected streams
+        self.logger.handlers = []
 
-            handler = logging.StreamHandler(stream)
-            # Mark our handler
-            setattr(handler, ELEVAITE_HANDLER_MARKER, True)
+        handler = logging.StreamHandler(stream)
+        # Mark our handler
+        setattr(handler, ELEVAITE_HANDLER_MARKER, True)
 
-            # Use a colorized formatter with date first
-            from fastapi_logger.core.formatter import ColorizedFormatter
+        # Use a colorized formatter with date first
+        from fastapi_logger.core.formatter import ColorizedFormatter
 
-            formatter = ColorizedFormatter()
-            handler.setFormatter(formatter)
+        formatter = ColorizedFormatter()
+        handler.setFormatter(formatter)
 
-            # Create a custom handler that also sends to CloudWatch if enabled
-            # Only if CloudWatch is enabled and not in a recursive logging situation
-            if (
-                cloudwatch_enabled
-                and self.cloudwatch_client
-                and name != "cloudwatch_logger"
-            ):
-                try:
-                    cloudwatch_handler = CloudWatchHandler(
-                        self.cloudwatch_client,
-                        self.log_group or "",
-                        self.log_stream or "",
-                        self.filter_fastapi,
-                        self.tracer,
-                    )
-                    cloudwatch_handler.setup_handler(handler)
-                except Exception as e:
-                    print(f"Warning: CloudWatch handler setup failed: {e}")
+        # Create a custom handler that also sends to CloudWatch if enabled
+        # Only if CloudWatch is enabled and not in a recursive logging situation
+        if (
+            cloudwatch_enabled
+            and self.cloudwatch_client
+            and name != "cloudwatch_logger"
+        ):
+            try:
+                cloudwatch_handler = CloudWatchHandler(
+                    self.cloudwatch_client,
+                    self.log_group or "",
+                    self.log_stream or "",
+                    self.filter_fastapi,
+                    self.tracer,
+                )
+                cloudwatch_handler.setup_handler(handler)
+            except Exception as e:
+                print(f"Warning: CloudWatch handler setup failed: {e}")
 
-            self.logger.addHandler(handler)
-            # Prevent propagation to root logger to avoid duplicate messages
-            self.logger.propagate = False
+        self.logger.addHandler(handler)
+        # Prevent propagation to root logger to avoid duplicate messages
+        self.logger.propagate = False
 
     def get_logger(self):
         """
@@ -196,7 +186,7 @@ class BaseLogger:
 
         custom_logger = BaseLogger(
             name="elevaite_uvicorn_logger",
-            level=logging.INFO,  # Use INFO level instead of DEBUG to reduce log volume
+            level=logging.INFO,
             cloudwatch_enabled=cloudwatch_enabled,
             log_group=log_group,
             log_stream=log_stream,
@@ -234,7 +224,7 @@ class BaseLogger:
             if custom_logger.handlers:
                 uvicorn_logger.addHandler(custom_logger.handlers[0])
 
-            uvicorn_logger.setLevel(logging.DEBUG)
+            uvicorn_logger.setLevel(logging.INFO)
 
             uvicorn_logger.propagate = False
 
@@ -244,7 +234,7 @@ class BaseLogger:
 
         if custom_logger.handlers:
             fastapi_logger.addHandler(custom_logger.handlers[0])
-        fastapi_logger.setLevel(logging.DEBUG)
+        fastapi_logger.setLevel(logging.INFO)
         fastapi_logger.propagate = False
 
         _uvicorn_attached = True
