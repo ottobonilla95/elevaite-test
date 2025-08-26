@@ -9,7 +9,7 @@ permissions:
 
 jobs:
     build-baselines:
-        runs-on: ubuntu
+        runs-on: ubuntu-latest
         env:
             ECR_REGISTRY: ${{ secrets.TGCS_ECR_REGISTRY }}
             DATE_TAG: baseline-${{ github.run_id }}
