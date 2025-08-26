@@ -299,7 +299,12 @@ class WorkflowMonitoring:
                     # OTEL metrics for workflow
                     if getattr(self, "_wf_total", None):
                         self._wf_total.add(
-                            1, {"workflow.type": "workflow", "status": "completed"}
+                            1,
+                            {
+                                "workflow.type": "workflow",
+                                "status": "completed",
+                                "component": "workflow_engine",
+                            },
                         )
 
                 except Exception as e:
@@ -313,7 +318,12 @@ class WorkflowMonitoring:
                     # OTEL metrics for workflow: failed
                     if getattr(self, "_wf_total", None):
                         self._wf_total.add(
-                            1, {"workflow.type": "workflow", "status": "failed"}
+                            1,
+                            {
+                                "workflow.type": "workflow",
+                                "status": "failed",
+                                "component": "workflow_engine",
+                            },
                         )
                     raise
                 finally:
@@ -325,7 +335,11 @@ class WorkflowMonitoring:
                     # OTEL duration histogram
                     if getattr(self, "_wf_duration", None):
                         self._wf_duration.record(
-                            duration, {"workflow.type": "workflow"}
+                            duration,
+                            {
+                                "workflow.type": "workflow",
+                                "component": "workflow_engine",
+                            },
                         )
         else:
             # Fallback tracing
