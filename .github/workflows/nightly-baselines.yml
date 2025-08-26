@@ -31,6 +31,26 @@ jobs:
                       dockerfile: python_apps/auth_api/Dockerfile
                       image: elevaite-auth-api
                       context: .
+                    - name: sql-retriever
+                      repo_path: python_apps/toshiba_backends/sql_retriever
+                      dockerfile: python_apps/toshiba_backends/sql_retriever/Dockerfile
+                      image: elevaite-toshiba-sql-retriever
+                      context: python_apps/toshiba_backends/sql_retriever
+                    - name: tgcs-retriever
+                      repo_path: python_apps/toshiba_backends/tgcs_retriever
+                      dockerfile: python_apps/toshiba_backends/tgcs_retriever/Dockerfile
+                      image: elevaite-toshiba-tgcs-retriever
+                      context: python_apps/toshiba_backends/tgcs_retriever
+                    - name: topgun-retriever
+                      repo_path: python_apps/toshiba_backends/top_gun_retriever
+                      dockerfile: python_apps/toshiba_backends/top_gun_retriever/Dockerfile
+                      image: elevaite-toshiba-topgun-retriever
+                      context: python_apps/toshiba_backends/top_gun_retriever
+                    - name: power-retriever
+                      repo_path: python_apps/toshiba_backends/power_retriever
+                      dockerfile: python_apps/toshiba_backends/power_retriever/Dockerfile
+                      image: elevaite-toshiba-power-retriever
+                      context: python_apps/toshiba_backends/power_retriever
         steps:
             - uses: actions/checkout@v4
 
@@ -48,7 +68,20 @@ jobs:
                 set -euo pipefail
                 IMAGE="${ECR_REGISTRY}/${{ matrix.image }}"
 
+                if [[ "${{ matrix.name }}" == "ui" ]]; then
+                    BUILD_ARGS=(
+                      --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba
+                      --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email
+                      --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false
+                      --build-arg NEXT_PUBLIC_BACKEND_URL=/api/core/
+                      --build-arg NEXT_PUBLIC_AUTH_API_URL=/auth-api
+                    )
+                else
+                    BUILD_ARGS=()
+                fi
+
                 docker build \
+                    "${BUILD_ARGS[@]}" \
                     -f "${{ matrix.dockerfile }}" \
                     -t "${IMAGE}:latest" \
                     -t "${IMAGE}:${DATE_TAG}" \

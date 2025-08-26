@@ -136,7 +136,7 @@ jobs:
           IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-ui"
           docker build \
           --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
-          --build-arg NEXT_PUBLIC_AUTH_API_URL=https://${{ steps.meta.outputs.preview_host }} \
+          --build-arg NEXT_PUBLIC_AUTH_API_URL=https://${{ steps.meta.outputs.preview_host }}/auth-api \
           --build-arg NEXT_PUBLIC_BACKEND_URL=https://${{ steps.meta.outputs.preview_host }}/api/core/ \
           --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
           --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
