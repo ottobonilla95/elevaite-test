@@ -26,10 +26,18 @@ try:
 
         JAEGER_AVAILABLE = True
     except ImportError:
+        JaegerExporter = None
         JAEGER_AVAILABLE = False
 
     OPENTELEMETRY_AVAILABLE = True
 except ImportError:
+    # Define fallback classes/modules when OpenTelemetry is not available
+    trace = None
+    TracerProvider = None
+    BatchSpanProcessor = None
+    ConsoleSpanExporter = None
+    Resource = None
+    JaegerExporter = None
     OPENTELEMETRY_AVAILABLE = False
     JAEGER_AVAILABLE = False
 
@@ -45,6 +53,12 @@ try:
 
     PROMETHEUS_AVAILABLE = True
 except ImportError:
+    # Define fallback classes when Prometheus is not available
+    Counter = None
+    Histogram = None
+    Gauge = None
+    CollectorRegistry = None
+    generate_latest = None
     PROMETHEUS_AVAILABLE = False
 
 
@@ -89,6 +103,22 @@ class WorkflowMonitoring:
         # Initialize components
         self._init_tracing()
         self._init_metrics()
+        # Initialize OTEL meter (if ElevaiteLogger configured metrics provider)
+        try:
+            from opentelemetry.metrics import get_meter
+
+            self._meter = get_meter("workflow-engine.monitoring")
+            self._agent_total = self._meter.create_counter("agent_executions_total")
+            self._agent_duration = self._meter.create_histogram(
+                "agent_execution_duration_seconds"
+            )
+            self._wf_total = self._meter.create_counter("workflow_executions_total")
+            self._wf_duration = self._meter.create_histogram(
+                "workflow_execution_duration_seconds"
+            )
+        except Exception:
+            self._meter = None
+
         self._init_logging()
 
         # Storage for fallback mode
@@ -104,6 +134,8 @@ class WorkflowMonitoring:
 
         try:
             # Configure resource
+            if Resource is None:
+                raise ImportError("Resource class not available")
             resource = Resource.create(
                 {
                     "service.name": self.service_name,
@@ -113,12 +145,19 @@ class WorkflowMonitoring:
             )
 
             # Set up tracer provider
+            if TracerProvider is None or trace is None:
+                raise ImportError("TracerProvider or trace module not available")
             tracer_provider = TracerProvider(resource=resource)
             trace.set_tracer_provider(tracer_provider)
 
             # Configure Jaeger exporter if endpoint is available
             jaeger_endpoint = os.getenv("JAEGER_ENDPOINT")
-            if jaeger_endpoint and JAEGER_AVAILABLE:
+            if (
+                jaeger_endpoint
+                and JAEGER_AVAILABLE
+                and JaegerExporter is not None
+                and BatchSpanProcessor is not None
+            ):
                 try:
                     jaeger_exporter = JaegerExporter(
                         agent_host_name=jaeger_endpoint.split("://")[1].split(":")[0],
@@ -135,10 +174,11 @@ class WorkflowMonitoring:
                     logger.warning(f"Failed to configure Jaeger exporter: {e}")
             else:
                 # Fallback to console exporter for development
-                console_exporter = ConsoleSpanExporter()
-                span_processor = BatchSpanProcessor(console_exporter)
-                tracer_provider.add_span_processor(span_processor)
-                logger.info("Console span exporter configured")
+                if ConsoleSpanExporter is not None and BatchSpanProcessor is not None:
+                    console_exporter = ConsoleSpanExporter()
+                    span_processor = BatchSpanProcessor(console_exporter)
+                    tracer_provider.add_span_processor(span_processor)
+                    logger.info("Console span exporter configured")
 
             self.tracer = trace.get_tracer(self.service_name)
             logger.info("OpenTelemetry tracing initialized")
@@ -156,9 +196,13 @@ class WorkflowMonitoring:
 
         try:
             # Create custom registry
+            if CollectorRegistry is None:
+                raise ImportError("CollectorRegistry class not available")
             self.registry = CollectorRegistry()
 
             # Workflow execution metrics
+            if Counter is None:
+                raise ImportError("Counter class not available")
             self.workflow_executions_total = Counter(
                 "workflow_executions_total",
                 "Total number of workflow executions",
@@ -166,6 +210,8 @@ class WorkflowMonitoring:
                 registry=self.registry,
             )
 
+            if Histogram is None:
+                raise ImportError("Histogram class not available")
             self.workflow_execution_duration = Histogram(
                 "workflow_execution_duration_seconds",
                 "Workflow execution duration in seconds",
@@ -197,6 +243,8 @@ class WorkflowMonitoring:
             )
 
             # Active executions gauge
+            if Gauge is None:
+                raise ImportError("Gauge class not available")
             self.active_executions = Gauge(
                 "active_executions",
                 "Number of currently active workflow executions",
@@ -242,18 +290,31 @@ class WorkflowMonitoring:
             ) as span:
                 try:
                     yield span
-                    span.set_status(trace.Status(trace.StatusCode.OK))
+                    if trace is not None:
+                        span.set_status(trace.Status(trace.StatusCode.OK))
                     if self.registry:
                         self.workflow_executions_total.labels(
                             workflow_id=workflow_id, status="completed"
                         ).inc()
+                    # OTEL metrics for workflow
+                    if getattr(self, "_wf_total", None):
+                        self._wf_total.add(
+                            1, {"workflow.type": "workflow", "status": "completed"}
+                        )
+
                 except Exception as e:
-                    span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
-                    span.record_exception(e)
+                    if trace is not None:
+                        span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                        span.record_exception(e)
                     if self.registry:
                         self.workflow_executions_total.labels(
                             workflow_id=workflow_id, status="failed"
                         ).inc()
+                    # OTEL metrics for workflow: failed
+                    if getattr(self, "_wf_total", None):
+                        self._wf_total.add(
+                            1, {"workflow.type": "workflow", "status": "failed"}
+                        )
                     raise
                 finally:
                     duration = time.time() - start_time
@@ -261,6 +322,11 @@ class WorkflowMonitoring:
                         self.workflow_execution_duration.labels(
                             workflow_id=workflow_id
                         ).observe(duration)
+                    # OTEL duration histogram
+                    if getattr(self, "_wf_duration", None):
+                        self._wf_duration.record(
+                            duration, {"workflow.type": "workflow"}
+                        )
         else:
             # Fallback tracing
             trace_data = TraceData(
@@ -307,7 +373,7 @@ class WorkflowMonitoring:
         """Context manager for tracing step execution"""
         start_time = time.time()
 
-        if self.tracer:
+        if self.tracer and OPENTELEMETRY_AVAILABLE:
             with self.tracer.start_as_current_span(
                 "step_execution",
                 attributes={
@@ -319,14 +385,16 @@ class WorkflowMonitoring:
             ) as span:
                 try:
                     yield span
-                    span.set_status(trace.Status(trace.StatusCode.OK))
+                    if trace is not None:
+                        span.set_status(trace.Status(trace.StatusCode.OK))
                     if self.registry:
                         self.step_executions_total.labels(
                             step_type=step_type, status="completed"
                         ).inc()
                 except Exception as e:
-                    span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
-                    span.record_exception(e)
+                    if trace is not None:
+                        span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                        span.record_exception(e)
                     if self.registry:
                         self.step_executions_total.labels(
                             step_type=step_type, status="failed"
@@ -404,7 +472,7 @@ class WorkflowMonitoring:
 
     def get_metrics(self) -> str:
         """Get Prometheus metrics in text format"""
-        if self.registry:
+        if self.registry and generate_latest is not None:
             return generate_latest(self.registry).decode("utf-8")
         else:
             # Return fallback metrics
