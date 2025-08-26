@@ -1,13 +1,13 @@
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
-from opentelemetry.metrics import get_meter, set_meter_provider
+from opentelemetry.metrics import set_meter_provider
 
 
 def collect_metrics():
     reader = InMemoryMetricReader()
     provider = MeterProvider(metric_readers=[reader])
     set_meter_provider(provider)
-    meter = get_meter("agent-studio.analytics")
+    meter = provider.get_meter("agent-studio.analytics")
     return reader, provider, meter
 
 
@@ -21,10 +21,20 @@ def find_metric(reader, name):
     return None
 
 
+def configure_service_meter(meter):
+    # Ensure analytics_service reuses our test MeterProvider/meter
+    from services.analytics_service import analytics_service
+
+    analytics_service._meter = meter
+    analytics_service._metric_initialized = False
+    analytics_service._init_metrics()
+
+
 def test_workflow_agent_tool_metrics_emitted_when_methods_called(monkeypatch):
     from services.analytics_service import analytics_service
 
     reader, provider, meter = collect_metrics()
+    configure_service_meter(meter)
 
     # Simulate workflow
     analytics_service.start_workflow(
