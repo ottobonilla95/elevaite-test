@@ -5,6 +5,7 @@ on:
     types: [closed]
     branches:
       - testing
+  workflow_dispatch:
 
 jobs:
   cleanup-preview:
