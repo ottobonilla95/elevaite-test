@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from threading import Lock
 from pydantic import BaseModel
 from opentelemetry import trace
+from opentelemetry.metrics import get_meter
 
 from fastapi_logger import ElevaiteLogger
 
@@ -99,6 +100,31 @@ class AnalyticsService:
         self._live_executions: Dict[str, ExecutionStatus] = {}
         self._lock = Lock()
         self._cleanup_interval = timedelta(hours=1)
+        # OTEL meter
+        self._meter = get_meter("agent-studio.analytics")
+        self._metric_initialized = False
+        self._init_metrics()
+
+    def _init_metrics(self):
+        if self._metric_initialized:
+            return
+        try:
+            self._wf_total = self._meter.create_counter("workflow_executions_total")
+            self._wf_duration = self._meter.create_histogram(
+                "workflow_execution_duration_seconds"
+            )
+            self._agent_total = self._meter.create_counter("agent_executions_total")
+            self._agent_duration = self._meter.create_histogram(
+                "agent_execution_duration_seconds"
+            )
+            self._tool_total = self._meter.create_counter("tool_calls_total")
+            self._tool_duration = self._meter.create_histogram(
+                "tool_call_duration_seconds"
+            )
+            self._metric_initialized = True
+        except Exception:
+            # Safe no-op if meter provider not configured
+            pass
 
     def create_or_update_session(
         self,
@@ -264,6 +290,15 @@ class AnalyticsService:
             )
 
         except Exception as e:
+            # OTEL metrics: start agent
+            try:
+                if self._metric_initialized:
+                    self._agent_total.add(
+                        1, {"agent.name": agent_name, "status": "started"}
+                    )
+            except Exception:
+                pass
+
             self.logger.error(f"Error starting agent execution tracking: {e}")
 
     def end_agent_execution(
@@ -374,11 +409,19 @@ class AnalyticsService:
                     self.logger.error(
                         f"Failed to update/create execution record: {db_error}"
                     )
-                    # Rollback the transaction to prevent session issues
-                    try:
-                        db.rollback()
-                    except:
-                        pass
+            # OTEL metrics: end agent
+            try:
+                if self._metric_initialized:
+                    self._agent_total.add(
+                        1,
+                        {"agent.name": execution_data["agent_name"], "status": status},
+                    )
+                    self._agent_duration.record(
+                        duration_ms / 1000.0,
+                        {"agent.name": execution_data["agent_name"]},
+                    )
+            except Exception:
+                pass
 
             del self.current_executions[execution_id]
             self.logger.info(f"Completed tracking execution: {execution_id}")
@@ -410,6 +453,15 @@ class AnalyticsService:
             self.logger.info(
                 f"Started tracking tool usage: {usage_id} for tool: {tool_name}"
             )
+
+            # OTEL metrics: tool start
+            try:
+                if self._metric_initialized:
+                    self._tool_total.add(
+                        1, {"tool.name": tool_name, "status": "started"}
+                    )
+            except Exception:
+                pass
 
         except Exception as e:
             self.logger.error(f"Error starting tool usage tracking: {e}")
@@ -454,6 +506,18 @@ class AnalyticsService:
                         f"Failed to create tool usage record: {commit_error}"
                     )
                     # Don't raise the exception to avoid crashing the workflow
+
+            # OTEL metrics: tool end
+            try:
+                if self._metric_initialized:
+                    self._tool_total.add(
+                        1, {"tool.name": tool_data["tool_name"], "status": status}
+                    )
+                    self._tool_duration.record(
+                        duration_ms / 1000.0, {"tool.name": tool_data["tool_name"]}
+                    )
+            except Exception:
+                pass
 
             del self.current_tools[usage_id]
             self.logger.info(f"Completed tracking tool usage: {usage_id}")
@@ -553,6 +617,15 @@ class AnalyticsService:
                 f"Started tracking workflow: {workflow_id} of type: {workflow_type}"
             )
 
+            # OTEL metrics: count start
+            try:
+                if self._metric_initialized:
+                    self._wf_total.add(
+                        1, {"workflow.type": workflow_type, "status": "started"}
+                    )
+            except Exception:
+                pass
+
         except Exception as e:
             self.logger.error(f"Error starting workflow tracking: {e}")
 
@@ -590,6 +663,22 @@ class AnalyticsService:
                 )
                 db.add(metrics)
                 db.commit()
+            # OTEL metrics: record end metrics
+            try:
+                if self._metric_initialized:
+                    self._wf_total.add(
+                        1,
+                        {
+                            "workflow.type": workflow_data["workflow_type"],
+                            "status": status,
+                        },
+                    )
+                    self._wf_duration.record(
+                        duration_ms / 1000.0,
+                        {"workflow.type": workflow_data["workflow_type"]},
+                    )
+            except Exception:
+                pass
 
             del self.current_workflows[workflow_id]
             self.logger.info(f"Completed tracking workflow: {workflow_id}")
