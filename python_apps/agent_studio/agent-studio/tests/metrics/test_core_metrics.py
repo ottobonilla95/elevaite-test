@@ -56,3 +56,15 @@ def test_workflow_agent_tool_metrics_emitted_when_methods_called(monkeypatch):
     tool_total = find_metric(reader, "tool_calls_total")
     tool_dur = find_metric(reader, "tool_call_duration_seconds")
     assert tool_total is not None and tool_dur is not None
+
+    # Verify component labels are present in all metrics
+    for metric in [wf_total, agent_total, tool_total]:
+        dps = getattr(metric.data, "data_points", [])
+        for dp in dps:
+            assert dp.attributes.get("component") == "agent_studio"
+
+    # Verify duration histograms have component labels
+    for metric in [wf_dur, agent_dur, tool_dur]:
+        dps = getattr(metric.data, "data_points", [])
+        for dp in dps:
+            assert dp.attributes.get("component") == "agent_studio"

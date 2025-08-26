@@ -294,7 +294,12 @@ class AnalyticsService:
             try:
                 if self._metric_initialized:
                     self._agent_total.add(
-                        1, {"agent.name": agent_name, "status": "started"}
+                        1,
+                        {
+                            "agent.name": agent_name,
+                            "status": "started",
+                            "component": "agent_studio",
+                        },
                     )
             except Exception:
                 pass
@@ -414,11 +419,18 @@ class AnalyticsService:
                 if self._metric_initialized:
                     self._agent_total.add(
                         1,
-                        {"agent.name": execution_data["agent_name"], "status": status},
+                        {
+                            "agent.name": execution_data["agent_name"],
+                            "status": status,
+                            "component": "agent_studio",
+                        },
                     )
                     self._agent_duration.record(
                         duration_ms / 1000.0,
-                        {"agent.name": execution_data["agent_name"]},
+                        {
+                            "agent.name": execution_data["agent_name"],
+                            "component": "agent_studio",
+                        },
                     )
             except Exception:
                 pass
@@ -458,7 +470,12 @@ class AnalyticsService:
             try:
                 if self._metric_initialized:
                     self._tool_total.add(
-                        1, {"tool.name": tool_name, "status": "started"}
+                        1,
+                        {
+                            "tool.name": tool_name,
+                            "status": "started",
+                            "component": "agent_studio",
+                        },
                     )
             except Exception:
                 pass
@@ -511,10 +528,19 @@ class AnalyticsService:
             try:
                 if self._metric_initialized:
                     self._tool_total.add(
-                        1, {"tool.name": tool_data["tool_name"], "status": status}
+                        1,
+                        {
+                            "tool.name": tool_data["tool_name"],
+                            "status": status,
+                            "component": "agent_studio",
+                        },
                     )
                     self._tool_duration.record(
-                        duration_ms / 1000.0, {"tool.name": tool_data["tool_name"]}
+                        duration_ms / 1000.0,
+                        {
+                            "tool.name": tool_data["tool_name"],
+                            "component": "agent_studio",
+                        },
                     )
             except Exception:
                 pass
@@ -621,7 +647,12 @@ class AnalyticsService:
             try:
                 if self._metric_initialized:
                     self._wf_total.add(
-                        1, {"workflow.type": workflow_type, "status": "started"}
+                        1,
+                        {
+                            "workflow.type": workflow_type,
+                            "status": "started",
+                            "component": "agent_studio",
+                        },
                     )
             except Exception:
                 pass
@@ -671,11 +702,15 @@ class AnalyticsService:
                         {
                             "workflow.type": workflow_data["workflow_type"],
                             "status": status,
+                            "component": "agent_studio",
                         },
                     )
                     self._wf_duration.record(
                         duration_ms / 1000.0,
-                        {"workflow.type": workflow_data["workflow_type"]},
+                        {
+                            "workflow.type": workflow_data["workflow_type"],
+                            "component": "agent_studio",
+                        },
                     )
             except Exception:
                 pass
@@ -759,6 +794,7 @@ class AnalyticsService:
                     "workflow.id": workflow_id,
                     "session.id": session_id or "",
                     "user.id": user_id or "",
+                    "component": "agent_studio",
                 },
             ) as span:
                 try:
@@ -872,6 +908,7 @@ class AnalyticsService:
                     "session.id": session_id or "",
                     "user.id": user_id or "",
                     "execution.id": execution_id,
+                    "component": "agent_studio",
                 },
             ) as span:
                 try:
@@ -1138,6 +1175,7 @@ class AnalyticsService:
                     attributes={
                         "tool.name": tool_name,
                         "execution.id": execution_id,
+                        "component": "agent_studio",
                     },
                 ) as span:
                     try:
