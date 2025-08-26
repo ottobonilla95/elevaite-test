@@ -30,7 +30,7 @@ jobs:
                       repo_path: python_apps/auth_api
                       dockerfile: python_apps/auth_api/Dockerfile
                       image: elevaite-auth-api
-                      context: python_apps/auth_api
+                      context: .
         steps:
             - uses: actions/checkout@v4
 
