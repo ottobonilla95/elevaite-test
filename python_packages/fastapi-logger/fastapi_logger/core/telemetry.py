@@ -1,4 +1,5 @@
 from typing import Optional, Dict, Any
+import sys
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
@@ -64,10 +65,38 @@ def configure_tracer(
     # Create and set tracer provider
     provider = TracerProvider(resource=resource)
 
-    # Add console exporter if requested
+    # Add console exporter if requested; guard against closed stream during test teardown
     if add_console_exporter:
-        console_processor = BatchSpanProcessor(ConsoleSpanExporter())
-        provider.add_span_processor(console_processor)
+        try:
+
+            class _SafeStream:
+                def __init__(self, wrapped):
+                    self._wrapped = wrapped
+
+                def write(self, *a, **k):
+                    try:
+                        if self._wrapped and not getattr(
+                            self._wrapped, "closed", False
+                        ):
+                            return self._wrapped.write(*a, **k)
+                    except Exception:
+                        return None
+
+                def flush(self):
+                    try:
+                        if self._wrapped and not getattr(
+                            self._wrapped, "closed", False
+                        ):
+                            return self._wrapped.flush()
+                    except Exception:
+                        return None
+
+            exporter = ConsoleSpanExporter(out=_SafeStream(sys.stdout))
+            console_processor = BatchSpanProcessor(exporter)
+            provider.add_span_processor(console_processor)
+        except Exception:
+            # Proceed without console exporter
+            pass
 
     # Add OTLP exporter if endpoint provided
     if otlp_endpoint:
