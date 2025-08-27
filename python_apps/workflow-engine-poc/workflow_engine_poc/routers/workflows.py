@@ -4,93 +4,268 @@ Workflow management endpoints
 
 import logging
 import uuid
+import asyncio
+from pathlib import Path
 from fastapi import (
     APIRouter,
     Request,
     HTTPException,
-    BackgroundTasks,
     UploadFile,
     File,
     Form,
+    Depends,
+    BackgroundTasks,
 )
-from typing import Dict, Any, Optional
+from fastapi.responses import StreamingResponse
+from typing import Dict, Any, Optional, List
 from datetime import datetime
-from pydantic import BaseModel
 
-from fastapi import Depends
-from sqlmodel import Session
+from sqlmodel import Session, select
 from ..db.database import get_db_session
-from ..db.models import WorkflowRead, WorkflowBase
+from ..db.models import Workflow, WorkflowRead, WorkflowBase
 from ..db.service import DatabaseService
 from ..workflow_engine import WorkflowEngine
+from ..db.models import WorkflowExecutionRead, ExecutionStatus
+
 from ..execution_context import ExecutionContext, UserContext
 
 
-class ExecutionRequest(BaseModel):
-    workflow_config: WorkflowBase
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
-    organization_id: Optional[str] = None
-    input_data: Dict[str, Any] = {}
-
-
-class ExecutionResponse(BaseModel):
-    execution_id: str
-    status: str
-    message: str
-    started_at: str
+# NOTE: Pydantic BaseModel not strictly required for these new routes
 
 
 logger = logging.getLogger(__name__)
 
+# Trigger defaults
+MAX_FILES_DEFAULT = 10
+PER_FILE_MB_DEFAULT = 20
+TOTAL_MB_DEFAULT = 60
+ALLOWED_MIME_DEFAULT = {
+    "doc": [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+        "text/markdown",
+    ],
+    "image": ["image/png", "image/jpeg", "image/webp"],
+    "audio": ["audio/mpeg", "audio/wav", "audio/mp4"],
+}
+
+
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 
 
-@router.post("/execute", response_model=ExecutionResponse)
-async def execute_workflow(
-    request: ExecutionRequest,
-    background_tasks: BackgroundTasks,
-    app_request: Request,
-):
-    """
-    Execute a workflow configuration.
+@router.post("/{workflow_id}/execute", response_model=WorkflowExecutionRead)
+async def execute_workflow_by_id(
+    workflow_id: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    payload: Optional[str] = Form(None),
+    files: Optional[list[UploadFile]] = File(None),
+) -> WorkflowExecutionRead:
+    """Create a WorkflowExecution and kick off execution by workflow id.
 
-    This is the main endpoint that accepts a workflow configuration
-    and executes it using the unified execution engine.
+    Supports both JSON and multipart/form-data payloads. For multipart, send:
+    - payload: JSON string for non-file fields (trigger, user/session/org ids)
+    - files[]: attachments for chat/file triggers
     """
     try:
-        workflow_engine: WorkflowEngine = app_request.app.state.workflow_engine
+        workflow_engine: WorkflowEngine = request.app.state.workflow_engine
+        db_service = DatabaseService()
 
-        # Create user context
-        user_context = UserContext(
-            user_id=request.user_id,
-            session_id=request.session_id,
-            organization_id=request.organization_id,
+        # Ensure workflow exists
+        workflow = db_service.get_workflow(session, workflow_id)
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+
+        # Parse incoming body
+        content_type = request.headers.get("content-type", "").lower()
+        body_data: Dict[str, Any] = {}
+        if payload is not None or files is not None or "multipart/form-data" in content_type:
+            # Multipart path
+            import json
+
+            if payload is None:
+                raise HTTPException(status_code=400, detail="Missing 'payload' form field")
+            try:
+                body_data = json.loads(payload)
+            except Exception:
+                raise HTTPException(status_code=400, detail="Invalid JSON in 'payload' form field")
+        else:
+            # JSON path
+            body_data = await request.json()
+
+        user_id = body_data.get("user_id")
+        session_id_val = body_data.get("session_id")
+        organization_id = body_data.get("organization_id")
+        input_data = body_data.get("input_data", {})
+        metadata = body_data.get("metadata", {})
+
+        # Extract trigger config from workflow (enforce presence)
+        steps = workflow.get("steps", [])
+        trigger_cfg = next((s for s in steps if s.get("step_type") == "trigger"), None)
+        if not trigger_cfg:
+            raise HTTPException(status_code=400, detail="Workflow is missing required 'trigger' step")
+        trigger_params = trigger_cfg.get("parameters", {})
+        kind = (
+            body_data.get("trigger", {}).get("kind") or body_data.get("kind") or trigger_params.get("kind") or "webhook"
+        ).lower()
+
+        # Limits and MIME rules
+        max_files = int(trigger_params.get("max_files", MAX_FILES_DEFAULT))
+        per_file_mb = int(trigger_params.get("per_file_size_mb", PER_FILE_MB_DEFAULT))
+        total_mb = int(trigger_params.get("total_size_mb", TOTAL_MB_DEFAULT))
+        per_file_limit = per_file_mb * 1024 * 1024
+        total_limit = total_mb * 1024 * 1024
+        allowed_modalities = trigger_params.get("allowed_modalities", ["text", "image", "audio"]) if kind == "chat" else ["doc"]
+        allowed_mime_types = set(trigger_params.get("allowed_mime_types", []))
+        if "doc" in allowed_modalities:
+            allowed_mime_types.update(ALLOWED_MIME_DEFAULT["doc"])
+        if "image" in allowed_modalities:
+            allowed_mime_types.update(ALLOWED_MIME_DEFAULT["image"])
+        if "audio" in allowed_modalities:
+            allowed_mime_types.update(ALLOWED_MIME_DEFAULT["audio"])
+
+        # Handle attachments if multipart
+        attachments = []
+        total_size = 0
+        if files:
+            if len(files) > max_files:
+                raise HTTPException(status_code=400, detail=f"Too many files (max {max_files})")
+            upload_root = Path("uploads")
+            upload_root.mkdir(exist_ok=True)
+            import uuid as uuid_module
+
+            run_dir = upload_root / str(uuid_module.uuid4())
+            run_dir.mkdir(exist_ok=True)
+            for up in files:
+                mime = up.content_type or "application/octet-stream"
+                if allowed_mime_types and mime not in allowed_mime_types:
+                    raise HTTPException(status_code=400, detail=f"Disallowed MIME type: {mime}")
+                content = await up.read()
+                size = len(content)
+                if size > per_file_limit:
+                    raise HTTPException(status_code=400, detail=f"File too large (> {per_file_mb} MB): {up.filename}")
+                total_size += size
+                if total_size > total_limit:
+                    raise HTTPException(status_code=400, detail=f"Total attachment size exceeds {total_mb} MB")
+                dest = run_dir / (up.filename or "upload.bin")
+                with open(dest, "wb") as f:
+                    f.write(content)
+                attachments.append(
+                    {
+                        "name": up.filename,
+                        "mime": mime,
+                        "size_bytes": size,
+                        "path": str(dest),
+                    }
+                )
+
+        # Build trigger payload for engine
+        trigger_payload = body_data.get("trigger", {})
+        if kind == "chat":
+            trigger_payload = {
+                "kind": "chat",
+                "current_message": trigger_payload.get("current_message") or body_data.get("current_message"),
+                "history": trigger_payload.get("history") or body_data.get("history", []),
+                "attachments": attachments or trigger_payload.get("attachments", []),
+                "need_history": bool(trigger_params.get("need_history", True)),
+            }
+        elif kind == "file":
+            trigger_payload = {
+                "kind": "file",
+                "attachments": attachments,
+            }
+        else:
+            # webhook or other kinds: pass-through
+            trigger_payload = {
+                "kind": kind,
+                "data": body_data.get("data", body_data),
+            }
+
+        # Persist execution first
+        execution_id = db_service.create_execution(
+            session,
+            {
+                "workflow_id": workflow_id,
+                "user_id": user_id,
+                "session_id": session_id_val,
+                "organization_id": organization_id,
+                "input_data": input_data,
+                "metadata": metadata,
+            },
         )
 
-        # Create execution context
+        # Hydrate execution context from stored workflow config
+        user_context = UserContext(
+            user_id=user_id,
+            session_id=session_id_val,
+            organization_id=organization_id,
+        )
         execution_context = ExecutionContext(
-            workflow_config=request.workflow_config.model_dump(),
+            workflow_config=workflow,
             user_context=user_context,
             workflow_engine=workflow_engine,
-        )
-        # Include any input_data at top-level
-        if request.input_data:
-            execution_context.step_io_data.update(request.input_data)
-
-        # Start execution in background
-        background_tasks.add_task(workflow_engine.execute_workflow, execution_context)
-
-        return ExecutionResponse(
-            execution_id=execution_context.execution_id,
-            status="started",
-            message="Workflow execution started",
-            started_at=datetime.now().isoformat(),
+            execution_id=execution_id,
         )
 
+        # Seed raw trigger payload + input_data
+        execution_context.step_io_data["trigger_raw"] = trigger_payload
+        if input_data:
+            execution_context.step_io_data.update(input_data)
+
+        # Kick off in background
+        asyncio.create_task(workflow_engine.execute_workflow(execution_context))
+
+        # Return the created execution as response
+        created = db_service.get_execution(session, execution_id)
+        assert created is not None
+        return WorkflowExecutionRead(
+            id=uuid.UUID(created["execution_id"]),
+            workflow_id=uuid.UUID(created["workflow_id"]),
+            user_id=created.get("user_id"),
+            session_id=created.get("session_id"),
+            organization_id=created.get("organization_id"),
+            status=ExecutionStatus(created["status"]),
+            input_data=created.get("input_data", {}),
+            output_data=created.get("output_data", {}),
+            step_io_data=created.get("step_io_data", {}),
+            execution_metadata=created.get("metadata", {}),
+            error_message=created.get("error_message"),
+            started_at=created.get("started_at"),
+            completed_at=created.get("completed_at"),
+            execution_time_seconds=created.get("execution_time_seconds"),
+            created_at=created["created_at"],
+            updated_at=created.get("updated_at"),
+        )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to start workflow execution: {e}")
+        logger.error(f"Failed to execute workflow {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{workflow_id}/stream")
+async def stream_workflow_execution(workflow_id: str, session: Session = Depends(get_db_session)):
+    """Simple streaming endpoint that polls DB for the latest execution of the workflow and streams status updates."""
+    db_service = DatabaseService()
+
+    async def event_generator():
+        last_status = None
+        while True:
+            # Fetch the most recent execution for the workflow
+            executions = db_service.list_executions(session, workflow_id=workflow_id, limit=1, offset=0)
+            if executions:
+                exe = executions[0]
+                status = exe.get("status")
+                if status != last_status:
+                    last_status = status
+                    yield f"data: {exe}\n\n"
+                if status in {"completed", "failed", "cancelled", "timeout"}:
+                    break
+            await asyncio.sleep(1)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @router.post("/validate")
@@ -98,9 +273,7 @@ async def validate_workflow(workflow_config: WorkflowBase, request: Request):
     """Validate a workflow configuration"""
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
-        validation_result = await workflow_engine.validate_workflow(
-            workflow_config.model_dump()
-        )
+        validation_result = await workflow_engine.validate_workflow(workflow_config.model_dump())
 
         return validation_result
     except Exception as e:
@@ -116,10 +289,8 @@ async def save_workflow(
     """Save a workflow configuration to the database"""
     try:
         db_service = DatabaseService()
-        workflow_id = f"workflow-{workflow_config.name.lower().replace(' ', '-') }"
-        workflow_id = db_service.save_workflow(
-            session, workflow_id, workflow_config.model_dump()
-        )
+        workflow_id = f"workflow-{workflow_config.name.lower().replace(' ', '-')}"
+        workflow_id = db_service.save_workflow(session, workflow_id, workflow_config.model_dump())
 
         return {"workflow_id": workflow_id, "message": "Workflow saved successfully"}
 
@@ -146,21 +317,14 @@ async def get_workflow(workflow_id: str, session: Session = Depends(get_db_sessi
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/")
-async def list_workflows(
-    session: Session = Depends(get_db_session), limit: int = 100, offset: int = 0
-):
-    """List all saved workflows"""
+@router.get("/", response_model=List[WorkflowRead])
+async def list_workflows(session: Session = Depends(get_db_session), limit: int = 100, offset: int = 0) -> List[WorkflowRead]:
+    """List all saved workflows returning ORM entities"""
     try:
         db_service = DatabaseService()
-        workflows = db_service.list_workflows(session, limit=limit, offset=offset)
-
-        return {
-            "workflows": workflows,
-            "total": len(workflows),
-            "limit": limit,
-            "offset": offset,
-        }
+        workflows = db_service.list_workflow_entities(session, limit=limit, offset=offset)
+        # Convert Workflow entities to WorkflowRead schemas
+        return [WorkflowRead.model_validate(workflow) for workflow in workflows]
     except Exception as e:
         logger.error(f"Failed to list workflows: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -211,25 +375,17 @@ async def execute_workflow_with_file(
             content = await file.read()
             buffer.write(content)
 
-        # Create execution request
-        exec_request = ExecutionRequest(
-            workflow_config=workflow_config_obj,
-            user_id=user_id,
-            session_id=f"file-session-{datetime.now().isoformat()}",
-            organization_id="file-org",
-            input_data={"file_path": str(file_path), "filename": file.filename},
-        )
-
-        # Execute workflow
+        # Build user and execution context directly
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
+        session_id_val = f"file-session-{datetime.now().isoformat()}"
         user_context = UserContext(
-            user_id=exec_request.user_id,
-            session_id=exec_request.session_id,
-            organization_id=exec_request.organization_id,
+            user_id=user_id,
+            session_id=session_id_val,
+            organization_id="file-org",
         )
 
         execution_context = ExecutionContext(
-            workflow_config=exec_request.workflow_config.model_dump(),
+            workflow_config=workflow_config_obj.model_dump(),
             user_context=user_context,
             workflow_engine=workflow_engine,
         )
@@ -241,12 +397,12 @@ async def execute_workflow_with_file(
         # Start execution in background
         background_tasks.add_task(workflow_engine.execute_workflow, execution_context)
 
-        return ExecutionResponse(
-            execution_id=execution_context.execution_id,
-            status="started",
-            message=f"Workflow execution started with file: {file.filename}",
-            started_at=datetime.now().isoformat(),
-        )
+        return {
+            "execution_id": execution_context.execution_id,
+            "status": "started",
+            "message": f"Workflow execution started with file: {file.filename}",
+            "started_at": datetime.now().isoformat(),
+        }
 
     except Exception as e:
         logger.error(f"Failed to execute workflow with file: {e}")
@@ -254,52 +410,27 @@ async def execute_workflow_with_file(
 
 
 # New SQLModel-based endpoints
-from fastapi import Depends
-from sqlmodel import Session
-from ..db.service import DatabaseService
 
 
 @router.post("/", response_model=WorkflowRead)
-async def create_workflow(
-    workflow_data: Dict[str, Any], session: Session = Depends(get_db_session)
-) -> WorkflowRead:
-    """Create a new workflow using SQLModel"""
+async def create_workflow(workflow_data: Dict[str, Any], session: Session = Depends(get_db_session)) -> WorkflowRead:
+    """Create a new workflow using SQLModel and return the SQLModel entity."""
     try:
         db_service = DatabaseService()
 
-        # Generate a new workflow ID
-        import uuid
+        import uuid as uuid_module
 
-        workflow_id = str(uuid.uuid4())
+        workflow_id = str(uuid_module.uuid4())
 
-        # Save the workflow
-        saved_id = db_service.save_workflow(session, workflow_id, workflow_data)
+        # Persist via service (upsert by id), then fetch ORM entity
+        db_service.save_workflow(session, workflow_id, workflow_data)
+        from uuid import UUID
 
-        # Get the saved workflow
-        saved_workflow = db_service.get_workflow(session, saved_id)
-        if not saved_workflow:
-            raise HTTPException(
-                status_code=500, detail="Failed to retrieve saved workflow"
-            )
+        workflow_obj = session.exec(select(Workflow).where(Workflow.id == UUID(workflow_id))).first()
+        if not workflow_obj:
+            raise HTTPException(status_code=500, detail="Failed to retrieve saved workflow entity")
 
-        # Convert to response model
-        return WorkflowRead(
-            id=1,  # This would come from the database
-            uuid=uuid.UUID(workflow_id),
-            workflow_id=uuid.UUID(workflow_id),
-            name=saved_workflow.get("name", ""),
-            description=saved_workflow.get("description"),
-            version=saved_workflow.get("version", "1.0.0"),
-            execution_pattern=saved_workflow.get("execution_pattern", "sequential"),
-            configuration=saved_workflow.get("configuration", {}),
-            global_config=saved_workflow.get("global_config", {}),
-            tags=saved_workflow.get("tags", []),
-            timeout_seconds=saved_workflow.get("timeout_seconds"),
-            status=saved_workflow.get("status", "draft"),
-            created_by=saved_workflow.get("created_by"),
-            created_at=datetime.now().isoformat(),
-            updated_at=None,
-        )
+        return workflow_obj  # type: ignore[return-value]
 
     except Exception as e:
         logger.error(f"Failed to create workflow: {e}")
@@ -307,35 +438,17 @@ async def create_workflow(
 
 
 @router.get("/{workflow_id}", response_model=WorkflowRead)
-async def get_workflow_by_id(
-    workflow_id: str, session: Session = Depends(get_db_session)
-) -> WorkflowRead:
-    """Get a workflow by ID using SQLModel"""
+async def get_workflow_by_id(workflow_id: str, session: Session = Depends(get_db_session)) -> WorkflowRead:
+    """Get a workflow by ID using SQLModel and return the SQLModel entity."""
     try:
-        db_service = DatabaseService()
-        workflow = db_service.get_workflow(session, workflow_id)
+        from uuid import UUID
 
-        if not workflow:
+        workflow_obj = session.exec(select(Workflow).where(Workflow.id == UUID(workflow_id))).first()
+        if not workflow_obj:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
-        # Convert to response model (simplified for now)
-        return WorkflowRead(
-            id=1,
-            uuid=uuid.UUID(workflow_id),
-            workflow_id=uuid.UUID(workflow_id),
-            name=workflow.get("name", ""),
-            description=workflow.get("description"),
-            version=workflow.get("version", "1.0.0"),
-            execution_pattern=workflow.get("execution_pattern", "sequential"),
-            configuration=workflow.get("configuration", {}),
-            global_config=workflow.get("global_config", {}),
-            tags=workflow.get("tags", []),
-            timeout_seconds=workflow.get("timeout_seconds"),
-            status=workflow.get("status", "draft"),
-            created_by=workflow.get("created_by"),
-            created_at=datetime.now().isoformat(),
-            updated_at=None,
-        )
+        # Return ORM entity; FastAPI will serialize it to WorkflowRead
+        return workflow_obj  # type: ignore[return-value]
 
     except HTTPException:
         raise

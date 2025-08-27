@@ -63,36 +63,22 @@ class WorkflowBase(SQLModel):
         description="Tags for categorizing workflows",
     )
 
-    timeout_seconds: Optional[int] = Field(
-        default=None, description="Overall workflow timeout in seconds"
-    )
+    timeout_seconds: Optional[int] = Field(default=None, description="Overall workflow timeout in seconds")
 
-    status: WorkflowStatus = Field(
-        default=WorkflowStatus.DRAFT, description="Current workflow status"
-    )
+    status: WorkflowStatus = Field(default=WorkflowStatus.DRAFT, description="Current workflow status")
 
-    created_by: Optional[str] = Field(
-        default=None, max_length=255, description="User who created the workflow"
-    )
+    created_by: Optional[str] = Field(default=None, max_length=255, description="User who created the workflow")
 
 
 # Database table model
 class Workflow(SQLModel, table=True):
     """Workflow database model"""
 
-    # Primary key
-    id: Optional[int] = Field(default=None, primary_key=True)
-
-    # UUID fields
-    uuid: uuid_module.UUID = Field(
+    # Primary key (single UUID)
+    id: uuid_module.UUID = Field(
         default_factory=uuid_module.uuid4,
-        sa_column=Column(UUID(as_uuid=True), unique=True, nullable=False),
-        description="Internal unique identifier",
-    )
-    workflow_id: uuid_module.UUID = Field(
-        default_factory=uuid_module.uuid4,
-        sa_column=Column(UUID(as_uuid=True), unique=True, nullable=False),
-        description="External workflow identifier",
+        primary_key=True,
+        description="Primary workflow identifier",
     )
 
     # Workflow fields from WorkflowBase
@@ -123,17 +109,11 @@ class Workflow(SQLModel, table=True):
         description="Tags for categorizing workflows",
     )
 
-    timeout_seconds: Optional[int] = Field(
-        default=None, description="Overall workflow timeout in seconds"
-    )
+    timeout_seconds: Optional[int] = Field(default=None, description="Overall workflow timeout in seconds")
 
-    status: WorkflowStatus = Field(
-        default=WorkflowStatus.DRAFT, description="Current workflow status"
-    )
+    status: WorkflowStatus = Field(default=WorkflowStatus.DRAFT, description="Current workflow status")
 
-    created_by: Optional[str] = Field(
-        default=None, max_length=255, description="User who created the workflow"
-    )
+    created_by: Optional[str] = Field(default=None, max_length=255, description="User who created the workflow")
 
     # Timestamps
     created_at: datetime = Field(
@@ -160,22 +140,14 @@ class WorkflowCreate(WorkflowBase):
 class WorkflowRead(WorkflowBase):
     """Schema for reading workflow data"""
 
-    id: int
-    uuid: uuid_module.UUID
-    workflow_id: uuid_module.UUID
-    created_at: str  # ISO format datetime string
-    updated_at: Optional[str] = None
+    id: uuid_module.UUID
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     # Optional execution summary
-    total_executions: Optional[int] = Field(
-        default=None, description="Total number of executions"
-    )
-    successful_executions: Optional[int] = Field(
-        default=None, description="Number of successful executions"
-    )
-    last_executed: Optional[str] = Field(
-        default=None, description="Last execution timestamp"
-    )
+    total_executions: Optional[int] = Field(default=None, description="Total number of executions")
+    successful_executions: Optional[int] = Field(default=None, description="Number of successful executions")
+    last_executed: Optional[datetime] = Field(default=None, description="Last execution timestamp")
 
 
 class WorkflowUpdate(SQLModel):
@@ -195,9 +167,7 @@ class WorkflowUpdate(SQLModel):
 class WorkflowSummary(SQLModel):
     """Lightweight workflow summary for listings"""
 
-    id: int
-    uuid: uuid_module.UUID
-    workflow_id: uuid_module.UUID
+    id: uuid_module.UUID
     name: str
     description: Optional[str]
     version: str

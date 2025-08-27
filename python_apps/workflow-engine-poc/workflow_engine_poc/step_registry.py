@@ -69,13 +69,9 @@ class StepRegistry:
 
         # Load function if it's a local execution type
         if step_config["execution_type"] == "local":
-            await self._load_local_function(
-                step_type, step_config["function_reference"]
-            )
+            await self._load_local_function(step_type, step_config["function_reference"])
 
-        logger.info(
-            f"Registered step type: {step_type} ({step_config['execution_type']})"
-        )
+        logger.info(f"Registered step type: {step_type} ({step_config['execution_type']})")
         return step_id
 
     async def _load_local_function(self, step_type: str, function_reference: str):
@@ -125,17 +121,11 @@ class StepRegistry:
             try:
                 # Execute based on execution type
                 if execution_type == "local":
-                    result = await self._execute_local_step(
-                        step_type, step_config, input_data, execution_context
-                    )
+                    result = await self._execute_local_step(step_type, step_config, input_data, execution_context)
                 elif execution_type == "rpc":
-                    result = await self._execute_rpc_step(
-                        step_type, step_config, input_data, execution_context
-                    )
+                    result = await self._execute_rpc_step(step_type, step_config, input_data, execution_context)
                 elif execution_type == "api":
-                    result = await self._execute_api_step(
-                        step_type, step_config, input_data, execution_context
-                    )
+                    result = await self._execute_api_step(step_type, step_config, input_data, execution_context)
                 else:
                     raise Exception(f"Unknown execution type: {execution_type}")
 
@@ -224,9 +214,7 @@ class StepRegistry:
         # Make RPC call
         timeout = endpoint_config.get("timeout", 30)
         async with aiohttp.ClientSession() as session:
-            async with session.post(
-                rpc_url, json=payload, timeout=aiohttp.ClientTimeout(total=timeout)
-            ) as response:
+            async with session.post(rpc_url, json=payload, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
                 if response.status != 200:
                     raise StepExecutionError(f"RPC call failed: {response.status}")
 
@@ -291,6 +279,32 @@ class StepRegistry:
 
     async def register_builtin_steps(self):
         """Register built-in step types"""
+
+        # Register trigger step (must be first in workflow)
+        await self.register_step(
+            {
+                "step_type": "trigger",
+                "name": "Trigger",
+                "description": "Validates and normalizes workflow input (chat/webhook/file)",
+                "function_reference": "workflow_engine_poc.steps.trigger_steps.trigger_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "kind": {"type": "string", "enum": ["chat", "webhook", "file"]},
+                        "need_history": {"type": "boolean"},
+                        "allowed_modalities": {
+                            "type": "array",
+                            "items": {"type": "string", "enum": ["text", "image", "audio"]},
+                        },
+                        "max_files": {"type": "integer", "minimum": 0},
+                        "per_file_size_mb": {"type": "integer", "minimum": 1},
+                        "total_size_mb": {"type": "integer", "minimum": 1},
+                        "allowed_mime_types": {"type": "array", "items": {"type": "string"}},
+                    },
+                },
+            }
+        )
 
         # Register basic data processing steps
         await self.register_step(

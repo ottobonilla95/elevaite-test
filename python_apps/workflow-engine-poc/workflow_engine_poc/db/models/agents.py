@@ -81,37 +81,25 @@ class AgentUpdate(SQLModel):
 
 
 class AgentRead(AgentBase):
-    id: int
-    uuid: uuid_module.UUID
-    agent_id: uuid_module.UUID
-    created_at: str
-    updated_at: Optional[str] = None
+    id: uuid_module.UUID
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
 
 # Database models
 class Agent(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    uuid: uuid_module.UUID = Field(
+    id: uuid_module.UUID = Field(
         default_factory=uuid_module.uuid4,
-        sa_column=Column(UUID(as_uuid=True), unique=True, nullable=False),
-    )
-    agent_id: uuid_module.UUID = Field(
-        default_factory=uuid_module.uuid4,
-        sa_column=Column(UUID(as_uuid=True), unique=True, nullable=False),
-        description="External agent identifier",
+        primary_key=True,
     )
 
     name: str
     description: Optional[str] = None
 
-    system_prompt_id: uuid_module.UUID = Field(
-        sa_column=Column(UUID(as_uuid=True), nullable=False)
-    )
+    system_prompt_id: uuid_module.UUID
 
     provider_type: str
-    provider_config: Dict[str, Any] = Field(
-        default_factory=dict, sa_column=Column(JSON)
-    )
+    provider_config: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
 
     tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     status: str = Field(default="active")
@@ -123,26 +111,17 @@ class Agent(SQLModel, table=True):
         default_factory=get_utc_datetime,
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
-    updated_at: Optional[datetime] = Field(
-        default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now())
-    )
+    updated_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now()))
 
 
 class AgentToolBinding(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    uuid: uuid_module.UUID = Field(
+    id: uuid_module.UUID = Field(
         default_factory=uuid_module.uuid4,
-        sa_column=Column(UUID(as_uuid=True), unique=True, nullable=False),
+        primary_key=True,
     )
-    agent_id: uuid_module.UUID = Field(
-        sa_column=Column(UUID(as_uuid=True), nullable=False)
-    )
-    tool_id: uuid_module.UUID = Field(
-        sa_column=Column(UUID(as_uuid=True), nullable=False)
-    )
-    override_parameters: Dict[str, Any] = Field(
-        default_factory=dict, sa_column=Column(JSON)
-    )
+    agent_id: uuid_module.UUID
+    tool_id: uuid_module.UUID
+    override_parameters: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     is_active: bool = True
 
     organization_id: Optional[str] = None
@@ -152,6 +131,4 @@ class AgentToolBinding(SQLModel, table=True):
         default_factory=get_utc_datetime,
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
-    updated_at: Optional[datetime] = Field(
-        default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now())
-    )
+    updated_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now()))

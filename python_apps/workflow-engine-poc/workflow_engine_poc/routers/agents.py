@@ -3,7 +3,8 @@ Agents API router: CRUD for Agents, Prompts, and Tool bindings
 """
 
 from typing import List, Optional, Dict, Any, cast
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pathlib import Path
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File, Form
 from sqlmodel import Session, select
 
 from ..db.database import get_db_session
@@ -62,9 +63,7 @@ class OnPremConfig(BaseModel):
 ProviderConfigUnion = OpenAIConfig | GeminiConfig | BedrockConfig | OnPremConfig
 
 
-def validate_provider_config(
-    provider_type: str, config: Dict[str, Any]
-) -> Dict[str, Any]:
+def validate_provider_config(provider_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
     try:
         if provider_type == ProviderType.openai_textgen:
             parsed = OpenAIConfig(**config)
@@ -75,9 +74,7 @@ def validate_provider_config(
         elif provider_type == ProviderType.on_prem_textgen:
             parsed = OnPremConfig(**config)
         else:
-            raise HTTPException(
-                status_code=400, detail=f"Unknown provider_type: {provider_type}"
-            )
+            raise HTTPException(status_code=400, detail=f"Unknown provider_type: {provider_type}")
         return parsed.model_dump()
     except ValidationError as ve:
         raise HTTPException(status_code=422, detail=ve.errors())
@@ -92,44 +89,23 @@ async def create_agent(agent: AgentCreate, session: Session = Depends(get_db_ses
     # Basic uniqueness within org by name
     if agent.organization_id:
         existing = session.exec(
-            select(Agent).where(
-                Agent.name == agent.name, Agent.organization_id == agent.organization_id
-            )
+            select(Agent).where(Agent.name == agent.name, Agent.organization_id == agent.organization_id)
         ).first()
     else:
         existing = session.exec(select(Agent).where(Agent.name == agent.name)).first()
     if existing:
-        raise HTTPException(
-            status_code=409, detail="Agent with this name already exists"
-        )
+        raise HTTPException(status_code=409, detail="Agent with this name already exists")
 
     # Validate provider_config
     agent_data = agent.model_dump()
-    agent_data["provider_config"] = validate_provider_config(
-        agent.provider_type, agent.provider_config or {}
-    )
+    agent_data["provider_config"] = validate_provider_config(agent.provider_type, agent.provider_config or {})
 
     db_agent = Agent(**agent_data)
     session.add(db_agent)
     session.commit()
     session.refresh(db_agent)
 
-    return AgentRead(
-        id=db_agent.id or 0,
-        uuid=db_agent.uuid,
-        agent_id=db_agent.agent_id,
-        name=db_agent.name,
-        description=db_agent.description,
-        system_prompt_id=db_agent.system_prompt_id,
-        provider_type=db_agent.provider_type,
-        provider_config=db_agent.provider_config,
-        tags=db_agent.tags,
-        status=db_agent.status,  # type: ignore[arg-type]
-        organization_id=db_agent.organization_id,
-        created_by=db_agent.created_by,
-        created_at=str(db_agent.created_at),
-        updated_at=str(db_agent.updated_at) if db_agent.updated_at else None,
-    )
+    return db_agent
 
 
 @router.get("/", response_model=List[AgentRead])
@@ -156,51 +132,18 @@ async def list_agents(
     if q:
         agents = [a for a in agents if q.lower() in (a.name or "").lower()]
 
-    return [
-        AgentRead(
-            id=a.id or 0,
-            uuid=a.uuid,
-            agent_id=a.agent_id,
-            name=a.name,
-            description=a.description,
-            system_prompt_id=a.system_prompt_id,
-            provider_type=a.provider_type,
-            provider_config=a.provider_config,
-            tags=a.tags,
-            status=a.status,  # type: ignore[arg-type]
-            organization_id=a.organization_id,
-            created_by=a.created_by,
-            created_at=str(a.created_at),
-            updated_at=str(a.updated_at) if a.updated_at else None,
-        )
-        for a in agents
-    ]
+    return agents
 
 
 @router.get("/{agent_id}", response_model=AgentRead)
 async def get_agent(agent_id: str, session: Session = Depends(get_db_session)):
     from uuid import UUID
 
-    agent = session.exec(select(Agent).where(Agent.agent_id == UUID(agent_id))).first()
+    agent = session.exec(select(Agent).where(Agent.id == UUID(agent_id))).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    return AgentRead(
-        id=agent.id or 0,
-        uuid=agent.uuid,
-        agent_id=agent.agent_id,
-        name=agent.name,
-        description=agent.description,
-        system_prompt_id=agent.system_prompt_id,
-        provider_type=agent.provider_type,
-        provider_config=agent.provider_config,
-        tags=agent.tags,
-        status=agent.status,  # type: ignore[arg-type]
-        organization_id=agent.organization_id,
-        created_by=agent.created_by,
-        created_at=str(agent.created_at),
-        updated_at=str(agent.updated_at) if agent.updated_at else None,
-    )
+    return agent
 
 
 @router.patch("/{agent_id}", response_model=AgentRead)
@@ -211,9 +154,7 @@ async def update_agent(
 ):
     from uuid import UUID
 
-    db_agent = session.exec(
-        select(Agent).where(Agent.agent_id == UUID(agent_id))
-    ).first()
+    db_agent = session.exec(select(Agent).where(Agent.id == UUID(agent_id))).first()
     if not db_agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -224,31 +165,14 @@ async def update_agent(
     session.commit()
     session.refresh(db_agent)
 
-    return AgentRead(
-        id=db_agent.id,
-        uuid=db_agent.uuid,
-        agent_id=db_agent.agent_id,
-        name=db_agent.name,
-        description=db_agent.description,
-        system_prompt_id=db_agent.system_prompt_id,
-        provider_type=db_agent.provider_type,
-        provider_config=db_agent.provider_config,
-        tags=db_agent.tags,
-        status=db_agent.status,
-        organization_id=db_agent.organization_id,
-        created_by=db_agent.created_by,
-        created_at=str(db_agent.created_at),
-        updated_at=str(db_agent.updated_at) if db_agent.updated_at else None,
-    )
+    return db_agent
 
 
 @router.delete("/{agent_id}")
 async def delete_agent(agent_id: str, session: Session = Depends(get_db_session)):
     from uuid import UUID
 
-    db_agent = session.exec(
-        select(Agent).where(Agent.agent_id == UUID(agent_id))
-    ).first()
+    db_agent = session.exec(select(Agent).where(Agent.id == UUID(agent_id))).first()
     if not db_agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -259,9 +183,7 @@ async def delete_agent(agent_id: str, session: Session = Depends(get_db_session)
 
 # ---------- Prompts CRUD ----------
 @router.post("/prompts", response_model=PromptRead)
-async def create_prompt(
-    prompt: PromptCreate, session: Session = Depends(get_db_session)
-):
+async def create_prompt(prompt: PromptCreate, session: Session = Depends(get_db_session)):
     # uniqueness by unique_label within org
     if prompt.organization_id:
         existing = session.exec(
@@ -271,28 +193,17 @@ async def create_prompt(
             )
         ).first()
     else:
-        existing = session.exec(
-            select(Prompt).where(Prompt.unique_label == prompt.unique_label)
-        ).first()
+        existing = session.exec(select(Prompt).where(Prompt.unique_label == prompt.unique_label)).first()
 
     if existing:
-        raise HTTPException(
-            status_code=409, detail="Prompt with this unique_label already exists"
-        )
+        raise HTTPException(status_code=409, detail="Prompt with this unique_label already exists")
 
     db_prompt = Prompt(**prompt.model_dump())
     session.add(db_prompt)
     session.commit()
     session.refresh(db_prompt)
 
-    return PromptRead(
-        **prompt.model_dump(),
-        id=db_prompt.id,
-        uuid=db_prompt.uuid,
-        pid=db_prompt.pid,
-        created_time=str(db_prompt.created_time),
-        updated_time=str(db_prompt.updated_time) if db_prompt.updated_time else None,
-    )
+    return db_prompt
 
 
 @router.get("/prompts", response_model=List[PromptRead])
@@ -323,27 +234,7 @@ async def list_prompts(
 
     prompts = session.exec(query.offset(offset).limit(limit)).all()
 
-    return [
-        PromptRead(
-            id=p.id,
-            uuid=p.uuid,
-            pid=p.pid,
-            prompt_label=p.prompt_label,
-            prompt=p.prompt,
-            unique_label=p.unique_label,
-            app_name=p.app_name,
-            ai_model_provider=p.ai_model_provider,
-            ai_model_name=p.ai_model_name,
-            tags=p.tags,
-            hyper_parameters=p.hyper_parameters,
-            variables=p.variables,
-            organization_id=p.organization_id,
-            created_by=p.created_by,
-            created_time=str(p.created_time),
-            updated_time=str(p.updated_time) if p.updated_time else None,
-        )
-        for p in prompts
-    ]
+    return prompts
 
 
 @router.get("/prompts/{prompt_id}", response_model=PromptRead)
@@ -354,35 +245,14 @@ async def get_prompt(prompt_id: str, session: Session = Depends(get_db_session))
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
 
-    return PromptRead(
-        id=prompt.id,
-        uuid=prompt.uuid,
-        pid=prompt.pid,
-        prompt_label=prompt.prompt_label,
-        prompt=prompt.prompt,
-        unique_label=prompt.unique_label,
-        app_name=prompt.app_name,
-        ai_model_provider=prompt.ai_model_provider,
-        ai_model_name=prompt.ai_model_name,
-        tags=prompt.tags,
-        hyper_parameters=prompt.hyper_parameters,
-        variables=prompt.variables,
-        organization_id=prompt.organization_id,
-        created_by=prompt.created_by,
-        created_time=str(prompt.created_time),
-        updated_time=str(prompt.updated_time) if prompt.updated_time else None,
-    )
+    return prompt
 
 
 @router.patch("/prompts/{prompt_id}", response_model=PromptRead)
-async def update_prompt(
-    prompt_id: str, payload: PromptUpdate, session: Session = Depends(get_db_session)
-):
+async def update_prompt(prompt_id: str, payload: PromptUpdate, session: Session = Depends(get_db_session)):
     from uuid import UUID
 
-    db_prompt = session.exec(
-        select(Prompt).where(Prompt.pid == UUID(prompt_id))
-    ).first()
+    db_prompt = session.exec(select(Prompt).where(Prompt.pid == UUID(prompt_id))).first()
     if not db_prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
 
@@ -393,33 +263,14 @@ async def update_prompt(
     session.commit()
     session.refresh(db_prompt)
 
-    return PromptRead(
-        id=db_prompt.id,
-        uuid=db_prompt.uuid,
-        pid=db_prompt.pid,
-        prompt_label=db_prompt.prompt_label,
-        prompt=db_prompt.prompt,
-        unique_label=db_prompt.unique_label,
-        app_name=db_prompt.app_name,
-        ai_model_provider=db_prompt.ai_model_provider,
-        ai_model_name=db_prompt.ai_model_name,
-        tags=db_prompt.tags,
-        hyper_parameters=db_prompt.hyper_parameters,
-        variables=db_prompt.variables,
-        organization_id=db_prompt.organization_id,
-        created_by=db_prompt.created_by,
-        created_time=str(db_prompt.created_time),
-        updated_time=str(db_prompt.updated_time) if db_prompt.updated_time else None,
-    )
+    return db_prompt
 
 
 @router.delete("/prompts/{prompt_id}")
 async def delete_prompt(prompt_id: str, session: Session = Depends(get_db_session)):
     from uuid import UUID
 
-    db_prompt = session.exec(
-        select(Prompt).where(Prompt.pid == UUID(prompt_id))
-    ).first()
+    db_prompt = session.exec(select(Prompt).where(Prompt.pid == UUID(prompt_id))).first()
     if not db_prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
 
@@ -429,32 +280,16 @@ async def delete_prompt(prompt_id: str, session: Session = Depends(get_db_sessio
 
 
 # ---------- Agent Tool Bindings ----------
-@router.get("/{agent_id}/tools", response_model=List[Dict[str, Any]])
+@router.get("/{agent_id}/tools", response_model=List[AgentToolBinding])
 async def list_agent_tools(agent_id: str, session: Session = Depends(get_db_session)):
     from uuid import UUID
 
-    bindings = session.exec(
-        select(AgentToolBinding).where(AgentToolBinding.agent_id == UUID(agent_id))
-    ).all()
+    bindings = session.exec(select(AgentToolBinding).where(AgentToolBinding.agent_id == UUID(agent_id))).all()
 
-    return [
-        {
-            "id": b.id,
-            "uuid": str(b.uuid),
-            "agent_id": str(b.agent_id),
-            "tool_id": str(b.tool_id),
-            "override_parameters": b.override_parameters,
-            "is_active": b.is_active,
-            "organization_id": b.organization_id,
-            "created_by": b.created_by,
-            "created_at": str(b.created_at),
-            "updated_at": str(b.updated_at) if b.updated_at else None,
-        }
-        for b in bindings
-    ]
+    return bindings
 
 
-@router.post("/{agent_id}/tools", response_model=Dict[str, Any])
+@router.post("/{agent_id}/tools", response_model=AgentToolBinding)
 async def attach_tool_to_agent(
     agent_id: str,
     body: Dict[str, Any],
@@ -463,9 +298,7 @@ async def attach_tool_to_agent(
     from uuid import UUID
 
     # Validate agent exists
-    db_agent = session.exec(
-        select(Agent).where(Agent.agent_id == UUID(agent_id))
-    ).first()
+    db_agent = session.exec(select(Agent).where(Agent.id == UUID(agent_id))).first()
     if not db_agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -474,7 +307,7 @@ async def attach_tool_to_agent(
         raise HTTPException(status_code=400, detail="tool_id is required")
 
     binding = AgentToolBinding(
-        agent_id=db_agent.agent_id,
+        agent_id=db_agent.id,
         tool_id=UUID(tool_id),
         override_parameters=body.get("override_parameters", {}),
         is_active=bool(body.get("is_active", True)),
@@ -486,21 +319,10 @@ async def attach_tool_to_agent(
     session.commit()
     session.refresh(binding)
 
-    return {
-        "id": binding.id,
-        "uuid": str(binding.uuid),
-        "agent_id": str(binding.agent_id),
-        "tool_id": str(binding.tool_id),
-        "override_parameters": binding.override_parameters,
-        "is_active": binding.is_active,
-        "organization_id": binding.organization_id,
-        "created_by": binding.created_by,
-        "created_at": str(binding.created_at),
-        "updated_at": str(binding.updated_at) if binding.updated_at else None,
-    }
+    return binding
 
 
-@router.patch("/{agent_id}/tools/{binding_id}", response_model=Dict[str, Any])
+@router.patch("/{agent_id}/tools/{binding_id}", response_model=AgentToolBinding)
 async def update_agent_tool_binding(
     agent_id: str,
     binding_id: int,
@@ -525,24 +347,11 @@ async def update_agent_tool_binding(
     session.commit()
     session.refresh(binding)
 
-    return {
-        "id": binding.id,
-        "uuid": str(binding.uuid),
-        "agent_id": str(binding.agent_id),
-        "tool_id": str(binding.tool_id),
-        "override_parameters": binding.override_parameters,
-        "is_active": binding.is_active,
-        "organization_id": binding.organization_id,
-        "created_by": binding.created_by,
-        "created_at": str(binding.created_at),
-        "updated_at": str(binding.updated_at) if binding.updated_at else None,
-    }
+    return binding
 
 
 @router.delete("/{agent_id}/tools/{binding_id}")
-async def detach_tool_from_agent(
-    agent_id: str, binding_id: int, session: Session = Depends(get_db_session)
-):
+async def detach_tool_from_agent(agent_id: str, binding_id: int, session: Session = Depends(get_db_session)):
     from uuid import UUID
 
     binding = session.get(AgentToolBinding, binding_id)
@@ -580,3 +389,100 @@ async def available_tools():
         }
         for s in steps
     ]
+
+
+# ---------- Agent Execution ----------
+@router.post("/{agent_id}/execute")
+async def execute_agent(
+    agent_id: str,
+    session: Session = Depends(get_db_session),
+    payload: Optional[str] = Form(None),
+    files: Optional[list[UploadFile]] = File(None),
+):
+    """Execute a single agent directly.
+
+    Accepts JSON or multipart/form-data. For multipart:
+    - payload: JSON string with { query: str, context?: dict }
+    - files[]: optional attachments (images/docs/audio). Audio will be flagged for transcription.
+    """
+    import json
+
+    from ..steps.ai_steps import SimpleAgent
+
+    # Resolve agent by id
+    from uuid import UUID
+
+    db_agent = session.exec(select(Agent).where(Agent.id == UUID(agent_id))).first()
+    if not db_agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    # Parse body
+    body: Dict[str, Any] = {}
+    if payload is not None or files is not None:
+        if payload is None:
+            raise HTTPException(status_code=400, detail="Missing 'payload' form field")
+        try:
+            body = json.loads(payload)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON in 'payload' form field")
+    else:
+        # JSON request body
+        from fastapi import Request as FastAPIRequest  # alias to avoid shadowing
+
+        req: FastAPIRequest
+        try:
+            # Injected via FastAPI if present in signature; we don't have it here, so this path should not be used in practice for now
+            raise RuntimeError("Non-multipart path requires multipart form with 'payload'.")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    query = body.get("query")
+    if not query:
+        raise HTTPException(status_code=400, detail="'query' is required")
+    context = body.get("context", {})
+
+    # Handle optional attachments
+    attachments = []
+    if files:
+        upload_root = Path("uploads/agents")
+        upload_root.mkdir(parents=True, exist_ok=True)
+        import uuid as uuid_module
+
+        run_dir = upload_root / str(uuid_module.uuid4())
+        run_dir.mkdir(exist_ok=True)
+        total_size = 0
+        for up in files:
+            mime = up.content_type or "application/octet-stream"
+            content = await up.read()
+            size = len(content)
+            total_size += size
+            dest = run_dir / (up.filename or "upload.bin")
+            with open(dest, "wb") as f:
+                f.write(content)
+            att = {
+                "name": up.filename,
+                "mime": mime,
+                "size_bytes": size,
+                "path": str(dest),
+            }
+            if mime.startswith("audio/"):
+                att["needs_transcription"] = True
+            attachments.append(att)
+        context["attachments"] = attachments
+
+    # Load system prompt text from Prompt table
+    prompt = session.exec(select(Prompt).where(Prompt.id == db_agent.system_prompt_id)).first()
+    system_prompt_text = prompt.prompt if prompt else "You are a helpful assistant."
+
+    # Prepare tools (schemas handled by llm-gateway-compatible structure in SimpleAgent)
+    # For now, we don't resolve AgentToolBinding -> Tool set; leaving as empty list
+    agent = SimpleAgent(
+        name=db_agent.name,
+        system_prompt=system_prompt_text,
+        tools=[],
+        force_real_llm=False,
+    )
+
+    # Execute
+    result = await agent.execute(query, context)
+    return result
