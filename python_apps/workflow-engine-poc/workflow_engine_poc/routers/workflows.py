@@ -168,6 +168,8 @@ async def execute_workflow_by_id(
                 "kind": "chat",
                 "current_message": trigger_payload.get("current_message") or body_data.get("current_message"),
                 "history": trigger_payload.get("history") or body_data.get("history", []),
+                # Accept an optional pre-assembled messages array of {role, content}
+                "messages": trigger_payload.get("messages") or body_data.get("messages"),
                 "attachments": attachments or trigger_payload.get("attachments", []),
                 "need_history": bool(trigger_params.get("need_history", True)),
             }
