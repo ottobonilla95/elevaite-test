@@ -52,6 +52,7 @@ class TextGenerationService:
         temperature: Optional[float] = None,
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
     ) -> TextGenerationResponse:
         provider = self.factory.get_provider(config["type"])
 
@@ -68,11 +69,10 @@ class TextGenerationService:
                 temperature=temperature,
                 tools=tools,
                 tool_choice=tool_choice,
+                messages=messages,
             )
         except Exception as e:
-            error_msg = (
-                f"Error in text generation for provider {config['type']}: {str(e)}"
-            )
+            error_msg = f"Error in text generation for provider {config['type']}: {str(e)}"
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
 
@@ -124,9 +124,7 @@ class VisionService:
                 temperature=temperature,
             )
         except Exception as e:
-            error_msg = (
-                f"Error in processing images for provider {config['type']}: {str(e)}"
-            )
+            error_msg = f"Error in processing images for provider {config['type']}: {str(e)}"
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
 

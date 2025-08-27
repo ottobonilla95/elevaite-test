@@ -407,7 +407,7 @@ async def execute_agent(
     """
     import json
 
-    from ..steps.ai_steps import SimpleAgent
+    from ..steps.ai_steps import AgentStep
 
     # Resolve agent by id
     from uuid import UUID
@@ -476,7 +476,7 @@ async def execute_agent(
 
     # Prepare tools (schemas handled by llm-gateway-compatible structure in SimpleAgent)
     # For now, we don't resolve AgentToolBinding -> Tool set; leaving as empty list
-    agent = SimpleAgent(
+    agent = AgentStep(
         name=db_agent.name,
         system_prompt=system_prompt_text,
         tools=[],

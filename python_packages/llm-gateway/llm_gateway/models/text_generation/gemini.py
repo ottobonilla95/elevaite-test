@@ -25,6 +25,7 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         config: Optional[Dict[str, Any]],
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
     ) -> TextGenerationResponse:
         model_name = model_name or "gemini-1.5-flash"
         temperature = temperature or 0.5
@@ -47,17 +48,27 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         if gemini_tools:
             generation_config.tools = gemini_tools
 
-        # Create content with system instruction
+        # Create content with system instruction or use provided messages
         contents = []
-        if sys_msg:
-            contents.append(
-                types.Content(
-                    role="user",
-                    parts=[types.Part(text=f"System: {sys_msg}\n\nUser: {prompt}")],
-                )
-            )
+        if messages and isinstance(messages, list) and len(messages) > 0:
+            # Map generic {role, content} messages to Gemini's Content/Part
+            role_map = {"system": "user", "user": "user", "assistant": "model", "tool": "user"}
+            for m in messages:
+                role = role_map.get(str(m.get("role", "user")).lower(), "user")
+                text = m.get("content")
+                if text is None:
+                    continue
+                contents.append(types.Content(role=role, parts=[types.Part(text=str(text))]))
         else:
-            contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
+            if sys_msg:
+                contents.append(
+                    types.Content(
+                        role="user",
+                        parts=[types.Part(text=f"System: {sys_msg}\n\nUser: {prompt}")],
+                    )
+                )
+            else:
+                contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
 
         for attempt in range(retries):
             try:
@@ -111,22 +122,16 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                 )
 
             except Exception as e:
-                logging.warning(
-                    f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
-                )
+                logging.warning(f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
                 if attempt == retries - 1:
-                    raise RuntimeError(
-                        f"Text generation failed after {retries} attempts: {e}"
-                    )
+                    raise RuntimeError(f"Text generation failed after {retries} attempts: {e}")
                 time.sleep((2**attempt) * 0.5)
 
         # This should never be reached due to the exception handling above,
         # but adding for type safety
         raise RuntimeError("Text generation failed: unexpected code path")
 
-    def _convert_tools_to_gemini_format(
-        self, openai_tools: List[Dict[str, Any]]
-    ) -> List[Any]:
+    def _convert_tools_to_gemini_format(self, openai_tools: List[Dict[str, Any]]) -> List[Any]:
         """
         Convert OpenAI-style tool definitions to Gemini format.
 

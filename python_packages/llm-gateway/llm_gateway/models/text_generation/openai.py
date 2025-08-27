@@ -24,6 +24,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         config: Optional[Dict[str, Any]],
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
     ) -> TextGenerationResponse:
         model_name = model_name or "gpt-4o"
         temperature = temperature or 0.5
@@ -40,13 +41,17 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
             try:
                 start_time = time.time()
                 if model_name.startswith("gpt-"):
-                    # Prepare the API call parameters
+                    # Prepare the API call parameters; prefer explicit messages if provided
                     api_params = {
                         "model": model_name,
-                        "messages": [
-                            {"role": role, "content": sys_msg},
-                            {"role": "user", "content": prompt},
-                        ],
+                        "messages": (
+                            messages
+                            if isinstance(messages, list) and len(messages) > 0
+                            else [
+                                {"role": role, "content": sys_msg},
+                                {"role": "user", "content": prompt},
+                            ]
+                        ),
                         "temperature": temperature,
                         "max_tokens": max_tokens,
                     }
@@ -115,13 +120,9 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     )
 
             except Exception as e:
-                logging.warning(
-                    f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
-                )
+                logging.warning(f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
                 if attempt == retries - 1:
-                    raise RuntimeError(
-                        f"Text generation failed after {retries} attempts: {e}"
-                    )
+                    raise RuntimeError(f"Text generation failed after {retries} attempts: {e}")
                 time.sleep((2**attempt) * 0.5)
 
         raise Exception
@@ -131,12 +132,8 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
             assert isinstance(config, dict), "Config must be a dictionary"
             assert "model" in config, "Model name is required in config"
             assert isinstance(config.get("model"), str), "Model name must be a string"
-            assert isinstance(
-                config.get("temperature", 0.7), (float, int)
-            ), "Temperature must be a number"
-            assert isinstance(
-                config.get("max_tokens", 256), int
-            ), "Max tokens must be an integer"
+            assert isinstance(config.get("temperature", 0.7), (float, int)), "Temperature must be a number"
+            assert isinstance(config.get("max_tokens", 256), int), "Max tokens must be an integer"
             return True
         except AssertionError as e:
             logging.error(f"OpenAI Provider Validation Failed: {e}")

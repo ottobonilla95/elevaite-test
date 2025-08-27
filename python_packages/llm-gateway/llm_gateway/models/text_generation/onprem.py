@@ -15,9 +15,7 @@ from .core.interfaces import TextGenerationResponse
 class OnPremTextGenerationProvider(BaseTextGenerationProvider):
     def __init__(self, user: str, secret: str):
         if not all([user, secret]):
-            raise EnvironmentError(
-                "ONPREM_TEXTGEN_ENDPOINT, ONPREM_USER, and ONPREM_SECRET must be set"
-            )
+            raise EnvironmentError("ONPREM_TEXTGEN_ENDPOINT, ONPREM_USER, and ONPREM_SECRET must be set")
 
         self.user = user
         self.secret = secret
@@ -33,6 +31,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         config: Optional[Dict[str, Any]],
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
     ) -> TextGenerationResponse:
         model_name = model_name or "Llama-3.1-8B-Instruct"
         temperature = temperature if temperature is not None else 0.5
@@ -44,9 +43,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
 
         # Tools not yet supported in OnPrem provider
         if tools:
-            logging.warning(
-                "Tools are not yet supported by the OnPrem provider. Ignoring tools parameter."
-            )
+            logging.warning("Tools are not yet supported by the OnPrem provider. Ignoring tools parameter.")
 
         role: str = config.get("role", "assistant")
         task_prop: str = config.get("task", "")
@@ -59,9 +56,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
             examples_counter = 1
             while True:
                 example_in_prop = config.get(f"example_input {examples_counter}", None)
-                expected_out_prop = config.get(
-                    f"expected_output {examples_counter}", None
-                )
+                expected_out_prop = config.get(f"expected_output {examples_counter}", None)
 
                 if example_in_prop is None or expected_out_prop is None:
                     break
@@ -109,9 +104,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
 
         headers = {"Content-Type": "application/json"}
 
-        auth_value = base64.b64encode(f"{self.user}:{self.secret}".encode()).decode(
-            "utf-8"
-        )
+        auth_value = base64.b64encode(f"{self.user}:{self.secret}".encode()).decode("utf-8")
         headers["Authorization"] = f"Basic {auth_value}"
 
         payload = {"kwargs": onprem_generation_args}
@@ -145,9 +138,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
                             latency=latency,
                         )
                     else:
-                        logging.error(
-                            "Failed to find the expected 'result' in the response."
-                        )
+                        logging.error("Failed to find the expected 'result' in the response.")
                         return TextGenerationResponse(
                             text="",
                             tokens_in=tokens_in,
@@ -155,22 +146,14 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
                             latency=latency,
                         )
                 else:
-                    logging.warning(
-                        f"Attempt {attempt + 1}/{retries} failed: {response.text}. Retrying..."
-                    )
+                    logging.warning(f"Attempt {attempt + 1}/{retries} failed: {response.text}. Retrying...")
                     if attempt == retries - 1:
-                        raise RuntimeError(
-                            f"Text generation failed after {retries} attempts: {response.text}"
-                        )
+                        raise RuntimeError(f"Text generation failed after {retries} attempts: {response.text}")
                 time.sleep((2**attempt) * 0.5)
             except requests.exceptions.RequestException as e:
-                logging.warning(
-                    f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
-                )
+                logging.warning(f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
                 if attempt == retries - 1:
-                    raise RuntimeError(
-                        f"Text generation failed after {retries} attempts: {e}"
-                    )
+                    raise RuntimeError(f"Text generation failed after {retries} attempts: {e}")
                 time.sleep((2**attempt) * 0.5)
 
         raise Exception
@@ -180,15 +163,9 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
             assert isinstance(config, dict), "Config must be a dictionary"
             assert "model" in config, "Model name is required in config"
             assert isinstance(config.get("model"), str), "Model name must be a string"
-            assert isinstance(
-                config.get("temperature", 0.01), (float, int)
-            ), "Temperature must be a number"
-            assert isinstance(
-                config.get("max_tokens", 8000), int
-            ), "Max tokens must be an integer"
-            assert isinstance(
-                config.get("do_sample", False), bool
-            ), "do_sample must be a boolean"
+            assert isinstance(config.get("temperature", 0.01), (float, int)), "Temperature must be a number"
+            assert isinstance(config.get("max_tokens", 8000), int), "Max tokens must be an integer"
+            assert isinstance(config.get("do_sample", False), bool), "do_sample must be a boolean"
             return True
         except AssertionError as e:
             logging.error(f"On-Prem Provider Validation Failed: {e}")

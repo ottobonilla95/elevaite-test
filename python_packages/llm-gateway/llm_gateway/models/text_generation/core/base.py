@@ -17,6 +17,7 @@ class BaseTextGenerationProvider(ABC):
         config: Optional[Dict[str, Any]],
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
     ) -> TextGenerationResponse:
         """
         Abstract method to generate text based on a given prompt and configuration.

@@ -11,9 +11,7 @@ from .core.interfaces import TextGenerationResponse, ToolCall
 
 
 class BedrockTextGenerationProvider(BaseTextGenerationProvider):
-    def __init__(
-        self, aws_access_key_id: str, aws_secret_access_key: str, region_name: str
-    ):
+    def __init__(self, aws_access_key_id: str, aws_secret_access_key: str, region_name: str):
         self.client = boto3.client(
             "bedrock-runtime",
             aws_access_key_id=aws_access_key_id,
@@ -32,6 +30,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         config: Optional[Dict[str, Any]],
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
     ) -> TextGenerationResponse:
         model_name = model_name or "anthropic.claude-instant-v1"
         temperature = temperature if temperature is not None else 0.5
@@ -46,9 +45,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         supports_tools = self._model_supports_tools(model_name)
 
         if tools and not supports_tools:
-            logging.warning(
-                f"Model {model_name} does not support function calling. Ignoring tools parameter."
-            )
+            logging.warning(f"Model {model_name} does not support function calling. Ignoring tools parameter.")
             tools = None
 
         # Use Converse API if tools are provided or model supports it
@@ -64,9 +61,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                 tool_choice,
             )
         else:
-            return self._generate_with_legacy_api(
-                model_name, temperature, max_tokens, sys_msg, prompt, retries
-            )
+            return self._generate_with_legacy_api(model_name, temperature, max_tokens, sys_msg, prompt, retries)
 
     def _model_supports_tools(self, model_name: str) -> bool:
         """Check if the model supports function calling"""
@@ -122,9 +117,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
 
                     # Attempt to retrieve token counts if available
                     tokens_in = response_body.get("input_tokens", len(prompt.split()))
-                    tokens_out = response_body.get(
-                        "output_tokens", len(completion_text.split())
-                    )
+                    tokens_out = response_body.get("output_tokens", len(completion_text.split()))
 
                     return TextGenerationResponse(
                         text=completion_text,
@@ -133,18 +126,12 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                         latency=latency,
                     )
 
-                raise ValueError(
-                    "Invalid response structure: Missing 'completion' key."
-                )
+                raise ValueError("Invalid response structure: Missing 'completion' key.")
 
             except ClientError as e:
-                logging.warning(
-                    f"Attempt {attempt + 1}/{retries} failed due to ClientError: {e}. Retrying..."
-                )
+                logging.warning(f"Attempt {attempt + 1}/{retries} failed due to ClientError: {e}. Retrying...")
                 if attempt == retries - 1:
-                    raise RuntimeError(
-                        f"Text generation failed after {retries} attempts: {e}"
-                    )
+                    raise RuntimeError(f"Text generation failed after {retries} attempts: {e}")
                 time.sleep((2**attempt) * 0.5)
 
             except ValueError as ve:
@@ -166,8 +153,10 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
     ) -> TextGenerationResponse:
         """Generate text using Bedrock Converse API with tool support"""
 
-        # Prepare messages
-        messages = [{"role": "user", "content": [{"text": prompt}]}]
+        # Prepare messages; prefer explicit messages if provided
+        messages = (
+            messages if isinstance(messages, list) and len(messages) > 0 else [{"role": "user", "content": [{"text": prompt}]}]
+        )
 
         # Prepare inference config
         inference_config = {
@@ -230,9 +219,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                 # Get token usage
                 usage = response.get("usage", {})
                 tokens_in = usage.get("inputTokens", len(prompt.split()))
-                tokens_out = usage.get(
-                    "outputTokens", len(text_content.split()) if text_content else 0
-                )
+                tokens_out = usage.get("outputTokens", len(text_content.split()) if text_content else 0)
 
                 return TextGenerationResponse(
                     text=text_content.strip(),
@@ -244,20 +231,14 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                 )
 
             except ClientError as e:
-                logging.warning(
-                    f"Attempt {attempt + 1}/{retries} failed due to ClientError: {e}. Retrying..."
-                )
+                logging.warning(f"Attempt {attempt + 1}/{retries} failed due to ClientError: {e}. Retrying...")
                 if attempt == retries - 1:
-                    raise RuntimeError(
-                        f"Text generation failed after {retries} attempts: {e}"
-                    )
+                    raise RuntimeError(f"Text generation failed after {retries} attempts: {e}")
                 time.sleep((2**attempt) * 0.5)
 
         raise RuntimeError(f"Text generation failed after {retries} attempts")
 
-    def _convert_tools_to_bedrock_format(
-        self, openai_tools: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    def _convert_tools_to_bedrock_format(self, openai_tools: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Convert OpenAI-style tools to Bedrock toolConfig format"""
 
         tool_specs = []
@@ -296,12 +277,8 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
             assert isinstance(config, dict), "Config must be a dictionary."
             assert "model" in config, "Model ID is required in the config."
             assert isinstance(config.get("model"), str), "Model ID must be a string."
-            assert isinstance(
-                config.get("temperature", 0.7), (float, int)
-            ), "Temperature must be a number."
-            assert isinstance(
-                config.get("max_tokens", 256), int
-            ), "Max tokens must be an integer."
+            assert isinstance(config.get("temperature", 0.7), (float, int)), "Temperature must be a number."
+            assert isinstance(config.get("max_tokens", 256), int), "Max tokens must be an integer."
             return True
         except AssertionError as e:
             logging.error(f"Amazon Bedrock Provider Validation Failed: {e}")
