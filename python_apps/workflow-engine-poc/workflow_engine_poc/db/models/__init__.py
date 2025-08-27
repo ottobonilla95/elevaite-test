@@ -5,7 +5,7 @@ This package contains all database model definitions using SQLModel,
 which provides both SQLAlchemy ORM functionality and Pydantic validation.
 """
 
-from .base import TimestampMixin, UUIDMixin
+from .base import BaseModel
 from .workflows import (
     Workflow,
     WorkflowBase,
@@ -46,11 +46,27 @@ from .prompts import (
     PromptRead,
     PromptUpdate,
 )
+from .tools import (
+    Tool,
+    ToolBase,
+    ToolCreate,
+    ToolRead,
+    ToolUpdate,
+    ToolCategory,
+    ToolCategoryBase,
+    ToolCategoryCreate,
+    ToolCategoryRead,
+    ToolCategoryUpdate,
+    MCPServer,
+    MCPServerBase,
+    MCPServerCreate,
+    MCPServerUpdate,
+    MCPServerRead,
+)
 
 __all__ = [
-    # Base mixins
-    "TimestampMixin",
-    "UUIDMixin",
+    # Base model
+    "BaseModel",
     # Workflow models
     "Workflow",
     "WorkflowBase",

@@ -30,6 +30,8 @@ from workflow_engine_poc.routers import (
     files,
     monitoring as monitoring_router,
     agents,
+    tools,
+    prompts,
 )
 
 
@@ -100,6 +102,8 @@ app.include_router(steps)
 app.include_router(files)
 app.include_router(monitoring_router)
 app.include_router(agents)
+app.include_router(tools)
+app.include_router(prompts)
 
 
 # All endpoints are now defined in routers
