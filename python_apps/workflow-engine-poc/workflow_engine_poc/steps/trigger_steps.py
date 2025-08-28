@@ -48,6 +48,7 @@ async def trigger_step(
         return {
             "kind": "chat",
             "messages": messages,
+            "current_message": current_message,
             "attachments": attachments,
         }
 

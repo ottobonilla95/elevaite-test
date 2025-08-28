@@ -330,11 +330,22 @@ class AgentStep:
                     break
 
         # Create a child AgentStep with appropriate tools
+        # Always use DB-bound tools; if allowed_tool_names is provided, restrict to that subset
+        child_db_tools = load_agent_db_tool_schemas(agent_id=str(target_agent.id))
         if allowed_tool_names is not None:
-            child_tools = resolve_tool_schemas_by_names(allowed_tool_names)
+            allowed_set = set(allowed_tool_names)
+            filtered: List[Dict[str, Any]] = []
+            for sch in child_db_tools:
+                try:
+                    fn = sch.get("function", {}) if isinstance(sch, dict) else {}
+                    nm = fn.get("name")
+                    if nm in allowed_set:
+                        filtered.append(sch)
+                except Exception:
+                    continue
+            child_tools = filtered
         else:
-            # Only DB-bound tools; no local fallback
-            child_tools = load_agent_db_tool_schemas(agent_id=str(target_agent.id))
+            child_tools = child_db_tools
 
         child = AgentStep(
             name=target_agent.name,
@@ -627,7 +638,6 @@ async def agent_execution_step(
     agent_name = config.get("agent_name", "Assistant")
     system_prompt = config.get("system_prompt", "You are a helpful assistant.")
     query_template = config.get("query", "")
-    tools = config.get("tools", [])
     force_real_llm = config.get("force_real_llm", False)
 
     # Ensure current_message is available from Trigger output if not present
@@ -664,17 +674,13 @@ async def agent_execution_step(
         except KeyError as e:
             logger.warning(f"Template variable not found: {e}")
 
-    # Create agent; resolve tools if names were provided as strings
+    # Create agent; remove step-config tool support and rely on DB-bound tools only
     connected_agents = config.get("connected_agents", [])
-    tool_names = []
-    if isinstance(tools, list) and tools and isinstance(tools[0], str):
-        tool_names = tools  # type: ignore[assignment]
-        tools = resolve_tool_schemas_by_names(tool_names)
 
     agent = AgentStep(
         name=agent_name,
         system_prompt=system_prompt,
-        tools=tools,
+        tools=load_agent_db_tool_schemas(agent_name=agent_name),
         force_real_llm=force_real_llm,
         connected_agents=connected_agents,
     )

@@ -192,6 +192,9 @@ class ToolRead(ToolBase):
     usage_count: int = 0
     created_at: datetime
     updated_at: datetime
+    # Unified registry metadata (response-only)
+    source: Optional[Literal["local", "db", "mcp"]] = None
+    uri: Optional[str] = None
 
 
 class Tool(SQLModel, table=True):

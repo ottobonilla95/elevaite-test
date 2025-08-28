@@ -24,35 +24,7 @@ ROUTER_PROMPT = "You are a router agent. Decide which connected agent to call."
 MATH_PROMPT = "You are a math assistant. Perform calculations when asked."
 TIME_PROMPT = "You provide current time information."
 
-# Tools: we will register DB-backed tool entries for math and time
-TOOLS_TO_CREATE = [
-    {
-        "name": f"calc_{SUFFIX}",
-        "display_name": "Calculate",
-        "description": "Performs a calculation via expression",
-        "version": "1.0.0",
-        "tool_type": "local",
-        "execution_type": "function",
-        "parameters_schema": {
-            "type": "object",
-            "properties": {"expression": {"type": "string", "description": "Math expression to evaluate"}},
-            "required": ["expression"],
-        },
-    },
-    {
-        "name": f"time_{SUFFIX}",
-        "display_name": "CurrentTime",
-        "description": "Returns current time in a timezone",
-        "version": "1.0.0",
-        "tool_type": "local",
-        "execution_type": "function",
-        "parameters_schema": {
-            "type": "object",
-            "properties": {"timezone": {"type": "string", "description": "Timezone label"}},
-            "required": [],
-        },
-    },
-]
+# No explicit tool creation; we'll attach local tools by name using the unified registry
 
 # Agent connections: RouterAgent can call MathAgent and TimeAgent
 CONNECTED_FOR_ROUTER: List[str] = []  # will be filled with created IDs
@@ -92,10 +64,9 @@ def create_prompt(prompt_text: str) -> Dict[str, Any]:
     return r.json()
 
 
-def create_tool(tool_def: Dict[str, Any]) -> Dict[str, Any]:
-    r = http_post("/tools/db", tool_def)
-    r.raise_for_status()
-    return r.json()
+def sync_local_tool(name: str) -> Dict[str, Any]:
+    # Use /agents/{agent_id}/tools with local_tool_name later; this helper left for compatibility
+    return {"synced": name}
 
 
 def create_agent(name: str, prompt_id: str) -> Dict[str, Any]:
@@ -113,8 +84,8 @@ def create_agent(name: str, prompt_id: str) -> Dict[str, Any]:
     return r.json()
 
 
-def attach_tool_to_agent(agent_id: str, tool_id: str) -> Dict[str, Any]:
-    payload = {"tool_id": tool_id}
+def attach_local_tool_to_agent(agent_id: str, local_tool_name: str) -> Dict[str, Any]:
+    payload = {"local_tool_name": local_tool_name}
     r = http_post(f"/agents/{agent_id}/tools", payload)
     r.raise_for_status()
     return r.json()
@@ -210,10 +181,10 @@ def execute_workflow(workflow_id: str, message: str) -> Dict[str, Any]:
                 if resp is not None:
                     final_response = resp
     if final_response is None:
-        # As a fallback, return the whole results structure
-        final_response = {"info": "no final response found", "results": results}
+        # As a fallback, include the whole results structure under full_results
+        final_response = "no final response found"
 
-    return final_response
+    return {"final_response": final_response, "full_results": results}
 
 
 def main():
@@ -222,37 +193,38 @@ def main():
     pr_math = create_prompt(MATH_PROMPT)
     pr_time = create_prompt(TIME_PROMPT)
 
-    # 2) Create tools
-    t_calc = create_tool(TOOLS_TO_CREATE[0])
-    t_time = create_tool(TOOLS_TO_CREATE[1])
+    # 2) No DB tool creation; we'll attach local tools by name
 
     # 3) Create agents
     a_router = create_agent(AGENT_A_NAME, pr_router["id"])
     a_math = create_agent(AGENT_B_NAME, pr_math["id"])
     a_time = create_agent(AGENT_C_NAME, pr_time["id"])
 
-    # 4) Attach tools to B and C
-    attach_tool_to_agent(a_math["id"], t_calc["id"])
-    attach_tool_to_agent(a_time["id"], t_time["id"])
+    # 4) Attach local tools to B and C by name via unified registry
+    attach_local_tool_to_agent(a_math["id"], "calculate")
+    attach_local_tool_to_agent(a_time["id"], "get_current_time")
 
     # 5) Create workflow: Router agent connected to Math and Time agents by name
     connected = [
         {
             "id": str(a_math["id"]),
-            "tools": ["calculate"],
-            "connected_agents": [{"name": f"HelperAgent_{SUFFIX}", "tools": ["add_numbers"]}],
+            "connected_agents": [{"name": f"HelperAgent_{SUFFIX}"}],
         },
-        {"id": str(a_time["id"]), "tools": ["get_current_time"]},
+        {"id": str(a_time["id"])},
     ]
     wf = create_workflow(str(a_router["name"]), connected, pr_router["prompt"])
 
     # 6) Execute workflow a couple of times
     print("Executing workflow (math):")
-    res1 = execute_workflow(wf["id"], "What is 25 + 17?")
+    math_query = "What is 25 + 17?"
+    print(f"Query: {math_query}")
+    res1 = execute_workflow(wf["id"], math_query)
     print(json.dumps(res1, indent=2))
 
     print("Executing workflow (time):")
-    res2 = execute_workflow(wf["id"], "What's the current time in UTC?")
+    time_query = "What's the current time in UTC?"
+    print(f"Query: {time_query}")
+    res2 = execute_workflow(wf["id"], time_query)
     print(json.dumps(res2, indent=2))
 
 

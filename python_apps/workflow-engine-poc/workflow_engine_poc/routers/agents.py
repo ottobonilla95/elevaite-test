@@ -18,7 +18,9 @@ from ..db.models import (
     PromptCreate,
     PromptRead,
     PromptUpdate,
+    Tool,
 )
+from ..tools.registry import tool_registry
 
 # Provider config validation models
 from pydantic import BaseModel, Field as PydField, ValidationError
@@ -302,9 +304,18 @@ async def attach_tool_to_agent(
     if not db_agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
+    # Accept either tool_id directly or a local tool name via local_tool_name
     tool_id = body.get("tool_id")
-    if not tool_id:
-        raise HTTPException(status_code=400, detail="tool_id is required")
+    local_tool_name = body.get("local_tool_name")
+    if not tool_id and not local_tool_name:
+        raise HTTPException(status_code=400, detail="Provide tool_id or local_tool_name")
+
+    if local_tool_name:
+        # Ensure the local tool exists in DB (create/update) and retrieve its id
+        synced_id = tool_registry.sync_local_tool_by_name(session, str(local_tool_name))
+        if not synced_id:
+            raise HTTPException(status_code=404, detail="Local tool not found in registry")
+        tool_id = str(synced_id)
 
     binding = AgentToolBinding(
         agent_id=db_agent.id,
@@ -426,15 +437,8 @@ async def execute_agent(
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid JSON in 'payload' form field")
     else:
-        # JSON request body
-        from fastapi import Request as FastAPIRequest  # alias to avoid shadowing
-
-        req: FastAPIRequest
-        try:
-            # Injected via FastAPI if present in signature; we don't have it here, so this path should not be used in practice for now
-            raise RuntimeError("Non-multipart path requires multipart form with 'payload'.")
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
+        # JSON request body unsupported in this endpoint signature; require multipart form
+        raise HTTPException(status_code=400, detail="This endpoint expects multipart form with 'payload'.")
 
     query = body.get("query")
     if not query:
