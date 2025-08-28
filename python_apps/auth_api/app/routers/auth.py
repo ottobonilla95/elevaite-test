@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.logging import logger
 from app.db.orm import get_async_session
-from app.core.deps import get_current_superuser
+from app.core.deps import get_current_superuser, get_current_admin_or_superuser
 from app.db.activity_log import log_user_activity
 from app.core.password_utils import normalize_email
 from app.db.models import Session, User, UserStatus
@@ -167,14 +167,35 @@ async def register_user(
 async def admin_create_user(
     request: Request,
     user_data: UserCreate,
-    current_user: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_current_admin_or_superuser),
     session: AsyncSession = Depends(get_async_session),
 ):
     """Create a new user (admin only)."""
-    # Log the admin action
-    logger.info(
-        f"Admin user {current_user.email} (ID: {current_user.id}) is creating a new user with email: {user_data.email}"
-    )
+    from db_core.middleware import get_current_tenant_id
+
+    # Get the current tenant ID from the request context
+    current_tenant_id = get_current_tenant_id()
+
+    # Tenant validation for application admins
+    if current_user.application_admin and not current_user.is_superuser:
+        # Application admins can only create users in their own tenant
+        if not current_tenant_id:
+            logger.error(
+                f"Application admin {current_user.email} attempted to create user without tenant context"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tenant context is required for application admins",
+            )
+
+        logger.info(
+            f"Application admin {current_user.email} (ID: {current_user.id}) is creating a new user with email: {user_data.email} in tenant: {current_tenant_id}"
+        )
+    else:
+        # Superusers can create users in any tenant
+        logger.info(
+            f"Superuser {current_user.email} (ID: {current_user.id}) is creating a new user with email: {user_data.email} in tenant: {current_tenant_id or 'default'}"
+        )
 
     try:
         user = await create_user(session, user_data)
@@ -786,7 +807,6 @@ async def resend_sms_code_for_login(
                 detail="Invalid credentials",
             )
 
-
         if not verify_password(login_data.password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -1118,9 +1138,6 @@ class ChangePasswordRequest(BaseModel):
         return v
 
 
-
-
-
 @router.post("/change-password")
 async def change_password(
     request: Request,
@@ -1374,9 +1391,6 @@ async def change_password(
     return {"message": "Password successfully changed"}
 
 
-
-
-
 @router.post("/recover-session")
 async def recover_session(
     request: Request,
@@ -1522,12 +1536,32 @@ async def get_sessions(
 async def admin_reset_password(
     request: Request,
     reset_data: AdminPasswordReset,
-    current_user: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_current_admin_or_superuser),
     session: AsyncSession = Depends(get_async_session),
 ):
-    logger.info(
-        f"Admin user {current_user.email} (ID: {current_user.id}) is resetting password for {reset_data.email}"
-    )
+    from db_core.middleware import get_current_tenant_id
+
+    # Get the current tenant ID from the request context
+    current_tenant_id = get_current_tenant_id()
+
+    # Tenant validation for application admins
+    if current_user.application_admin and not current_user.is_superuser:
+        if not current_tenant_id:
+            logger.error(
+                f"Application admin {current_user.email} attempted to reset password without tenant context"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tenant context is required for application admins",
+            )
+
+        logger.info(
+            f"Application admin {current_user.email} (ID: {current_user.id}) is resetting password for {reset_data.email} in tenant: {current_tenant_id}"
+        )
+    else:
+        logger.info(
+            f"Superuser {current_user.email} (ID: {current_user.id}) is resetting password for {reset_data.email} in tenant: {current_tenant_id or 'default'}"
+        )
 
     result = await session.execute(
         async_select(User).where(User.email == reset_data.email)
@@ -1541,6 +1575,20 @@ async def admin_reset_password(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
+        )
+
+    # Application admins cannot modify superuser accounts
+    if (
+        current_user.application_admin
+        and not current_user.is_superuser
+        and user.is_superuser
+    ):
+        logger.warning(
+            f"Application admin {current_user.email} attempted to reset password for superuser: {reset_data.email}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Application admins are not permitted to modify superuser accounts",
         )
 
     try:
@@ -1981,8 +2029,35 @@ async def extend_session(
 
 
 @router.get("/users")
-async def get_users(session: AsyncSession = Depends(get_async_session)):
-    """Get all users."""
+async def get_users(
+    current_user: User = Depends(get_current_admin_or_superuser),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Get all users (admin only)."""
+    from db_core.middleware import get_current_tenant_id
+
+    # Get the current tenant ID from the request context
+    current_tenant_id = get_current_tenant_id()
+
+    # Tenant validation for application admins
+    if current_user.application_admin and not current_user.is_superuser:
+        if not current_tenant_id:
+            logger.error(
+                f"Application admin {current_user.email} attempted to list users without tenant context"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tenant context is required for application admins",
+            )
+
+        logger.info(
+            f"Application admin {current_user.email} (ID: {current_user.id}) is listing users in tenant: {current_tenant_id}"
+        )
+    else:
+        logger.info(
+            f"Superuser {current_user.email} (ID: {current_user.id}) is listing users in tenant: {current_tenant_id or 'default'}"
+        )
+
     result = await session.execute(async_select(User))
     users = result.scalars().all()
 
@@ -2005,6 +2080,10 @@ async def get_users(session: AsyncSession = Depends(get_async_session)):
         }
         user_list.append(user_dict)
 
+    # Application admins should not see superusers
+    if current_user.application_admin and not current_user.is_superuser:
+        user_list = [u for u in user_list if not u.get("is_superuser")]
+
     return user_list
 
 
@@ -2012,15 +2091,36 @@ async def get_users(session: AsyncSession = Depends(get_async_session)):
 async def admin_unlock_account(
     request: Request,
     email: str,
-    current_user: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_current_admin_or_superuser),
     session: AsyncSession = Depends(get_async_session),
 ):
     """Unlock a user account and reset failed login attempts (admin only)."""
+
+    from db_core.middleware import get_current_tenant_id
+
     email = normalize_email(email)
 
-    logger.info(
-        f"Admin user {current_user.email} (ID: {current_user.id}) is unlocking account for {email}"
-    )
+    # Get the current tenant ID from the request context
+    current_tenant_id = get_current_tenant_id()
+
+    # Tenant validation for application admins
+    if current_user.application_admin and not current_user.is_superuser:
+        if not current_tenant_id:
+            logger.error(
+                f"Application admin {current_user.email} attempted to unlock account without tenant context"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tenant context is required for application admins",
+            )
+
+        logger.info(
+            f"Application admin {current_user.email} (ID: {current_user.id}) is unlocking account for {email} in tenant: {current_tenant_id}"
+        )
+    else:
+        logger.info(
+            f"Superuser {current_user.email} (ID: {current_user.id}) is unlocking account for {email} in tenant: {current_tenant_id or 'default'}"
+        )
 
     # Find user by email
     result = await session.execute(async_select(User).where(User.email == email))
@@ -2033,6 +2133,20 @@ async def admin_unlock_account(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
+        )
+
+    # Application admins cannot modify superuser accounts
+    if (
+        current_user.application_admin
+        and not current_user.is_superuser
+        and user.is_superuser
+    ):
+        logger.warning(
+            f"Application admin {current_user.email} attempted to unlock superuser account: {email}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Application admins are not permitted to modify superuser accounts",
         )
 
     # Reset failed login attempts and unlock account

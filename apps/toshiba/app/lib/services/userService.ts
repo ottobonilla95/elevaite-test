@@ -111,7 +111,7 @@ export async function createUser(
 
     return {
       success: true,
-      message: "User created successfully.",
+      message: `We've sent a user invitation to ${email}. Once they accept the invitation, they will be able to access the system.`,
     };
   } catch (error) {
     console.error("User creation error:", error);

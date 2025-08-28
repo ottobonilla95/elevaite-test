@@ -3,7 +3,7 @@ import {
   ElevaiteIcons,
   type CommonMenuItem,
 } from "@repo/ui/components";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ListHeader } from "../../lib/components/ListHeader";
 import {
@@ -11,7 +11,7 @@ import {
   specialHandlingListRowFields,
   type RowStructure,
 } from "../../lib/components/ListRow";
-import { useRoles } from "../../lib/contexts/RolesContext";
+
 import {
   type ExtendedUserObject,
   type SortingObject,
@@ -24,20 +24,15 @@ import { CreateUser } from "./Add Edit Modals/CreateUser";
 import { ResetUserPassword } from "./Add Edit Modals/ResetUserPassword";
 import { UserCreatedConfirmation } from "./Add Edit Modals/UserCreatedConfirmation";
 import { UserRolesListRow } from "./smallParts/UserRolesListRow";
-import "./UsersList.scss";
 
-enum menuActions {
-  EDIT_NAMES = "Edit Names",
-  EDIT_ROLES = "Edit Roles",
-  RESET_PASSWORD = "Reset Password",
-}
+import "./UsersList.scss";
 
 interface UsersListProps {
   isVisible: boolean;
+  isSuperAdmin?: boolean;
 }
 
 export function UsersList(props: UsersListProps): JSX.Element {
-  const rolesContext = useRoles();
   const { data: session } = useSession();
   const [displayUsers, setDisplayUsers] = useState<ExtendedUserObject[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,6 +50,10 @@ export function UsersList(props: UsersListProps): JSX.Element {
   const [selectedUser, setSelectedUser] = useState<
     ExtendedUserObject | undefined
   >();
+  const [actionNotification, setActionNotification] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   const usersListStructure: RowStructure<ExtendedUserObject>[] = [
     { header: "First Name", field: "firstname", isSortable: true },
@@ -73,61 +72,214 @@ export function UsersList(props: UsersListProps): JSX.Element {
     },
   ];
 
-  const usersListMenu: CommonMenuItem<ExtendedUserObject>[] = [
-    {
-      label: "Edit User name",
-      onClick: (item: ExtendedUserObject) => {
-        handleMenuClick(item, menuActions.EDIT_NAMES);
+  // Handler for action execution results
+  const handleActionExecuted = (
+    _actionId: string,
+    success: boolean,
+    message: string
+  ) => {
+    setActionNotification({
+      message,
+      type: success ? "success" : "error",
+    });
+
+    // Clear notification after 5 seconds
+    setTimeout(() => {
+      setActionNotification(null);
+    }, 5000);
+
+    // Refresh user list if action was successful
+    if (success) {
+      // Don't show loading spinner for refresh operations
+      const refreshUsers = async () => {
+        try {
+          const users = await fetchCombinedUsers([]);
+          setCombinedUsers(users);
+        } catch (error) {
+          console.error("Failed to refresh users:", error);
+        }
+      };
+      void refreshUsers();
+    }
+  };
+
+  // Generate dynamic menu for each user using the actual backend API
+  const isCurrentUserSuperuser =
+    props.isSuperAdmin ?? (session?.user as any)?.is_superuser === true;
+  const isCurrentUserApplicationAdmin =
+    (session?.user as any)?.application_admin === true;
+  const isCurrentUserAnyAdmin =
+    isCurrentUserSuperuser || isCurrentUserApplicationAdmin;
+
+  const generateUserMenu = (
+    user: ExtendedUserObject
+  ): CommonMenuItem<ExtendedUserObject>[] => {
+    const menuItems: CommonMenuItem<ExtendedUserObject>[] = [];
+
+    // Both superusers and application admins can perform these actions
+    menuItems.push({
+      label: "Reset password",
+      onClick: async () => {
+        if (
+          window.confirm(
+            `Are you sure you want to reset the password for ${user.email}?`
+          )
+        ) {
+          try {
+            const { userActionsService } = await import(
+              "../../lib/services/userActionsService"
+            );
+            const newPassword = userActionsService.generateSecurePassword();
+            const result = await userActionsService.resetUserPassword(
+              user,
+              newPassword,
+              true
+            );
+
+            handleActionExecuted(
+              "reset-password",
+              result.success,
+              result.message
+            );
+          } catch (error) {
+            handleActionExecuted(
+              "reset-password",
+              false,
+              `Failed to reset password: ${error instanceof Error ? error.message : "Unknown error"}`
+            );
+          }
+        }
       },
-    },
-    {
-      label: "Edit User roles",
-      onClick: (item: ExtendedUserObject) => {
-        handleMenuClick(item, menuActions.EDIT_ROLES);
+    });
+
+    menuItems.push({
+      label: "Unlock Account",
+      onClick: async () => {
+        if (
+          window.confirm(
+            `Are you sure you want to unlock the account for ${user.email}?`
+          )
+        ) {
+          try {
+            const { userActionsService } = await import(
+              "../../lib/services/userActionsService"
+            );
+            const result = await userActionsService.unlockUserAccount(user);
+
+            handleActionExecuted(
+              "unlock-account",
+              result.success,
+              result.message
+            );
+          } catch (error) {
+            handleActionExecuted(
+              "unlock-account",
+              false,
+              `Failed to unlock account: ${error instanceof Error ? error.message : "Unknown error"}`
+            );
+          }
+        }
       },
-    },
-    // Only show reset password option to admins
-    ...((session?.user as any)?.is_superuser === true
-      ? [
-          {
-            label: "Reset Password",
-            onClick: (item: ExtendedUserObject) => {
-              handleMenuClick(item, menuActions.RESET_PASSWORD);
-            },
-          },
-        ]
-      : []),
-  ];
+    });
+
+    // Superuser-only actions
+    if (isCurrentUserSuperuser) {
+      menuItems.push({
+        label: "Revoke MFA Devices",
+        onClick: async () => {
+          if (
+            window.confirm(
+              `Are you sure you want to revoke all MFA devices for ${user.email}? This will require them to set up MFA again.`
+            )
+          ) {
+            try {
+              const { userActionsService } = await import(
+                "../../lib/services/userActionsService"
+              );
+              const result =
+                await userActionsService.revokeUserMfaDevices(user);
+
+              handleActionExecuted(
+                "revoke-mfa-devices",
+                result.success,
+                result.message
+              );
+            } catch (error) {
+              handleActionExecuted(
+                "revoke-mfa-devices",
+                false,
+                `Failed to revoke MFA devices: ${error instanceof Error ? error.message : "Unknown error"}`
+              );
+            }
+          }
+        },
+      });
+    }
+
+    return menuItems;
+  };
+
+  // Memoize per-user menus to stabilize menu options
+  const rowMenus: Record<string, CommonMenuItem<ExtendedUserObject>[]> =
+    useMemo(() => {
+      const menus: Record<string, CommonMenuItem<ExtendedUserObject>[]> = {};
+      for (const u of displayUsers) menus[u.id] = generateUserMenu(u);
+      return menus;
+    }, [displayUsers, isCurrentUserAnyAdmin, props.isVisible]);
 
   // State to store combined users (RBAC + Native Auth API)
   const [combinedUsers, setCombinedUsers] = useState<ExtendedUserObject[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // Function to load users from auth API
   const loadUsers = async (): Promise<void> => {
-    const users = await fetchCombinedUsers([]);
-    setCombinedUsers(users);
+    try {
+      setIsLoadingUsers(true);
+      const users = await fetchCombinedUsers([]);
+      setCombinedUsers(users);
+      setHasLoadedOnce(true);
+    } catch (error) {
+      console.error("Failed to load users:", error);
+      // Even on error, we've attempted to load
+      setHasLoadedOnce(true);
+    } finally {
+      setIsLoadingUsers(false);
+    }
   };
 
   useEffect(() => {
     void loadUsers();
   }, []);
 
-  const isCurrentUserAdmin = (session?.user as any)?.is_superuser === true;
-
   // Update display users when combined users, search term, or sorting changes
   useEffect(() => {
     arrangeDisplayUsers();
-  }, [combinedUsers, searchTerm, sorting]);
+  }, [
+    combinedUsers,
+    searchTerm,
+    sorting,
+    (session?.user as any)?.is_superuser,
+    props.isVisible,
+  ]);
 
   function arrangeDisplayUsers(): void {
     const usersClone = JSON.parse(
       JSON.stringify(combinedUsers)
     ) as ExtendedUserObject[];
 
+    // Client-side permission filter:
+    // - Superusers see everyone
+    // - Application admins should not see superusers
+    const isCurrentUserSuper = (session?.user as any)?.is_superuser === true;
+    const baseList = isCurrentUserSuper
+      ? usersClone
+      : usersClone.filter((u) => !(u as any).is_superadmin);
+
     // Search
-    const searchedList: ExtendedUserObject[] = searchTerm ? [] : usersClone;
+    const searchedList: ExtendedUserObject[] = searchTerm ? [] : baseList;
     if (searchTerm) {
-      for (const item of usersClone) {
+      for (const item of baseList) {
         if (item.firstname?.toLowerCase().includes(searchTerm.toLowerCase())) {
           searchedList.push(item);
           continue;
@@ -172,23 +324,6 @@ export function UsersList(props: UsersListProps): JSX.Element {
     setIsCreateUserModalOpen(true);
   }
 
-  function handleEditUser(user: ExtendedUserObject): void {
-    setSelectedUser(user);
-    setIsNamesModalOpen(true);
-  }
-
-  function handleEditUserRoles(user: ExtendedUserObject): void {
-    setSelectedUser(user);
-    setIsRolesModalOpen(true);
-    // eslint-disable-next-line no-console -- Needed
-    console.log("Editing user roles");
-  }
-
-  function handleResetPassword(user: ExtendedUserObject): void {
-    setSelectedUser(user);
-    setIsResetPasswordModalOpen(true);
-  }
-
   function handleNameModalClose(): void {
     setSelectedUser(undefined);
     setIsNamesModalOpen(false);
@@ -223,7 +358,15 @@ export function UsersList(props: UsersListProps): JSX.Element {
     setIsUserCreatedModalOpen(true);
 
     // Refresh the users list to include the newly created user
-    void loadUsers();
+    const refreshUsers = async () => {
+      try {
+        const users = await fetchCombinedUsers([]);
+        setCombinedUsers(users);
+      } catch (error) {
+        console.error("Failed to refresh users after creation:", error);
+      }
+    };
+    void refreshUsers();
   }
 
   function handleSearch(term: string): void {
@@ -241,46 +384,33 @@ export function UsersList(props: UsersListProps): JSX.Element {
     setSorting(sortingResult);
   }
 
-  function handleMenuClick(
-    user: ExtendedUserObject,
-    action: menuActions
-  ): void {
-    switch (action) {
-      case menuActions.EDIT_NAMES:
-        handleEditUser(user);
-        break;
-      case menuActions.EDIT_ROLES:
-        handleEditUserRoles(user);
-        break;
-      case menuActions.RESET_PASSWORD:
-        handleResetPassword(user);
-        break;
-      default:
-        break;
-    }
-  }
-
   return (
     <div className="users-list-container">
       <ListHeader
         label="Users List"
-        addLabel={isCurrentUserAdmin ? "Add User" : undefined}
-        addIcon={isCurrentUserAdmin ? <ElevaiteIcons.SVGCross /> : undefined}
-        addAction={isCurrentUserAdmin ? handleAddUser : undefined}
+        addLabel="Add User"
+        addIcon={<ElevaiteIcons.SVGCross />}
+        addAction={handleAddUser}
         onSearch={handleSearch}
         searchPlaceholder="Search Users"
         isVisible={props.isVisible}
       />
 
+      {actionNotification && (
+        <div className={`action-notification ${actionNotification.type}`}>
+          {actionNotification.message}
+        </div>
+      )}
+
       <div className="users-list-table-container">
         <ListRow<ExtendedUserObject>
           isHeader
           structure={usersListStructure}
-          menu={usersListMenu}
+          menu={[]}
           onSort={handleSort}
           sorting={sorting}
         />
-        {displayUsers.length === 0 && rolesContext.loading.users ? (
+        {isLoadingUsers || (!hasLoadedOnce && displayUsers.length === 0) ? (
           <div className="table-span empty">
             <ElevaiteIcons.SVGSpinner />
             <span>Loading...</span>
@@ -293,7 +423,7 @@ export function UsersList(props: UsersListProps): JSX.Element {
               key={user.id}
               user={user}
               structure={usersListStructure}
-              menu={usersListMenu}
+              menu={rowMenus[user.id] || []}
               menuToTop={
                 displayUsers.length > 4 && index > displayUsers.length - 4
               }

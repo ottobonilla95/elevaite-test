@@ -59,7 +59,7 @@ export function LayoutWrapper({
     (effectiveSession?.user as any)?.application_admin === true;
   const isAnyAdmin = isSuperAdmin || isApplicationAdmin;
 
-  const shouldShowSidebar = isSuperAdmin;
+  const shouldShowSidebar = isAnyAdmin;
 
   // Check if we're on a page that should show admin layout
   const shouldShowAdminLayout =

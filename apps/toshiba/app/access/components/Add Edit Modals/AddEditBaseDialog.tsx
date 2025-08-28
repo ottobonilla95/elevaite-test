@@ -12,6 +12,7 @@ interface AddEditBaseDialogProps {
   onClose: () => void;
   children?: React.ReactNode;
   loading?: boolean;
+  singleButton?: boolean; // Hide Cancel button for confirmations
 }
 
 export function AddEditBaseDialog(props: AddEditBaseDialogProps): JSX.Element {
@@ -48,9 +49,11 @@ export function AddEditBaseDialog(props: AddEditBaseDialogProps): JSX.Element {
       </div>
 
       <div className="controls-container">
-        <CommonButton className="base-dialog-button" onClick={handleClose}>
-          Cancel
-        </CommonButton>
+        {!props.singleButton && (
+          <CommonButton className="base-dialog-button" onClick={handleClose}>
+            Cancel
+          </CommonButton>
+        )}
         <CommonButton
           className="base-dialog-button submit"
           disabled={props.disabled}

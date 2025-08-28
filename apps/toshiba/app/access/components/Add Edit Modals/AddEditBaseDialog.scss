@@ -77,6 +77,11 @@
     align-items: center;
     gap: 20px;
 
+    // Single button layout (for confirmations)
+    &:has(.base-dialog-button:only-child) {
+      justify-content: end;
+    }
+
     & .base-dialog-button {
       flex-grow: 1;
       min-width: 150px;
@@ -89,6 +94,12 @@
 
       &.submit {
         background-color: var(--ev-colors-highlight);
+      }
+
+      // Single button styling (for confirmations)
+      &:only-child {
+        max-width: 50px;
+        min-width: 0;
       }
     }
   }

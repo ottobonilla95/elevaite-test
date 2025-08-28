@@ -198,14 +198,13 @@ export function ListRow<RowObjectType>(
         .join(" ")}
       onClick={"onClick" in props ? handleRowClick : undefined}
     >
-      {!props.menu ? undefined : "isHeader" in props ||
-        props.menu.length === 0 ? (
+      {"isHeader" in props ? (
         <div className="list-row-cell menu" />
       ) : (
         <div className="list-row-cell menu">
           <CommonMenu
             item={props.rowItem}
-            menu={props.menu}
+            menu={props.menu || []}
             top={props.menuToTop}
           />
         </div>

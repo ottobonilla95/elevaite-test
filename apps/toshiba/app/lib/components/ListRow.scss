@@ -1,7 +1,7 @@
 .list-row-container {
   display: contents;
 
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--ev-colors-text);
 
@@ -43,13 +43,13 @@
   }
 
   & .list-row-cell {
-    min-height: 40px;
-    padding: 5px 5px 5px 10px;
-    background-color: var(--ev-colors-primary);
-    border-right: 1px solid var(--ev-colors-borderColor);
+    min-height: 80px;
+    padding: 10px 10px 10px 20px;
+    background-color: var(--ev-colors-background);
+    border-right: none;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 10px;
     border-top: 1px solid var(--ev-colors-borderColor);
 
     &:disabled {
@@ -67,7 +67,7 @@
       border-right: 1px solid var(--ev-colors-borderColor);
     }
     &.left-border:not(:first-child) {
-      border-left: 1px solid var(--ev-colors-borderColor);
+      border-left: none;
     }
 
     &.left {
@@ -163,12 +163,14 @@
     }
 
     & .email {
-      color: var(--ev-colors-highlight);
-      text-decoration: none;
-
-      &:hover {
-        text-decoration: underline;
-      }
+      display: inline-block;
+      color: var(--ev-colors-text);
+      background-color: var(--ev-colors-uiTextSecondary);
+      border-radius: 9999px;
+      padding: 2px 8px;
+      text-decoration: underline;
+      text-decoration-color: var(--ev-colors-text);
+      text-underline-offset: 2px;
     }
 
     & .roles-container {
@@ -181,13 +183,13 @@
         display: flex;
         align-items: center;
         gap: 5px;
-        padding: 1px 5px;
-        background-color: var(--ev-colors-primary);
-        border-radius: 4px;
+        padding: 0;
+        background-color: transparent;
+        border-radius: 0;
         color: var(--ev-colors-secondaryText);
 
         & .label {
-          color: var(--ev-colors-text);
+          color: var(--ev-colors-secondaryText);
           font-weight: 500;
         }
       }

@@ -79,43 +79,15 @@
   }
 }
 
-.user-created-confirmation {
-  padding: 24px;
+.confirmation-content {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-width: 400px;
-
-  h2 {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
 
   p {
     font-size: 14px;
     line-height: 1.5;
-    margin-bottom: 16px;
-  }
-
-  .note {
-    font-size: 13px;
-    color: #718096;
-    font-style: italic;
-    background-color: rgba(113, 128, 150, 0.1);
-    padding: 8px 12px;
-    border-radius: 4px;
-    margin-top: -8px;
-  }
-
-  .button-container {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 16px;
-
-    .go-back-button {
-      padding: 8px 16px;
-      font-size: 14px;
-    }
+    color: var(--ev-colors-text);
+    margin: 0;
   }
 }

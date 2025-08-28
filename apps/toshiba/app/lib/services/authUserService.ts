@@ -29,6 +29,11 @@ export async function fetchAuthUsers(): Promise<ExtendedUserObject[]> {
     const session = await auth();
     const authToken = session?.authToken;
 
+    // Check user role for filtering logic
+    const isSuperAdmin = (session?.user as any)?.is_superuser === true;
+    const isApplicationAdmin =
+      (session?.user as any)?.application_admin === true;
+
     // Use the local auth API
     const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
     const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
@@ -70,7 +75,7 @@ export async function fetchAuthUsers(): Promise<ExtendedUserObject[]> {
       firstname: user.full_name?.split(" ")[0] ?? "",
       lastname: user.full_name?.split(" ").slice(1).join(" ") ?? "",
       displayRoles: user.is_superuser
-        ? [{ roleLabel: "Admin" }]
+        ? [{ roleLabel: "iOpex Admin" }]
         : user.application_admin
           ? [{ roleLabel: "Application Admin" }]
           : [{ roleLabel: "User" }],
@@ -155,9 +160,14 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
       return false;
     }
 
-    const userData = (await response.json()) as { is_superuser?: boolean };
+    const userData = (await response.json()) as {
+      is_superuser?: boolean;
+      application_admin?: boolean;
+    };
 
-    return userData.is_superuser === true;
+    return (
+      userData.is_superuser === true || userData.application_admin === true
+    );
   } catch (error) {
     // If there's an error, assume the user is not an admin for security
     return false;

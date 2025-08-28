@@ -49,8 +49,9 @@ export async function GET() {
 
     const userData = await response.json();
 
-    // Check if the user is a superuser/admin
-    const isAdmin = userData.is_superuser === true;
+    // Check if the user is a superuser or application admin
+    const isAdmin =
+      userData.is_superuser === true || userData.application_admin === true;
 
     // Return the admin status
     return NextResponse.json(

@@ -6,10 +6,12 @@ export default async function Page(): Promise<JSX.Element | never> {
   const session = await auth();
 
   const isSuperAdmin = (session?.user as any)?.is_superuser === true;
+  const isApplicationAdmin = (session?.user as any)?.application_admin === true;
+  const isAnyAdmin = isSuperAdmin || isApplicationAdmin;
 
-  if (!isSuperAdmin) {
+  if (!isAnyAdmin) {
     redirect("/chatbot");
   }
 
-  return <AccessPageClient />;
+  return <AccessPageClient isSuperAdmin={isSuperAdmin} />;
 }

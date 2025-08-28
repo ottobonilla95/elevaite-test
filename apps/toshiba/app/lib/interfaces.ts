@@ -62,6 +62,7 @@ export interface UserObject {
 }
 
 export interface ExtendedUserObject extends UserObject {
+  status: string;
   displayRoles?: {
     roleLabel: string; // Role name or "Admin"
     roleParent?: string; // Account name or Project Name

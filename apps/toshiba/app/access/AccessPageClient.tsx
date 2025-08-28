@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useRoles } from "../lib/contexts/RolesContext";
 
 enum ACCESS_MANAGEMENT_TABS {
@@ -12,11 +13,23 @@ import { AccessHeader } from "./components/AccessHeader";
 import { AccessTabs } from "./components/AccessTabs";
 import "./page.scss";
 
-export default function AccessPageClient(): JSX.Element {
+export default function AccessPageClient({
+  isSuperAdmin,
+}: {
+  isSuperAdmin: boolean;
+}): JSX.Element {
+  const { data: session } = useSession();
   const rolesContext = useRoles();
-  const [selectedTab, setSelectedTab] = useState<ACCESS_MANAGEMENT_TABS>(
-    ACCESS_MANAGEMENT_TABS.ACCOUNTS
-  );
+
+  const isApplicationAdmin = (session?.user as any)?.application_admin === true;
+
+  // Default strictly from server role: superusers -> Accounts, others -> Users
+  const defaultTab = isSuperAdmin
+    ? ACCESS_MANAGEMENT_TABS.ACCOUNTS
+    : ACCESS_MANAGEMENT_TABS.USERS;
+
+  const [selectedTab, setSelectedTab] =
+    useState<ACCESS_MANAGEMENT_TABS>(defaultTab);
 
   function handleRefresh() {
     rolesContext.refresh(selectedTab);
@@ -25,7 +38,11 @@ export default function AccessPageClient(): JSX.Element {
   return (
     <div className="access-main-container">
       <AccessHeader onRefresh={handleRefresh} selectedTab={selectedTab} />
-      <AccessTabs selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
+      <AccessTabs
+        selectedTab={selectedTab}
+        setSelectedTab={setSelectedTab}
+        isSuperAdmin={isSuperAdmin}
+      />
     </div>
   );
 }
