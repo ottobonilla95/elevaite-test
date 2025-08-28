@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 import "./AgentTestingParser.scss";
+import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 
 
 
 interface AgentTestingParserProps {
     message: string;
+    isUser?: boolean;
 }
 
-export function AgentTestingParser({ message }: AgentTestingParserProps): JSX.Element {
+export function AgentTestingParser({ message, isUser }: AgentTestingParserProps): JSX.Element {
     const [formattedText, setFormattedText] = useState<string>("");
+    const [expanded, setExpanded] = useState(false);
+
+    const isUserLong = isUser && (message.split(/\r?\n/).length > 5);
 
 
     useEffect(() => {
@@ -168,7 +173,21 @@ export function AgentTestingParser({ message }: AgentTestingParserProps): JSX.El
 
     return (
         <div className="agent-testing-parser-container">
-            <div dangerouslySetInnerHTML={{ __html: formattedText }} />
+            <div
+                className={["parsed-text", isUserLong && !expanded ? "is-clamped" : undefined].filter(Boolean).join(" ")}
+                dangerouslySetInnerHTML={{ __html: formattedText }}
+            />
+            {!isUserLong ? undefined :
+                <div className="parser-button-container">
+                    <CommonButton
+                        className={["parser-expand-btn", expanded ? "expanded" : undefined].filter(Boolean).join(" ")}
+                        noBackground
+                        onClick={() => { setExpanded(v => !v); }}
+                    >
+                        <ElevaiteIcons.SVGChevron type="down"/>
+                    </CommonButton>
+                </div>
+            }
         </div>
     );
 }

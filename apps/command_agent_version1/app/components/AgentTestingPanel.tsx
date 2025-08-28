@@ -1,14 +1,15 @@
-import { ChatbotIcons } from "@repo/ui/components";
-import { AlertCircle, Bot, User, Upload, Maximize2, Minimize2, FileText, X } from "lucide-react";
+import { ChatbotIcons, CommonButton } from "@repo/ui/components";
+import { useAutoSizeTextArea } from "@repo/ui/hooks";
+import { AlertCircle, Bot, FileText, Maximize2, Minimize2, Upload, User, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { executeWorkflowModern } from "../lib/actions";
 import { useWorkflows } from "../ui/contexts/WorkflowsContext";
+import UploadModal from "./agents/UploadModal";
 import "./AgentTestingPanel.scss";
 import { AgentTestingParser } from "./AgentTestingParser";
 import AgentWorkflowDetailsModal from "./AgentWorkflowDetailsModal";
 import { type ChatMessage } from "./type";
 import { ChatLoading } from "./ui/ChatLoading";
-import UploadModal from "../components/agents/UploadModal";
 
 interface UploadedFile {
   id: string;
@@ -38,7 +39,9 @@ function AgentTestingPanel({
   const [chatInput, setChatInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [agentStatus, setAgentStatus] = useState("Ready");
-  
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  useAutoSizeTextArea(textAreaRef.current, chatInput, 5);
+
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => [
     {
       id: Date.now(),
@@ -55,7 +58,7 @@ function AgentTestingPanel({
       setChatMessages([
         {
           id: Date.now(),
-          text: ` Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
+          text: `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
           sender: "bot",
         },
       ]);
@@ -97,12 +100,19 @@ function AgentTestingPanel({
     };
   }, [sessionId]);
 
-  function handleInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
+  function handleInputChange(event: React.ChangeEvent<HTMLTextAreaElement>): void {
     setChatInput(event.target.value);
   }
 
-  function handleKeyPress(e: React.KeyboardEvent): void {
-    if (e.key === "Enter" && !isLoading && chatInput.trim()) {
+  function handleKeyPress(event: React.KeyboardEvent): void {
+    if (event.key !== "Enter" || isLoading) return;
+
+    // Return without preventing the default: Newline
+    if (event.shiftKey) return;
+
+    event.preventDefault();
+
+    if (chatInput.trim()) {
       void handleSendMessage();
     }
   }
@@ -134,12 +144,12 @@ function AgentTestingPanel({
         chat_history: chatHistory,
         runtime_overrides: {},
         files: uploadedFiles.map(file => ({
-          id: file.backendFileId || file.id,
+          id: file.backendFileId ?? file.id,
           name: file.name
         }))
       };
 
-      const result = await executeWorkflowModern(workflowId || "", executionRequest);
+      const result = await executeWorkflowModern(workflowId ?? "", executionRequest);
 
       let responseText = "No response received";
 
@@ -191,7 +201,7 @@ function AgentTestingPanel({
     const fileNames = files.map(f => f.name).join(', ');
     const systemMessage: ChatMessage = {
       id: Date.now(),
-      text: `📎 Uploaded ${files.length} file(s): ${fileNames}. You can now ask questions about these documents!`,
+      text: `📎 Uploaded ${files.length.toString()} file(s): ${fileNames}. You can now ask questions about these documents!`,
       sender: "bot",
     };
     
@@ -243,22 +253,13 @@ function AgentTestingPanel({
                     <Bot size={16} className="text-white" />
                   </div>
                   <div>
-                    <div className="font-bold text-sm">CoPilot</div>
-                    <div className="text-xs text-gray-500">AI Assistant</div>
+                    <div className="font-bold text-sm">Elai</div>
+                    <div className="text-xs text-gray-500">Your Co-Creator</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setShowUploadModal(true)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    type="button"
-                    title="Upload files"
-                    disabled={!workflowId}
-                  >
-                    <Upload size={16} className={workflowId ? "text-gray-600" : "text-gray-300"} />
-                  </button>
-                  <button
-                    onClick={() => setExpandChat(!expandChat)}
+                    onClick={() => { setExpandChat(!expandChat); }}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     type="button"
                     title={expandChat ? "Minimize chat" : "Expand chat"}
@@ -288,7 +289,7 @@ function AgentTestingPanel({
                         {formatTime(message.id)}
                       </div>
                       <div className="text-sm text-[#212124] opacity-75">
-                        <AgentTestingParser message={message.text} />
+                        <AgentTestingParser message={message.text} isUser={message.sender === "user"} />
                       </div>
                     </div>
                   </div>
@@ -328,63 +329,69 @@ function AgentTestingPanel({
           </div>
         </div>
 
-        {workflowId && (
-          <div
-            className="bottom p-6 rounded-md bg-[#F8FAFC]"
-            style={{ border: "1px solid #E2E8ED" }}
-          >
-            <div className="relative">
-              <input
-                type="text"
-                className="h-[48px] w-full rounded-lg px-4 pr-12"
+        {/* {!workflowId ? undefined : */}
+          <div className={["chatbot-input-container", isLoading ? "is-loading" : undefined].filter(Boolean).join(" ")}>
+            <div className="chatbot-input-contents">
+
+              <textarea
+                ref={textAreaRef}
+                className="chatbot-input-field chatbot-input-textarea"
                 value={chatInput}
-                placeholder={
-                  isLoading ? "Working, please wait..." : "Type message here"
-                }
+                placeholder={isLoading ? "Working, please wait..." : "Type message here"}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyPress}
                 disabled={isLoading}
+                rows={1}
               />
-              <div className="actions flex items-center gap-2 absolute right-3 top-1/2 -translate-y-1/2">
-                <button
-                  className={`send-button p-2 rounded-lg ${
-                    isLoading || !chatInput.trim()
-                      ? "bg-gray-200 cursor-not-allowed"
-                      : "bg-[#FF681F] hover:bg-orange-600"
-                  } transition-colors`}
+
+              <div className="chatbot-input-actions">
+
+                <CommonButton
+                  className="chatbot-input-upload-button"
+                  onClick={() => { setShowUploadModal(true); }}
+                  title="Upload files"
+                  disabled={!workflowId}
+                  noBackground
+                >
+                  <Upload size={16} />
+                </CommonButton>
+
+                <CommonButton
+                  className={[
+                    "chatbot-input-send-button",
+                    (isLoading || !chatInput.trim()) ? "is-disabled" : undefined
+                  ].filter(Boolean).join(" ")}
                   onClick={handleSendMessage}
                   disabled={isLoading || !chatInput.trim()}
-                  type="button"
+                  title="Send"
                 >
-                  {isLoading ? (
-                    <ChatbotIcons.SVGSpinner />
-                  ) : (
-                    <ChatbotIcons.SVGSend />
-                  )}
-                </button>
+                  {isLoading ? <ChatbotIcons.SVGSpinner /> : <ChatbotIcons.SVGSend />}
+                </CommonButton>
+
               </div>
+
             </div>
           </div>
-        )}
+        {/* } */}
       </div>
 
       {/* Upload Modal - Only show if we have a workflow */}
-      {workflowId && (
+      {!workflowId ? undefined :
         <UploadModal
           isOpen={showUploadModal}
-          onClose={() => setShowUploadModal(false)}
+          onClose={() => { setShowUploadModal(false); }}
           onFilesUploaded={handleFilesUploaded}
         />
-      )}
+      }
 
       {/* Workflow Details Modal */}
-      {showAgentWorkflowModal && (
+      {!showAgentWorkflowModal ? undefined :
         <AgentWorkflowDetailsModal
-          onClose={() => setShowAgentWorkflowModal(false)}
+          onClose={() => { setShowAgentWorkflowModal(false); }}
         />
-      )}
+      }
     </>
   );
 }
 
-export default AgentTestingPanel; 
+export default AgentTestingPanel;
