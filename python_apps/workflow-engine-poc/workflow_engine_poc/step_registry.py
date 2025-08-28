@@ -498,4 +498,24 @@ class StepRegistry:
             }
         )
 
+        # Register tool execution step (standalone tool as a step)
+        await self.register_step(
+            {
+                "step_type": "tool_execution",
+                "name": "Tool Execution",
+                "description": "Invokes a tool (local or DB-registered) as a standalone step",
+                "function_reference": "workflow_engine_poc.steps.tool_steps.tool_execution_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "tool_name": {"type": "string"},
+                        "tool_id": {"type": "string"},
+                        "param_mapping": {"type": "object", "additionalProperties": {"type": "string"}},
+                        "static_params": {"type": "object"},
+                    },
+                },
+            }
+        )
+
         logger.info("Built-in steps registered successfully")
