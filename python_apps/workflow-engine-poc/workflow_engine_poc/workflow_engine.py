@@ -30,6 +30,8 @@ from .condition_evaluator import (
     LogicalOperator,
 )
 from .monitoring import monitoring
+from .db.database import get_session
+from .services.analytics_service import analytics_service
 
 
 logger = logging.getLogger(__name__)
@@ -88,6 +90,37 @@ class WorkflowEngine:
             if execution_context.status == ExecutionStatus.RUNNING:
                 execution_context.complete_execution()
                 logger.info(f"Workflow execution completed: {execution_id}")
+
+                # Persist workflow-level analytics rollup (tokens-only)
+                try:
+                    # Sum tokens across agent steps
+                    totals = {"tokens_in": 0, "tokens_out": 0, "total_tokens": 0, "llm_calls": 0}
+                    for sid, step in execution_context.step_results.items():
+                        od = step.output_data or {}
+                        if isinstance(od, dict) and od.get("usage"):
+                            u = od["usage"]
+                            try:
+                                totals["tokens_in"] += int(u.get("tokens_in", 0) or 0)
+                                totals["tokens_out"] += int(u.get("tokens_out", 0) or 0)
+                                totals["total_tokens"] += int(u.get("total_tokens", 0) or 0)
+                                totals["llm_calls"] += int(u.get("llm_calls", 0) or 0)
+                            except Exception:
+                                pass
+                    summary = execution_context.get_execution_summary()
+                    with get_session() as _s:
+                        analytics_service.record_workflow_metrics(
+                            _s,
+                            execution_id=execution_context.execution_id,
+                            workflow_id=execution_context.workflow_id,
+                            workflow_name=execution_context.workflow_name,
+                            summary=summary,
+                            totals=totals,
+                            status=summary.get("status", "completed"),
+                            started_at=execution_context.started_at,
+                            completed_at=execution_context.completed_at,
+                        )
+                except Exception as we:
+                    logger.warning(f"Workflow analytics rollup failed: {we}")
 
         except Exception as e:
             logger.error(f"Workflow execution failed: {execution_id} - {e}")
@@ -236,6 +269,25 @@ class WorkflowEngine:
 
             if step_result.status == StepStatus.COMPLETED:
                 logger.info(f"Step completed: {step_id} ({step_result.execution_time_ms}ms)")
+
+                # Persist agent analytics if applicable (tokens-only)
+                try:
+                    if step_type == "agent_execution" and isinstance(step_result.output_data, dict):
+                        agent_out = step_result.output_data
+                        # Insert analytics row
+                        with get_session() as _s:
+                            analytics_service.record_agent_execution(
+                                _s,
+                                execution_id=execution_context.execution_id,
+                                step_execution_id=None,  # optional: wire actual StepExecution.id if available
+                                agent_output=agent_out,
+                                status="completed",
+                                started_at=execution_context.started_at,
+                                completed_at=execution_context.completed_at,
+                                error_message=None,
+                            )
+                except Exception as ae:
+                    logger.warning(f"Analytics record for agent step failed: {ae}")
             else:
                 logger.error(f"Step failed: {step_id} - {step_result.error_message}")
 

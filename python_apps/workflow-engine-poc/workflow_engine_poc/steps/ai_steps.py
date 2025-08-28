@@ -377,6 +377,9 @@ class AgentStep:
                 "timestamp": end_time.isoformat(),
                 "success": True,
                 "mode": result.get("mode", "llm"),
+                # Bubble up usage and model when available
+                "model": result.get("model"),
+                "usage": result.get("usage"),
             }
 
         except Exception as e:
@@ -439,6 +442,14 @@ class AgentStep:
             # Multi-turn tool loop with a small cap
             tool_calls_trace: List[Dict[str, Any]] = []
             max_tool_iterations = 4
+
+            # Token usage accumulation
+            tokens_in_total = 0
+            tokens_out_total = 0
+            llm_calls = 0
+            provider_type = str(config.get("type", "unknown"))
+            model_label = str(model_name)
+
             for _ in range(max_tool_iterations):
                 # TextGenerationService is synchronous; run in a thread to avoid blocking
                 response = await asyncio.to_thread(
@@ -455,12 +466,27 @@ class AgentStep:
                     messages,
                 )
 
+                # Accumulate token usage
+                try:
+                    tokens_in_total += int(getattr(response, "tokens_in", 0) or 0)
+                    tokens_out_total += int(getattr(response, "tokens_out", 0) or 0)
+                    llm_calls += 1
+                except Exception:
+                    pass
+
                 # If no tool calls, we have a final answer
                 if not getattr(response, "tool_calls", None):
                     return {
                         "response": getattr(response, "text", str(response)) or "",
                         "tool_calls": tool_calls_trace,
                         "mode": "llm",
+                        "model": {"provider": provider_type, "name": model_label},
+                        "usage": {
+                            "tokens_in": tokens_in_total,
+                            "tokens_out": tokens_out_total,
+                            "total_tokens": tokens_in_total + tokens_out_total,
+                            "llm_calls": llm_calls,
+                        },
                     }
 
                 # Execute tool calls and prepare concise summaries for the follow-up LLM call
@@ -518,6 +544,13 @@ class AgentStep:
                 "response": "Reached tool iteration limit; see tool_calls for details.",
                 "tool_calls": tool_calls_trace,
                 "mode": "llm",
+                "model": {"provider": provider_type, "name": model_label},
+                "usage": {
+                    "tokens_in": tokens_in_total,
+                    "tokens_out": tokens_out_total,
+                    "total_tokens": tokens_in_total + tokens_out_total,
+                    "llm_calls": llm_calls,
+                },
             }
 
         except Exception as e:
