@@ -32,6 +32,13 @@ class ExecutionPattern(str, Enum):
     CONDITIONAL = "conditional"
 
 
+class ExecutionBackend(str, Enum):
+    """Workflow execution backend selection"""
+
+    LOCAL = "local"
+    DBOS = "dbos"
+
+
 # Base workflow model with shared fields
 class WorkflowBase(SQLModel):
     """Base workflow model with common fields"""
