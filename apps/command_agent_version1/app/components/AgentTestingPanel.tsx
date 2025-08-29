@@ -40,7 +40,7 @@ function AgentTestingPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [agentStatus, setAgentStatus] = useState("Ready");
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
-  useAutoSizeTextArea(textAreaRef.current, chatInput, 5);
+  useAutoSizeTextArea(textAreaRef.current, chatInput, 15);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => [
     {
@@ -243,7 +243,7 @@ function AgentTestingPanel({
           style={{ border: "1px solid #E2E8ED" }}
         >
           <div className="chat-scroll flex-1 overflow-auto">
-            <div>
+            <div className="chat-contents">
               <div
                 className="flex items-center justify-between py-2 px-6 sticky top-0 z-10 bg-white"
                 style={{ borderBottom: "1px solid #E2E8ED" }}
@@ -329,7 +329,7 @@ function AgentTestingPanel({
           </div>
         </div>
 
-        {/* {!workflowId ? undefined : */}
+        {!workflowId ? undefined :
           <div className={["chatbot-input-container", isLoading ? "is-loading" : undefined].filter(Boolean).join(" ")}>
             <div className="chatbot-input-contents">
 
@@ -372,7 +372,7 @@ function AgentTestingPanel({
 
             </div>
           </div>
-        {/* } */}
+        }
       </div>
 
       {/* Upload Modal - Only show if we have a workflow */}

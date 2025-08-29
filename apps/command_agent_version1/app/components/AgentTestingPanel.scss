@@ -11,7 +11,13 @@
 	}
 
 	.chat-scroll {
+		display: flex;
+  		flex-direction: column;
 		@include scrollbar();
+
+		.chat-contents {
+			flex-grow: 1;
+		}
 	}
 
 	.chat-bubble {
