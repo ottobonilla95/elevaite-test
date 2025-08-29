@@ -8,7 +8,7 @@ from opentelemetry.sdk.resources import Resource
 
 # Resolve service.name key across semconv versions
 try:
-    from opentelemetry.semconv.attributes.resource import SERVICE_NAME as SERVICE_NAME_KEY  # type: ignore
+    from opentelemetry.semconv.attributes.resource import SERVICE_NAME as SERVICE_NAME_KEY
 except Exception:
     try:
         from opentelemetry.semconv.resource import ResourceAttributes as _ResAttrs  # type: ignore
@@ -32,7 +32,7 @@ from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
 def configure_tracer(
     service_name: str = "fastapi-service",
     otlp_endpoint: Optional[str] = None,
-    add_console_exporter: bool = True,
+    add_console_exporter: bool = False,
     resource_attributes: Optional[Dict[str, Any]] = None,
     otlp_insecure: bool = False,
     otlp_timeout: int = 5,
@@ -65,8 +65,10 @@ def configure_tracer(
     # Create and set tracer provider
     provider = TracerProvider(resource=resource)
 
-    # Add console exporter if requested; guard against closed stream during test teardown
-    if add_console_exporter:
+    # Add console exporter only if explicitly requested (or OTEL_CONSOLE_EXPORT=1)
+    import os as _os
+
+    if add_console_exporter or _os.getenv("OTEL_CONSOLE_EXPORT") == "1":
         try:
 
             class _SafeStream:
@@ -75,18 +77,14 @@ def configure_tracer(
 
                 def write(self, *a, **k):
                     try:
-                        if self._wrapped and not getattr(
-                            self._wrapped, "closed", False
-                        ):
+                        if self._wrapped and not getattr(self._wrapped, "closed", False):
                             return self._wrapped.write(*a, **k)
                     except Exception:
                         return None
 
                 def flush(self):
                     try:
-                        if self._wrapped and not getattr(
-                            self._wrapped, "closed", False
-                        ):
+                        if self._wrapped and not getattr(self._wrapped, "closed", False):
                             return self._wrapped.flush()
                     except Exception:
                         return None
@@ -113,9 +111,7 @@ def configure_tracer(
             )
             provider.add_span_processor(otlp_processor)
             security_mode = "insecure" if otlp_insecure else "secure"
-            print(
-                f"✅ OTLP exporter configured for {otlp_endpoint} ({security_mode}, timeout={otlp_timeout}s)"
-            )
+            print(f"✅ OTLP exporter configured for {otlp_endpoint} ({security_mode}, timeout={otlp_timeout}s)")
         except Exception as e:
             print(f"⚠️  Failed to configure OTLP exporter: {e}")
             print("   Continuing with console exporter only")
@@ -162,9 +158,7 @@ def configure_metrics(
                 endpoint_str = str(otlp_endpoint)
                 if "/v1/metrics" in endpoint_str:
                     # HTTP exporter does not accept 'insecure'
-                    exporter = _HttpMetricExporter(
-                        endpoint=otlp_endpoint, timeout=otlp_timeout
-                    )
+                    exporter = _HttpMetricExporter(endpoint=otlp_endpoint, timeout=otlp_timeout)
                 else:
                     # gRPC exporter typically at host:port or http://host:4317; supports 'insecure'
                     exporter = _GrpcMetricExporter(

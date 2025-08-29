@@ -301,6 +301,18 @@ class StepRegistry:
                         "per_file_size_mb": {"type": "integer", "minimum": 1},
                         "total_size_mb": {"type": "integer", "minimum": 1},
                         "allowed_mime_types": {"type": "array", "items": {"type": "string"}},
+                        "schedule": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {"type": "boolean", "default": False},
+                                "mode": {"type": "string", "enum": ["interval", "cron"], "default": "interval"},
+                                "interval_seconds": {"type": "integer", "minimum": 5},
+                                "cron": {"type": "string"},
+                                "backend": {"type": "string", "enum": ["dbos", "local"], "default": "dbos"},
+                                "jitter_seconds": {"type": "integer", "minimum": 0},
+                                "timezone": {"type": "string"},
+                            },
+                        },
                     },
                 },
             }

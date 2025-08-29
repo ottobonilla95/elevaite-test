@@ -18,13 +18,14 @@ from fastapi import (
 )
 from fastapi.responses import StreamingResponse
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlmodel import Session, select
 from ..db.database import get_db_session
 from ..db.models import Workflow, WorkflowRead, WorkflowBase
 from ..db.service import DatabaseService
 from ..workflow_engine import WorkflowEngine
+from ..dbos_adapter import get_dbos_adapter
 from ..db.models import WorkflowExecutionRead, ExecutionStatus
 
 from ..execution_context import ExecutionContext, UserContext
@@ -56,12 +57,14 @@ router = APIRouter(prefix="/workflows", tags=["workflows"])
 
 
 @router.post("/{workflow_id}/execute", response_model=WorkflowExecutionRead)
+@router.post("/{workflow_id}/execute/{backend}", response_model=WorkflowExecutionRead)
 async def execute_workflow_by_id(
     workflow_id: str,
     request: Request,
     session: Session = Depends(get_db_session),
     payload: Optional[str] = Form(None),
     files: Optional[list[UploadFile]] = File(None),
+    backend: Optional[str] = None,
 ) -> WorkflowExecutionRead:
     """Create a WorkflowExecution and kick off execution by workflow id.
 
@@ -216,10 +219,106 @@ async def execute_workflow_by_id(
         if input_data:
             execution_context.step_io_data.update(input_data)
 
-        # Kick off in background
-        asyncio.create_task(workflow_engine.execute_workflow(execution_context))
+        # Decide backend: DBOS vs local engine
+        chosen_backend = (backend or body_data.get("backend") or body_data.get("execution_backend") or "dbos").lower()
+        if chosen_backend not in ("dbos", "local"):
+            raise HTTPException(status_code=400, detail=f"Invalid execution backend: {chosen_backend}")
 
-        # Return the created execution as response
+        if chosen_backend == "dbos":
+            # Run synchronously via DBOS adapter and persist results
+            adapter = await get_dbos_adapter()
+            result = await adapter.start_workflow(
+                workflow_config=workflow,
+                trigger_data=trigger_payload,
+                user_context={
+                    "user_id": user_id,
+                    "session_id": session_id_val,
+                    "organization_id": organization_id,
+                },
+            )
+
+            if not isinstance(result, dict):
+                raise HTTPException(status_code=502, detail=f"DBOS returned unexpected result type: {type(result)}")
+
+            # Map adapter result into execution record
+            status = ExecutionStatus.COMPLETED if result.get("success") else ExecutionStatus.FAILED
+            step_results = result.get("step_results", {})
+            # Construct step_io_data from outputs
+            step_io_data = {}
+            if isinstance(step_results, dict):
+                for sid, sres in step_results.items():
+                    if isinstance(sres, dict) and "output_data" in sres:
+                        step_io_data[sid] = sres["output_data"]
+
+            # Step summary for analytics
+            steps_executed = len(step_results) if isinstance(step_results, dict) else 0
+            completed_steps = 0
+            failed_steps = 0
+            if isinstance(step_results, dict):
+                for sres in step_results.values():
+                    if isinstance(sres, dict):
+                        if sres.get("success") is True:
+                            completed_steps += 1
+                        elif sres.get("success") is False:
+                            failed_steps += 1
+            steps_defined = 0
+            try:
+                steps_defined = len(workflow.get("steps", []) or [])
+            except Exception:
+                steps_defined = 0
+
+            # Compute execution time using stored started_at and current UTC
+            now_utc = datetime.now(timezone.utc)
+            start_iso = None
+            try:
+                created_pre = db_service.get_execution(session, execution_id)
+                start_iso = created_pre.get("started_at") if isinstance(created_pre, dict) else None
+            except Exception:
+                start_iso = None
+            exec_secs = None
+            if isinstance(start_iso, str):
+                try:
+                    # Handle Z suffix
+                    s = start_iso.replace("Z", "+00:00")
+                    from datetime import datetime as _dt
+
+                    start_dt = _dt.fromisoformat(s)
+                    if start_dt.tzinfo is None:
+                        from datetime import timezone as _tz
+
+                        start_dt = start_dt.replace(tzinfo=_tz.utc)
+                    exec_secs = (now_utc - start_dt).total_seconds()
+                except Exception:
+                    exec_secs = None
+
+            db_service.update_execution(
+                session,
+                execution_id,
+                {
+                    "status": status,
+                    "output_data": {"success": result.get("success"), "error": result.get("error")},
+                    "step_io_data": step_io_data,
+                    "completed_at": now_utc,
+                    "execution_time_seconds": exec_secs,
+                    "execution_metadata": {
+                        **(result.get("_dbos") or {}),
+                        **(metadata or {}),
+                        "backend": chosen_backend,
+                        "summary": {
+                            "total_steps": steps_defined,
+                            "steps_executed": steps_executed,
+                            "completed_steps": completed_steps,
+                            "failed_steps": failed_steps,
+                        },
+                    },
+                    "error_message": result.get("error"),
+                },
+            )
+        else:
+            # Kick off in background via local engine
+            asyncio.create_task(workflow_engine.execute_workflow(execution_context))
+
+        # Return the execution as response
         created = db_service.get_execution(session, execution_id)
         assert created is not None
         return WorkflowExecutionRead(
