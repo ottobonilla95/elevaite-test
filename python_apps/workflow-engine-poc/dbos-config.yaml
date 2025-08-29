@@ -1,0 +1,27 @@
+# DBOS Configuration for Workflow Engine PoC
+# This configuration enables DBOS durable execution for our workflow engine
+
+database:
+  hostname: localhost
+  port: 5432
+  username: ${PGUSER:-postgres}
+  password: ${PGPASSWORD:-password}
+  database_name: ${PGDATABASE:-workflow_engine_poc}
+  
+# Application configuration
+application:
+  # Use the existing database from our workflow engine
+  database_url: ${DATABASE_URL:-postgresql://postgres:password@localhost:5432/workflow_engine_poc}
+  
+# Telemetry and monitoring
+telemetry:
+  logs:
+    logLevel: info
+  OTLPExporter:
+    logsEndpoint: ${DBOS_OTEL_ENDPOINT:-}
+    tracesEndpoint: ${DBOS_OTEL_ENDPOINT:-}
+
+# Runtime configuration
+runtime:
+  entrypoint: workflow_engine_poc.dbos_adapter
+  port: ${PORT:-3000}
