@@ -14,6 +14,7 @@ from prompts import (
     data_agent_system_prompt,
     command_agent_system_prompt,
     toshiba_agent_system_prompt,
+    mitie_agent_system_prompt,
 )
 
 def init_tool_categories(db):
@@ -171,6 +172,7 @@ def init_db():
                 data_agent_system_prompt,
                 command_agent_system_prompt,
                 toshiba_agent_system_prompt,
+                mitie_agent_system_prompt,
             ]
 
             for prompt_obj in prompts:

@@ -48,11 +48,1359 @@ EXAMPLE_DATA = [
     {"customer_id": 3333, "order_number": 45, "location": "Chicago"},
     {"customer_id": 4444, "order_number": 100, "location": "Miami"},
     {"customer_id": 5555, "order_number": 200, "location": "San Francisco"},
-    {"customer_id": 6666, "order_number": 300, "location": "Seattle"},
-    {"customer_id": 7777, "order_number": 400, "location": "Boston"},
-    {"customer_id": 8888, "order_number": 500, "location": "Denver"},
-    {"customer_id": 9999, "order_number": 600, "location": "Houston"},
 ]
+
+
+# Mitie RFQ Tools
+@function_schema
+def extract_rfq_json(rfq_text: str) -> str:
+    """
+    MITIE RFQ JSON EXTRACTOR
+
+    Extracts structured JSON data from RFQ (Request for Quote) documents.
+    Identifies mandatory and optional fields for quote generation.
+
+    Args:
+        rfq_text: The RFQ document text content
+
+    Returns:
+        str: JSON string containing extracted mandatory and optional fields
+    """
+    try:
+        # Use OpenAI to extract structured data from RFQ text
+        extraction_prompt = f"""
+Extract structured JSON data from this RFQ document. Return ONLY valid JSON with no additional text.
+
+Required mandatory fields:
+- rfq_number: string (unique RFQ identifier)
+- client_name: string (client company name)
+- project_reference: string (client's internal project reference)
+- site_postcode: string (UK postcode)
+- project_type: string (e.g., "Rooftop", "Monopole", "Lattice Tower")
+- duration_weeks: string (expected project timeline)
+- cost_base: string ("Budget" or "Final Account")
+- technical_specs: object with "scope" array
+
+Optional fields (include if found):
+- region: string
+- project_subtype: string
+- site_conditions: object
+- power_specs: object
+- existing_infrastructure: object
+- preferred_supplier_items: array
+- steel_specs: object
+- foundation_specs: object
+- subcontractor_requirements: object
+- compliance_requirements: object
+- risk_factors: object
+
+RFQ Document:
+{rfq_text}
+
+Return JSON:"""
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": extraction_prompt}],
+            temperature=0.1,
+            max_tokens=2000
+        )
+
+        extracted_json = response.choices[0].message.content.strip()
+
+        # Clean markdown formatting if present
+        if extracted_json.startswith('```json'):
+            extracted_json = extracted_json[7:]  # Remove ```json
+        if extracted_json.startswith('```'):
+            extracted_json = extracted_json[3:]   # Remove ```
+        if extracted_json.endswith('```'):
+            extracted_json = extracted_json[:-3]  # Remove trailing ```
+        extracted_json = extracted_json.strip()
+
+        # Validate it's proper JSON
+        import json
+        parsed_data = json.loads(extracted_json)
+
+        # Validate mandatory fields are present
+        mandatory_fields = [
+            "rfq_number", "client_name", "project_reference",
+            "site_postcode", "project_type", "duration_weeks",
+            "cost_base", "technical_specs"
+        ]
+
+        missing_fields = [field for field in mandatory_fields if field not in parsed_data or not parsed_data[field]]
+        if missing_fields:
+            return json.dumps({
+                "status": "incomplete",
+                "error": f"Missing mandatory fields: {', '.join(missing_fields)}",
+                "missing_fields": missing_fields,
+                "extracted_data": parsed_data,
+                "mandatory_fields_complete": False,
+                "user_action_required": "Please provide the missing information to continue with quote generation"
+            })
+
+        return json.dumps({
+            "status": "success",
+            "extracted_data": parsed_data,
+            "mandatory_fields_complete": True
+        })
+
+    except json.JSONDecodeError as e:
+        return json.dumps({
+            "error": f"Invalid JSON extracted: {str(e)}",
+            "raw_response": extracted_json
+        })
+    except Exception as e:
+        return json.dumps({
+            "error": f"Extraction failed: {str(e)}"
+        })
+
+
+@function_schema
+def calculate_mitie_quote(extracted_data: str) -> str:
+    """
+    MITIE QUOTE CALCULATOR - LLM-Driven Item Selection with Database Rates
+
+    Uses LLM to intelligently select relevant items from available configurations,
+    then applies database-stored rates and business rules for accurate calculations.
+
+    Process:
+    1. Load ALL available configurations as context
+    2. LLM selects relevant items based on RFQ scope
+    3. Apply database rates and business rules
+    4. Calculate regional uplifts, markups, preliminaries, contingency
+
+    Features:
+    - LLM-driven intelligent item selection
+    - Complete rate card context provided
+    - Active/Passive project classification
+    - Regional uplift calculations
+    - Steel tonnage calculations with engineering validation
+    - Risk-based contingency (5-15%)
+    - Framework account detection and discounts
+    - Proper preliminaries banding logic
+
+    Args:
+        extracted_data: JSON string containing extracted RFQ data
+
+    Returns:
+        str: JSON string containing detailed cost calculations and breakdown
+    """
+    try:
+        import json
+        from .mitie_database import MitieDatabase, MitieCalculator, MitieCalculationError
+
+        # Parse the extracted data with better error handling
+        try:
+            if isinstance(extracted_data, str):
+                data = json.loads(extracted_data)
+            else:
+                data = extracted_data
+        except json.JSONDecodeError as e:
+            return json.dumps({
+                "error": f"Failed to parse extracted_data JSON: {str(e)}",
+                "type": "json_parse_error",
+                "details": f"Error at position {e.pos if hasattr(e, 'pos') else 'unknown'}"
+            })
+
+        # Check if this is an incomplete extraction that needs user input
+        if isinstance(data, dict) and data.get("status") == "incomplete":
+            return json.dumps({
+                "error": "Cannot calculate quote with incomplete RFQ data",
+                "type": "incomplete_data_error",
+                "missing_fields": data.get("missing_fields", []),
+                "user_action_required": data.get("user_action_required", "Please provide missing information")
+            })
+
+        # Handle nested structure if data comes from extract_rfq_json
+        if "extracted_data" in data:
+            rfq_data = data["extracted_data"]
+        else:
+            rfq_data = data
+
+        # Initialize database connection and calculator
+        try:
+            print("🔌 Initializing database connection...")
+            db = MitieDatabase()
+            calculator = MitieCalculator(db)
+            print("✅ Database connection successful")
+        except Exception as e:
+            print(f"❌ Database connection failed: {e}")
+            return json.dumps({
+                "error": f"Database connection failed: {str(e)}",
+                "fallback": "Please check database configuration"
+            })
+
+        # 🤖 LLM-DRIVEN ITEM SELECTION
+        print("🤖 Using LLM to select relevant items from available configurations...")
+        try:
+            from .mitie_llm_selector import select_relevant_mitie_items
+            selected_items = select_relevant_mitie_items(rfq_data)
+            print(f"✅ LLM selected {len(selected_items.get('selected_rate_items', []))} rate items")
+            print(f"✅ LLM selected {len(selected_items.get('selected_preferred_items', []))} preferred items")
+
+            # Use LLM selections instead of hardcoded logic
+            use_llm_selections = True
+        except Exception as e:
+            print(f"⚠️ LLM selection failed: {e}")
+            print("📋 Falling back to hardcoded logic...")
+            selected_items = {}
+            use_llm_selections = False
+
+        # Validate inputs
+        print("🔍 Validating inputs...")
+        validation_warnings = calculator.validate_calculation_inputs(rfq_data)
+        if validation_warnings:
+            print(f"⚠️ Validation warnings: {validation_warnings}")
+
+        # Extract key data
+        print("📊 Extracting key data...")
+        technical_scope = rfq_data.get("technical_scope", "")
+        if not technical_scope:
+            # Fallback to technical_specs.scope if available
+            tech_specs = rfq_data.get("technical_specs", {})
+            if isinstance(tech_specs.get("scope"), list):
+                technical_scope = " ".join(tech_specs["scope"])
+            else:
+                technical_scope = str(tech_specs.get("scope", ""))
+
+        # Also include project_type in technical scope for better classification
+        project_type_from_rfq = rfq_data.get("project_type", "")
+        if project_type_from_rfq and project_type_from_rfq not in technical_scope:
+            technical_scope = f"{project_type_from_rfq} {technical_scope}"
+
+        client_name = rfq_data.get("client_name", "")
+        site_postcode = rfq_data.get("site_postcode", "")
+
+        print(f"   Technical scope: {technical_scope[:100]}...")
+        print(f"   Client: {client_name}")
+        print(f"   Postcode: {site_postcode}")
+
+        # 1. CLASSIFY PROJECT TYPE
+        print("\n🏗️ Step 1: Classifying project type...")
+        project_type = calculator.classify_project_type(technical_scope)
+        print(f"   Project classified as: {project_type}")
+
+        # 2. CHECK FRAMEWORK ACCOUNT STATUS
+        print("\n🏢 Step 2: Checking framework account status...")
+        is_framework = calculator.is_framework_account(client_name)
+        print(f"   Framework account: {is_framework}")
+
+        # 3. GET BASE RATES FROM DATABASE
+        print("\n💰 Step 3: Getting base rates from database...")
+        base_costs = {}
+        line_items = []
+        active_components = []
+        passive_components = []
+
+        # Define scope_lower for use in both LLM and fallback paths
+        scope_lower = technical_scope.lower()
+
+        if use_llm_selections and selected_items:
+            print("   🤖 Using LLM-selected items...")
+
+            # Add LLM-selected rate items
+            for item in selected_items.get("selected_rate_items", []):
+                rate = db.get_rate_item(item["code"])
+                if rate:
+                    rate_item = {
+                        "code": item["code"],
+                        "description": item["description"],
+                        "rate": rate,
+                        "unit": item["unit"],
+                        "quantity": item.get("quantity", 1),
+                        "total": rate * item.get("quantity", 1),
+                        "category": "materials_labour"
+                    }
+                    line_items.append(rate_item)
+
+                    # Classify as active or passive based on item type
+                    if item["code"] in ["11.16", "11.5"]:  # Power/lighting are active
+                        active_components.append(rate_item)
+                        base_costs[item["code"].replace(".", "_")] = rate_item["total"]
+                    else:
+                        passive_components.append(rate_item)
+                        base_costs[item["code"].replace(".", "_")] = rate_item["total"]
+
+                    print(f"   ✅ Added {item['code']}: {item['description'][:50]}... - £{rate}")
+                    print(f"      Justification: {item.get('justification', 'LLM selected')}")
+                else:
+                    print(f"   ❌ Rate not found for {item['code']}: {item['description']}")
+
+            # Add LLM-selected preferred supplier items (prevent duplicates)
+            added_product_types = set()
+            for item in selected_items.get("selected_preferred_items", []):
+                product_type = item["product_type"]
+
+                # Skip if we already added this product type
+                if product_type in added_product_types:
+                    print(f"   ⚠️ Skipping duplicate {product_type} item: {item['description']}")
+                    continue
+
+                # Search for exact match first, then fallback to general search
+                specifications = item.get("specifications", item.get("description", ""))
+                preferred_rate = db.get_preferred_supplier_rate(product_type, specifications)
+
+                if preferred_rate:
+                    preferred_item = {
+                        "code": f"PS_{product_type.upper()}",
+                        "description": item["description"],
+                        "rate": preferred_rate,
+                        "unit": "Nr",
+                        "quantity": item.get("quantity", 1),
+                        "total": preferred_rate * item.get("quantity", 1),
+                        "category": "preferred_supplier"
+                    }
+                    line_items.append(preferred_item)
+                    passive_components.append(preferred_item)
+                    base_costs[f"preferred_{product_type.lower()}"] = preferred_item["total"]
+                    added_product_types.add(product_type)
+
+                    print(f"   ✅ Added preferred: {item['description']} - £{preferred_rate}")
+                    print(f"      Justification: {item.get('justification', 'LLM selected')}")
+                else:
+                    print(f"   ❌ Preferred supplier rate not found: {product_type} - {specifications}")
+
+        else:
+            print("   📋 Using hardcoded keyword matching...")
+            # FALLBACK: Original hardcoded logic
+            print(f"   Checking scope for keywords...")
+            print(f"   Scope (lowercase): {scope_lower}")
+
+            if "power" in scope_lower:
+                print("   🔌 Power supply detected in scope")
+                power_rate = db.get_rate_item("11.16")
+                print(f"   Power rate (11.16): £{power_rate}" if power_rate else "   ❌ Power rate not found")
+                if power_rate:
+                    power_item = {
+                        "code": "11.16",
+                        "description": "Provide power supply to new equipment/enclosure",
+                        "rate": power_rate,
+                        "unit": "Nr",
+                        "quantity": 1,
+                        "total": power_rate,
+                        "category": "materials_labour"
+                    }
+                    line_items.append(power_item)
+                    active_components.append(power_item)
+                    base_costs["power"] = power_rate
+                    print(f"   ✅ Added power item: £{power_rate}")
+            else:
+                print("   ⚠️ No 'power' keyword found in scope")
+
+        # Lighting (if in scope)
+        if "lighting" in scope_lower:
+            print("   💡 Lighting detected in scope")
+            lighting_rate = db.get_rate_item("11.5")
+            print(f"   Lighting rate (11.5): £{lighting_rate}" if lighting_rate else "   ❌ Lighting rate not found")
+            if lighting_rate:
+                lighting_item = {
+                    "code": "11.5",
+                    "description": "Rooftop lighting scheme with LED luminaires",
+                    "rate": lighting_rate,
+                    "unit": "Nr",
+                    "quantity": 1,
+                    "total": lighting_rate,
+                    "category": "materials_labour"
+                }
+                line_items.append(lighting_item)
+                active_components.append(lighting_item)
+                base_costs["lighting"] = lighting_rate
+                print(f"   ✅ Added lighting item: £{lighting_rate}")
+        else:
+            print("   ⚠️ No 'lighting' keyword found in scope")
+
+        # Access & Lifting (if cherry picker required)
+        subcontractor_reqs = rfq_data.get("subcontractor_requirements", {})
+        if subcontractor_reqs.get("cherry_picker", False) or "cherry picker" in scope_lower or "crane" in scope_lower:
+            access_rate = db.get_rate_item("6.01")
+            if access_rate:
+                access_item = {
+                    "code": "6.01",
+                    "description": "Cherry picker up to 22m platform height",
+                    "rate": access_rate,
+                    "unit": "Per Day",
+                    "quantity": 2,  # Estimated days
+                    "total": access_rate * 2,
+                    "category": "subcontractors"
+                }
+                line_items.append(access_item)
+                base_costs["access_lifting"] = access_rate * 2
+
+        # 4. CALCULATE STEEL TONNAGE (if applicable)
+        steel_cost_details = {"amount": 0}
+
+        if use_llm_selections and selected_items.get("selected_steel_config"):
+            print("   🤖 Using LLM-selected steel configuration...")
+            steel_config = selected_items["selected_steel_config"]
+
+            # Calculate steel cost using LLM-selected configuration
+            tonnage = steel_config.get("tonnage", 0)
+            rate_per_tonne = steel_config.get("rate_per_tonne", 1200)
+
+            if tonnage > 0:
+                base_cost = tonnage * rate_per_tonne
+                marked_up_cost = base_cost * 1.20  # +20% markup
+
+                steel_item = {
+                    "code": "STEEL",
+                    "description": f"{steel_config.get('height', '')} {steel_config.get('tower_type', '')} - {tonnage} tonnes",
+                    "rate": rate_per_tonne,
+                    "unit": "tonne",
+                    "quantity": tonnage,
+                    "total": marked_up_cost,
+                    "category": "materials_labour",
+                    "validation_required": True
+                }
+                line_items.append(steel_item)
+                passive_components.append(steel_item)
+                base_costs["steel"] = marked_up_cost
+                steel_cost_details = {"amount": marked_up_cost}
+
+                print(f"   ✅ Added steel: {steel_config.get('height', '')} {steel_config.get('tower_type', '')} - {tonnage}t × £{rate_per_tonne} = £{marked_up_cost:.2f}")
+                print(f"      Justification: {steel_config.get('justification', 'LLM selected')}")
+
+        else:
+            # FALLBACK: Original steel calculation logic
+            if any(keyword in scope_lower for keyword in ["lattice", "monopole", "tower", "mast"]):
+                tower_specs = calculator.extract_tower_specifications(technical_scope)
+                if tower_specs["tower_type"] and tower_specs["height"]:
+                    steel_cost_details = calculator.calculate_steel_tonnage_cost(tower_specs)
+                    if steel_cost_details["amount"] > 0:
+                        steel_item = {
+                            "code": "STEEL",
+                            "description": steel_cost_details["description"],
+                            "rate": steel_cost_details["rate_per_tonne"],
+                            "unit": "tonne",
+                            "quantity": steel_cost_details["tonnage"],
+                            "total": steel_cost_details["marked_up_cost"],
+                            "category": "materials_labour",
+                            "validation_required": True
+                        }
+                        line_items.append(steel_item)
+                        passive_components.append(steel_item)
+                        base_costs["steel"] = steel_cost_details["marked_up_cost"]
+
+        # Preferred Supplier Items (Elara, TSC, Lancaster)
+        if any(product in scope_lower for product in ["elara", "tsc", "lancaster"]):
+            # Try to find matching preferred supplier items
+            for product_type in ["Elara", "TSC", "Lancaster"]:
+                if product_type.lower() in scope_lower:
+                    # Extract specifications (simplified)
+                    specs = "12.5m"  # Default, should be extracted from scope
+                    preferred_rate = db.get_preferred_supplier_rate(product_type, specs)
+                    if preferred_rate:
+                        preferred_item = {
+                            "code": f"PS_{product_type.upper()}",
+                            "description": f"{product_type} {specs} structure",
+                            "rate": preferred_rate,
+                            "unit": "Nr",
+                            "quantity": 1,
+                            "total": preferred_rate,
+                            "category": "preferred_supplier"
+                        }
+                        line_items.append(preferred_item)
+                        passive_components.append(preferred_item)
+                        base_costs[f"preferred_{product_type.lower()}"] = preferred_rate
+                    break  # Only add one preferred supplier item
+
+        print(f"\n   📊 Base costs summary: {len(base_costs)} items, Total: £{sum(base_costs.values()):.2f}")
+        for category, amount in base_costs.items():
+            print(f"      {category}: £{amount:.2f}")
+
+        # 5. APPLY REGIONAL UPLIFTS
+        print(f"\n🌍 Step 5: Applying regional uplifts...")
+        print(f"   Site postcode: {site_postcode}")
+        regional_uplift = calculator.apply_regional_uplift(site_postcode, base_costs)
+        print(f"   Regional uplift result: {regional_uplift['region']} +{regional_uplift['percentage']:.1f}% = £{regional_uplift['amount']:.2f}")
+
+        # Apply uplift to all base costs
+        uplifted_costs = {}
+        for category, amount in base_costs.items():
+            uplifted_amount = amount * (1 + regional_uplift["percentage"] / 100)
+            uplifted_costs[category] = uplifted_amount
+            print(f"   {category}: £{amount:.2f} → £{uplifted_amount:.2f}")
+
+        # 6. APPLY CATEGORY-SPECIFIC MARKUPS
+        print(f"\n💼 Step 6: Applying category-specific markups...")
+        markup_rates = calculator.get_markup_rates(is_framework)
+        print(f"   Markup rates: {markup_rates}")
+        marked_up_costs = {}
+        markup_details = {}
+
+        for item in line_items:
+            category = item["category"]
+            base_amount = item["total"]
+
+            # Apply regional uplift first
+            uplifted_amount = base_amount * (1 + regional_uplift["percentage"] / 100)
+
+            # Get appropriate markup rate
+            if category == "preferred_supplier":
+                markup_rate = markup_rates["preferred_supplier"]
+            elif category == "subcontractors":
+                markup_rate = markup_rates["subcontractors"]
+            else:
+                markup_rate = markup_rates["materials_labour"]
+
+            markup_amount = uplifted_amount * markup_rate
+            final_amount = uplifted_amount + markup_amount
+
+            # Update item with final amounts
+            item["regional_uplift"] = uplifted_amount - base_amount
+            item["markup_rate"] = markup_rate
+            item["markup_amount"] = markup_amount
+            item["final_total"] = final_amount
+
+            marked_up_costs[category] = marked_up_costs.get(category, 0) + final_amount
+            if category not in markup_details:
+                markup_details[category] = {"rate": markup_rate, "amount": 0}
+            markup_details[category]["amount"] += markup_amount
+
+        # 7. CALCULATE PRELIMINARIES
+        work_subtotal = sum(marked_up_costs.values())
+        print(f"\n📋 Step 7: Calculating preliminaries...")
+        print(f"   Work subtotal: £{work_subtotal:.2f}")
+        print(f"   Project type: {project_type}")
+        preliminaries = calculator.calculate_preliminaries(project_type, work_subtotal)
+        print(f"   Preliminaries result: {preliminaries['type']} = £{preliminaries['amount']:.2f}")
+
+        # Add preliminaries as line item
+        prelim_item = {
+            "code": "PRELIM",
+            "description": f"Preliminaries - {preliminaries['type']}",
+            "rate": preliminaries["amount"],
+            "unit": "item",
+            "quantity": 1,
+            "total": preliminaries["amount"],
+            "final_total": preliminaries["amount"],
+            "category": "preliminaries"
+        }
+        line_items.append(prelim_item)
+
+        # 8. CALCULATE SUBTOTAL AFTER MARKUPS + PRELIMS
+        subtotal_after_markups = work_subtotal + preliminaries["amount"]
+        print(f"\n🧮 Step 8: Calculating subtotal after markups + preliminaries...")
+        print(f"   Work subtotal: £{work_subtotal:.2f}")
+        print(f"   Preliminaries: £{preliminaries['amount']:.2f}")
+        print(f"   Subtotal after markups: £{subtotal_after_markups:.2f}")
+
+        # 9. APPLY RISK-BASED CONTINGENCY
+        print(f"\n⚠️ Step 9: Applying risk-based contingency...")
+
+        if use_llm_selections and selected_items.get("risk_assessment"):
+            print("   🤖 Using LLM risk assessment...")
+            risk_assessment = selected_items["risk_assessment"]
+            risk_level = risk_assessment.get("level", "standard")
+
+            # Map risk levels to rates
+            risk_rates = {"standard": 0.05, "moderate": 0.10, "critical": 0.15}
+            risk_rate = risk_rates.get(risk_level, 0.05)
+
+            contingency_amount = subtotal_after_markups * risk_rate
+            contingency = {
+                "risk_level": risk_level,
+                "rate": risk_rate,
+                "calculated_amount": contingency_amount,
+                "final_amount": contingency_amount,
+                "cap_applied": False,
+                "cap_amount": 25000,
+                "subtotal_base": subtotal_after_markups
+            }
+
+            print(f"   LLM Risk Level: {risk_level} ({risk_rate*100:.0f}%) = £{contingency_amount:.2f}")
+            print(f"   Justification: {risk_assessment.get('justification', 'LLM assessed')}")
+        else:
+            # FALLBACK: Original risk calculation
+            risk_factors = rfq_data.get("risk_factors", technical_scope)
+            print(f"   Risk factors: {risk_factors[:100]}...")
+            contingency = calculator.calculate_risk_contingency(risk_factors, subtotal_after_markups)
+            print(f"   Contingency: {contingency['risk_level']} ({contingency['rate']*100:.0f}%) = £{contingency['final_amount']:.2f}")
+
+        # 10. CALCULATE FINAL TOTAL
+        final_total = subtotal_after_markups + contingency["final_amount"]
+        print(f"\n💰 Step 10: Final total calculation...")
+        print(f"   Subtotal: £{subtotal_after_markups:.2f}")
+        print(f"   Contingency: £{contingency['final_amount']:.2f}")
+        print(f"   FINAL TOTAL: £{final_total:.2f}")
+
+        # 11. BUILD COMPREHENSIVE RESPONSE
+        cost_breakdown = {
+            "project_info": {
+                "rfq_number": rfq_data.get("rfq_number"),
+                "client_name": client_name,
+                "site_postcode": site_postcode,
+                "project_classification": project_type,
+                "is_framework_account": is_framework
+            },
+            "line_items": line_items,
+            "active_components": active_components,
+            "passive_components": passive_components,
+            "base_costs": base_costs,
+            "regional_uplift": regional_uplift,
+            "markups": markup_details,
+            "preliminaries": preliminaries,
+            "steel_tonnage": steel_cost_details,
+            "subtotal_after_markups": subtotal_after_markups,
+            "contingency": contingency,
+            "final_total": final_total,
+            "validation_warnings": validation_warnings,
+            "audit_trail": [
+                f"Project classified as: {project_type}",
+                f"Regional uplift: {regional_uplift['region']} +{regional_uplift['percentage']:.1f}%",
+                f"Preliminaries: {preliminaries['type']} - £{preliminaries['amount']:.2f}",
+                f"Contingency: {contingency['risk_level']} risk ({contingency['rate']*100:.0f}%)",
+                f"Framework account: {'Yes' if is_framework else 'No'}"
+            ]
+        }
+
+        # Calculate rule-based risk assessment
+        risk_assessment = _calculate_rule_based_risk(
+            total_cost=final_total,
+            duration_weeks=rfq_data.get("duration_weeks", ""),
+            complexity=technical_scope,
+            contingency_rate=contingency.get("rate", 0.05)
+        )
+
+        # Add steel validation warning if applicable
+        if steel_cost_details.get("validation_required"):
+            cost_breakdown["audit_trail"].append("⚠️ Steel tonnage estimate requires engineering validation")
+
+        # Add risk assessment to cost breakdown
+        cost_breakdown["risk_assessment"] = risk_assessment
+
+        return json.dumps({
+            "status": "success",
+            "cost_breakdown": cost_breakdown,
+            "summary": {
+                "total_cost": f"£{final_total:,.2f}",
+                "base_cost": f"£{sum(base_costs.values()):,.2f}",
+                "regional_uplift": f"£{regional_uplift['amount']:,.2f}",
+                "markups": f"£{sum(details['amount'] for details in markup_details.values()):,.2f}",
+                "preliminaries": f"£{preliminaries['amount']:,.2f}",
+                "contingency": f"£{contingency['final_amount']:,.2f}",
+                "risk_category": risk_assessment["category"]
+            }
+        })
+
+    except MitieCalculationError as e:
+        return json.dumps({
+            "error": f"Mitie calculation error: {str(e)}",
+            "type": "calculation_error"
+        })
+    except Exception as e:
+        return json.dumps({
+            "error": f"Quote calculation failed: {str(e)}",
+            "type": "system_error"
+        })
+
+
+@function_schema
+def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
+    """
+    MITIE PDF QUOTE GENERATOR
+
+    Generates a professional PDF quote document using Google Drive template integration.
+    Creates a formatted quote with cost breakdown and project details using template variables.
+
+    Args:
+        extracted_data: JSON string containing extracted RFQ data
+        cost_calculations: JSON string containing cost breakdown
+
+    Returns:
+        str: JSON string containing PDF generation result and Google Drive link
+    """
+    try:
+        import json
+        import os
+        import random
+        from datetime import datetime, timedelta
+        from typing import Dict, Any
+
+        # Get template ID from environment variables
+        MITIE_TEMPLATE_ID = os.getenv("MITIE_TEMPLATE_ID")
+        if not MITIE_TEMPLATE_ID:
+            return json.dumps({
+                "error": "MITIE_TEMPLATE_ID environment variable not set"
+            })
+
+        # Parse input data with better error handling
+        try:
+            if isinstance(extracted_data, str):
+                rfq_data = json.loads(extracted_data)
+            else:
+                rfq_data = extracted_data
+        except json.JSONDecodeError as e:
+            return json.dumps({
+                "error": f"Failed to parse extracted_data JSON: {str(e)}",
+                "details": f"Error at position {e.pos}"
+            })
+
+        try:
+            if isinstance(cost_calculations, str):
+                # Debug: Log the length and end of the string
+                print(f"🔍 cost_calculations length: {len(cost_calculations)}")
+                print(f"🔍 Last 100 chars: {cost_calculations[-100:]}")
+
+                # Clean the JSON string first
+                cost_calculations_clean = cost_calculations.strip()
+
+                # Find the last complete JSON object
+                brace_count = 0
+                last_valid_pos = -1
+                for i, char in enumerate(cost_calculations_clean):
+                    if char == '{':
+                        brace_count += 1
+                    elif char == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            last_valid_pos = i
+                            break
+
+                if last_valid_pos != -1:
+                    cost_calculations_clean = cost_calculations_clean[:last_valid_pos + 1]
+                    print(f"🔍 Cleaned to position {last_valid_pos}, new length: {len(cost_calculations_clean)}")
+
+                cost_data = json.loads(cost_calculations_clean)
+            else:
+                cost_data = cost_calculations
+        except json.JSONDecodeError as e:
+            return json.dumps({
+                "error": f"Failed to parse cost_calculations JSON: {str(e)}",
+                "details": f"Error at position {e.pos}",
+                "length": len(cost_calculations) if isinstance(cost_calculations, str) else "not string",
+                "sample_start": cost_calculations[:200] + "..." if isinstance(cost_calculations, str) and len(cost_calculations) > 200 else str(cost_calculations),
+                "sample_end": "..." + cost_calculations[-200:] if isinstance(cost_calculations, str) and len(cost_calculations) > 200 else ""
+            })
+
+        # Handle nested structure
+        if "extracted_data" in rfq_data:
+            rfq_info = rfq_data["extracted_data"]
+        else:
+            rfq_info = rfq_data
+
+        if "cost_breakdown" in cost_data:
+            costs = cost_data["cost_breakdown"]
+            summary = cost_data.get("summary", {})
+        else:
+            costs = cost_data
+            summary = {}
+
+        # Get Google credentials and services
+        creds = _get_google_credentials()
+        if not creds:
+            return json.dumps({
+                "error": "Google credentials not available"
+            })
+
+        drive_service = build("drive", "v3", credentials=creds)
+        docs_service = build("docs", "v1", credentials=creds)
+
+        # Prepare template variables
+        current_date = datetime.now()
+        quote_date = current_date.strftime("%d %B %Y")
+        validity_date = (current_date + timedelta(days=30)).strftime("%d %B %Y")
+
+        customer_name = rfq_info.get('client_name', 'N/A')
+        customer_details = rfq_info.get('project_reference', 'N/A')
+
+        # Build cost tables using proper table structure (like Salesforce approach)
+        mitie_cost_table = _build_mitie_cost_table_data(costs)
+
+        # Create document title
+        doc_title = f"Mitie Quote - {rfq_info.get('rfq_number', 'Unknown')} - {current_date.strftime('%Y-%m-%d')}"
+
+        # Copy template to create new document
+        copy_body = {
+            "name": doc_title
+        }
+
+        copied_doc = drive_service.files().copy(
+            fileId=MITIE_TEMPLATE_ID,
+            body=copy_body
+        ).execute()
+
+        doc_id = copied_doc.get("id")
+
+        # Prepare template variables for regular text replacements
+        template_variables = {
+            "Date": quote_date,
+            "Customer_Name": customer_name,
+            "Customer_Details": customer_details,
+            "Quoatation_Validity_Date": validity_date,
+            "mitie_cost_table": mitie_cost_table,
+            "CR_Source": str(random.randint(10000000, 99999999))
+        }
+
+        # Use the same approach as Salesforce insertion order for proper table formatting
+        result = _generate_pdf_with_media_plan_table(
+            drive_service,
+            docs_service,
+            MITIE_TEMPLATE_ID,
+            None,  # No folder needed since we already copied the doc
+            doc_title,
+            template_variables,
+            existing_doc_id=doc_id  # Pass existing doc_id to avoid re-copying
+        )
+
+        # Extract result information
+        if isinstance(result, str):
+            result_data = json.loads(result)
+        else:
+            result_data = result
+
+        # Calculate total for summary
+        final_total = costs.get("final_total", 0)
+
+        # Get URLs from result
+        document_url = result_data.get("document_url")
+        pdf_url = result_data.get("pdf_url")
+        pdf_link = result_data.get("pdf_link")  # Alternative PDF link
+        document_id = result_data.get("document_id")
+
+        # Log the URLs for debugging
+        print(f"🔗 MITIE PDF GENERATION COMPLETE:")
+        print(f"📄 Document URL: {document_url}")
+        print(f"📋 PDF Export URL: {pdf_url}")
+        print(f"📎 PDF File Link: {pdf_link}")
+        print(f"🆔 Document ID: {document_id}")
+
+        return json.dumps({
+            "status": "success",
+            "document_id": document_id,
+            "document_title": doc_title,
+            "document_url": document_url,
+            "pdf_url": pdf_url,
+            "pdf_link": pdf_link,  # Include both PDF links
+            "quote_summary": {
+                "rfq_number": rfq_info.get('rfq_number'),
+                "total_cost": f"£{final_total:,.2f}",
+                "project_type": rfq_info.get('project_type'),
+                "duration": rfq_info.get('duration_weeks'),
+                "validity_date": validity_date
+            }
+        })
+
+    except Exception as e:
+        return json.dumps({
+            "error": f"PDF generation failed: {str(e)}"
+        })
+
+
+def _calculate_rule_based_risk(total_cost: float, duration_weeks: str, complexity: str, contingency_rate: float) -> Dict[str, Any]:
+    """
+    Calculate rule-based risk assessment based on project parameters.
+
+    Risk Categories:
+    - LOW: total_cost ≤ £15,000 AND duration_weeks ≤ 10 AND complexity ∈ {standard_rooftop}; contingency ≤ 5%
+    - MODERATE: NOT Cat 3 AND (15,001–40,000 OR 11–15 weeks OR complexity ∈ {monopole, moderate}); contingency ≤ 10%
+    - HIGH: total_cost > £40,000 OR duration_weeks > 15 OR complexity ∈ {lattice, complex} OR contingency ≥ 10%
+
+    Args:
+        total_cost: Final project cost in GBP
+        duration_weeks: Project duration as string (e.g., "8", "12-15")
+        complexity: Technical scope description
+        contingency_rate: Contingency rate as decimal (e.g., 0.05 for 5%)
+
+    Returns:
+        Dictionary with risk assessment details
+    """
+    # Parse duration weeks
+    try:
+        if not duration_weeks or duration_weeks.strip() == "":
+            duration_numeric = 0  # Default to 0 if not provided
+        else:
+            # Handle ranges like "12-15" by taking the maximum
+            if "-" in duration_weeks:
+                duration_parts = duration_weeks.split("-")
+                duration_numeric = max(int(part.strip()) for part in duration_parts if part.strip().isdigit())
+            else:
+                # Extract numeric part from strings like "8 weeks" or "8"
+                import re
+                numbers = re.findall(r'\d+', duration_weeks)
+                duration_numeric = int(numbers[0]) if numbers else 0
+    except (ValueError, IndexError):
+        duration_numeric = 0
+
+    # Determine complexity level from technical scope
+    complexity_lower = complexity.lower()
+
+    # High complexity indicators
+    high_complexity_keywords = ["lattice", "complex", "tower", "steelwork", "foundation", "crane"]
+
+    # Standard/low complexity indicators (check these BEFORE moderate to give rooftop priority)
+    standard_complexity_keywords = ["rooftop", "standard rooftop", "rooftop equipment", "rooftop enclosure"]
+
+    # Moderate complexity indicators
+    moderate_complexity_keywords = ["monopole", "moderate", "upgrade", "installation", "removal"]
+
+    if any(keyword in complexity_lower for keyword in high_complexity_keywords):
+        complexity_level = "complex"
+    elif any(keyword in complexity_lower for keyword in standard_complexity_keywords):
+        complexity_level = "standard_rooftop"
+    elif any(keyword in complexity_lower for keyword in moderate_complexity_keywords):
+        complexity_level = "moderate"
+    else:
+        complexity_level = "moderate"  # Default to moderate if unclear
+
+    # Apply risk rules
+    contingency_percentage = contingency_rate * 100
+
+    # Category 3 (HIGH) - Check first as it takes precedence
+    if (total_cost > 40000 or
+        duration_numeric > 15 or
+        complexity_level in ["lattice", "complex"] or
+        contingency_percentage >= 10):
+        category = "HIGH"
+        reasons = []
+        if total_cost > 40000:
+            reasons.append(f"Total cost £{total_cost:,.2f} > £35,000")
+        if duration_numeric > 15:
+            reasons.append(f"Duration {duration_numeric} weeks > 15 weeks")
+        if complexity_level in ["lattice", "complex"]:
+            reasons.append(f"High complexity: {complexity_level}")
+        if contingency_percentage >= 10:
+            reasons.append(f"Contingency {contingency_percentage:.1f}% ≥ 10%")
+
+    # Category 1 (LOW)
+    elif (total_cost <= 15000 and
+          duration_numeric <= 10 and
+          complexity_level == "standard_rooftop" and
+          contingency_percentage <= 5):
+        category = "LOW"
+        reasons = [
+            f"Total cost £{total_cost:,.2f} ≤ £15,000",
+            f"Duration {duration_numeric} weeks ≤ 10 weeks",
+            f"Standard rooftop complexity",
+            f"Contingency {contingency_percentage:.1f}% ≤ 5%"
+        ]
+
+    # Category 2 (MODERATE) - Everything else
+    else:
+        category = "MODERATE"
+        reasons = []
+        if 15001 <= total_cost <= 40000:
+            reasons.append(f"Total cost £{total_cost:,.2f} in moderate range (£15,001-£35,000)")
+        if 11 <= duration_numeric <= 15:
+            reasons.append(f"Duration {duration_numeric} weeks in moderate range (11-15 weeks)")
+        if complexity_level in ["monopole", "moderate"]:
+            reasons.append(f"Moderate complexity: {complexity_level}")
+        if contingency_percentage <= 10:
+            reasons.append(f"Contingency {contingency_percentage:.1f}% ≤ 10%")
+
+        # Add fallback reason if no specific reasons identified
+        if not reasons:
+            reasons.append("Does not meet LOW or HIGH criteria")
+
+    return {
+        "category": category,
+        "total_cost": total_cost,
+        "duration_weeks": duration_numeric,
+        "complexity_level": complexity_level,
+        "contingency_percentage": contingency_percentage,
+        "reasons": reasons,
+        "raw_duration_input": duration_weeks
+    }
+
+
+def _build_mitie_cost_table_data(costs: dict) -> Dict[str, Any]:
+    """
+    Build Mitie cost table data structure for proper Google Docs table insertion.
+    Uses the same approach as Salesforce insertion order for consistent formatting.
+
+    Args:
+        costs: Cost data dictionary from calculate_mitie_quote
+
+    Returns:
+        Dict containing headers and rows for table creation
+    """
+    # Extract data from cost calculations
+    passive_components = costs.get("passive_components", [])
+    active_components = costs.get("active_components", [])
+    preliminaries = costs.get("preliminaries", {})
+    final_total = costs.get("final_total", 0)
+
+    # Debug logging
+    print(f"🔍 PDF Debug - passive_components count: {len(passive_components)}")
+    print(f"🔍 PDF Debug - active_components count: {len(active_components)}")
+    print(f"🔍 PDF Debug - final_total: {final_total}")
+    if passive_components:
+        print(f"🔍 PDF Debug - first passive component: {passive_components[0]}")
+    if active_components:
+        print(f"🔍 PDF Debug - first active component: {active_components[0]}")
+
+    # Build table rows
+    table_rows = []
+
+    # Add passive components section header
+    table_rows.append(["PASSIVE COSTS", " "])
+
+    # Add preliminaries first
+    prelim_amount = preliminaries.get("amount", 0)
+    if prelim_amount > 0:
+        table_rows.append(["PRELIMINARIES", f"£{prelim_amount:,.2f}"])
+
+    # Add passive components
+    for component in passive_components:
+        desc = component.get("description", "PASSIVE COMPONENT").upper()
+        amount = component.get("final_total", component.get("total", 0))
+        table_rows.append([desc, f"£{amount:,.2f}"])
+
+    # Add standard passive categories with zero values if not present
+    standard_passive_categories = [
+        "SITE REMOVALS / DEMOLITIONS & ALTERATIONS",
+        "FOUNDATIONS",
+        "TRENCHES & DUCTWORK",
+        "COMPOUNDS, FENCING and GATES",
+        "ACCESS & LIFTING",
+        "STRUCTURES & ENCLOSURES/CABINETS",
+        "ROOF-MOUNTED STEEL FRAMES INCLUDING POLES & ANCILLARY ITEMS",
+        "MISCELLANEOUS SITE CONSTRUCTION ITEMS",
+        "CABLE MANAGEMENT",
+        "POWER",
+        "LIGHTNING PROTECTION",
+        "MARK UP ON PREFERRED SUPPLIER ITEMS",
+        "NON-SCHEDULED WORKS",
+        "PREFERRED SUPPLIER ITEMS - STRUCTURE COSTS (INCLUDING APP)",
+        "PREFERRED SUPPLIER ITEMS - ENCLOSURE COSTS (INCLUDING APP)"
+    ]
+
+    # Add missing categories with zero values
+    existing_descriptions = [row[0] for row in table_rows if len(row) > 1]
+    for category in standard_passive_categories:
+        if not any(category in desc for desc in existing_descriptions):
+            table_rows.append([category, "£0.00"])
+
+    # Calculate passive total
+    passive_total = sum(
+        float(row[1].replace('£', '').replace(',', ''))
+        for row in table_rows[1:]
+        if len(row) > 1 and row[1] not in ["", " "] and row[1].startswith('£')
+    )
+    table_rows.append(["Passive Total", f"£{passive_total:,.2f}"])
+
+    # Add active components section header
+    table_rows.append(["ACTIVE COSTS", " "])
+
+    # Add active components
+    for component in active_components:
+        desc = component.get("description", "ACTIVE COMPONENT").upper()
+        amount = component.get("final_total", component.get("total", 0))
+        table_rows.append([desc, f"£{amount:,.2f}"])
+
+    # Add standard active categories with zero values if not present
+    standard_active_categories = [
+        "PRELIMINARIES",
+        "FEEDER CABLES & ANCILLARIES",
+        "MARK UP ON PREFERRED SUPPLIER ITEMS",
+        "NON-SCHEDULED WORKS",
+        "PREFERRED SUPPLIER ITEMS (INCLUDING APP ITEMS)"
+    ]
+
+    # Add missing active categories with zero values
+    active_existing = [row[0] for row in table_rows if "ACTIVE" in str(row)]
+    for category in standard_active_categories:
+        if not any(category in desc for desc in active_existing):
+            table_rows.append([category, "£0.00"])
+
+    # Calculate active total
+    active_start_idx = next(i for i, row in enumerate(table_rows) if row[0] == "ACTIVE COSTS") + 1
+    active_total = sum(
+        float(row[1].replace('£', '').replace(',', ''))
+        for row in table_rows[active_start_idx:]
+        if len(row) > 1 and row[1] != " " and row[0] != ""
+    )
+    table_rows.append(["Active Total", f"£{active_total:,.2f}"])
+
+    # Add contingency if present
+    contingency = costs.get("contingency", {})
+    contingency_amount = contingency.get("final_amount", contingency.get("calculated_amount", 0))
+    if contingency_amount > 0:
+        risk_level = contingency.get("risk_level", "standard")
+        rate = contingency.get("rate", 0)
+        table_rows.append([f"CONTINGENCY ({risk_level.title()} Risk {rate*100:.0f}%)", f"£{contingency_amount:,.2f}"])
+
+    # Add final total
+    table_rows.append(["TOTAL SITE COST", f"£{final_total:,.2f}"])
+
+    return {
+        "headers": ["Description", "Budget TEF Total"],  # Put back headers
+        "rows": table_rows
+    }
+
+
+def _build_cost_table_from_data(table_title: str, costs: dict, component_type: str) -> str:
+    """
+    Build cost table content using actual calculated data.
+    Creates formatted cost breakdown tables for passive and active components.
+
+    Args:
+        table_title: Title for the cost table section
+        costs: Cost data dictionary from calculate_mitie_quote
+        component_type: Type of components (passive/active)
+
+    Returns:
+        str: Formatted table content with actual calculated values
+    """
+    if component_type.lower() == "passive":
+        return _build_passive_costs_from_data(costs)
+    elif component_type.lower() == "active":
+        return _build_active_costs_from_data(costs)
+    else:
+        return f"{table_title}: No data available"
+
+
+def _build_passive_costs_from_data(costs: dict) -> str:
+    """Build the passive costs table using actual calculated data."""
+
+    # Extract data from our calculation results
+    passive_components = costs.get("passive_components", [])
+    preliminaries = costs.get("preliminaries", {})
+
+    # Build passive cost items from actual data
+    passive_items = []
+
+    # Add preliminaries first
+    prelim_amount = preliminaries.get("amount", 0)
+    if prelim_amount > 0:
+        passive_items.append(("PRELIMINARIES", prelim_amount))
+
+    # Add passive components (these should already have final_total calculated)
+    for component in passive_components:
+        desc = component.get("description", "PASSIVE COMPONENT").upper()
+        amount = component.get("final_total", component.get("total", 0))
+        if amount > 0:
+            passive_items.append((desc, amount))
+
+    # Add standard categories with zero values if not present
+    standard_categories = [
+        "SITE REMOVALS / DEMOLITIONS & ALTERATIONS",
+        "FOUNDATIONS",
+        "TRENCHES & DUCTWORK",
+        "COMPOUNDS, FENCING and GATES",
+        "ACCESS & LIFTING",
+        "STRUCTURES & ENCLOSURES/CABINETS",
+        "ROOF-MOUNTED STEEL FRAMES INCLUDING POLES & ANCILLARY ITEMS",
+        "MISCELLANEOUS SITE CONSTRUCTION ITEMS",
+        "CABLE MANAGEMENT",
+        "LIGHTNING PROTECTION",
+        "MARK UP ON PREFERRED SUPPLIER ITEMS",
+        "NON-SCHEDULED WORKS",
+        "PREFERRED SUPPLIER ITEMS - STRUCTURE COSTS (INCLUDING APP)",
+        "PREFERRED SUPPLIER ITEMS - ENCLOSURE COSTS (INCLUDING APP)"
+    ]
+
+    # Add missing categories with zero values (but avoid duplicates)
+    existing_descriptions = [item[0] for item in passive_items]
+    for category in standard_categories:
+        if not any(category in desc for desc in existing_descriptions):
+            passive_items.append((category, 0.00))
+
+    # Calculate total
+    passive_total = sum(amount for _, amount in passive_items)
+
+    # Build table content
+    table_content = "Passive Costs\n\n"
+    table_content += "Description\t\t\t\t\t\tBudget TEF Total\n"
+    table_content += "=" * 80 + "\n"
+
+    # Add each item in table format
+    for description, amount in passive_items:
+        padded_desc = description.ljust(60)
+        table_content += f"{padded_desc}\t£{amount:,.2f}\n"
+
+    # Add total row
+    table_content += "=" * 80 + "\n"
+    table_content += f"{'Passive Total'.ljust(60)}\t£{passive_total:,.2f}\n"
+
+    return table_content
+
+
+def _build_active_costs_from_data(costs: dict) -> str:
+    """Build the active costs table using actual calculated data."""
+
+    # Extract data from our calculation results
+    active_components = costs.get("active_components", [])
+
+    # Build active cost items from actual data
+    active_items = []
+
+    # Add active components (these should already have final_total calculated)
+    for component in active_components:
+        desc = component.get("description", "ACTIVE COMPONENT").upper()
+        amount = component.get("final_total", component.get("total", 0))
+        if amount > 0:
+            active_items.append((desc, amount))
+
+    # Add standard active categories with zero values if not present
+    standard_active_categories = [
+        "PRELIMINARIES",
+        "FEEDER CABLES & ANCILLARIES",
+        "MARK UP ON PREFERRED SUPPLIER ITEMS",
+        "NON-SCHEDULED WORKS",
+        "PREFERRED SUPPLIER ITEMS (INCLUDING APP ITEMS)"
+    ]
+
+    # Add missing categories with zero values
+    existing_descriptions = [item[0] for item in active_items]
+    for category in standard_active_categories:
+        if not any(category in desc for desc in existing_descriptions):
+            active_items.append((category, 0.00))
+
+    # Calculate total
+    active_total = sum(amount for _, amount in active_items)
+
+    # Build table content
+    table_content = "Active Costs\n\n"
+    table_content += "Description\t\t\t\t\t\tBudget TEF Total\n"
+    table_content += "=" * 80 + "\n"
+
+    # Add each item in table format
+    for description, amount in active_items:
+        padded_desc = description.ljust(60)
+        table_content += f"{padded_desc}\t£{amount:,.2f}\n"
+
+    # Add total row
+    table_content += "=" * 80 + "\n"
+    table_content += f"{'Active Total'.ljust(60)}\t£{active_total:,.2f}\n"
+
+    return table_content
+
+
+def _build_total_cost_section_from_data(costs: dict) -> str:
+    """Build the total site cost section using actual calculated data."""
+
+    # Get the final total from our calculations
+    final_total = costs.get("final_total", 0)
+
+    # Build total cost section
+    table_content = "\n\nTotal Site Cost\n\n"
+    table_content += "Description\t\t\t\t\t\tBudget TEF Total\n"
+    table_content += "=" * 80 + "\n"
+    table_content += f"{'Total Site Cost'.ljust(60)}\t£{final_total:,.2f}\n"
+
+    return table_content
+
+
+def _build_cost_table(table_title: str, costs: dict, component_type: str) -> str:
+    """
+    Build cost table content for template replacement.
+    Creates formatted cost breakdown tables for passive and active components.
+
+    Args:
+        table_title: Title for the cost table section
+        costs: Cost data dictionary
+        component_type: Type of components (passive/active)
+
+    Returns:
+        str: Formatted table content matching the required structure
+    """
+    # For now, using placeholder data structure - will be updated when calc function provides proper data
+    if component_type.lower() == "passive":
+        return _build_passive_costs_table()
+    elif component_type.lower() == "active":
+        return _build_active_costs_table()
+    else:
+        return f"{table_title}: No data available"
+
+
+def _build_passive_costs_table() -> str:
+    """Build the passive costs table with proper table formatting."""
+    # Passive cost items (placeholder data - will be replaced with actual calc data)
+    passive_items = [
+        ("PRELIMINARIES", 9289.99),
+        ("SITE REMOVALS / DEMOLITIONS & ALTERATIONS", 4878.12),
+        ("FOUNDATIONS", 0.00),
+        ("TRENCHES & DUCTWORK", 0.00),
+        ("COMPOUNDS, FENCING and GATES", 0.00),
+        ("ACCESS & LIFTING", 5580.00),
+        ("STRUCTURES & ENCLOSURES/CABINETS", 2336.45),
+        ("ROOF-MOUNTED STEEL FRAMES INCLUDING POLES & ANCILLARY ITEMS", 0.00),
+        ("MISCELLANEOUS SITE CONSTRUCTION ITEMS", 0.00),
+        ("CABLE MANAGEMENT", 0.00),
+        ("POWER", 351.00),
+        ("LIGHTNING PROTECTION", 420.93),
+        ("MARK UP ON PREFERRED SUPPLIER ITEMS", 0.00),
+        ("NON-SCHEDULED WORKS", 501.18),
+        ("PREFERRED SUPPLIER ITEMS - STRUCTURE COSTS (INCLUDING APP)", 0.00),
+        ("PREFERRED SUPPLIER ITEMS - ENCLOSURE COSTS (INCLUDING APP)", 0.00)
+    ]
+
+    # Calculate total
+    passive_total = sum(amount for _, amount in passive_items)
+
+    # Build table content
+    table_content = "Passive Costs\n\n"
+
+    # Create table header
+    table_content += "Description\t\t\t\t\t\tBudget TEF Total\n"
+    table_content += "=" * 80 + "\n"
+
+    # Add each item in table format
+    for description, amount in passive_items:
+        # Pad description to align values
+        padded_desc = description.ljust(60)
+        table_content += f"{padded_desc}\t£{amount:,.2f}\n"
+
+    # Add total row
+    table_content += "=" * 80 + "\n"
+    table_content += f"{'Passive Total'.ljust(60)}\t£{passive_total:,.2f}\n"
+
+    return table_content
+
+
+def _build_active_costs_table() -> str:
+    """Build the active costs table with proper table formatting."""
+    # Active cost items (placeholder data - will be replaced with actual calc data)
+    active_items = [
+        ("PRELIMINARIES", 13704.28),
+        ("FEEDER CABLES & ANCILLARIES", 20015.75),
+        ("MARK UP ON PREFERRED SUPPLIER ITEMS", 0.00),
+        ("NON-SCHEDULED WORKS", 2455.57),
+        ("PREFERRED SUPPLIER ITEMS (INCLUDING APP ITEMS)", 0.00)
+    ]
+
+    # Calculate total
+    active_total = sum(amount for _, amount in active_items)
+
+    # Build table content
+    table_content = "Active Costs\n\n"
+
+    # Create table header
+    table_content += "Description\t\t\t\t\t\tBudget TEF Total\n"
+    table_content += "=" * 80 + "\n"
+
+    # Add each item in table format
+    for description, amount in active_items:
+        # Pad description to align values
+        padded_desc = description.ljust(60)
+        table_content += f"{padded_desc}\t£{amount:,.2f}\n"
+
+    # Add total row
+    table_content += "=" * 80 + "\n"
+    table_content += f"{'Active Total'.ljust(60)}\t£{active_total:,.2f}\n"
+
+    return table_content
+
+
+def _calculate_total_site_cost() -> float:
+    """Calculate the total site cost (placeholder implementation)."""
+    # Placeholder calculation - will be updated when calc function provides proper data
+    passive_total = 23357.67  # Sum of all passive costs
+    active_total = 36175.61   # Sum of all active costs
+    return passive_total + active_total
+
+
+def _build_total_cost_section() -> str:
+    """Build the total site cost section with proper table formatting."""
+    total_cost = _calculate_total_site_cost()
+
+    table_content = "\n\nTotal Site Cost\n\n"
+    table_content += "Description\t\t\t\t\t\tBudget TEF Total\n"
+    table_content += "=" * 80 + "\n"
+    table_content += f"{'Total Site Cost'.ljust(60)}\t£{total_cost:,.2f}\n"
+
+    return table_content
 
 
 @function_schema
@@ -835,6 +2183,7 @@ def _generate_pdf_with_media_plan_table(
     folder_id: str,
     filename: str,
     template_variables: Dict[str, Any],
+    existing_doc_id: str = None
 ) -> Dict[str, Any]:
     """Generate PDF from template with Media Plan table support"""
     try:
@@ -856,7 +2205,7 @@ def _generate_pdf_with_media_plan_table(
         table_data = None
 
         for key, value in template_variables.items():
-            if key == "media_plan_table":
+            if key in ["media_plan_table", "mitie_cost_table"]:
                 # Store table data for special handling
                 table_data = value
             else:
@@ -918,10 +2267,22 @@ def _generate_pdf_with_media_plan_table(
             .execute()
         )
 
-        # Delete the temporary Google Doc
-        drive_service.files().delete(fileId=doc_id, supportsAllDrives=True).execute()
+        # Generate URLs
+        doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
+        pdf_url = f"https://docs.google.com/document/d/{doc_id}/export?format=pdf"
 
-        return {"pdf_file_id": pdf_file["id"], "pdf_link": pdf_file["webViewLink"]}
+        # Don't delete the document if we're using an existing one
+        if not existing_doc_id:
+            # Delete the temporary Google Doc only if we created it
+            drive_service.files().delete(fileId=doc_id, supportsAllDrives=True).execute()
+
+        return {
+            "pdf_file_id": pdf_file["id"],
+            "pdf_link": pdf_file["webViewLink"],
+            "document_id": doc_id,
+            "document_url": doc_url,
+            "pdf_url": pdf_url
+        }
 
     except Exception as e:
         raise Exception(f"Failed to generate PDF: {str(e)}")
@@ -949,14 +2310,21 @@ def _insert_media_plan_table_simple(
         )
         logger.info(f"Headers: {headers}")
 
-        # Find the {{media_plan_table}} placeholder
+        # Find the table placeholder (try both media_plan_table and mitie_cost_table)
         placeholder_text = "{{media_plan_table}}"
         placeholder_index = _find_placeholder_index(
             docs_service, doc_id, placeholder_text
         )
 
         if placeholder_index is None:
-            logger.warning("{{media_plan_table}} placeholder not found in document")
+            # Try mitie_cost_table placeholder
+            placeholder_text = "{{mitie_cost_table}}"
+            placeholder_index = _find_placeholder_index(
+                docs_service, doc_id, placeholder_text
+            )
+
+        if placeholder_index is None:
+            logger.warning("No table placeholder found in document")
             _fallback_text_replacement(docs_service, doc_id, table_data)
             return
 
@@ -999,14 +2367,20 @@ def _create_and_populate_table(
     """Create table and populate it using the Tanaikech approach with calculated indices"""
     try:
         logger = logging.getLogger(__name__)
-        # Calculate required dimensions
-        num_rows = len(rows) + 1  # +1 for header row
-        num_cols = len(headers)
+
+        # Handle the new structure where headers might be empty
+        if headers:
+            # Traditional approach with headers
+            num_rows = len(rows) + 1  # +1 for header row
+            num_cols = len(headers)
+            all_table_data = [headers] + rows
+        else:
+            # New approach without headers
+            num_rows = len(rows)
+            num_cols = max(len(row) for row in rows) if rows else 2
+            all_table_data = rows
 
         logger.info(f"Creating table with {num_rows} rows and {num_cols} columns")
-
-        # Prepare all table data (headers + rows)
-        all_table_data = [headers] + rows
 
         # Create requests using the Tanaikech approach
         requests = _create_table_requests(
@@ -1063,6 +2437,8 @@ def _create_table_requests(
                 }
             },
         ]
+
+
 
         # Calculate cell indices and create insertion requests using the improved Tanaikech approach
         table_index = placeholder_index
@@ -3746,6 +5122,10 @@ tool_store = {
     "ServiceNow_CSM": ServiceNow_CSM,
     # Salesforce Tools
     "Salesforce_CSM": Salesforce_CSM,
+    # Mitie Tools
+    "extract_rfq_json": extract_rfq_json,
+    "calculate_mitie_quote": calculate_mitie_quote,
+    "generate_mitie_pdf": generate_mitie_pdf,
 }
 
 
@@ -3783,4 +5163,8 @@ tool_schemas = {
     "ServiceNow_CSM": ServiceNow_CSM.openai_schema,
     # Salesforce Tools
     "Salesforce_CSM": Salesforce_CSM.openai_schema,
+    # Mitie Tools
+    "extract_rfq_json": extract_rfq_json.openai_schema,
+    "calculate_mitie_quote": calculate_mitie_quote.openai_schema,
+    "generate_mitie_pdf": generate_mitie_pdf.openai_schema,
 }

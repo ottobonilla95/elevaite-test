@@ -679,14 +679,14 @@ def execute_workflow(
                 )
 
                 try:
-                    # Wait for result with 60 second timeout
-                    result = future.result(timeout=60)
+                    # Wait for result with 90 second timeout
+                    result = future.result(timeout=90)
                 except concurrent.futures.TimeoutError:
                     # Cancel the future
                     future.cancel()
                     raise HTTPException(
                         status_code=504,
-                        detail="Agent execution timed out after 60 seconds",
+                        detail="Agent execution timed out after 90 seconds",
                     )
                 except Exception as e:
                     raise
@@ -727,14 +727,14 @@ def execute_workflow(
                     )
 
                 try:
-                    # Wait for result with 60 second timeout
-                    result = future.result(timeout=60)
+                    # Wait for result with 90 second timeout
+                    result = future.result(timeout=90)
                 except concurrent.futures.TimeoutError:
                     # Cancel the future
                     future.cancel()
                     raise HTTPException(
                         status_code=504,
-                        detail="CommandAgent execution timed out after 60 seconds",
+                        detail="CommandAgent execution timed out after 90 seconds",
                     )
                 except Exception as e:
                     raise

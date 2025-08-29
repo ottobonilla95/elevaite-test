@@ -8,6 +8,7 @@ from prompts import (
     hello_world_agent_system_prompt,
     console_printer_agent_system_prompt,
     toshiba_agent_system_prompt,
+    mitie_agent_system_prompt,
 )
 
 from .tools import weather_forecast
@@ -18,6 +19,7 @@ from .web_agent import WebAgent
 from .hello_world_agent import HelloWorldAgent
 from .console_printer_agent import ConsolePrinterAgent
 from .toshiba_agent import create_toshiba_agent
+from .mitie_agent import get_mitie_agent
 
 
 # Lazy initialization functions for all agents
@@ -189,6 +191,7 @@ def get_agent_store():
     hello_world_agent = get_hello_world_agent()
     console_printer_agent = get_console_printer_agent()
     toshiba_agent = get_toshiba_agent()
+    mitie_agent = get_mitie_agent()
 
     return {
         "WebAgent": web_agent.execute,
@@ -197,6 +200,7 @@ def get_agent_store():
         "HelloWorldAgent": hello_world_agent.execute,
         "ConsolePrinterAgent": console_printer_agent.execute,
         "ToshibaAgent": toshiba_agent.execute,
+        "MitieAgent": mitie_agent.execute,
     }
 
 
@@ -208,6 +212,7 @@ def get_agent_schemas():
     hello_world_agent = get_hello_world_agent()
     console_printer_agent = get_console_printer_agent()
     toshiba_agent = get_toshiba_agent()
+    mitie_agent = get_mitie_agent()
 
     return {
         "WebAgent": web_agent.openai_schema,
@@ -216,6 +221,7 @@ def get_agent_schemas():
         "HelloWorldAgent": hello_world_agent.openai_schema,
         "ConsolePrinterAgent": console_printer_agent.openai_schema,
         "ToshibaAgent": toshiba_agent.openai_schema,
+        "MitieAgent": mitie_agent.openai_schema,
     }
 
 

@@ -243,7 +243,7 @@ def create_error_response(
 # Execution Timeout Wrapper
 
 
-def execute_with_timeout(func, *args, timeout_seconds=60, **kwargs):
+def execute_with_timeout(func, *args, timeout_seconds=90, **kwargs):
     """Execute a function with timeout using ThreadPoolExecutor."""
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(func, *args, **kwargs)
