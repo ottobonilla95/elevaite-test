@@ -853,6 +853,38 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
         else:
             result_data = result
 
+        # Share the document and PDF with iopex.com domain for edit access (without notifications)
+        document_id = result_data.get("document_id")
+        pdf_file_id = result_data.get("pdf_file_id")
+
+        if document_id:
+            try:
+                # Share document with iopex.com domain without sending notifications
+                permission = {"type": "domain", "role": "writer", "domain": "iopex.com"}
+                drive_service.permissions().create(
+                    fileId=document_id,
+                    body=permission,
+                    supportsAllDrives=True,
+                    sendNotificationEmail=False
+                ).execute()
+                print(f"✅ Shared document {document_id} with iopex.com domain (no notifications)")
+            except Exception as e:
+                print(f"⚠️ Warning: Failed to share document: {str(e)}")
+
+        if pdf_file_id:
+            try:
+                # Share PDF with iopex.com domain without sending notifications
+                permission = {"type": "domain", "role": "writer", "domain": "iopex.com"}
+                drive_service.permissions().create(
+                    fileId=pdf_file_id,
+                    body=permission,
+                    supportsAllDrives=True,
+                    sendNotificationEmail=False
+                ).execute()
+                print(f"✅ Shared PDF {pdf_file_id} with iopex.com domain (no notifications)")
+            except Exception as e:
+                print(f"⚠️ Warning: Failed to share PDF: {str(e)}")
+
         # Calculate total for summary
         final_total = costs.get("final_total", 0)
 
