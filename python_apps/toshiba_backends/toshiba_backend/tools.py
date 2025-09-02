@@ -516,6 +516,10 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
         collection_id = "toshiba_walgreen"
     if collection_id == "toshiba_harbor_freight":
         collection_id = "toshiba_harbour_frieght"
+    if collection_id == "toshiba_nllc":
+        collection_id = "toshiba_newfoundland_and_labrador_liquor_corporation"
+    if collection_id == "toshiba_anbl_nb_liquor":
+        collection_id = "toshiba_anbl_bn_liquor"
     params = {
         "query": query,
         "top_k": 60,
@@ -694,6 +698,10 @@ def video_retriever(query: str, collection_id: str) -> list:
         collection_id = "toshiba_walgreen"
     if collection_id == "toshiba_harbor_freight":
         collection_id = "toshiba_harbour_frieght"
+    if collection_id == "toshiba_nllc":
+        collection_id = "toshiba_newfoundland_and_labrador_liquor_corporation"
+    if collection_id == "toshiba_anbl_nb_liquor":
+        collection_id = "toshiba_anbl_bn_liquor"
     params = {
         "query": query,
         "top_k": 60,
