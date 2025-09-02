@@ -406,35 +406,3 @@ async def update_tool_stub(tool_name: str, body: Dict[str, Any]):
 async def delete_tool_stub(tool_name: str):
     """Stub for deleting a tool."""
     return {"message": "Not implemented yet", "tool_name": tool_name}
-
-
-# MCP server management stubs
-@router.post("/mcp-servers/register")
-async def register_mcp_server_stub(body: Dict[str, Any]):
-    """Stub for MCP server self-registration."""
-    return {"message": "Not implemented yet", "request": body}
-
-
-@router.get("/mcp-servers")
-async def list_mcp_servers_stub():
-    return {"message": "Not implemented yet", "servers": []}
-
-
-@router.get("/mcp-servers/active")
-async def list_active_mcp_servers_stub():
-    return {"message": "Not implemented yet", "servers": []}
-
-
-@router.get("/mcp-servers/{server_id}")
-async def get_mcp_server_stub(server_id: str):
-    return {"message": "Not implemented yet", "server_id": server_id}
-
-
-@router.patch("/mcp-servers/{server_id}")
-async def update_mcp_server_stub(server_id: str, body: Dict[str, Any]):
-    return {"message": "Not implemented yet", "server_id": server_id, "request": body}
-
-
-@router.delete("/mcp-servers/{server_id}")
-async def delete_mcp_server_stub(server_id: str):
-    return {"message": "Not implemented yet", "server_id": server_id}

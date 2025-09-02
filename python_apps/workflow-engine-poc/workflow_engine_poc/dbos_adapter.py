@@ -14,16 +14,37 @@ Phase 0: Proof of Concept
 import asyncio
 import inspect
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TypedDict, cast
 from datetime import datetime
 import uuid
 import os
 from dbos import DBOS, DBOSConfig
-
 from .step_registry import StepRegistry
 from .execution_context import ExecutionContext, UserContext, StepStatus
-from .monitoring import monitoring
+# from .monitoring import monitoring  # currently unused
 
+
+class DBOSStepResult(TypedDict):
+    success: bool
+    output_data: Any
+    error: Optional[str]
+    execution_time: Optional[int]
+    step_id: Optional[str]
+    step_type: Optional[str]
+
+
+class DBOSWorkflowResult(TypedDict, total=False):
+    success: bool
+    execution_id: str
+    workflow_id: str
+    step_results: Dict[str, DBOSStepResult]
+    completed_at: str
+    error: str
+    failed_step: str
+    _dbos: Dict[str, Any]
+
+
+# from .monitoring import monitoring  # currently unused
 DBOS_AVAILABLE = True
 
 
@@ -55,7 +76,7 @@ class DBOSWorkflowAdapter:
 
     async def execute_step_durable(
         self, step_type: str, step_config: Dict[str, Any], input_data: Dict[str, Any], execution_context_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    ) -> DBOSStepResult:
         """
         DBOS step that wraps our existing step execution.
 
@@ -84,7 +105,7 @@ class DBOSWorkflowAdapter:
 
     async def execute_workflow_durable(
         self, workflow_config: Dict[str, Any], trigger_data: Dict[str, Any], user_context_data: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    ) -> DBOSWorkflowResult:
         """
         DBOS workflow that executes our step graph durably.
 
@@ -96,8 +117,7 @@ class DBOSWorkflowAdapter:
 
         self.logger.info(f"Starting DBOS workflow execution: {execution_id}")
 
-        # Create execution context
-        user_context = UserContext(**(user_context_data or {}))
+        # Create execution context payload
         execution_context_data = {
             "execution_id": execution_id,
             "workflow_id": workflow_id,
@@ -206,7 +226,7 @@ class DBOSWorkflowAdapter:
 
     async def start_workflow(
         self, workflow_config: Dict[str, Any], trigger_data: Dict[str, Any], user_context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    ) -> DBOSWorkflowResult:
         """
         Start a workflow execution using DBOS.
 
@@ -214,7 +234,7 @@ class DBOSWorkflowAdapter:
         """
         if DBOS_AVAILABLE:
             # Try to start; if DBOS isn't created yet, lazily initialize and retry
-            async def _start_once() -> Dict[str, Any]:
+            async def _start_once() -> DBOSWorkflowResult:
                 handle = await DBOS.start_workflow_async(
                     dbos_execute_workflow_durable,
                     workflow_config,
@@ -252,13 +272,13 @@ class DBOSWorkflowAdapter:
 
                 dbos_meta = _mk_dbos_meta(handle)
 
-                def _attach_dbos(val: Any) -> Dict[str, Any]:
-                    res = val if isinstance(val, dict) else {"success": True, "result": val}
+                def _attach_dbos(val: Any) -> DBOSWorkflowResult:
+                    res: Dict[str, Any] = val if isinstance(val, dict) else {"success": True, "result": val}
                     try:
                         res["_dbos"] = {"handle": dbos_meta}
                     except Exception:
                         pass
-                    return res
+                    return cast(DBOSWorkflowResult, res)
 
                 # DBOS 1.12.0 handle is typically awaitable; try multiple strategies
                 # 1) Common async method patterns across versions
@@ -342,6 +362,9 @@ class DBOSWorkflowAdapter:
                         raise
                     # Retry once after init
                     return await _start_once()
+                # Any other exception should propagate; raise to avoid returning None
+                self.logger.error(f"DBOS start_workflow failed: {e}")
+                raise
 
         else:
             # For development without DBOS, run directly
@@ -355,7 +378,7 @@ async def dbos_execute_step_durable(
     step_config: Dict[str, Any],
     input_data: Dict[str, Any],
     execution_context_data: Dict[str, Any],
-) -> Dict[str, Any]:
+) -> DBOSStepResult:
     adapter = await get_dbos_adapter()
     # Reconstruct execution context
     user_context_data = execution_context_data.get("user_context", {})
@@ -395,7 +418,7 @@ async def dbos_execute_workflow_durable(
     workflow_config: Dict[str, Any],
     trigger_data: Dict[str, Any],
     user_context_data: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+) -> DBOSWorkflowResult:
     adapter = await get_dbos_adapter()
     workflow_id = workflow_config.get("workflow_id") or str(uuid.uuid4())
     execution_id = str(uuid.uuid4())

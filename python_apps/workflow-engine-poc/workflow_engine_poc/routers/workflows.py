@@ -31,6 +31,8 @@ from ..db.models import WorkflowExecutionRead, ExecutionStatus
 from ..execution_context import ExecutionContext, UserContext
 
 
+from ..schemas.workflows import WorkflowConfig, ExecutionRequest
+
 # NOTE: Pydantic BaseModel not strictly required for these new routes
 
 
@@ -71,6 +73,8 @@ async def execute_workflow_by_id(
     Supports both JSON and multipart/form-data payloads. For multipart, send:
     - payload: JSON string for non-file fields (trigger, user/session/org ids)
     - files[]: attachments for chat/file triggers
+
+    JSON body schema when not using multipart: ExecutionRequest
     """
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
@@ -96,7 +100,14 @@ async def execute_workflow_by_id(
                 raise HTTPException(status_code=400, detail="Invalid JSON in 'payload' form field")
         else:
             # JSON path
-            body_data = await request.json()
+            parsed = await request.json()
+            try:
+                # Validate into our documented schema; continue using dict for existing engine usage
+                _req_model = ExecutionRequest.model_validate(parsed)
+                body_data = _req_model.model_dump()
+            except Exception:
+                # Fall back to raw dict for backward-compat
+                body_data = parsed
 
         user_id = body_data.get("user_id")
         session_id_val = body_data.get("session_id")
@@ -382,42 +393,6 @@ async def validate_workflow(workflow_config: WorkflowBase, request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/config")
-async def save_workflow(
-    workflow_config: WorkflowBase,
-    session: Session = Depends(get_db_session),
-):
-    """Save a workflow configuration to the database"""
-    try:
-        db_service = DatabaseService()
-        workflow_id = f"workflow-{workflow_config.name.lower().replace(' ', '-')}"
-        workflow_id = db_service.save_workflow(session, workflow_id, workflow_config.model_dump())
-
-        return {"workflow_id": workflow_id, "message": "Workflow saved successfully"}
-
-    except Exception as e:
-        logger.error(f"Failed to save workflow: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/config/{workflow_id}")
-async def get_workflow(workflow_id: str, session: Session = Depends(get_db_session)):
-    """Get a workflow configuration by ID"""
-    try:
-        db_service = DatabaseService()
-        workflow = db_service.get_workflow(session, workflow_id)
-
-        if not workflow:
-            raise HTTPException(status_code=404, detail="Workflow not found")
-
-        return {"workflow_id": workflow_id, "workflow_config": workflow}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to get workflow: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.get("/", response_model=List[WorkflowRead])
 async def list_workflows(session: Session = Depends(get_db_session), limit: int = 100, offset: int = 0) -> List[WorkflowRead]:
     """List all saved workflows returning ORM entities"""
@@ -514,8 +489,11 @@ async def execute_workflow_with_file(
 
 
 @router.post("/", response_model=WorkflowRead)
-async def create_workflow(workflow_data: Dict[str, Any], session: Session = Depends(get_db_session)) -> WorkflowRead:
-    """Create a new workflow using SQLModel and return the SQLModel entity."""
+async def create_workflow(workflow_data: WorkflowConfig, session: Session = Depends(get_db_session)) -> WorkflowRead:
+    """Create a new workflow using SQLModel and return the SQLModel entity.
+
+    Request body schema: WorkflowConfig
+    """
     try:
         db_service = DatabaseService()
 
@@ -524,7 +502,7 @@ async def create_workflow(workflow_data: Dict[str, Any], session: Session = Depe
         workflow_id = str(uuid_module.uuid4())
 
         # Persist via service (upsert by id), then fetch ORM entity
-        db_service.save_workflow(session, workflow_id, workflow_data)
+        db_service.save_workflow(session, workflow_id, workflow_data.model_dump())
         from uuid import UUID
 
         workflow_obj = session.exec(select(Workflow).where(Workflow.id == UUID(workflow_id))).first()
