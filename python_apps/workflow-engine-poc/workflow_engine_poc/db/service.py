@@ -15,6 +15,8 @@ from .models import (
     WorkflowExecution,
     StepType,
     ExecutionStatus,
+    ApprovalRequest,
+    ApprovalStatus,
 )
 
 
@@ -196,6 +198,27 @@ class DatabaseService:
         ]
 
     # Step type operations
+    def rekey_execution(self, session: Session, old_execution_id: str, new_execution_id: str) -> bool:
+        """Change the primary key of an execution row to a new UUID.
+        This is safe immediately after creation when no FKs reference it yet.
+        """
+        try:
+            old_uuid = uuid_module.UUID(old_execution_id)
+            new_uuid = uuid_module.UUID(new_execution_id)
+        except Exception:
+            return False
+
+        exec_row = session.exec(select(WorkflowExecution).where(WorkflowExecution.id == old_uuid)).first()
+        if not exec_row:
+            return False
+
+        # Update PK
+        exec_row.id = new_uuid
+        session.add(exec_row)
+        session.commit()
+        session.refresh(exec_row)
+        return True
+
     # -------- New SQLModel entity helpers (non-dict) --------
     def get_workflow_entity(self, session: Session, workflow_id: str) -> Optional[Workflow]:
         wf_uuid = uuid_module.UUID(workflow_id)
@@ -240,6 +263,87 @@ class DatabaseService:
             if status_enum:
                 query = query.where(WorkflowExecution.status == status_enum)
         return list(session.exec(query.order_by(desc(WorkflowExecution.created_at)).offset(offset).limit(limit)).all())
+
+    # Approvals operations
+    def create_approval_request(self, session: Session, data: Dict[str, Any]) -> str:
+        rec = ApprovalRequest(
+            workflow_id=uuid_module.UUID(str(data["workflow_id"])),
+            execution_id=uuid_module.UUID(str(data["execution_id"])),
+            step_id=str(data["step_id"]),
+            status=ApprovalStatus.PENDING,
+            prompt=data.get("prompt"),
+            approval_metadata=data.get("approval_metadata", {}),
+        )
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+        return str(rec.id)
+
+    def update_approval_request(self, session: Session, approval_id: str, changes: Dict[str, Any]) -> bool:
+        rec = session.get(ApprovalRequest, uuid_module.UUID(approval_id))
+        if not rec:
+            return False
+        for k, v in changes.items():
+            if hasattr(rec, k):
+                setattr(rec, k, v)
+        session.add(rec)
+        session.commit()
+        return True
+
+    def get_approval_request(self, session: Session, approval_id: str) -> Optional[Dict[str, Any]]:
+        rec = session.get(ApprovalRequest, uuid_module.UUID(approval_id))
+        if not rec:
+            return None
+        return {
+            "id": str(rec.id),
+            "workflow_id": str(rec.workflow_id),
+            "execution_id": str(rec.execution_id),
+            "step_id": rec.step_id,
+            "status": rec.status,
+            "prompt": rec.prompt,
+            "approval_metadata": rec.approval_metadata,
+            "response_payload": rec.response_payload,
+            "requested_at": rec.requested_at.isoformat(),
+            "decided_at": rec.decided_at.isoformat() if rec.decided_at else None,
+            "decided_by": rec.decided_by,
+        }
+
+    def list_approval_requests(
+        self,
+        session: Session,
+        execution_id: Optional[str] = None,
+        status: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        from sqlmodel import select
+
+        query = select(ApprovalRequest)
+        if execution_id:
+            query = query.where(ApprovalRequest.execution_id == uuid_module.UUID(execution_id))
+        if status:
+            st = ApprovalStatus(status) if isinstance(status, str) else status
+            if st:
+                query = query.where(ApprovalRequest.status == st)
+        rows = session.exec(query.order_by(desc(ApprovalRequest.requested_at)).offset(offset).limit(limit)).all()
+        res = []
+        for rec in rows:
+            res.append(
+                {
+                    "id": str(rec.id),
+                    "workflow_id": str(rec.workflow_id),
+                    "execution_id": str(rec.execution_id),
+                    "step_id": rec.step_id,
+                    "status": rec.status,
+                    "prompt": rec.prompt,
+                    "approval_metadata": rec.approval_metadata,
+                    "response_payload": rec.response_payload,
+                    "requested_at": rec.requested_at.isoformat(),
+                    "decided_at": rec.decided_at.isoformat() if rec.decided_at else None,
+                    "decided_by": rec.decided_by,
+                }
+            )
+        return res
 
     def register_step_type(self, session: Session, step_data: Dict[str, Any]) -> str:
         """Register a new step type"""

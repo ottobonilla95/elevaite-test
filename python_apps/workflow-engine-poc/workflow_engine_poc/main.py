@@ -45,8 +45,8 @@ from workflow_engine_poc.routers import (
     agents,
     tools,
     prompts,
-    dbos,
 )
+from workflow_engine_poc.routers.approvals import router as approvals
 
 
 ElevaiteLogger.attach_to_uvicorn(
@@ -70,6 +70,12 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Workflow Execution Engine PoC")
 
     # Initialize database
+    # Ensure all SQLModel tables are registered before create_all by importing models
+    try:
+        from workflow_engine_poc.db import models as _wf_models  # noqa: F401  # side-effect import
+    except Exception as _e:
+        logger.warning(f"DB models import warning (continuing): {_e}")
+
     create_db_and_tables()
     database = await get_database()
     logger.info("✅ Database initialized")
@@ -142,7 +148,7 @@ app.include_router(monitoring_router)
 app.include_router(agents)
 app.include_router(tools)
 app.include_router(prompts)
-# app.include_router(dbos)
+app.include_router(approvals)
 
 # Initialize DBOS context if available so DBOS.start_* can be used
 try:  # Lazy import so dev env without DBOS package still runs

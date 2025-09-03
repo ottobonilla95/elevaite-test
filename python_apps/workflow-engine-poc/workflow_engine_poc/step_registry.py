@@ -133,6 +133,13 @@ class StepRegistry:
                 end_time = datetime.now()
                 execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
 
+                # If the step returned a StepResult, propagate it (supports WAITING/FAILED/etc.)
+                if isinstance(result, StepResult):
+                    if result.execution_time_ms is None:
+                        result.execution_time_ms = execution_time_ms
+                    return result
+
+                # Otherwise, wrap raw output as a completed step
                 return StepResult(
                     step_id=step_id,
                     status=StepStatus.COMPLETED,
@@ -314,6 +321,27 @@ class StepRegistry:
                             },
                         },
                     },
+                },
+            }
+        )
+
+        # Human approval step (pause/resume)
+        await self.register_step(
+            {
+                "step_type": "human_approval",
+                "name": "Human Approval",
+                "description": "Pauses execution and waits for human approval",
+                "function_reference": "workflow_engine_poc.steps.human_steps.human_approval_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {"type": "string"},
+                        "timeout_seconds": {"type": "integer", "minimum": 1},
+                        "approver_role": {"type": "string"},
+                        "require_comment": {"type": "boolean"},
+                    },
+                    "required": ["prompt"],
                 },
             }
         )

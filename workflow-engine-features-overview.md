@@ -116,7 +116,6 @@ This document provides a comprehensive overview of the available features in the
 - **Input Validation**: Check required parameters and data types
 
 ### Error States
-- **Visual Error Indicators**: Highlight problematic nodes
 - **Error Messages**: Detailed feedback on configuration issues
 - **Graceful Degradation**: Handle missing components appropriately
 - **Recovery Options**: Suggest fixes for common problems
@@ -142,10 +141,4 @@ This document provides a comprehensive overview of the available features in the
 - **Human Intervention**: Manual approval and input steps
 - **Streaming Execution**: Real-time workflow output streaming
 - **Advanced Tool Management**: Enhanced MCP integration and tool discovery
-
-### UI Improvements
-- **Enhanced Visualization**: Better workflow representation and navigation
-- **Collaborative Features**: Multi-user workflow editing
-- **Template Marketplace**: Shared workflow templates
-- **Advanced Debugging**: Visual execution tracing and profiling
 

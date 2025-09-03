@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 class ExecutionStatus(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
+    WAITING = "waiting"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -31,6 +32,7 @@ class ExecutionStatus(str, Enum):
 class StepStatus(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
+    WAITING = "waiting"
     COMPLETED = "completed"
     FAILED = "failed"
     SKIPPED = "skipped"
@@ -93,6 +95,10 @@ class ExecutionContext:
         self.workflow_config = workflow_config.copy()
         self.workflow_name = workflow_config.get("name", "Unnamed Workflow")
 
+        # Normalize steps to ensure each has a unique step_id
+        raw_steps = list(self.workflow_config.get("steps", []) or [])
+        self.workflow_config["steps"] = self._normalize_steps(raw_steps)
+
         # Execution state
         self.status = ExecutionStatus.PENDING
         self.current_step: Optional[str] = None
@@ -100,7 +106,7 @@ class ExecutionContext:
         self.completed_at: Optional[datetime] = None
 
         # Step management
-        self.steps_config = workflow_config.get("steps", [])
+        self.steps_config = self.workflow_config.get("steps", [])
         self.step_results: Dict[str, StepResult] = {}
         self.completed_steps: Set[str] = set()
         self.failed_steps: Set[str] = set()
@@ -126,6 +132,43 @@ class ExecutionContext:
         # Build dependency graph
         self.dependency_graph = self._build_dependency_graph()
 
+    def _normalize_steps(self, steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Ensure each step has a unique step_id. If missing, infer a reasonable default.
+        - Trigger step: defaults to 'trigger'
+        - Else: slugified name or fall back to step_type_{idx}
+        - Ensure uniqueness by appending numeric suffixes if needed
+        """
+
+        def slugify(txt: str) -> str:
+            s = (txt or "").strip().lower()
+            import re
+
+            s = re.sub(r"[^a-z0-9]+", "_", s)
+            s = re.sub(r"_+", "_", s).strip("_")
+            return s or "step"
+
+        used: Set[str] = set()
+        normalized: List[Dict[str, Any]] = []
+        for idx, step in enumerate(steps):
+            stype = step.get("step_type") or "step"
+            sid = step.get("step_id")
+            if not sid:
+                if stype == "trigger":
+                    candidate = "trigger"
+                else:
+                    candidate = slugify(step.get("name") or f"{stype}_{idx + 1}")
+                # Ensure unique
+                base = candidate
+                n = 2
+                while candidate in used:
+                    candidate = f"{base}_{n}"
+                    n += 1
+                sid = candidate
+                step = {**step, "step_id": sid}
+            used.add(sid)
+            normalized.append(step)
+        return normalized
+
     def _build_dependency_graph(self) -> Dict[str, List[str]]:
         """Build dependency graph from step configurations"""
         graph = {}
@@ -146,9 +189,8 @@ class ExecutionContext:
         self.status = ExecutionStatus.COMPLETED
         self.completed_at = datetime.now()
         self.metadata["completed_at"] = self.completed_at.isoformat()
-        self.metadata["duration_ms"] = int(
-            (self.completed_at - self.started_at).total_seconds() * 1000
-        )
+        if self.started_at:
+            self.metadata["duration_ms"] = int((self.completed_at - self.started_at).total_seconds() * 1000)
 
     def fail_execution(self, error_message: str) -> None:
         """Mark execution as failed"""
@@ -157,9 +199,8 @@ class ExecutionContext:
         self.metadata["failed_at"] = self.completed_at.isoformat()
         self.metadata["error_message"] = error_message
         if self.started_at:
-            self.metadata["duration_ms"] = int(
-                (self.completed_at - self.started_at).total_seconds() * 1000
-            )
+            if self.started_at:
+                self.metadata["duration_ms"] = int((self.completed_at - self.started_at).total_seconds() * 1000)
 
     def get_step_config(self, step_id: str) -> Optional[Dict[str, Any]]:
         """Get configuration for a specific step"""
@@ -242,9 +283,7 @@ class ExecutionContext:
 
     def get_ready_steps(self) -> List[str]:
         """Get list of steps that are ready to execute"""
-        return [
-            step_id for step_id in self.pending_steps if self.can_execute_step(step_id)
-        ]
+        return [step_id for step_id in self.pending_steps if self.can_execute_step(step_id)]
 
     def is_execution_complete(self) -> bool:
         """Check if the workflow execution is complete"""
@@ -283,9 +322,7 @@ class ExecutionContext:
             "pending_steps": len(self.pending_steps),
             "total_steps": len(self.steps_config),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": (
-                self.completed_at.isoformat() if self.completed_at else None
-            ),
+            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
             "analytics_ids": {
                 "execution_id": self.analytics_ids.execution_id,
                 "correlation_id": self.analytics_ids.correlation_id,

@@ -10,7 +10,7 @@ import logging
 from typing import Dict, Any, List, Optional, Union, Set
 from datetime import datetime
 
-from .execution_context import ExecutionContext, ExecutionStatus, StepStatus
+from .execution_context import ExecutionContext, ExecutionStatus, StepResult, StepStatus
 from .step_registry import StepRegistry
 from .error_handling import (
     error_handler,
@@ -267,6 +267,10 @@ class WorkflowEngine:
             # Store result
             execution_context.store_step_result(step_result)
 
+            if step_result.status == StepStatus.WAITING:
+                # Early exit; engine will pause
+                return
+
             if step_result.status == StepStatus.COMPLETED:
                 logger.info(f"Step completed: {step_id} ({step_result.execution_time_ms}ms)")
 
@@ -288,6 +292,11 @@ class WorkflowEngine:
                             )
                 except Exception as ae:
                     logger.warning(f"Analytics record for agent step failed: {ae}")
+            elif step_result.status == StepStatus.WAITING:
+                logger.info(f"Step waiting: {step_id} - human interaction required")
+                # Persist as needed (DB write happens in router/service)
+                # Leave execution_context.status as WAITING (set by step) and stop further processing
+                return
             else:
                 logger.error(f"Step failed: {step_id} - {step_result.error_message}")
 
@@ -580,6 +589,29 @@ class WorkflowEngine:
                 return context
 
         return None
+
+    async def resume_execution(self, execution_id: str, step_id: str, decision_output: Dict[str, Any]) -> bool:
+        """Resume a paused local execution by injecting decision output and continuing."""
+        ctx = await self.get_execution_context(execution_id)
+        if not ctx:
+            logger.error(f"Execution context not found for {execution_id}")
+            return False
+        # Write the output and mark the human step completed
+        ctx.step_results[step_id] = StepResult(
+            step_id=step_id,
+            status=StepStatus.COMPLETED,
+            output_data=decision_output,
+        )
+        ctx.completed_steps.add(step_id)
+        ctx.pending_steps.discard(step_id)
+        ctx.step_io_data[step_id] = decision_output
+        # Switch back to running and continue dependency-based execution
+        ctx.status = ExecutionStatus.RUNNING
+        await self._execute_dependency_based(ctx)
+        # If all steps done, mark complete
+        if ctx.is_execution_complete() and ctx.status == ExecutionStatus.RUNNING:
+            ctx.complete_execution()
+        return True
 
     async def validate_workflow(self, workflow_config: Dict[str, Any]) -> Dict[str, Any]:
         """Validate a workflow configuration"""

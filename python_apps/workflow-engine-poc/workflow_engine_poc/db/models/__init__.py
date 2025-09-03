@@ -67,6 +67,12 @@ from .tools import (
     MCPServerUpdate,
     MCPServerRead,
 )
+from .approvals import (
+    ApprovalRequest,
+    ApprovalRequestBase,
+    ApprovalRequestRead,
+    ApprovalStatus,
+)
 
 __all__ = [
     # Base model
@@ -106,4 +112,9 @@ __all__ = [
     "PromptCreate",
     "PromptRead",
     "PromptUpdate",
+    # Approvals
+    "ApprovalRequest",
+    "ApprovalRequestBase",
+    "ApprovalRequestRead",
+    "ApprovalStatus",
 ]

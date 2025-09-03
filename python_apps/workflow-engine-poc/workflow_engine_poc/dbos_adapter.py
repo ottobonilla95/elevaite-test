@@ -34,12 +34,12 @@ class DBOSStepResult(TypedDict):
 
 
 class DBOSWorkflowResult(TypedDict, total=False):
-    success: bool
+    success: bool | None
     execution_id: str
     workflow_id: str
     step_results: Dict[str, DBOSStepResult]
     completed_at: str
-    error: str
+    error: str | None
     failed_step: str
     _dbos: Dict[str, Any]
 
@@ -225,7 +225,12 @@ class DBOSWorkflowAdapter:
         return execution_context
 
     async def start_workflow(
-        self, workflow_config: Dict[str, Any], trigger_data: Dict[str, Any], user_context: Optional[Dict[str, Any]] = None
+        self,
+        workflow_config: Dict[str, Any],
+        trigger_data: Dict[str, Any],
+        execution_id: str,
+        user_context: Optional[Dict[str, Any]] = None,
+        wait: bool = False,
     ) -> DBOSWorkflowResult:
         """
         Start a workflow execution using DBOS.
@@ -240,6 +245,7 @@ class DBOSWorkflowAdapter:
                     workflow_config,
                     trigger_data,
                     user_context,
+                    execution_id,
                 )
 
                 # Prepare DBOS handle metadata for later persistence
@@ -269,6 +275,16 @@ class DBOSWorkflowAdapter:
                         return {"handle_type": str(type(h)), "attributes": attrs, "methods": methods_present}
                     except Exception:
                         return {"handle_type": str(type(h))}
+
+                if not wait:
+                    # Return immediately with handle metadata; mark success=None to indicate in-progress
+                    return {
+                        "success": None,
+                        "error": None,
+                        "execution_id": execution_id,
+                        "_dbos": _mk_dbos_meta(handle),
+                        "step_results": {},
+                    }
 
                 dbos_meta = _mk_dbos_meta(handle)
 
@@ -379,6 +395,7 @@ async def dbos_execute_step_durable(
     input_data: Dict[str, Any],
     execution_context_data: Dict[str, Any],
 ) -> DBOSStepResult:
+    print("Executing step under DBOS:", step_type, step_config, input_data, execution_context_data)
     adapter = await get_dbos_adapter()
     # Reconstruct execution context
     user_context_data = execution_context_data.get("user_context", {})
@@ -394,6 +411,8 @@ async def dbos_execute_step_durable(
     execution_context.step_io_data = execution_context_data.get("step_io_data", {})
 
     # Execute using registry
+    # Mark that this invocation is running under DBOS backend
+    step_config = {**step_config, "_backend": "dbos"}
     step_result = await adapter.step_registry.execute_step(
         step_type=step_type,
         step_config=step_config,
@@ -414,14 +433,21 @@ async def dbos_execute_step_durable(
 
 
 @DBOS.workflow()
+async def dbos_submit_approval(decision_key: str, payload: Dict[str, Any]) -> None:
+    """Small DBOS workflow that sets an approval decision event."""
+    DBOS.set_event(decision_key, payload)
+
+
+@DBOS.workflow()
 async def dbos_execute_workflow_durable(
     workflow_config: Dict[str, Any],
     trigger_data: Dict[str, Any],
     user_context_data: Optional[Dict[str, Any]] = None,
+    execution_id: Optional[str] = None,
 ) -> DBOSWorkflowResult:
     adapter = await get_dbos_adapter()
     workflow_id = workflow_config.get("workflow_id") or str(uuid.uuid4())
-    execution_id = str(uuid.uuid4())
+    execution_id = execution_id or str(uuid.uuid4())
 
     # Construct execution context payload
     execution_context_data = {
@@ -450,12 +476,27 @@ async def dbos_execute_workflow_durable(
             data.update(step_input)
         return data
 
+    def _slugify(txt: str) -> str:
+        s = (txt or "").strip().lower()
+        import re
+
+        s = re.sub(r"[^a-z0-9]+", "_", s)
+        s = re.sub(r"_+", "_", s).strip("_")
+        return s or "step"
+
     for step in steps:
         step_id = step.get("step_id")
         step_type = step.get("step_type")
-        if not step_id or not step_type:
+        if not step_type:
             adapter.logger.error(f"Invalid step configuration: {step}")
             continue
+        if not step_id:
+            # Normalize: infer a step_id if missing
+            if step_type == "trigger":
+                step_id = "trigger"
+            else:
+                step_id = _slugify(step.get("name") or f"{step_type}")
+            step = {**step, "step_id": step_id}
 
         input_data = _prepare_step_input(step)
         try:

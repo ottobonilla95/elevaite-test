@@ -21,6 +21,7 @@ class ExecutionStatus(str, Enum):
 
     PENDING = "pending"
     RUNNING = "running"
+    WAITING = "waiting"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -32,6 +33,7 @@ class StepStatus(str, Enum):
 
     PENDING = "pending"
     RUNNING = "running"
+    WAITING = "waiting"
     COMPLETED = "completed"
     FAILED = "failed"
     SKIPPED = "skipped"

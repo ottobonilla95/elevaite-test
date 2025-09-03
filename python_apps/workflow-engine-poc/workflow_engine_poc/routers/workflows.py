@@ -114,6 +114,7 @@ async def execute_workflow_by_id(
         organization_id = body_data.get("organization_id")
         input_data = body_data.get("input_data", {})
         metadata = body_data.get("metadata", {})
+        wait = bool(body_data.get("wait", False))
 
         # Extract trigger config from workflow (enforce presence)
         steps = workflow.get("steps", [])
@@ -131,8 +132,10 @@ async def execute_workflow_by_id(
         total_mb = int(trigger_params.get("total_size_mb", TOTAL_MB_DEFAULT))
         per_file_limit = per_file_mb * 1024 * 1024
         total_limit = total_mb * 1024 * 1024
-        allowed_modalities = trigger_params.get("allowed_modalities", ["text", "image", "audio"]) if kind == "chat" else ["doc"]
-        allowed_mime_types = set(trigger_params.get("allowed_mime_types", []))
+        allowed_modalities = trigger_params.get("allowed_modalities") or (
+            ["text", "image", "audio"] if kind == "chat" else ["doc"]
+        )
+        allowed_mime_types = set(trigger_params.get("allowed_mime_types") or [])
         if "doc" in allowed_modalities:
             allowed_mime_types.update(ALLOWED_MIME_DEFAULT["doc"])
         if "image" in allowed_modalities:
@@ -246,10 +249,24 @@ async def execute_workflow_by_id(
                     "session_id": session_id_val,
                     "organization_id": organization_id,
                 },
+                execution_id=execution_id,
+                wait=wait,
             )
 
             if not isinstance(result, dict):
                 raise HTTPException(status_code=502, detail=f"DBOS returned unexpected result type: {type(result)}")
+
+            # If DBOS produced its own execution_id, rekey the DB row to match
+            dbos_exec_id = result.get("execution_id")
+            if dbos_exec_id and dbos_exec_id != execution_id:
+                print(f"Rekeying execution {execution_id} to {dbos_exec_id}")
+            if isinstance(dbos_exec_id, str):
+                try:
+                    db_service.rekey_execution(session, execution_id, dbos_exec_id)
+                    execution_id = dbos_exec_id
+                except Exception as e:
+                    print(f"Rekeying execution {execution_id} to {dbos_exec_id} failed because {e}")
+                    pass
 
             # Map adapter result into execution record
             status = ExecutionStatus.COMPLETED if result.get("success") else ExecutionStatus.FAILED
@@ -326,8 +343,11 @@ async def execute_workflow_by_id(
                 },
             )
         else:
-            # Kick off in background via local engine
-            asyncio.create_task(workflow_engine.execute_workflow(execution_context))
+            # Local backend: async or sync based on 'wait'
+            if wait:
+                await workflow_engine.execute_workflow(execution_context)
+            else:
+                asyncio.create_task(workflow_engine.execute_workflow(execution_context))
 
         # Return the execution as response
         created = db_service.get_execution(session, execution_id)
