@@ -1,40 +1,14 @@
 "use client";
-
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import {
-  ReactFlowProvider,
-  type ReactFlowInstance,
-  type Node as ReactFlowNode,
-} from "react-flow-renderer";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ReactFlowProvider, type ReactFlowInstance } from "react-flow-renderer";
 // eslint-disable-next-line import/named -- Seems to be a problem with eslint
 import { v4 as uuidv4 } from "uuid";
 import { getWorkflowDeploymentDetails } from "../lib/actions";
 import { isAgentResponse } from "../lib/discriminators";
-import {
-  type AgentConfigData,
-  type AgentCreate,
-  type AgentFunction,
-  type AgentNodeData,
-  type AgentResponse,
-  type AgentUpdate,
-  type ChatCompletionToolParam,
-  type Edge,
-  type Node,
-  type WorkflowAgent,
-  type WorkflowCreateRequest,
-  type WorkflowDeployment,
-  type WorkflowResponse,
+import { type AgentConfigData, type AgentCreate, type AgentFunction, type AgentNodeData, type AgentResponse, type AgentUpdate,
+  type ChatCompletionToolParam, type Edge, type Node, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowDeployment, type WorkflowResponse,
 } from "../lib/interfaces";
-import {
-  mapActionTypeToConnectionType,
-  mapConnectionTypeToActionType,
-} from "../lib/interfaces/workflows";
+import { mapActionTypeToConnectionType, mapConnectionTypeToActionType } from "../lib/interfaces/workflows";
 import { useAgents } from "../ui/contexts/AgentsContext";
 import { usePrompts } from "../ui/contexts/PromptsContext.tsx";
 import { useWorkflows } from "../ui/contexts/WorkflowsContext";
@@ -44,22 +18,14 @@ import ChatSidebar from "./agents/ChatSidebar";
 import ConfigPanel, { type ConfigPanelHandle } from "./agents/ConfigPanel";
 import DesignerCanvas from "./agents/DesignerCanvas";
 import DesignerSidebar from "./agents/DesignerSidebar";
-import VectorizerBottomDrawer, {
-  type VectorizationStepData,
-  type PipelineStep,
-} from "./agents/VectorizerBottomDrawer";
+import VectorizerBottomDrawer, { type PipelineStep, type VectorizationStepData } from "./agents/VectorizerBottomDrawer";
 import VectorizerConfigPanel from "./agents/VectorizerConfigPanel";
 // Import styles
 import "./AgentConfigForm.scss";
 import HeaderBottom from "./agents/HeaderBottom.tsx";
 import AgentTestingPanel from "./AgentTestingPanel.tsx";
 
-// TODO: Implement chat functionality
-// interface ChatMessage {
-// 	id: number;
-// 	text: string;
-// 	sender: "user" | "bot";
-// }
+
 
 // Helper function to convert ChatCompletionToolParam to AgentFunction
 function convertToolsToAgentFunctions(
@@ -92,20 +58,13 @@ function convertConfigToAgentCreate(
 
     const format = outputFormat.toLowerCase();
     switch (format) {
-      case "json":
-        return "json";
-      case "yaml":
-        return "yaml";
-      case "markdown":
-        return "markdown";
-      case "html":
-        return "HTML";
-      case "none":
-        return "None";
-      case "text":
-        return "None";
-      default:
-        return "json";
+      case "json":      return "json";
+      case "yaml":      return "yaml";
+      case "markdown":  return "markdown";
+      case "html":      return "HTML";
+      case "none":      return "None";
+      case "text":      return "None";
+      default:          return "json";
     }
   };
 
@@ -142,19 +101,10 @@ function AgentConfigForm(): JSX.Element {
   const panelRef = useRef<ConfigPanelHandle>(null);
 
   // Use workflows context
-  const {
-    createWorkflowAndRefresh,
-    updateWorkflowAndRefresh,
-    deployWorkflowAndRefresh,
-  } = useWorkflows();
+  const { createWorkflowAndRefresh, updateWorkflowAndRefresh, deployWorkflowAndRefresh } = useWorkflows();
 
   // Use agents context
-  const {
-    createAgentAndRefresh,
-    updateAgentAndRefresh,
-    sidebarRightOpen,
-    setSidebarRightOpen,
-  } = useAgents();
+  const { createAgentAndRefresh, updateAgentAndRefresh, sidebarRightOpen, setSidebarRightOpen } = useAgents();
   const { isEditingPrompt } = usePrompts();
 
   // Use refs for values that need to be stable across renders
@@ -176,23 +126,18 @@ function AgentConfigForm(): JSX.Element {
   const [workflowTags, setWorkflowTags] = useState<string[]>([]);
   const [isChatMode, setIsChatMode] = useState(false);
 
-  // TODO: Implement chat functionality
-  // const [chatInput, setChatInput] = useState("");
-  // const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfigPanel, setShowConfigPanel] = useState(false);
   const [activeTab, setActiveTab] = useState("actions");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showTestingSidebar, setShowTestingSidebar] = useState(false);
-  const [currentTestingWorkflowId, setCurrentTestingWorkflowId] = useState<
-    string | undefined
-  >(undefined);
+  const [currentTestingWorkflowId, setCurrentTestingWorkflowId] = useState<string | undefined>(undefined);
 
   // Vectorizer drawer state
   const [showVectorizerDrawer, setShowVectorizerDrawer] = useState(false);
   const [vectorizerAgentName, setVectorizerAgentName] = useState("");
   const [vectorizerAgentId, setVectorizerAgentId] = useState("");
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
+
 
   // Pipeline progress listener function using polling
 
@@ -201,30 +146,32 @@ function AgentConfigForm(): JSX.Element {
       let isPolling = true;
       let pollCount = 0;
       let lastCompletedSteps: string[] = [];
-      let lastCurrentStage: string = "";
-      let currentProgressData: any = null;
+      let lastCurrentStage = "";
+      let currentProgressData: unknown = null;
       const maxPolls = 600; // 10 minutes max
 
-      if ((window as any).currentPollingCleanup) {
-        (window as any).currentPollingCleanup();
+      if ("currentPollingCleanup" in window && typeof window.currentPollingCleanup === "function") {
+        window.currentPollingCleanup();
       }
 
       const updateStepStatus = (
         stepType: string,
         status: "pending" | "running" | "completed" | "error"
-      ) => {
-        if (typeof (window as any).updateVectorizerStepStatus === "function") {
+      ): void => {
+        if ("updateVectorizerStepStatus" in window && typeof window.updateVectorizerStepStatus === "function") {
           console.log(` Updating step ${stepType} to ${status}`);
-          (window as any).updateVectorizerStepStatus(stepType, status);
+          window.updateVectorizerStepStatus(stepType, status);
         }
       };
 
-      const cleanup = () => {
+      const cleanup = (): void => {
         console.log("🧹 Cleaning up pipeline polling");
         isPolling = false;
-        if ((window as any).currentPollingTimeout) {
-          clearTimeout((window as any).currentPollingTimeout);
-          (window as any).currentPollingTimeout = null;
+        if ("currentPollingTimeout" in window && window.currentPollingTimeout && (typeof window.currentPollingTimeout === "string"
+          || typeof window.currentPollingTimeout === "number")
+        ) {
+          clearTimeout(window.currentPollingTimeout);
+          window.currentPollingTimeout = null;
         }
       };
 
@@ -698,8 +645,7 @@ function AgentConfigForm(): JSX.Element {
   const [isExistingWorkflow, setIsExistingWorkflow] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedState, setLastSavedState] = useState<string>("");
-  const [currentWorkflowData, setCurrentWorkflowData] =
-    useState<WorkflowResponse | null>(null);
+  const [currentWorkflowData, setCurrentWorkflowData] = useState<WorkflowResponse | null>(null);
   const [deploymentStatus, setDeploymentStatus] = useState<{
     isDeployed: boolean;
     deployment?: WorkflowDeployment;
@@ -717,6 +663,7 @@ function AgentConfigForm(): JSX.Element {
   const onInit = (instance: ReactFlowInstance): void => {
     reactFlowInstanceRef.current = instance;
   };
+
 
   // Initialize client-side only data after mount
   useEffect(() => {
@@ -2044,12 +1991,9 @@ function AgentConfigForm(): JSX.Element {
           )}
           {Boolean(showTestingSidebar) && (
             <AgentTestingPanel
-              workflowId={
-                currentTestingWorkflowId ??
-                currentWorkflowData?.workflow_id ??
-                ""
-              }
+              workflowId={currentTestingWorkflowId ?? currentWorkflowData?.workflow_id ?? ""}
               sessionId={currentWorkflowData?.id.toString()}
+              description={currentWorkflowData?.description}
             />
           )}
         </div>

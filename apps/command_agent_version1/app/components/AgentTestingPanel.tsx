@@ -22,15 +22,12 @@ interface UploadedFile {
 interface AgentTestingPanelProps {
   workflowId?: string;
   sessionId?: string;
+  description?: string;
   // ADD: Callback to update workflow ID
   onWorkflowUpdate?: (workflowId: string) => void;
 }
 
-function AgentTestingPanel({
-  workflowId,
-  sessionId,
-  onWorkflowUpdate,
-}: AgentTestingPanelProps): React.ReactElement {
+function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdate }: AgentTestingPanelProps): React.ReactElement {
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const { expandChat, setExpandChat } = useWorkflows();
   const [showAgentWorkflowModal, setShowAgentWorkflowModal] = useState(false);
@@ -46,7 +43,8 @@ function AgentTestingPanel({
     {
       id: Date.now(),
       text: workflowId
-        ? `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- No! Not the same! description can be an empty string.
+        ? (description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`)
         : "No workflow detected. Please select a workflow from the left panel or save a new one.",
       sender: "bot",
     },
@@ -58,7 +56,8 @@ function AgentTestingPanel({
       setChatMessages([
         {
           id: Date.now(),
-          text: `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
+          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- No! Not the same! description can be an empty string.
+          text: description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
           sender: "bot",
         },
       ]);
