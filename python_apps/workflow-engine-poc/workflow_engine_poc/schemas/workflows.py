@@ -74,9 +74,16 @@ class TriggerParameters(BaseModel):
 
 
 class StepBase(BaseModel):
+    # Preserve caller-provided IDs and graph structure; do not drop these
+    step_id: Optional[str] = None
     step_type: str
     name: Optional[str] = None
+    dependencies: List[str] = Field(default_factory=list)
+    # Allow mapping of prior step outputs into this step's inputs
+    input_mapping: Dict[str, Any] = Field(default_factory=dict)
+    # Support both 'parameters' (trigger) and 'config' (execution steps)
     parameters: Dict[str, Any] = Field(default_factory=dict)
+    config: Dict[str, Any] = Field(default_factory=dict)
 
 
 class TriggerStepConfig(StepBase):
@@ -202,4 +209,3 @@ class ExecutionRequest(BaseModel):
             ]
         }
     }
-

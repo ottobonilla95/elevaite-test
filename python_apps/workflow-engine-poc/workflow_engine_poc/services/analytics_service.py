@@ -1,6 +1,7 @@
 """
 Minimal analytics service (tokens-only) for PoC
 """
+
 from __future__ import annotations
 
 from typing import Optional, Dict, Any
@@ -24,12 +25,16 @@ class AnalyticsService:
         started_at: Optional[datetime] = None,
         completed_at: Optional[datetime] = None,
         error_message: Optional[str] = None,
+        redact_response_in_analytics: bool = False,
     ) -> uuid_module.UUID:
-        """Persist per-agent step analytics with tokens-only usage."""
+        """Persist per-agent step analytics with tokens-only usage.
+
+        If redact_response_in_analytics=True, the response text will not be saved to analytics.
+        """
         agent_name = str(agent_output.get("agent_name") or agent_output.get("agentId") or "Agent")
         agent_id = str(agent_output.get("agent_id") or "") or None
         query = agent_output.get("query")
-        response = agent_output.get("response")
+        response = None if redact_response_in_analytics else agent_output.get("response")
 
         usage = agent_output.get("usage") or {}
         tokens_in = usage.get("tokens_in") if isinstance(usage, dict) else None
@@ -109,4 +114,3 @@ class AnalyticsService:
 
 
 analytics_service = AnalyticsService()
-

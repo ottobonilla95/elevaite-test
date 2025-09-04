@@ -7,6 +7,7 @@ from .monitoring import router as monitoring
 from .agents import router as agents
 from .tools import router as tools
 from .prompts import router as prompts
+from .messages import router as messages
 
 # Router package for workflow engine API endpoints
 

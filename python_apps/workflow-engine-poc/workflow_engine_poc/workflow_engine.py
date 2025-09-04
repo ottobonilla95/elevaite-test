@@ -6,6 +6,8 @@ Supports conditional, sequential, and parallel execution patterns.
 """
 
 import asyncio
+import os
+
 import logging
 from typing import Dict, Any, List, Optional, Union, Set
 from datetime import datetime
@@ -30,7 +32,7 @@ from .condition_evaluator import (
     LogicalOperator,
 )
 from .monitoring import monitoring
-from .db.database import get_session
+
 from .services.analytics_service import analytics_service
 
 
@@ -107,7 +109,11 @@ class WorkflowEngine:
                             except Exception:
                                 pass
                     summary = execution_context.get_execution_summary()
-                    with get_session() as _s:
+                    # Use a real Session context manager (get_session is a generator)
+                    from sqlmodel import Session as _SQLSession
+                    from .db.database import engine as _engine
+
+                    with _SQLSession(_engine) as _s:
                         analytics_service.record_workflow_metrics(
                             _s,
                             execution_id=execution_context.execution_id,
@@ -129,9 +135,11 @@ class WorkflowEngine:
 
         finally:
             # Move to history and clean up
-            if execution_id in self.active_executions:
-                del self.active_executions[execution_id]
-            self.execution_history.append(execution_context)
+            # Keep WAITING executions active so they can be resumed
+            if execution_context.status in (ExecutionStatus.COMPLETED, ExecutionStatus.FAILED, ExecutionStatus.CANCELLED):
+                if execution_id in self.active_executions:
+                    del self.active_executions[execution_id]
+                self.execution_history.append(execution_context)
 
             # Update active executions metric
             monitoring.update_active_executions(len(self.active_executions))
@@ -279,7 +287,11 @@ class WorkflowEngine:
                     if step_type == "agent_execution" and isinstance(step_result.output_data, dict):
                         agent_out = step_result.output_data
                         # Insert analytics row
-                        with get_session() as _s:
+                        # Use a real Session context manager (get_session is a generator)
+                        from sqlmodel import Session as _SQLSession
+                        from .db.database import engine as _engine
+
+                        with _SQLSession(_engine) as _s:
                             analytics_service.record_agent_execution(
                                 _s,
                                 execution_id=execution_context.execution_id,
@@ -289,6 +301,9 @@ class WorkflowEngine:
                                 started_at=execution_context.started_at,
                                 completed_at=execution_context.completed_at,
                                 error_message=None,
+                                redact_response_in_analytics=bool(
+                                    os.getenv("REDACT_ANALYTICS_RESPONSE", "false").lower() == "true"
+                                ),
                             )
                 except Exception as ae:
                     logger.warning(f"Analytics record for agent step failed: {ae}")
@@ -596,18 +611,16 @@ class WorkflowEngine:
         if not ctx:
             logger.error(f"Execution context not found for {execution_id}")
             return False
-        # Write the output and mark the human step completed
-        ctx.step_results[step_id] = StepResult(
-            step_id=step_id,
-            status=StepStatus.COMPLETED,
-            output_data=decision_output,
-        )
-        ctx.completed_steps.add(step_id)
-        ctx.pending_steps.discard(step_id)
+        # Inject decision output for the waiting step without marking it completed yet
+        # Store decision data so the step can pick it up on next execution
         ctx.step_io_data[step_id] = decision_output
-        # Switch back to running and continue dependency-based execution
+
+        # Mark the current execution as running again
         ctx.status = ExecutionStatus.RUNNING
+
+        # Re-run dependency-based execution; the waiting step will execute again and can complete
         await self._execute_dependency_based(ctx)
+
         # If all steps done, mark complete
         if ctx.is_execution_complete() and ctx.status == ExecutionStatus.RUNNING:
             ctx.complete_execution()

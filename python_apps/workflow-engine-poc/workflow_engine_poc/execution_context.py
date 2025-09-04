@@ -273,6 +273,10 @@ class ExecutionContext:
         if self.current_step == step_id:
             self.current_step = None
 
+        # If a step is waiting on external input, pause the overall execution
+        if step_result.status == StepStatus.WAITING:
+            self.status = ExecutionStatus.WAITING
+
     def can_execute_step(self, step_id: str) -> bool:
         """Check if a step can be executed (all dependencies satisfied)"""
         if step_id in self.completed_steps or step_id in self.failed_steps:
@@ -323,6 +327,7 @@ class ExecutionContext:
             "total_steps": len(self.steps_config),
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
+            "error_message": self.metadata.get("error_message"),
             "analytics_ids": {
                 "execution_id": self.analytics_ids.execution_id,
                 "correlation_id": self.analytics_ids.correlation_id,

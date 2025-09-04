@@ -45,6 +45,7 @@ from workflow_engine_poc.routers import (
     agents,
     tools,
     prompts,
+    messages,
 )
 from workflow_engine_poc.routers.approvals import router as approvals
 
@@ -148,6 +149,7 @@ app.include_router(monitoring_router)
 app.include_router(agents)
 app.include_router(tools)
 app.include_router(prompts)
+app.include_router(messages)
 app.include_router(approvals)
 
 # Initialize DBOS context if available so DBOS.start_* can be used

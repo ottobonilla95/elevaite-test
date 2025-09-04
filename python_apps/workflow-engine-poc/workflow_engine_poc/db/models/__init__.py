@@ -40,6 +40,7 @@ from .agents import (
     AgentUpdate,
     AgentToolBinding,
 )
+from .messages import AgentMessage
 from .prompts import (
     Prompt,
     PromptCreate,
@@ -107,6 +108,8 @@ __all__ = [
     "AgentRead",
     "AgentUpdate",
     "AgentToolBinding",
+    # Messages
+    "AgentMessage",
     # Prompt models
     "Prompt",
     "PromptCreate",

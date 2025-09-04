@@ -139,6 +139,15 @@ class StepRegistry:
                         result.execution_time_ms = execution_time_ms
                     return result
 
+                # If the step returned a dict indicating WAITING, map to a WAITING StepResult
+                if isinstance(result, dict) and str(result.get("status", "")).lower() == "waiting":
+                    return StepResult(
+                        step_id=step_id,
+                        status=StepStatus.WAITING,
+                        output_data=result,
+                        execution_time_ms=execution_time_ms,
+                    )
+
                 # Otherwise, wrap raw output as a completed step
                 return StepResult(
                     step_id=step_id,

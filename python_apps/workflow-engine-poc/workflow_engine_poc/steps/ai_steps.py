@@ -20,7 +20,7 @@ from sqlmodel import select
 from ..db.database import get_db_session
 from ..db.models import Agent as DBAgent, Prompt as DBPrompt, AgentToolBinding as DBAgentToolBinding, Tool as DBTool
 
-from ..execution_context import ExecutionContext
+from ..execution_context import ExecutionContext, StepResult, StepStatus, ExecutionStatus
 
 # Initialize logger first
 logger = logging.getLogger(__name__)
@@ -676,8 +676,14 @@ async def agent_execution_step(
     # Ensure current_message is available from Trigger output if not present
     try:
         if isinstance(input_data, dict) and "current_message" not in input_data:
-            trig = execution_context.step_io_data.get("trigger")
+            # Prefer normalized trigger; fallback to raw payload seeded by router
+            trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
             if isinstance(trig, dict):
+                # Direct current_message if present
+                cm = trig.get("current_message")
+                if isinstance(cm, str) and cm:
+                    input_data["current_message"] = cm
+                # Else walk messages for last user content
                 msgs = trig.get("messages") or []
                 if isinstance(msgs, list) and msgs:
                     for m in reversed(msgs):
@@ -687,25 +693,89 @@ async def agent_execution_step(
     except Exception as e:
         logger.debug(f"Could not derive current_message from trigger: {e}")
 
-    # Include chat history/messages from Trigger in the agent context
+    # Include chat history/messages: prefer step-specific messages if present, else Trigger
     try:
-        trig = execution_context.step_io_data.get("trigger")
-        if isinstance(trig, dict):
-            msgs = trig.get("messages")
-            if isinstance(msgs, list) and msgs and "messages" not in input_data:
-                input_data["messages"] = msgs
-                # Also provide a common alias
-                input_data.setdefault("chat_history", msgs)
+        # Step-scoped messages (interactive chat)
+        step_msgs = []
+        try:
+            from ..db.service import DatabaseService
+            from ..db.database import get_db_session
+
+            session = get_db_session()
+            dbs = DatabaseService()
+            step_msgs = dbs.list_agent_messages(
+                session, execution_id=execution_context.execution_id, step_id=step_config.get("step_id")
+            )
+            # Convert to simple role/content list
+            step_msgs = [
+                {
+                    "role": m.get("role", "user"),
+                    "content": m.get("content", ""),
+                    **({"metadata": m.get("metadata")} if m.get("metadata") else {}),
+                }
+                for m in step_msgs
+            ]
+        except Exception as _db_err:
+            logger.debug(f"No DB messages found or DB unavailable: {_db_err}")
+
+        if step_msgs:
+            input_data["messages"] = step_msgs
+            input_data.setdefault("chat_history", step_msgs)
+            if "current_message" not in input_data:
+                for m in reversed(step_msgs):
+                    if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
+                        input_data["current_message"] = m["content"]
+                        break
+        else:
+            trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+            if isinstance(trig, dict):
+                msgs = trig.get("messages")
+                if isinstance(msgs, list) and msgs and "messages" not in input_data:
+                    input_data["messages"] = msgs
+                    input_data.setdefault("chat_history", msgs)
+                if "current_message" not in input_data:
+                    cm = trig.get("current_message")
+                    if isinstance(cm, str) and cm:
+                        input_data["current_message"] = cm
+                    elif isinstance(msgs, list) and msgs:
+                        for m in reversed(msgs):
+                            if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
+                                input_data["current_message"] = m["content"]
+                                break
+
+        # Merge per-step decision flags (e.g., final_turn) written by resume_execution
+        try:
+            sid = step_config.get("step_id")
+            if sid and isinstance(execution_context.step_io_data.get(sid), dict):
+                for k, v in execution_context.step_io_data[sid].items():
+                    if k not in input_data:
+                        input_data[k] = v
+                # If current_message still missing, derive from newly merged step-level messages
+                if "current_message" not in input_data:
+                    merged_msgs = input_data.get("messages")
+                    if isinstance(merged_msgs, list):
+                        for m in reversed(merged_msgs):
+                            if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
+                                input_data["current_message"] = m["content"]
+                                break
+        except Exception as _m:
+            logger.debug(f"Could not merge step-scoped decision flags: {_m}")
     except Exception as e:
-        logger.debug(f"Could not include messages from trigger: {e}")
+        logger.debug(f"Could not include messages in agent context: {e}")
 
     # Process query template with input data (e.g., "{current_message}")
     query = query_template
     if isinstance(query_template, str) and "{" in query_template:
         try:
-            query = query_template.format(**input_data)
-        except KeyError as e:
-            logger.warning(f"Template variable not found: {e}")
+
+            class _Safe(dict):
+                def __missing__(self, k):  # replace missing vars with empty string
+                    return ""
+
+            query = query_template.format_map(_Safe(input_data))
+        except Exception as e:
+            logger.debug(f"Template formatting failed; using raw template. Error: {e}")
+            query = query_template
 
     # Create agent; remove step-config tool support and rely on DB-bound tools only
     connected_agents = config.get("connected_agents", [])
@@ -718,7 +788,58 @@ async def agent_execution_step(
         connected_agents=connected_agents,
     )
 
+    # If interactive by default unless explicitly disabled
+    interactive = config.get("interactive", True)
+    multi_turn = bool(config.get("multi_turn", False))
+
+    # If interactive and no user messages yet, pause and wait for input
+    if interactive:
+        # Determine if we have sufficient messages to proceed
+        msgs = input_data.get("messages") or []
+        has_user_msg = any((isinstance(m, dict) and m.get("role") == "user") for m in (msgs or []))
+        if not has_user_msg:
+            return {
+                "status": "waiting",
+                "waiting_for": "user_input",
+                "step_type": "interactive_agent",
+                "agent_config": {"agent_name": agent_name},
+            }
+
     # Execute query
     result = await agent.execute(query, context=input_data)
+
+    # Persist assistant response to DB as a message for this step
+    try:
+        from ..db.service import DatabaseService
+        from ..db.database import get_db_session
+
+        sid = step_config.get("step_id")
+        if sid and isinstance(result, dict):
+            assistant_content = result.get("response") or result.get("output")
+            if assistant_content is not None:
+                dbs = DatabaseService()
+                session = get_db_session()
+                dbs.create_agent_message(
+                    session,
+                    execution_id=execution_context.execution_id,
+                    step_id=sid,
+                    role="assistant",
+                    content=str(assistant_content),
+                    metadata={"model": result.get("model"), "usage": result.get("usage")},
+                    user_id=execution_context.user_context.user_id,
+                    session_id=execution_context.user_context.session_id,
+                )
+    except Exception as _persist_e:
+        logger.debug(f"Could not persist assistant message: {_persist_e}")
+
+    # If multi_turn and not marked final, keep waiting for more input with agent response
+    if interactive and multi_turn and not bool(input_data.get("final_turn")):
+        return {
+            "status": "waiting",
+            "waiting_for": "user_input",
+            "step_type": "interactive_agent",
+            "agent_response": result,
+            "agent_config": {"agent_name": agent_name},
+        }
 
     return result

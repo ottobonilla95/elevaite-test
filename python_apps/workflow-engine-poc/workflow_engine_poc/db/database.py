@@ -10,6 +10,7 @@ from typing import Generator
 from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.pool import StaticPool
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from contextlib import contextmanager
 
 # Database configuration
 DATABASE_URL = os.getenv(
@@ -28,11 +29,19 @@ try:
         pass
 
     # PostgreSQL is available
+    # Pool tuning via env vars with sensible defaults
+    pool_size = int(os.getenv("WORKFLOW_ENGINE_DB_POOL_SIZE", os.getenv("DB_POOL_SIZE", "20")))
+    max_overflow = int(os.getenv("WORKFLOW_ENGINE_DB_MAX_OVERFLOW", os.getenv("DB_MAX_OVERFLOW", "50")))
+    pool_recycle = int(os.getenv("WORKFLOW_ENGINE_DB_POOL_RECYCLE", os.getenv("DB_POOL_RECYCLE", "1800")))  # seconds
+    pool_timeout = int(os.getenv("WORKFLOW_ENGINE_DB_POOL_TIMEOUT", os.getenv("DB_POOL_TIMEOUT", "30")))  # seconds
+
     engine = create_engine(
         DATABASE_URL,
         echo=os.getenv("SQL_ECHO", "false").lower() == "true",
-        pool_size=5,
-        max_overflow=10,
+        pool_size=pool_size,
+        max_overflow=max_overflow,
+        pool_recycle=pool_recycle,
+        pool_timeout=pool_timeout,
     )
     print(f"Connected to PostgreSQL: {DATABASE_URL}")
 

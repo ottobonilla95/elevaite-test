@@ -425,3 +425,64 @@ class DatabaseService:
             }
             for step in step_types
         ]
+
+    # Agent Message operations
+    def create_agent_message(
+        self,
+        session: Session,
+        *,
+        execution_id: str,
+        step_id: str,
+        role: str,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+    ) -> str:
+        from .models import AgentMessage
+
+        rec = AgentMessage(
+            execution_id=uuid_module.UUID(execution_id),
+            step_id=step_id,
+            role=role,
+            content=content,
+            message_metadata=metadata,
+            user_id=user_id,
+            session_id=session_id,
+        )
+        session.add(rec)
+        session.commit()
+        session.refresh(rec)
+        return str(rec.id)
+
+    def list_agent_messages(
+        self,
+        session: Session,
+        *,
+        execution_id: str,
+        step_id: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        from .models import AgentMessage
+        from sqlmodel import select
+
+        exe_uuid = uuid_module.UUID(execution_id)
+        query = select(AgentMessage).where(AgentMessage.execution_id == exe_uuid)
+        if step_id:
+            query = query.where(AgentMessage.step_id == step_id)
+        rows = session.exec(query.order_by(desc(AgentMessage.created_at))).all()[offset : offset + limit]
+        return [
+            {
+                "id": str(r.id),
+                "execution_id": str(r.execution_id),
+                "step_id": r.step_id,
+                "role": r.role,
+                "content": r.content,
+                "metadata": r.message_metadata,
+                "user_id": r.user_id,
+                "session_id": r.session_id,
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in rows
+        ]

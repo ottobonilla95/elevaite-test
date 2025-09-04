@@ -181,15 +181,30 @@ async def execute_workflow_by_id(
         # Build trigger payload for engine
         trigger_payload = body_data.get("trigger", {})
         if kind == "chat":
+            # Allow aliasing 'query' -> current_message for convenience
             trigger_payload = {
                 "kind": "chat",
-                "current_message": trigger_payload.get("current_message") or body_data.get("current_message"),
-                "history": trigger_payload.get("history") or body_data.get("history", []),
+                "current_message": (
+                    (trigger_payload.get("current_message") if isinstance(trigger_payload, dict) else None)
+                    or body_data.get("current_message")
+                    or body_data.get("query")
+                ),
+                "history": (
+                    (trigger_payload.get("history") if isinstance(trigger_payload, dict) else None)
+                    or body_data.get("history", [])
+                ),
                 # Accept an optional pre-assembled messages array of {role, content}
-                "messages": trigger_payload.get("messages") or body_data.get("messages"),
-                "attachments": attachments or trigger_payload.get("attachments", []),
+                "messages": (
+                    (trigger_payload.get("messages") if isinstance(trigger_payload, dict) else None)
+                    or body_data.get("messages")
+                ),
+                "attachments": attachments
+                or (trigger_payload.get("attachments", []) if isinstance(trigger_payload, dict) else []),
                 "need_history": bool(trigger_params.get("need_history", True)),
             }
+            # If messages missing but current_message provided, synthesize a single user message
+            if not trigger_payload.get("messages") and trigger_payload.get("current_message"):
+                trigger_payload["messages"] = [{"role": "user", "content": trigger_payload["current_message"]}]
         elif kind == "file":
             trigger_payload = {
                 "kind": "file",
@@ -230,6 +245,34 @@ async def execute_workflow_by_id(
 
         # Seed raw trigger payload + input_data
         execution_context.step_io_data["trigger_raw"] = trigger_payload
+
+        # Persist initial chat messages to the DB under the first agent step so they are queryable
+        try:
+            if isinstance(trigger_payload, dict) and trigger_payload.get("kind") == "chat":
+                initial_msgs = trigger_payload.get("messages") or []
+                if initial_msgs:
+                    # Choose first agent_execution step to scope these messages
+                    first_agent_step_id = None
+                    for _s in execution_context.steps_config:
+                        if _s.get("step_type") == "agent_execution":
+                            first_agent_step_id = _s.get("step_id")
+                            break
+                    if first_agent_step_id:
+                        for m in initial_msgs:
+                            if isinstance(m, dict) and m.get("role") and m.get("content"):
+                                db_service.create_agent_message(
+                                    session,
+                                    execution_id=execution_id,
+                                    step_id=first_agent_step_id,
+                                    role=str(m["role"]),
+                                    content=str(m["content"]),
+                                    metadata=None,
+                                    user_id=user_id,
+                                    session_id=session_id_val,
+                                )
+        except Exception as _seed_e:
+            logger.warning(f"Failed to persist initial trigger messages: {_seed_e}")
+
         if input_data:
             execution_context.step_io_data.update(input_data)
 
@@ -269,7 +312,15 @@ async def execute_workflow_by_id(
                     pass
 
             # Map adapter result into execution record
-            status = ExecutionStatus.COMPLETED if result.get("success") else ExecutionStatus.FAILED
+            success_val = result.get("success")
+            if success_val is True:
+                status = ExecutionStatus.COMPLETED
+            elif success_val is False:
+                status = ExecutionStatus.FAILED
+            else:
+                # DBOS started (wait=False) and still in progress
+                status = ExecutionStatus.RUNNING
+
             step_results = result.get("step_results", {})
             # Construct step_io_data from outputs
             step_io_data = {}
@@ -319,29 +370,34 @@ async def execute_workflow_by_id(
                 except Exception:
                     exec_secs = None
 
-            db_service.update_execution(
-                session,
-                execution_id,
-                {
-                    "status": status,
-                    "output_data": {"success": result.get("success"), "error": result.get("error")},
-                    "step_io_data": step_io_data,
-                    "completed_at": now_utc,
-                    "execution_time_seconds": exec_secs,
-                    "execution_metadata": {
-                        **(result.get("_dbos") or {}),
-                        **(metadata or {}),
-                        "backend": chosen_backend,
-                        "summary": {
-                            "total_steps": steps_defined,
-                            "steps_executed": steps_executed,
-                            "completed_steps": completed_steps,
-                            "failed_steps": failed_steps,
-                        },
+            update_payload = {
+                "status": status,
+                "output_data": {"success": success_val, "error": result.get("error")},
+                "step_io_data": step_io_data,
+                "execution_metadata": {
+                    **(result.get("_dbos") or {}),
+                    **(metadata or {}),
+                    "backend": chosen_backend,
+                    "summary": {
+                        "total_steps": steps_defined,
+                        "steps_executed": steps_executed,
+                        "completed_steps": completed_steps,
+                        "failed_steps": failed_steps,
                     },
-                    "error_message": result.get("error"),
                 },
-            )
+                "error_message": result.get("error"),
+            }
+            # Only set completion timestamps for terminal states
+            if status in (
+                ExecutionStatus.COMPLETED,
+                ExecutionStatus.FAILED,
+                ExecutionStatus.CANCELLED,
+                ExecutionStatus.TIMEOUT,
+            ):
+                update_payload["completed_at"] = now_utc
+                update_payload["execution_time_seconds"] = exec_secs
+
+            db_service.update_execution(session, execution_id, update_payload)
         else:
             # Local backend: async or sync based on 'wait'
             if wait:
