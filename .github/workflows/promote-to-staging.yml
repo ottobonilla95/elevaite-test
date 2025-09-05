@@ -1,0 +1,118 @@
+name: Promote to Staging (EKS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Git ref to build from (branch, tag, or SHA)"
+        required: false
+        default: "testing"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-promote-${{ github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push-all:
+    name: Build & Push ALL images
+    runs-on: ubuntu-latest
+    outputs:
+      ui_tag: ${{ steps.out.tags_ui }}
+      api_tag: ${{ steps.out.tags_api }}
+      auth_tag: ${{ steps.out.tags_auth }}
+      retriever_tags_json: ${{ steps.out.tags_retrievers }}
+    env:
+      ECR_REGISTRY: ${{ secrets.TGCS_ECR_REGISTRY }}
+      TAG: staging-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.STAGE_AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build UI
+        run: |
+          IMAGE="${ECR_REGISTRY}/elevaite-toshiba-ui"
+          docker build \
+            --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
+            --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs-staging.iopex.ai/auth-api \
+            --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs-staging.iopex.ai/api/core/ \
+            --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
+            --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
+            -f apps/toshiba/Dockerfile \
+            -t "${IMAGE}:${TAG}" \
+            .
+          docker push "${IMAGE}:${TAG}"
+
+      - name: Build API
+        run: |
+          IMAGE="${ECR_REGISTRY}/elevaite-toshiba-backend"
+          docker build \
+            -f python_apps/toshiba_backends/toshiba_backend/Dockerfile \
+            -t "${IMAGE}:${TAG}" \
+            python_apps/toshiba_backends/toshiba_backend
+          docker push "${IMAGE}:${TAG}"
+
+      - name: Build Auth
+        run: |
+          IMAGE="${ECR_REGISTRY}/elevaite-auth-api"
+          docker build \
+            -f python_apps/auth_api/Dockerfile \
+            -t "${IMAGE}:${TAG}" \
+            python_apps/auth_api
+          docker push "${IMAGE}:${TAG}"
+
+      - name: Build ALL retrievers
+        id: build_retrievers
+        run: |
+          set -euo pipefail
+          json="{"
+          shopt -s nullglob
+          for dir in python_apps/toshiba_backends/*retriever*; do
+            [[ -f "$dir/Dockerfile" ]] || continue
+            base="$(basename "$dir")"
+            image_name="elevaite-toshiba-${base//_/-}"
+            IMAGE="${ECR_REGISTRY}/${image_name}"
+            echo ">> Building $IMAGE:${TAG} from $dir"
+            docker build -f "$dir/Dockerfile" -t "${IMAGE}:${TAG}" "$dir"
+            docker push "${IMAGE}:${TAG}"
+            json="${json}\"${image_name}\":\"${TAG}\","
+          done
+          json="${json%,}}"
+          echo "retriever_tags_json=${json}" >> $GITHUB_OUTPUT
+
+      - name: Export tags
+        id: out
+        run: |
+          echo "tags_ui=${TAG}" >> $GITHUB_OUTPUT
+          echo "tags_api=${TAG}" >> $GITHUB_OUTPUT
+          echo "tags_auth=${TAG}" >> $GITHUB_OUTPUT
+          echo "tags_retrievers=${{ steps.build_retrievers.outputs.retriever_tags_json }}" >> $GITHUB_OUTPUT
+
+  deploy:
+    needs: build-and-push-all
+    uses: iopexses/elev8s/.github/workflows/reusable-dep-to-env.yml@env-wf
+    with:
+        environment: staging
+        toshiba_ui_tag: ${{ needs.build-and-push-all.outputs.ui_tag }}
+        toshiba_api_tag: ${{ needs.build-and-push-all.outputs.api_tag }}
+        toshiba_auth_tag: ${{ needs.build-and-push-all.outputs.auth_tag }}
+        retriever_tags_json: ${{ needs.build-and-push-all.outputs.retriever_tags_json }}
+    secrets:
+        STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+        STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+        STAGE_AWS_REGION: ${{ secrets.STAGE_AWS_REGION }}
+        STAGE_EKS_CLUSTER_NAME: ${{ secrets.STAGE_EKS_CLUSTER_NAME }}
+        ELEV8S_READ_TOKEN: ${{ secrets.ELEV8S_READ_TOKEN }}

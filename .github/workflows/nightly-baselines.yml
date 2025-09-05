@@ -1,91 +1,123 @@
 name: Nightly Baselines
 on:
-    schedule:
-        - cron: "15 3 * * *"
-    workflow_dispatch:
+  schedule:
+    - cron: "15 3 * * *"
+  workflow_dispatch:
 
 permissions:
-    contents: read
+  contents: read
 
 jobs:
-    build-baselines:
-        runs-on: ubuntu-latest
-        env:
-            ECR_REGISTRY: ${{ secrets.TGCS_ECR_REGISTRY }}
-            DATE_TAG: baseline-${{ github.run_id }}
-        strategy:
-            matrix:
-                include:
-                    - name: ui
-                      repo_path: apps/toshiba
-                      dockerfile: apps/toshiba/Dockerfile
-                      image: elevaite-toshiba-ui
-                      context: .
-                    - name: api
-                      repo_path: python_apps/toshiba_backends/toshiba_backend
-                      dockerfile: python_apps/toshiba_backends/toshiba_backend/Dockerfile
-                      image: elevaite-toshiba-backend
-                      context: python_apps/toshiba_backends/toshiba_backend
-                    - name: auth
-                      repo_path: python_apps/auth_api
-                      dockerfile: python_apps/auth_api/Dockerfile
-                      image: elevaite-auth-api
-                      context: .
-                    - name: sql-retriever
-                      repo_path: python_apps/toshiba_backends/sql_retriever
-                      dockerfile: python_apps/toshiba_backends/sql_retriever/Dockerfile
-                      image: elevaite-toshiba-sql-retriever
-                      context: python_apps/toshiba_backends/sql_retriever
-                    - name: tgcs-retriever
-                      repo_path: python_apps/toshiba_backends/tgcs_retriever
-                      dockerfile: python_apps/toshiba_backends/tgcs_retriever/Dockerfile
-                      image: elevaite-toshiba-tgcs-retriever
-                      context: python_apps/toshiba_backends/tgcs_retriever
-                    - name: topgun-retriever
-                      repo_path: python_apps/toshiba_backends/top_gun_retriever
-                      dockerfile: python_apps/toshiba_backends/top_gun_retriever/Dockerfile
-                      image: elevaite-toshiba-topgun-retriever
-                      context: python_apps/toshiba_backends/top_gun_retriever
-                    - name: power-retriever
-                      repo_path: python_apps/toshiba_backends/power_retriever
-                      dockerfile: python_apps/toshiba_backends/power_retriever/Dockerfile
-                      image: elevaite-toshiba-power-retriever
-                      context: python_apps/toshiba_backends/power_retriever
-        steps:
-            - uses: actions/checkout@v4
+  build-baselines:
+    runs-on: ubuntu-latest
+    env:
+      ECR_REGISTRY: ${{ secrets.TGCS_ECR_REGISTRY }}
+      DATE_TAG: baseline-${{ github.run_id }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ui-testing
+            kind: ui
+            env_name: testing
+            base_url: ${{ vars.TESTING_BASE_URL }}
+            dockerfile: apps/toshiba/Dockerfile
+            image: elevaite-toshiba-ui
+            context: .
+          - name: ui-staging
+            kind: ui
+            env_name: staging
+            base_url: ${{ vars.STAGING_BASE_URL }}
+            dockerfile: apps/toshiba/Dockerfile
+            image: elevaite-toshiba-ui
+            context: .
+          - name: ui-production
+            kind: ui
+            env_name: production
+            base_url: ${{ vars.PRODUCTION_BASE_URL }}
+            dockerfile: apps/toshiba/Dockerfile
+            image: elevaite-toshiba-ui
+            context: .
 
-            - uses: docker/setup-buildx-action@v3
+          - name: api
+            kind: svc
+            dockerfile: python_apps/toshiba_backends/toshiba_backend/Dockerfile
+            image: elevaite-toshiba-backend
+            context: python_apps/toshiba_backends/toshiba_backend
+          - name: auth
+            kind: svc
+            dockerfile: python_apps/auth_api/Dockerfile
+            image: elevaite-auth-api
+            context: .
+          - name: sql-retriever
+            kind: svc
+            dockerfile: python_apps/toshiba_backends/sql_retriever/Dockerfile
+            image: elevaite-toshiba-sql-retriever
+            context: python_apps/toshiba_backends/sql_retriever
+          - name: tgcs-retriever
+            kind: svc
+            dockerfile: python_apps/toshiba_backends/tgcs_retriever/Dockerfile
+            image: elevaite-toshiba-tgcs-retriever
+            context: python_apps/toshiba_backends/tgcs_retriever
+          - name: topgun-retriever
+            kind: svc
+            dockerfile: python_apps/toshiba_backends/top_gun_retriever/Dockerfile
+            image: elevaite-toshiba-topgun-retriever
+            context: python_apps/toshiba_backends/top_gun_retriever
+          - name: power-retriever
+            kind: svc
+            dockerfile: python_apps/toshiba_backends/power_retriever/Dockerfile
+            image: elevaite-toshiba-power-retriever
+            context: python_apps/toshiba_backends/power_retriever
 
-            - uses: aws-actions/configure-aws-credentials@v3
-              with:
-                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                aws-region: ${{ secrets.STAGE_AWS_REGION }}
+    steps:
+      - uses: actions/checkout@v4
 
-            - uses: aws-actions/amazon-ecr-login@v1
-            - name: Build & push ${{ matrix.name }}
-              run: |
-                set -euo pipefail
-                IMAGE="${ECR_REGISTRY}/${{ matrix.image }}"
+      - uses: docker/setup-buildx-action@v3
 
-                if [[ "${{ matrix.name }}" == "ui" ]]; then
-                    BUILD_ARGS=(
-                      --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba
-                      --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email
-                      --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false
-                      --build-arg NEXT_PUBLIC_BACKEND_URL=/api/core/
-                      --build-arg NEXT_PUBLIC_AUTH_API_URL=/auth-api
-                    )
-                else
-                    BUILD_ARGS=()
-                fi
+      - uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.STAGE_AWS_REGION }}
 
-                docker build \
-                    "${BUILD_ARGS[@]}" \
-                    -f "${{ matrix.dockerfile }}" \
-                    -t "${IMAGE}:latest" \
-                    -t "${IMAGE}:${DATE_TAG}" \
-                    "${{ matrix.context }}"
+      - uses: aws-actions/amazon-ecr-login@v1
 
-                docker push "${IMAGE}:latest"
-                docker push "${IMAGE}:${DATE_TAG}"
+      - name: Build & push ${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          IMAGE="${ECR_REGISTRY}/${{ matrix.image }}"
+
+          if [[ "${{ matrix.kind }}" == "ui" ]]; then
+            BASE_URL="${{ matrix.base_url }}"
+            if [[ -z "${BASE_URL}" ]]; then
+              echo "::error title=Missing base URL::Set repo variables TESTING_BASE_URL, STAGING_BASE_URL, PRODUCTION_BASE_URL to absolute origins"; exit 1;
+            fi
+
+            TAG_ENV="latest-${{ matrix.env_name }}"
+            DATE_ENV_TAG="${DATE_TAG}-${{ matrix.env_name }}"
+
+            docker build \
+                --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
+                --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
+                --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
+                --build-arg NEXT_PUBLIC_BACKEND_URL="${BASE_URL}/api/core/" \
+                --build-arg NEXT_PUBLIC_AUTH_API_URL="${BASE_URL}/auth-api" \
+                -f "${{ matrix.dockerfile }}" \
+                -t "${IMAGE}:${TAG_ENV}" \
+                -t "${IMAGE}:${DATE_ENV_TAG}" \
+                "${{ matrix.context }}"
+
+            docker push "${IMAGE}:${TAG_ENV}"
+            docker push "${IMAGE}:${DATE_ENV_TAG}"
+
+          else
+            docker build \
+                -f "${{ matrix.dockerfile }}" \
+                -t "${IMAGE}:latest" \
+                -t "${IMAGE}:${DATE_TAG}" \
+                "${{ matrix.context }}"
+
+            docker push "${IMAGE}:latest"
+            docker push "${IMAGE}:${DATE_TAG}"
+          fi
