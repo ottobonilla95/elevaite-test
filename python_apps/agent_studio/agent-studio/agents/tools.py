@@ -42,6 +42,10 @@ GOOGLE_API = os.getenv("GOOGLE_API_PERSONAL")
 CX_ID = os.getenv("CX_ID_PERSONAL")
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
+KEVEL_API_KEY = os.getenv("KEVEL_API_KEY")
+KEVEL_API_BASE = os.getenv("KEVEL_API_BASE_URL", "https://api.kevel.co/v1")
+KEVEL_NETWORK_ID = 11679
+
 EXAMPLE_DATA = [
     {"customer_id": 1111, "order_number": 1720, "location": "New York"},
     {"customer_id": 2222, "order_number": 9, "location": "Los Angeles"},
@@ -5134,6 +5138,243 @@ tool_store = {
 }
 
 
+# Kevel Tools
+@function_schema
+def kevel_get_sites() -> str:
+    """
+    Get all available sites from Kevel network 11679.
+
+    This tool retrieves all sites configured in the Kevel network that can be used
+    for ad placement. Each site has a unique ID and name that you'll need for generating ad code.
+
+    Returns:
+        str: JSON string containing list of sites with their IDs, names, and domains
+
+    Example response:
+        {
+            "success": true,
+            "sites": [
+                {"Id": 123, "Name": "My Website", "Domain": "example.com"},
+                {"Id": 124, "Name": "Mobile Site", "Domain": "m.example.com"}
+            ]
+        }
+    """
+    try:
+        if not KEVEL_API_KEY:
+            return json.dumps({
+                "success": False,
+                "message": "Kevel API key not configured",
+                "error": "Missing KEVEL_API_KEY in environment variables"
+            })
+
+        headers = {
+            "X-Adzerk-ApiKey": KEVEL_API_KEY,
+            "Content-Type": "application/json"
+        }
+
+        # Try different possible endpoints for sites
+        endpoints_to_try = [
+            f"{KEVEL_API_BASE}/site",
+            f"{KEVEL_API_BASE}/network/{KEVEL_NETWORK_ID}/site",
+            f"{KEVEL_API_BASE}/advertiser/site"
+        ]
+
+        last_error = None
+        for endpoint in endpoints_to_try:
+            try:
+                response = requests.get(
+                    endpoint,
+                    headers=headers,
+                    timeout=10
+                )
+
+                # Log the response for debugging
+                print(f"🔍 KEVEL SITES API Response: Endpoint={endpoint}, Status={response.status_code}, Content={response.text[:500]}...")
+
+                if response.status_code == 200:
+                    break
+                else:
+                    last_error = f"HTTP {response.status_code}: {response.text}"
+            except Exception as e:
+                last_error = str(e)
+                continue
+        else:
+            # If we get here, all endpoints failed
+            return json.dumps({
+                "success": False,
+                "message": "Failed to retrieve sites from all attempted endpoints",
+                "error": f"Last error: {last_error}",
+                "attempted_endpoints": endpoints_to_try
+            })
+
+        if response.status_code == 200:
+            sites = response.json()
+            return json.dumps({
+                "success": True,
+                "message": f"Retrieved {len(sites)} sites from network {KEVEL_NETWORK_ID}",
+                "sites": sites
+            })
+        else:
+            return json.dumps({
+                "success": False,
+                "message": f"Failed to retrieve sites: HTTP {response.status_code}",
+                "error": response.text
+            })
+
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "message": "Error connecting to Kevel API",
+            "error": str(e)
+        })
+
+
+@function_schema
+def kevel_get_ad_types() -> str:
+    """
+    Get all available ad types (sizes) from Kevel network 11679.
+
+    This tool retrieves all ad types/sizes configured in the Kevel network.
+    Ad types define the dimensions and format of ad placements (e.g., 300x250, 728x90).
+    You'll need the ad type ID for generating ad code.
+
+    Returns:
+        str: JSON string containing list of ad types with their IDs, names, and dimensions
+
+    Example response:
+        {
+            "success": true,
+            "ad_types": [
+                {"Id": 5, "Name": "Medium Rectangle", "Width": 300, "Height": 250},
+                {"Id": 6, "Name": "Leaderboard", "Width": 728, "Height": 90}
+            ]
+        }
+    """
+    try:
+        if not KEVEL_API_KEY:
+            return json.dumps({
+                "success": False,
+                "message": "Kevel API key not configured",
+                "error": "Missing KEVEL_API_KEY in environment variables"
+            })
+
+        headers = {
+            "X-Adzerk-ApiKey": KEVEL_API_KEY,
+            "Content-Type": "application/json"
+        }
+
+        response = requests.get(
+            f"{KEVEL_API_BASE}/adtypes",
+            headers=headers,
+            timeout=10
+        )
+
+        if response.status_code == 200:
+            ad_types = response.json()
+            return json.dumps({
+                "success": True,
+                "message": f"Retrieved {len(ad_types)} ad types from network {KEVEL_NETWORK_ID}",
+                "ad_types": ad_types
+            })
+        else:
+            return json.dumps({
+                "success": False,
+                "message": f"Failed to retrieve ad types: HTTP {response.status_code}",
+                "error": response.text
+            })
+
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "message": "Error connecting to Kevel API",
+            "error": str(e)
+        })
+
+
+@function_schema
+def kevel_debug_api() -> str:
+    """
+    Debug tool to explore Kevel API endpoints and help troubleshoot connectivity issues.
+
+    This tool tests various API endpoints to help identify the correct API structure
+    and diagnose connectivity issues with the Kevel API.
+
+    Returns:
+        str: JSON string containing debug information about API endpoints
+    """
+    try:
+        if not KEVEL_API_KEY:
+            return json.dumps({
+                "success": False,
+                "message": "Kevel API key not configured",
+                "error": "Missing KEVEL_API_KEY in environment variables"
+            })
+
+        headers = {
+            "X-Adzerk-ApiKey": KEVEL_API_KEY,
+            "Content-Type": "application/json"
+        }
+
+        # Test various endpoints
+        endpoints_to_test = [
+            "/",
+            "/network",
+            f"/network/{KEVEL_NETWORK_ID}",
+            "/site",
+            f"/network/{KEVEL_NETWORK_ID}/site",
+            "/adtype",
+            f"/network/{KEVEL_NETWORK_ID}/adtype",
+            "/advertiser",
+            "/channel"
+        ]
+
+        results = []
+        for endpoint in endpoints_to_test:
+            try:
+                url = f"{KEVEL_API_BASE}{endpoint}"
+                response = requests.get(url, headers=headers, timeout=5)
+                results.append({
+                    "endpoint": endpoint,
+                    "url": url,
+                    "status_code": response.status_code,
+                    "success": response.status_code == 200,
+                    "response_size": len(response.text),
+                    "error": None if response.status_code == 200 else response.text[:200]
+                })
+            except Exception as e:
+                results.append({
+                    "endpoint": endpoint,
+                    "url": f"{KEVEL_API_BASE}{endpoint}",
+                    "status_code": None,
+                    "success": False,
+                    "response_size": 0,
+                    "error": str(e)
+                })
+
+        return json.dumps({
+            "success": True,
+            "message": f"Tested {len(endpoints_to_test)} endpoints",
+            "api_base": KEVEL_API_BASE,
+            "network_id": KEVEL_NETWORK_ID,
+            "results": results
+        })
+
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "message": "Error during API debug",
+            "error": str(e)
+        })
+
+
+# Add Kevel tools to the tool_store dictionary
+tool_store.update({
+    "kevel_get_sites": kevel_get_sites,
+    "kevel_get_ad_types": kevel_get_ad_types,
+    "kevel_debug_api": kevel_debug_api,
+})
+
+
 tool_schemas = {
     "add_numbers": add_numbers.openai_schema,
     "weather_forecast": weather_forecast.openai_schema,
@@ -5172,4 +5413,7 @@ tool_schemas = {
     "extract_rfq_json": extract_rfq_json.openai_schema,
     "calculate_mitie_quote": calculate_mitie_quote.openai_schema,
     "generate_mitie_pdf": generate_mitie_pdf.openai_schema,
+    # Kevel Tools
+    "kevel_get_sites": kevel_get_sites.openai_schema,
+    "kevel_get_ad_types": kevel_get_ad_types.openai_schema,
 }
