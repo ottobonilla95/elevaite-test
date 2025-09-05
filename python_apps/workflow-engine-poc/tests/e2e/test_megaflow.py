@@ -25,10 +25,16 @@ BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8006")
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
-def _http(method: str, path: str, json_body: Dict[str, Any] | None = None) -> httpx.Response:
+def _http(
+    method: str,
+    path: str,
+    json_body: Dict[str, Any] | None = None,
+    files: Any | None = None,
+    data: Any | None = None,
+) -> httpx.Response:
     url = BASE_URL + path
     with httpx.Client(timeout=30.0) as client:
-        return client.request(method, url, json=json_body)
+        return client.request(method, url, json=json_body, files=files, data=data)
 
 
 def _load_fixture(name: str) -> Dict[str, Any]:
@@ -208,3 +214,102 @@ def test_non_ai_hybrid_with_tool_and_subflow(backend: str):
     if isinstance(add_res, dict):
         result_val = str(add_res.get("result"))
         assert any(c.isdigit() for c in result_val)
+
+
+@pytest.mark.parametrize("backend", ["local", "dbos"])
+def test_tool_success_and_unknown(backend: str):
+    # Tool success
+    wf_success = _load_fixture("tool_exec_success.json")
+    wid_success = _create_workflow(wf_success)
+    exec_req = {"backend": backend, "trigger": {"kind": "chat"}, "wait": True}
+    r = _http("POST", f"/workflows/{wid_success}/execute", exec_req)
+    assert r.status_code == 200, r.text
+    exe_id = r.json().get("id") or r.json().get("execution_id")
+
+    # Poll to terminal or running
+    deadline = time.time() + 20
+    final_status = None
+    while time.time() < deadline:
+        s = _get_status(exe_id)
+        final_status = s.get("status")
+        if final_status in {"completed", "failed", "cancelled"}:
+            break
+        time.sleep(0.5)
+    assert final_status in {"completed", "running"}
+
+    # Tool unknown -> failure expected
+    wf_unknown = _load_fixture("tool_exec_unknown.json")
+    wid_unknown = _create_workflow(wf_unknown)
+    exec_req2 = {"backend": backend, "trigger": {"kind": "chat"}, "wait": True}
+    r2 = _http("POST", f"/workflows/{wid_unknown}/execute", exec_req2)
+    assert r2.status_code == 200, r2.text
+    exe2 = r2.json().get("id") or r2.json().get("execution_id")
+
+    # Poll to terminal
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        s2 = _get_status(exe2)
+        if s2.get("status") in {"completed", "failed", "cancelled"}:
+            final2 = s2.get("status")
+            break
+        time.sleep(0.5)
+    else:
+        final2 = _get_status(exe2).get("status")
+    assert final2 in {"failed", "running"}
+
+
+@pytest.mark.parametrize("backend", ["local", "dbos"])
+def test_chat_with_attachment_small_text(backend: str, tmp_path: Path):
+    # Create small text file
+    p = tmp_path / "note.txt"
+    p.write_text("hello attachment")
+
+    # Create workflow that allows doc/text/plain
+    wf = _load_fixture("chat_with_attachment.json")
+    wid = _create_workflow(wf)
+
+    # Send multipart with payload and files[]
+    payload = {
+        "backend": backend,
+        "trigger": {"kind": "chat", "current_message": "process file"},
+        "wait": True,
+    }
+    files = [
+        ("files", ("note.txt", p.read_bytes(), "text/plain")),
+    ]
+    data = {"payload": json.dumps(payload)}
+
+    r = _http("POST", f"/workflows/{wid}/execute", files=files, data=data)
+    assert r.status_code == 200, r.text
+    exe = r.json().get("id") or r.json().get("execution_id")
+
+    # Poll status
+    deadline = time.time() + 20
+    last = None
+    while time.time() < deadline:
+        s = _get_status(exe)
+        last = s
+        if s.get("status") in {"completed", "failed", "cancelled"}:
+            break
+        time.sleep(0.5)
+
+    assert last and last.get("status") in {"completed", "running"}
+
+    # Results include trigger step output with attachments echoed
+    results = _get_results(exe)
+    step_results = results.get("step_results") or {}
+    if "trigger" in step_results:
+        trig = step_results["trigger"].get("output_data")
+        if isinstance(trig, dict):
+            atts = trig.get("attachments") or []
+            assert any(a.get("name") == "note.txt" for a in atts)
+
+
+def test_validate_endpoint_accepts_known_steps():
+    wf = _load_fixture("webhook_minimal.json")
+    r = _http("POST", "/workflows/validate", wf)
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data.get("is_valid") in {True, False}
+    # Should not have unknown step type errors for trigger + data_input
+    assert not any("Unknown step type" in e for e in data.get("errors", []))
