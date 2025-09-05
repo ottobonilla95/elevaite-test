@@ -103,7 +103,11 @@ jobs:
         toshiba_ui_tag: ${{ needs.build-and-push-all.outputs.ui_tag }}
         toshiba_api_tag: ${{ needs.build-and-push-all.outputs.api_tag }}
         toshiba_auth_tag: ${{ needs.build-and-push-all.outputs.auth_tag }}
-        retriever_tags_json: ${{ needs.build-and-push-all.outputs.retriever_tags_json }}
+        # retriever_tags_json: ${{ needs.build-and-push-all.outputs.retriever_tags_json }}
+        retr_power_tag: ${{ fromJson(needs.build-and-push-all.outputs.retriever_tags_json).power }}
+        retr_sql_tag: ${{ fromJson(needs.build-and-push-all.outputs.retriever_tags_json).sql }}
+        retr_tgcs_tag: ${{ fromJson(needs.build-and-push-all.outputs.retriever_tags_json).tgcs }}
+        retr_topgun_tag: ${{ fromJson(needs.build-and-push-all.outputs.retriever_tags_json).topgun }}
     secrets:
         PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
         PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
