@@ -61,6 +61,12 @@ async def human_approval_step(
         },
     }
 
+    # If local backend and a decision was injected via resume_execution, complete immediately
+    if backend != "dbos":
+        injected = execution_context.step_io_data.get(step_id)
+        if isinstance(injected, dict) and injected.get("decision") in ("approved", "denied"):
+            return StepResult(step_id=step_id, status=StepStatus.COMPLETED, output_data=injected)
+
     if backend == "dbos":
         # For DBOS, wait by polling the database for the approval decision.
         # This keeps the wait within the step (DBOS context) and avoids external event signaling.

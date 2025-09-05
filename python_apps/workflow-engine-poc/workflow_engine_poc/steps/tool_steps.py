@@ -4,6 +4,7 @@ Tool Execution Step
 Allows invoking a tool (local or DB-registered) as a standalone workflow step.
 Supports parameter mapping from step input_data and static defaults.
 """
+
 from __future__ import annotations
 
 from typing import Dict, Any, Optional
@@ -75,17 +76,16 @@ async def tool_execution_step(
 
     # Resolve by name (fallback or direct)
     if func is None and (tool_name or resolved_name):
-        name = tool_name or resolved_name
+        name: str = tool_name or (resolved_name or "")
         local_tools = get_all_tools()
         func = local_tools.get(name)  # local tools
         resolved_name = name
 
     if func is None:
-        return {
-            "success": False,
-            "error": "Tool not found or unsupported (only local tools supported currently)",
-            "resolved": {"name": resolved_name, "tool_id": tool_id},
-        }
+        # Mark as a hard failure so the engine can fail the execution if critical
+        raise Exception(
+            f"Tool not found or unsupported (only local tools supported currently): name={resolved_name} id={tool_id}"
+        )
 
     # Build call params from mapping + static
     def extract_from_path(data: Any, path: str) -> Any:
@@ -128,4 +128,3 @@ async def tool_execution_step(
         "result": result,
         "executed_at": datetime.now().isoformat(),
     }
-

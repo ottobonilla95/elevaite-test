@@ -128,7 +128,7 @@ def test_local_human_approval_flow():
         status = sr.json().get("status")
         if status in {"completed", "failed", "cancelled"}:
             break
-    assert status in {"completed", "running", "waiting"}, f"Unexpected final status: {status}"
+    assert status == "completed", f"Unexpected final status: {status}"
 
 
 @pytest.mark.skipif(SMOKE_APPROVALS != "1", reason="SMOKE_APPROVALS disabled")
