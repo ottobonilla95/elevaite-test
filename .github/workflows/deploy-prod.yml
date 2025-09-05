@@ -99,6 +99,9 @@ jobs:
             esac
           done
 
+          json="${json%,}}"
+          echo "retriever_tags_json=${json}" >> "$GITHUB_OUTPUT"
+
       - name: Export tags
         id: out
         run: |
