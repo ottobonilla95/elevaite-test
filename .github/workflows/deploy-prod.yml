@@ -97,7 +97,7 @@ jobs:
 
   deploy:
     needs: build-and-push-all
-    uses: iopexses/elev8s/.github/workflows/reusable-dep-to-env.yml@env-wf
+    uses: iopexses/elev8s/.github/workflows/reusable-dep-to-env.yml@main
     with:
         environment: prod
         toshiba_ui_tag: ${{ needs.build-and-push-all.outputs.ui_tag }}

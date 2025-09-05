@@ -146,7 +146,7 @@ jobs:
       needs.build-and-push-changed.outputs.auth_tag != '' ||
       needs.build-and-push-changed.outputs.retriever_tags_json != ''    
     needs: build-and-push-changed
-    uses: iopexses/elev8s/.github/workflows/reusable-dep-to-env.yml@env-wf
+    uses: iopexses/elev8s/.github/workflows/reusable-dep-to-env.yml@main
     with:
         environment: testing
         toshiba_ui_tag: ${{ needs.build-and-push-changed.outputs.ui_tag }}
