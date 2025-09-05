@@ -132,3 +132,6 @@ jobs:
         PROD_AWS_REGION: ${{ secrets.PROD_AWS_REGION }}
         PROD_EKS_CLUSTER_NAME: ${{ secrets.PROD_EKS_CLUSTER_NAME }}
         ELEV8S_READ_TOKEN: ${{ secrets.ELEV8S_READ_TOKEN }}
+        STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+        STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+        STAGE_AWS_REGION: ${{ secrets.STAGE_AWS_REGION }}
