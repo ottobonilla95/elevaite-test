@@ -65,7 +65,7 @@ jobs:
           docker build \
             -f python_apps/auth_api/Dockerfile \
             -t "${IMAGE}:${TAG}" \
-            python_apps/auth_api
+            .
           docker push "${IMAGE}:${TAG}"
 
       - name: Build ALL retrievers
