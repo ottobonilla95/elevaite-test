@@ -108,20 +108,30 @@ jobs:
           set -euo pipefail
           json="{"
           shopt -s nullglob
+
           for dir in python_apps/toshiba_backends/*retriever*; do
             [[ -f "$dir/Dockerfile" ]] || continue
-            base="$(basename "$dir")"                   
-            image_name="elevaite-toshiba-${base//_/-}"  
-            IMAGE="${ECR_REGISTRY}/${image_name}"
-            echo ">> Building $IMAGE:${TAG} from $dir"
-            docker build -f "$dir/Dockerfile" -t "${IMAGE}:${TAG}" "$dir"
+            base="$(basename "$dir")"
+
+            case "$base" in
+              top_gun_retriever)  repo="elevaite-toshiba-topgun-retriever" ;;
+              *)  repo="elevaite-toshiba-${base//_/-}" ;;
+            esac
+
+            IMAGE="${ECR_REGISTRY}/${repo}"
+            echo ">> Building ${IMAGE}:${TAG} from ${dir}"
+            docker build -f "${dir}/Dockerfile" -t "${IMAGE}:${TAG}" "${dir}"
             docker push "${IMAGE}:${TAG}"
-            # accumulate JSON mapping
-            key="${image_name}"
-            json="${json}\"${key}\":\"${TAG}\","
+
+            json="${json}\"${repo}\":\"${TAG}\","
+
+            case "$base" in
+              power_retriever)   echo "retr_power_tag=${TAG}"   >> "$GITHUB_OUTPUT" ;;
+              sql_retriever)     echo "retr_sql_tag=${TAG}"     >> "$GITHUB_OUTPUT" ;;
+              tgcs_retriever)    echo "retr_tgcs_tag=${TAG}"    >> "$GITHUB_OUTPUT" ;;
+              top_gun_retriever) echo "retr_topgun_tag=${TAG}"  >> "$GITHUB_OUTPUT" ;;
+            esac
           done
-          json="${json%,}}"
-          echo "retriever_tags_json=${json}" >> $GITHUB_OUTPUT
 
       - name: Export tags
         id: out
