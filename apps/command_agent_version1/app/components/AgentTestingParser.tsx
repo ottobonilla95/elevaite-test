@@ -4,6 +4,7 @@ import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 
 
 
+interface CodeBlock { token: string; html: string }
 interface AgentTestingParserProps {
     message: string;
     isUser?: boolean;
@@ -26,10 +27,14 @@ export function AgentTestingParser({ message, isUser }: AgentTestingParserProps)
             (result, fn) => result ?? fn(message), undefined
         ) ?? message;
 
-        const rich = matchRichTextFormat(extracted) ?? extracted;
-        const final = linkify(rich);
+        const masked = maskCodeFences(extracted);
 
-        setFormattedText(final);
+        const rich = matchRichTextFormat(masked.text) ?? masked.text;
+        const linked = linkify(rich);
+        
+        const finalHtml = restoreCodeFences(linked, masked.blocks);
+
+        setFormattedText(finalHtml);
     }, [message]);
 
 
@@ -80,6 +85,53 @@ export function AgentTestingParser({ message, isUser }: AgentTestingParserProps)
                 return undefined;
             }
         }
+    }
+
+    function escapeHtml(text: string): string {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+
+    function maskCodeFences(src: string): { text: string; blocks: CodeBlock[] } {
+        const blocks: CodeBlock[] = [];
+
+        const fenceRe = /(?<prefix>^|\n)(?<fence>```|~~~)(?<lang>[a-zA-Z0-9+_-]*)[ \t]*\n(?<code>[\s\S]*?)(?:\n\k<fence>)(?=(?:\n|$))/g;
+
+        let index = 0;
+
+        const text = src.replace(fenceRe, (_m, prefix: string, ...rest: unknown[]) => {
+            const groups = rest[rest.length - 1] as {
+                fence?: string;
+                lang?: string;
+                code?: string;
+            };
+
+            const lang = (groups.lang ?? "").trim();
+            // Preserve internal whitespace; trim a single trailing newline if present
+            const body = (groups.code ?? "").replace(/\n$/, "");
+            const cls = lang ? ` class="language-${lang}"` : "";
+            const html = `<pre class="code-block"><code${cls}>${escapeHtml(body)}</code></pre>`;
+
+            const token = `\uE000CODE_${(index++).toString()}\uE000`;
+            blocks.push({ token, html });
+
+            return `${prefix}${token}`;
+        });
+
+        return { text, blocks };
+    }
+
+    function restoreCodeFences(maskedText: string, blocks: CodeBlock[]): string {
+        let out = maskedText;
+        for (const { token, html } of blocks) {
+            out = out.split(token).join(html);
+        }
+        return out;
     }
 
     function matchRichTextFormat(text: string): string | undefined {

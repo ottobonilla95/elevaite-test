@@ -24,6 +24,13 @@
 		& + .chat-bubble {
 			margin-top: 10px;
 		}
+
+		.chat-content {
+			flex: 1;
+			min-height: 0;
+			min-width: 0;
+			position: relative;
+		}
 	}
 
 

@@ -48,6 +48,15 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+
+
+        .code-block {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background-color: #e0e0e0;
+            padding: 1rem;
+            border-radius: 8px;
+        }
     }
 
     .parser-button-container {

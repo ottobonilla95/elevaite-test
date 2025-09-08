@@ -281,7 +281,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
                     {message.sender === "user"
                       ? renderUserAvatar()
                       : renderBotAvatar(message.error)}
-                    <div className="flex-1">
+                    <div className="chat-content">
                       <div
                         className={`text-xs text-[#FF681F] mb-1 ${message.sender === "user" ? "user-time" : "bot-time"}`}
                       >
