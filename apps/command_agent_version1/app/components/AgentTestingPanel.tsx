@@ -53,14 +53,18 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
   // UPDATE: React to workflowId changes
   useEffect(() => {
     if (workflowId) {
-      setChatMessages([
-        {
+      setChatMessages(prev => {
+        const intro = {
           id: Date.now(),
-          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- No! Not the same! description can be an empty string.
+          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- description can be an empty string
           text: description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
-          sender: "bot",
-        },
-      ]);
+          sender: "bot" as const,
+        };
+
+        if (prev.length === 0) return [intro];
+        if (prev.length === 1 && prev[0].sender === "bot") return [intro];
+        return prev;
+      });
       // Clear any previous uploads when workflow changes
       setUploadedFiles([]);
     } else {
@@ -72,7 +76,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
         },
       ]);
     }
-  }, [workflowId]);
+  }, [workflowId, description]);
 
   useEffect(() => {
     if (chatEndRef.current) {

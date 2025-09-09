@@ -8,6 +8,49 @@
 	background: white;
 	height: 59px;
 
+
+
+	.workflow-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+
+		.icon-button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 28px;
+			height: 28px;
+			border: none;
+			background: none;
+			cursor: pointer;
+			padding: 0;
+		}
+
+		.text-block {
+			display: flex;
+			flex-direction: column;
+			line-height: 1.2;
+
+			.header {
+				font-size: 14px;
+				font-weight: 600;
+				margin: 0 0 2px 0;
+
+				&.unsaved {
+					color: #9ca3af;
+				}
+			}
+
+			.description {
+				font-size: 12px;
+				font-weight: 500;
+				color: #6b7280;
+			}
+		}
+	}
+
+
 	.actions {
 		display: flex;
 		align-items: center;

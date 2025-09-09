@@ -88,14 +88,14 @@ function HeaderBottom({
   // Function to handle deploy button click - starts the advanced deployment flow
   const handleDeployClick = (): void => {
     // Debug logging
-    console.log("🚀 Deploy button clicked!");
-    console.log("📊 Deploy state:", {
-      isExistingWorkflow,
-      hasUnsavedChanges,
-      workflowName,
-      workflowDescription,
-      workflowTags,
-    });
+    // console.log("🚀 Deploy button clicked!");
+    // console.log("📊 Deploy state:", {
+    //   isExistingWorkflow,
+    //   hasUnsavedChanges,
+    //   workflowName,
+    //   workflowDescription,
+    //   workflowTags,
+    // });
 
     // Check if this is an existing workflow and if there are changes
     if (isExistingWorkflow) {
@@ -186,6 +186,8 @@ function HeaderBottom({
     description: string,
     tags: string[]
   ): void => {
+    console.log(onEditWorkflow ? "Found onEditWorkflow" : "Not there");
+    console.log("Name:", name, "Desc", description, "Tags", tags);
     if (onEditWorkflow) {
       onEditWorkflow(name, description, tags);
     }
@@ -199,23 +201,20 @@ function HeaderBottom({
 
   return (
     <div className="header-bottom">
-      <button
-        type="button"
-        className="flex items-center gap-2"
-        onClick={handleEditClick}
-      >
-        <PenLine size={16} />
-        <div>
-          <h2
-            className={`text-sm font-semibold mb-1 ${isUnsaved ? "text-gray-400" : ""}`}
-          >
+
+
+      <div className="workflow-header">
+        <button className="icon-button" onClick={handleEditClick} type="button">
+          <PenLine size={16} />
+        </button>
+        <div className="text-block">
+          <h2 className={`header ${isUnsaved ? "unsaved" : ""}`}>
             {displayName}
           </h2>
-          <p className="text-xs font-medium text-gray-500">
-            {displayDescription}
-          </p>
+          <span className="description">{displayDescription}</span>
         </div>
-      </button>
+      </div>
+
       <div className="actions">
         <button
           className={`btn-workflow-creation${activeBtnAction === "workflow-creation" ? " active" : ""}`}
@@ -238,6 +237,8 @@ function HeaderBottom({
           <FileText size={17} />
         </button>
       </div>
+
+
       <div className="flex justify-end gap-2">
         {Boolean(onClearAll) && (
           <CommonButton

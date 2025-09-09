@@ -147,7 +147,7 @@ function AgentConfigForm(): JSX.Element {
       let pollCount = 0;
       let lastCompletedSteps: string[] = [];
       let lastCurrentStage = "";
-      let currentProgressData: unknown = null;
+      let currentProgressData: any = null;
       const maxPolls = 600; // 10 minutes max
 
       if ("currentPollingCleanup" in window && typeof window.currentPollingCleanup === "function") {
@@ -1375,15 +1375,15 @@ function AgentConfigForm(): JSX.Element {
 
   // Memoized callback functions to prevent re-renders
   const handleSaveWorkflowCallback = useCallback(
-    (name: string, _description: string, tags: string[]) => {
+    async (name: string, _description: string, tags: string[]) => {
       // Update workflow name, description, and tags, then save
       setWorkflowName(name);
       setWorkflowDescription(_description);
       setWorkflowTags(tags);
-      handleSaveWorkflow(name, _description);
+      await handleSaveWorkflow(name, _description);
       updateLastSavedState();
     },
-    [handleSaveWorkflow, updateLastSavedState]
+    [handleSaveWorkflow]
   );
 
   const handleDeployWorkflowCallback = useCallback(
@@ -1993,7 +1993,7 @@ function AgentConfigForm(): JSX.Element {
             <AgentTestingPanel
               workflowId={currentTestingWorkflowId ?? currentWorkflowData?.workflow_id ?? ""}
               sessionId={currentWorkflowData?.id.toString()}
-              description={currentWorkflowData?.description}
+              description={workflowDescription}
             />
           )}
         </div>

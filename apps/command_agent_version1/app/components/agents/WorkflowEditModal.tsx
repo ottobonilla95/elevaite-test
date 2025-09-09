@@ -80,6 +80,7 @@ function WorkflowEditModal({
                 .map(tag => tag.trim())
                 .filter(tag => tag.length > 0);
 
+            console.log("Saving workflow:", { name: name.trim(), description: description.trim(), tags: parsedTags });
             onSave(name.trim(), description.trim(), parsedTags);
         }
     };
