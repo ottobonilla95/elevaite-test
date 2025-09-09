@@ -27,6 +27,13 @@ from ..db.service import DatabaseService
 from ..workflow_engine import WorkflowEngine
 from ..dbos_adapter import get_dbos_adapter
 from ..db.models import WorkflowExecutionRead, ExecutionStatus
+from ..streaming import (
+    stream_manager,
+    create_sse_stream,
+    get_sse_headers,
+    create_status_event,
+    StreamEventType,
+)
 
 from ..execution_context import ExecutionContext, UserContext
 
@@ -434,26 +441,94 @@ async def execute_workflow_by_id(
 
 
 @router.get("/{workflow_id}/stream")
-async def stream_workflow_execution(workflow_id: str, session: Session = Depends(get_db_session)):
-    """Simple streaming endpoint that polls DB for the latest execution of the workflow and streams status updates."""
-    db_service = DatabaseService()
+async def stream_workflow_execution(
+    workflow_id: str, request: Request, session: Session = Depends(get_db_session), execution_id: Optional[str] = None
+) -> StreamingResponse:
+    """
+    Stream real-time updates for workflow executions using Server-Sent Events (SSE).
 
-    async def event_generator():
-        last_status = None
-        while True:
-            # Fetch the most recent execution for the workflow
-            executions = db_service.list_executions(session, workflow_id=workflow_id, limit=1, offset=0)
-            if executions:
-                exe = executions[0]
-                status = exe.get("status")
-                if status != last_status:
-                    last_status = status
-                    yield f"data: {exe}\n\n"
-                if status in {"completed", "failed", "cancelled", "timeout"}:
-                    break
-            await asyncio.sleep(1)
+    If execution_id is provided, streams updates for that specific execution.
+    Otherwise, streams updates for all executions of the workflow.
+    """
+    try:
+        workflow_engine: WorkflowEngine = request.app.state.workflow_engine
+        db_service = DatabaseService()
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+        # Verify workflow exists
+        workflow = db_service.get_workflow(session, workflow_id)
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+
+        # Create a queue for this streaming connection
+        queue = asyncio.Queue(maxsize=100)
+
+        async def event_generator():
+            try:
+                # Add this connection to the stream manager
+                stream_manager.add_workflow_stream(workflow_id, queue)
+
+                # Emit an immediate 'connected' event so clients receive a first chunk promptly
+                connected_event = create_status_event(
+                    execution_id="system",
+                    status="connected",
+                    workflow_id=workflow_id,
+                )
+                yield connected_event.to_sse()
+
+                # If specific execution_id provided, also listen to that execution
+                if execution_id:
+                    stream_manager.add_execution_stream(execution_id, queue)
+
+                    # Send initial status for the specific execution
+                    execution_context = await workflow_engine.get_execution_context(execution_id)
+                    if execution_context:
+                        initial_event = create_status_event(
+                            execution_id=execution_id,
+                            status=execution_context.status.value,
+                            workflow_id=workflow_id,
+                            step_count=len(execution_context.steps_config),
+                            completed_steps=len(execution_context.completed_steps),
+                            failed_steps=len(execution_context.failed_steps),
+                        )
+                        yield initial_event.to_sse()
+                else:
+                    # Send status for latest execution of the workflow
+                    executions = db_service.list_executions(session, workflow_id=workflow_id, limit=1, offset=0)
+                    if executions:
+                        latest_execution = executions[0]
+                        initial_event = create_status_event(
+                            execution_id=str(latest_execution.get("execution_id", "")),
+                            status=latest_execution.get("status", "unknown"),
+                            workflow_id=workflow_id,
+                            from_db=True,
+                        )
+                        yield initial_event.to_sse()
+
+                # Stream events from the queue
+                # Use a shorter heartbeat for workflow streams to ensure a second chunk arrives promptly
+                async for event_data in create_sse_stream(queue, heartbeat_interval=2, max_events=1000):
+                    yield event_data
+
+            except asyncio.CancelledError:
+                logger.debug(f"Streaming cancelled for workflow {workflow_id}")
+            except Exception as e:
+                logger.error(f"Error in workflow stream {workflow_id}: {e}")
+                # Send error event
+                error_event = create_status_event(execution_id="system", status="error", workflow_id=workflow_id, error=str(e))
+                yield error_event.to_sse()
+            finally:
+                # Clean up the connections
+                stream_manager.remove_workflow_stream(workflow_id, queue)
+                if execution_id:
+                    stream_manager.remove_execution_stream(execution_id, queue)
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream", headers=get_sse_headers())
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start workflow stream {workflow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/validate")

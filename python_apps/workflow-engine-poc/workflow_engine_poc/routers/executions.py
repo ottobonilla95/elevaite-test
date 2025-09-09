@@ -2,14 +2,23 @@
 Execution status and results endpoints
 """
 
+import asyncio
 import logging
 from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import StreamingResponse
 from typing import Optional
 from fastapi import Depends
 from sqlmodel import Session
 from ..db.models import WorkflowExecutionRead, WorkflowExecutionUpdate, ExecutionStatus
 from ..db.database import get_db_session
 from ..db.service import DatabaseService
+from ..streaming import (
+    stream_manager,
+    create_sse_stream,
+    get_sse_headers,
+    create_status_event,
+    StreamEventType,
+)
 
 from ..workflow_engine import WorkflowEngine
 
@@ -158,6 +167,74 @@ async def get_execution_analytics(
         return {**analytics, "db_executions": db_items}
     except Exception as e:
         logger.error(f"Failed to get execution analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{execution_id}/stream")
+async def stream_execution_updates(execution_id: str, request: Request, session: Session = Depends(get_db_session)):
+    """Stream real-time updates for a specific execution using Server-Sent Events (SSE)."""
+    try:
+        workflow_engine: WorkflowEngine = request.app.state.workflow_engine
+        db_service = DatabaseService()
+
+        # Verify execution exists (either in memory or DB)
+        execution_context = await workflow_engine.get_execution_context(execution_id)
+        if not execution_context:
+            # Check if it exists in DB
+            db_execution = db_service.get_execution(session, execution_id)
+            if not db_execution:
+                raise HTTPException(status_code=404, detail="Execution not found")
+
+        # Create a queue for this streaming connection
+        queue = asyncio.Queue(maxsize=100)
+
+        async def event_generator():
+            try:
+                # Add this connection to the stream manager
+                stream_manager.add_execution_stream(execution_id, queue)
+
+                # Send initial status if execution exists
+                if execution_context:
+                    initial_event = create_status_event(
+                        execution_id=execution_id,
+                        status=execution_context.status.value,
+                        workflow_id=execution_context.workflow_id,
+                        step_count=len(execution_context.steps_config),
+                        completed_steps=len(execution_context.completed_steps),
+                        failed_steps=len(execution_context.failed_steps),
+                    )
+                    yield initial_event.to_sse()
+                elif db_execution:
+                    # Send DB status for completed executions
+                    initial_event = create_status_event(
+                        execution_id=execution_id,
+                        status=db_execution.get("status", "unknown"),
+                        workflow_id=str(db_execution.get("workflow_id", "")),
+                        from_db=True,
+                    )
+                    yield initial_event.to_sse()
+
+                # Stream events from the queue
+                async for event_data in create_sse_stream(queue, heartbeat_interval=30, max_events=1000):
+                    yield event_data
+
+            except asyncio.CancelledError:
+                logger.debug(f"Streaming cancelled for execution {execution_id}")
+            except Exception as e:
+                logger.error(f"Error in execution stream {execution_id}: {e}")
+                # Send error event
+                error_event = create_status_event(execution_id=execution_id, status="error", error=str(e))
+                yield error_event.to_sse()
+            finally:
+                # Clean up the connection
+                stream_manager.remove_execution_stream(execution_id, queue)
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream", headers=get_sse_headers())
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to start execution stream {execution_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

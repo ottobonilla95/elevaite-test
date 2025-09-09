@@ -437,7 +437,8 @@ class AgentStep:
 
             # Default provider config; could be made configurable later
             config = {"type": "openai_textgen"}
-            model_name = TextGenerationModelName.OPENAI_gpt_4o_mini  # type: ignore
+            # Use GPT-4o (the only supported model in this setup)
+            model_name = TextGenerationModelName.OPENAI_gpt_4o  # type: ignore
 
             # Multi-turn tool loop with a small cap
             tool_calls_trace: List[Dict[str, Any]] = []
@@ -452,15 +453,22 @@ class AgentStep:
 
             for _ in range(max_tool_iterations):
                 # TextGenerationService is synchronous; run in a thread to avoid blocking
+                # Respect optional llm params from context; provide sensible defaults
+                _llm = (context or {}).get("_llm_params", {}) if isinstance(context, dict) else {}
+                _max_tokens = _llm.get("max_tokens")
+                if not isinstance(_max_tokens, int) or _max_tokens <= 0:
+                    _max_tokens = 600  # default to avoid premature truncation
+                _temperature = _llm.get("temperature")
+
                 response = await asyncio.to_thread(
                     self.llm_service.generate,
                     current_prompt,
                     config,
-                    None,  # max_tokens
+                    _max_tokens,
                     model_name,
                     sys_msg,
                     None,  # retries
-                    None,  # temperature
+                    _temperature,
                     llm_tools,
                     "auto" if llm_tools else None,  # tool_choice
                     messages,
@@ -719,13 +727,15 @@ async def agent_execution_step(
             logger.debug(f"No DB messages found or DB unavailable: {_db_err}")
 
         if step_msgs:
-            input_data["messages"] = step_msgs
-            input_data.setdefault("chat_history", step_msgs)
-            if "current_message" not in input_data:
-                for m in reversed(step_msgs):
-                    if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
-                        input_data["current_message"] = m["content"]
-                        break
+            # DB returns messages newest-first; reverse to chronological order for LLMs
+            step_msgs_asc = list(reversed(step_msgs))
+            input_data["messages"] = step_msgs_asc
+            input_data.setdefault("chat_history", step_msgs_asc)
+            # Always set current_message to the latest user message
+            for m in reversed(step_msgs_asc):  # iterate newest-first
+                if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
+                    input_data["current_message"] = m["content"]
+                    break
         else:
             trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
             if isinstance(trig, dict):
@@ -738,7 +748,7 @@ async def agent_execution_step(
                     if isinstance(cm, str) and cm:
                         input_data["current_message"] = cm
                     elif isinstance(msgs, list) and msgs:
-                        for m in reversed(msgs):
+                        for m in reversed(msgs):  # msgs assumed chronological; reversed -> newest-first
                             if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
                                 input_data["current_message"] = m["content"]
                                 break
@@ -795,8 +805,14 @@ async def agent_execution_step(
     # If interactive and no user messages yet, pause and wait for input
     if interactive:
         # Determine if we have sufficient messages to proceed
-        msgs = input_data.get("messages") or []
-        has_user_msg = any((isinstance(m, dict) and m.get("role") == "user") for m in (msgs or []))
+        msgs = input_data.get("messages") or input_data.get("chat_history") or []
+        has_user_msg = any(
+            isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str) and bool(m.get("content"))
+            for m in (msgs or [])
+        )
+        # Also treat presence of current_message as sufficient input to proceed
+        if not has_user_msg and isinstance(input_data.get("current_message"), str) and input_data.get("current_message"):
+            has_user_msg = True
         if not has_user_msg:
             return {
                 "status": "waiting",
@@ -804,6 +820,23 @@ async def agent_execution_step(
                 "step_type": "interactive_agent",
                 "agent_config": {"agent_name": agent_name},
             }
+
+    # Optional LLM params from config (e.g., max_tokens, temperature)
+    try:
+        llm_params: Dict[str, Any] = {}
+        mt = config.get("max_tokens")
+        if isinstance(mt, int) and mt > 0:
+            llm_params["max_tokens"] = mt
+        try:
+            temp = config.get("temperature")
+            if temp is not None:
+                llm_params["temperature"] = float(temp)
+        except Exception:
+            pass
+        if llm_params:
+            input_data["_llm_params"] = llm_params
+    except Exception:
+        pass
 
     # Execute query
     result = await agent.execute(query, context=input_data)

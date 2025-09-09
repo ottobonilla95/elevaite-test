@@ -7,10 +7,12 @@ The execution context is the heart of the workflow engine. It:
 - Tracks all analytics and logging IDs
 - Provides a clean interface for step execution
 - Supports conditional, sequential, and parallel execution patterns
+- Emits real-time streaming events for execution updates
 """
 
 import uuid
 import json
+import asyncio
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Set, TYPE_CHECKING
 from dataclasses import dataclass, field
@@ -18,6 +20,14 @@ from enum import Enum
 
 if TYPE_CHECKING:
     from .workflow_engine import WorkflowEngine
+
+# Import streaming utilities
+from .streaming import (
+    stream_manager,
+    create_status_event,
+    create_step_event,
+    create_error_event,
+)
 
 
 class ExecutionStatus(str, Enum):
@@ -184,6 +194,9 @@ class ExecutionContext:
         self.started_at = datetime.now()
         self.metadata["started_at"] = self.started_at.isoformat()
 
+        # Emit streaming event
+        self._try_emit_status_event("running")
+
     def complete_execution(self) -> None:
         """Mark execution as completed"""
         self.status = ExecutionStatus.COMPLETED
@@ -192,6 +205,9 @@ class ExecutionContext:
         if self.started_at:
             self.metadata["duration_ms"] = int((self.completed_at - self.started_at).total_seconds() * 1000)
 
+        # Emit streaming event
+        self._try_emit_status_event("completed")
+
     def fail_execution(self, error_message: str) -> None:
         """Mark execution as failed"""
         self.status = ExecutionStatus.FAILED
@@ -199,8 +215,10 @@ class ExecutionContext:
         self.metadata["failed_at"] = self.completed_at.isoformat()
         self.metadata["error_message"] = error_message
         if self.started_at:
-            if self.started_at:
-                self.metadata["duration_ms"] = int((self.completed_at - self.started_at).total_seconds() * 1000)
+            self.metadata["duration_ms"] = int((self.completed_at - self.started_at).total_seconds() * 1000)
+
+        # Emit streaming event
+        self._try_emit_error_event(error_message)
 
     def get_step_config(self, step_id: str) -> Optional[Dict[str, Any]]:
         """Get configuration for a specific step"""
@@ -276,6 +294,9 @@ class ExecutionContext:
         # If a step is waiting on external input, pause the overall execution
         if step_result.status == StepStatus.WAITING:
             self.status = ExecutionStatus.WAITING
+
+        # Emit streaming event for step completion
+        self._try_emit_step_event(step_id, step_result.status.value, step_result)
 
     def can_execute_step(self, step_id: str) -> bool:
         """Check if a step can be executed (all dependencies satisfied)"""
@@ -410,3 +431,106 @@ class ExecutionContext:
         )
 
         return context
+
+    async def _emit_status_event(self, status: str) -> None:
+        """Emit a status change event to streaming connections"""
+        try:
+            event = create_status_event(
+                execution_id=self.execution_id,
+                status=status,
+                workflow_id=self.workflow_id,
+                step_count=len(self.steps_config),
+                completed_steps=len(self.completed_steps),
+                failed_steps=len(self.failed_steps),
+            )
+            await stream_manager.emit_execution_event(event)
+            if self.workflow_id:
+                await stream_manager.emit_workflow_event(event)
+        except Exception as e:
+            # Don't let streaming errors break execution
+            pass
+
+    async def _emit_step_event(self, step_id: str, step_status: str, step_result: "StepResult") -> None:
+        """Emit a step execution event to streaming connections"""
+        try:
+            event_data = {
+                "step_type": step_result.step_type if hasattr(step_result, "step_type") else None,
+                "duration_ms": step_result.duration_ms if hasattr(step_result, "duration_ms") else None,
+            }
+            # Include output_data so clients (CLI/UI) can render assistant text and waiting payloads
+            try:
+                if getattr(step_result, "output_data", None) is not None:
+                    event_data["output_data"] = step_result.output_data
+            except Exception:
+                pass
+            if step_result.error_message:
+                event_data["error_message"] = step_result.error_message
+
+            event = create_step_event(
+                execution_id=self.execution_id,
+                step_id=step_id,
+                step_status=step_status,
+                workflow_id=self.workflow_id,
+                **event_data,
+            )
+            await stream_manager.emit_execution_event(event)
+            if self.workflow_id:
+                await stream_manager.emit_workflow_event(event)
+        except Exception as e:
+            # Don't let streaming errors break execution
+            pass
+
+    async def _emit_error_event(self, error_message: str) -> None:
+        """Emit an error event to streaming connections"""
+        try:
+            event = create_error_event(
+                execution_id=self.execution_id, error_message=error_message, workflow_id=self.workflow_id
+            )
+            await stream_manager.emit_execution_event(event)
+            if self.workflow_id:
+                await stream_manager.emit_workflow_event(event)
+        except Exception as e:
+            # Don't let streaming errors break execution
+            pass
+
+    def _try_emit_status_event(self, status: str) -> None:
+        """Safely try to emit a status event"""
+        try:
+            # Only emit if there's an active event loop
+            loop = asyncio.get_running_loop()
+            if loop and not loop.is_closed():
+                asyncio.create_task(self._emit_status_event(status))
+        except RuntimeError:
+            # No active event loop, skip streaming
+            pass
+        except Exception:
+            # Don't let streaming errors break execution
+            pass
+
+    def _try_emit_step_event(self, step_id: str, step_status: str, step_result: "StepResult") -> None:
+        """Safely try to emit a step event"""
+        try:
+            # Only emit if there's an active event loop
+            loop = asyncio.get_running_loop()
+            if loop and not loop.is_closed():
+                asyncio.create_task(self._emit_step_event(step_id, step_status, step_result))
+        except RuntimeError:
+            # No active event loop, skip streaming
+            pass
+        except Exception:
+            # Don't let streaming errors break execution
+            pass
+
+    def _try_emit_error_event(self, error_message: str) -> None:
+        """Safely try to emit an error event"""
+        try:
+            # Only emit if there's an active event loop
+            loop = asyncio.get_running_loop()
+            if loop and not loop.is_closed():
+                asyncio.create_task(self._emit_error_event(error_message))
+        except RuntimeError:
+            # No active event loop, skip streaming
+            pass
+        except Exception:
+            # Don't let streaming errors break execution
+            pass

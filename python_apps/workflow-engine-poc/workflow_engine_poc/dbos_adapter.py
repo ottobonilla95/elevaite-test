@@ -21,6 +21,12 @@ import os
 from dbos import DBOS, DBOSConfig
 from .step_registry import StepRegistry
 from .execution_context import ExecutionContext, UserContext, StepStatus
+from .streaming import (
+    stream_manager,
+    create_status_event,
+    create_step_event,
+    create_error_event,
+)
 # from .monitoring import monitoring  # currently unused
 
 
@@ -424,6 +430,9 @@ async def dbos_execute_step_durable(
 
     return {
         "success": step_result.status == StepStatus.COMPLETED,
+        "status": getattr(step_result.status, "name", "").lower()
+        if hasattr(step_result.status, "name")
+        else ("completed" if step_result.execution_time_ms is not None else "unknown"),
         "output_data": step_result.output_data,
         "error": step_result.error_message,
         "execution_time": step_result.execution_time_ms,
@@ -459,8 +468,31 @@ async def dbos_execute_workflow_durable(
         "started_at": datetime.now().isoformat(),
     }
 
+    # Emit workflow start event
+    try:
+        start_event = create_status_event(
+            execution_id=execution_id,
+            status="running",
+            workflow_id=workflow_id,
+            step_count=len(workflow_config.get("steps", [])),
+        )
+        await stream_manager.emit_execution_event(start_event)
+        await stream_manager.emit_workflow_event(start_event)
+    except Exception:
+        # Don't let streaming errors break execution
+        pass
+
     steps = workflow_config.get("steps", [])
     if not steps:
+        # Emit error event
+        try:
+            error_event = create_error_event(
+                execution_id=execution_id, error_message="No steps defined in workflow", workflow_id=workflow_id
+            )
+            await stream_manager.emit_execution_event(error_event)
+            await stream_manager.emit_workflow_event(error_event)
+        except Exception:
+            pass
         return {"success": False, "error": "No steps defined in workflow"}
 
     step_results: Dict[str, Any] = {}
@@ -498,30 +530,168 @@ async def dbos_execute_workflow_durable(
                 step_id = _slugify(step.get("name") or f"{step_type}")
             step = {**step, "step_id": step_id}
 
-        input_data = _prepare_step_input(step)
-        try:
-            res = await dbos_execute_step_durable(
-                step_type=step_type,
-                step_config=step,
-                input_data=input_data,
-                execution_context_data=execution_context_data,
-            )
-            step_results[step_id] = res
-            execution_context_data["step_io_data"][step_id] = res.get("output_data")
-            if not res.get("success"):
+        # Inner loop to handle interactive WAITING steps by polling for new messages
+        while True:
+            input_data = _prepare_step_input(step)
+            try:
+                res = await dbos_execute_step_durable(
+                    step_type=step_type,
+                    step_config=step,
+                    input_data=input_data,
+                    execution_context_data=execution_context_data,
+                )
+                step_results[step_id] = res
+                execution_context_data["step_io_data"][step_id] = res.get("output_data")
+
+                # Emit step completion event
+                try:
+                    # Prefer explicit status from step result; fallback to success flag
+                    step_status = (res.get("status") or ("completed" if res.get("success") else "failed")).lower()
+                    step_event = create_step_event(
+                        execution_id=execution_id,
+                        step_id=step_id,
+                        step_status=step_status,
+                        workflow_id=workflow_id,
+                        step_type=step_type,
+                        output_data=res.get("output_data"),
+                    )
+                    await stream_manager.emit_execution_event(step_event)
+                    await stream_manager.emit_workflow_event(step_event)
+                except Exception:
+                    pass
+
+                # Completed -> proceed to next step
+                if res.get("success"):
+                    break
+
+                # Not success -> either waiting or failed
+                status_lower = str(res.get("status") or "").lower()
+                if status_lower == "waiting":
+                    # Emit explicit status=waiting so clients/DB reflect paused state
+                    try:
+                        waiting_event = create_status_event(
+                            execution_id=execution_id,
+                            status="waiting",
+                            workflow_id=workflow_id,
+                        )
+                        await stream_manager.emit_execution_event(waiting_event)
+                        await stream_manager.emit_workflow_event(waiting_event)
+                    except Exception:
+                        pass
+
+                    # Persist execution status to DB as WAITING
+                    try:
+                        from .db.service import DatabaseService
+                        from .db.database import get_db_session
+                        from .db.models.executions import ExecutionStatus as DBExecStatus
+
+                        _session = get_db_session()
+                        _dbs = DatabaseService()
+                        _dbs.update_execution(_session, execution_id, {"status": DBExecStatus.WAITING})
+
+                        # Establish baseline message count for this step
+                        baseline = 0
+                        try:
+                            rows = _dbs.list_agent_messages(
+                                _session, execution_id=execution_id, step_id=step_id, limit=1_000_000, offset=0
+                            )
+                            baseline = len(rows or [])
+                        except Exception:
+                            baseline = 0
+                    except Exception:
+                        baseline = 0
+
+                    # Poll until a new message arrives for this step
+                    try:
+                        import asyncio as _asyncio
+
+                        poll_interval = 0.5
+                        max_wait_seconds = 3600  # keep durable workflow alive up to an hour by default
+                        waited = 0.0
+                        while True:
+                            try:
+                                rows = _dbs.list_agent_messages(
+                                    _session, execution_id=execution_id, step_id=step_id, limit=1_000_000, offset=0
+                                )
+                                count_now = len(rows or [])
+                            except Exception:
+                                count_now = baseline
+                            if count_now > baseline:
+                                break
+                            if waited >= max_wait_seconds:
+                                # Timeout waiting; keep workflow alive but return waiting state to caller
+                                return {
+                                    "success": False,
+                                    "status": "waiting",
+                                    "waiting_for": (res.get("output_data") or {}).get("waiting_for") or "user_input",
+                                    "paused_step": step_id,
+                                    "step_results": step_results,
+                                }
+                            await _asyncio.sleep(poll_interval)
+                            waited += poll_interval
+                    except Exception:
+                        # If polling fails, return waiting state (caller can decide next action)
+                        return {
+                            "success": False,
+                            "status": "waiting",
+                            "waiting_for": (res.get("output_data") or {}).get("waiting_for") or "user_input",
+                            "paused_step": step_id,
+                            "step_results": step_results,
+                        }
+
+                    # New message detected -> loop to re-execute this step with updated DB messages
+                    continue
+
+                # Otherwise, emit error event for failed step
+                try:
+                    error_msg = res.get("error") or "Unknown error"
+                    error_event = create_error_event(
+                        execution_id=execution_id,
+                        error_message=f"Step {step_id} failed: {error_msg}",
+                        workflow_id=workflow_id,
+                    )
+                    await stream_manager.emit_execution_event(error_event)
+                    await stream_manager.emit_workflow_event(error_event)
+                except Exception:
+                    pass
                 return {
                     "success": False,
-                    "error": f"Step {step_id} failed: {res.get('error')}",
+                    "error": f"Step {step_id} failed: {error_msg}",
                     "failed_step": step_id,
                     "step_results": step_results,
                 }
-        except Exception as e:
-            return {
-                "success": False,
-                "error": f"Exception in step {step_id}: {str(e)}",
-                "failed_step": step_id,
-                "step_results": step_results,
-            }
+            except Exception as e:
+                # Emit error event for exception
+                try:
+                    error_event = create_error_event(
+                        execution_id=execution_id,
+                        error_message=f"Exception in step {step_id}: {str(e)}",
+                        workflow_id=workflow_id,
+                    )
+                    await stream_manager.emit_execution_event(error_event)
+                    await stream_manager.emit_workflow_event(error_event)
+                except Exception:
+                    pass
+                return {
+                    "success": False,
+                    "error": f"Exception in step {step_id}: {str(e)}",
+                    "failed_step": step_id,
+                    "step_results": step_results,
+                }
+
+    # Emit workflow completion event
+    try:
+        completion_event = create_status_event(
+            execution_id=execution_id,
+            status="completed",
+            workflow_id=workflow_id,
+            step_count=len(steps),
+            completed_steps=len(step_results),
+        )
+        await stream_manager.emit_execution_event(completion_event)
+        await stream_manager.emit_workflow_event(completion_event)
+    except Exception:
+        pass
 
     return {
         "success": True,
