@@ -8,6 +8,7 @@ intelligent processing, agent execution, and AI-powered workflows.
 import uuid
 import asyncio
 import json
+import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Callable, Union
 import logging
@@ -841,35 +842,120 @@ async def agent_execution_step(
     except Exception:
         pass
 
-    # Execute query, optionally streaming deltas
+    # Execute query, optionally streaming deltas (genuine streaming via llm-gateway when available)
     stream_enabled = bool(config.get("stream", False))
     accumulated = ""
     if stream_enabled:
         try:
-            # For now, we do pseudo-streaming: split final response into chunks to emit deltas.
-            # When LLM gateway adds native streaming, replace this with real token streaming.
-            tmp_result = await agent.execute(query, context=input_data)
-            full_text = str((tmp_result or {}).get("response") or (tmp_result or {}).get("output") or "")
-            chunk_size = max(40, min(400, len(full_text) // 20 or 40))
-            sid = step_config.get("step_id") or ""
-            for i in range(0, len(full_text), chunk_size):
-                delta = full_text[i : i + chunk_size]
-                accumulated += delta
-                try:
-                    if sid:
+            # If tools are available, fall back to non-streaming to preserve tool-call behavior
+            llm_tools_for_agent = load_agent_db_tool_schemas(agent_name=agent_name)
+            if llm_tools_for_agent:
+                result = await agent.execute(query, context=input_data)
+            else:
+                # Build messages chronologically from context
+                messages: List[Dict[str, str]] = []
+                ctx_msgs = input_data.get("messages") or input_data.get("chat_history")
+                if isinstance(ctx_msgs, list):
+                    # Ensure order and shape
+                    for m in ctx_msgs:
+                        if isinstance(m, dict) and "role" in m and "content" in m:
+                            messages.append({"role": str(m["role"]), "content": str(m["content"])})
+                # Ensure the last message is the current user query
+                if not (messages and messages[-1].get("role") == "user" and messages[-1].get("content") == query):
+                    messages.append({"role": "user", "content": query})
+
+                # LLM params
+                _llm = input_data.get("_llm_params", {}) if isinstance(input_data, dict) else {}
+                _max_tokens = _llm.get("max_tokens")
+                if not isinstance(_max_tokens, int) or _max_tokens <= 0:
+                    _max_tokens = 600
+                _temperature = _llm.get("temperature")
+
+                # Provider config and model
+                provider_config = {"type": "openai_textgen"}
+                model_name = TextGenerationModelName.OPENAI_gpt_4o  # type: ignore
+                sys_msg_val = system_prompt or "You are a helpful assistant."
+
+                sid = step_config.get("step_id") or ""
+
+                # Use llm-gateway streaming API
+                svc = TextGenerationService()  # type: ignore
+                for ev in svc.stream(
+                    prompt="",
+                    config=provider_config,
+                    max_tokens=_max_tokens,
+                    model_name=model_name,
+                    sys_msg=sys_msg_val,
+                    retries=None,
+                    temperature=_temperature,
+                    tools=None,
+                    tool_choice=None,
+                    messages=messages,
+                ):
+                    et = (ev.get("type") or "").lower()
+                    if et == "delta":
+                        delta = ev.get("text") or ""
+                        if not isinstance(delta, str) or not delta:
+                            continue
+                        accumulated += delta
+                        try:
+                            if sid:
+                                evt = create_step_event(
+                                    execution_id=execution_context.execution_id,
+                                    step_id=sid,
+                                    step_status="running",
+                                    workflow_id=execution_context.workflow_id,
+                                    output_data={"delta": delta, "accumulated_len": len(accumulated)},
+                                )
+                                await stream_manager.emit_execution_event(evt)
+                                if execution_context.workflow_id:
+                                    await stream_manager.emit_workflow_event(evt)
+                        except Exception:
+                            pass
+                    elif et == "final":
+                        # Final response payload from gateway
+                        final_resp = ev.get("response") or {}
+                        text = (final_resp.get("text") or accumulated or "").strip()
+                        usage = {
+                            "tokens_in": int(final_resp.get("tokens_in", -1) or -1),
+                            "tokens_out": int(final_resp.get("tokens_out", -1) or -1),
+                            "total_tokens": int(final_resp.get("tokens_in", -1) or -1)
+                            + int(final_resp.get("tokens_out", -1) or -1),
+                            "llm_calls": 1,
+                        }
+                        result = {
+                            "response": text,
+                            "tool_calls": [],
+                            "mode": "llm",
+                            "model": {"provider": provider_config["type"], "name": str(model_name)},
+                            "usage": usage,
+                        }
+                        break
+                else:
+                    # If stream ended without final marker, synthesize result
+                    result = {
+                        "response": accumulated,
+                        "tool_calls": [],
+                        "mode": "llm",
+                        "model": {"provider": provider_config["type"], "name": str(model_name)},
+                        "usage": {"tokens_in": -1, "tokens_out": -1, "total_tokens": -1, "llm_calls": 1},
+                    }
+
+                # Small flush to ensure the last line breaks after deltas
+                if accumulated and sid:
+                    try:
                         evt = create_step_event(
                             execution_id=execution_context.execution_id,
                             step_id=sid,
                             step_status="running",
                             workflow_id=execution_context.workflow_id,
-                            output_data={"delta": delta, "accumulated_len": len(accumulated)},
+                            output_data={"delta": "", "accumulated_len": len(accumulated)},
                         )
                         await stream_manager.emit_execution_event(evt)
                         if execution_context.workflow_id:
                             await stream_manager.emit_workflow_event(evt)
-                except Exception:
-                    pass
-            result = {**tmp_result, "response": accumulated}
+                    except Exception:
+                        pass
         except Exception as _se:
             logger.debug(f"Streaming emission failed, falling back to non-streaming: {_se}")
             result = await agent.execute(query, context=input_data)

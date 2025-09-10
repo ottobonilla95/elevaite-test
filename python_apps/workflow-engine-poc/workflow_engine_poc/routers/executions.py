@@ -185,8 +185,8 @@ async def stream_execution_updates(execution_id: str, request: Request, session:
             if not db_execution:
                 raise HTTPException(status_code=404, detail="Execution not found")
 
-        # Create a queue for this streaming connection
-        queue = asyncio.Queue(maxsize=100)
+        # Create a queue for this streaming connection (larger buffer for delta streaming)
+        queue = asyncio.Queue(maxsize=1000)
 
         async def event_generator():
             try:
@@ -215,7 +215,7 @@ async def stream_execution_updates(execution_id: str, request: Request, session:
                     yield initial_event.to_sse()
 
                 # Stream events from the queue
-                async for event_data in create_sse_stream(queue, heartbeat_interval=30, max_events=1000):
+                async for event_data in create_sse_stream(queue, heartbeat_interval=30, max_events=5000):
                     yield event_data
 
             except asyncio.CancelledError:

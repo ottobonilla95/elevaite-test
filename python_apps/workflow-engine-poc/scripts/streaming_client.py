@@ -462,6 +462,15 @@ async def main():
         # Create a chat-capable workflow from fixture and start chat
         try:
             workflow_config = client._load_fixture("chat_multi_agent.json")
+            # Enable streaming in agent steps for this demo
+            try:
+                for step in workflow_config.get("steps", []):
+                    if step.get("step_type") == "agent_execution" and isinstance(step.get("config"), dict):
+                        step["config"]["stream"] = True
+                        # Slightly bump tokens for a better streaming experience
+                        step["config"].setdefault("max_tokens", 800)
+            except Exception:
+                pass
             workflow = await client._http_request("POST", "/workflows/", workflow_config)
             workflow_id = workflow.get("id")
             if not workflow_id:

@@ -460,7 +460,7 @@ async def stream_workflow_execution(
             raise HTTPException(status_code=404, detail="Workflow not found")
 
         # Create a queue for this streaming connection
-        queue = asyncio.Queue(maxsize=100)
+        queue = asyncio.Queue(maxsize=1000)
 
         async def event_generator():
             try:
