@@ -81,129 +81,66 @@ jobs:
 
 
       - name: Build UI
-
         run: |
-
           IMAGE="${ECR_REGISTRY}/elevaite-toshiba-ui"
-
           docker build \
-
             --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
-
             --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs-testing.iopex.ai/auth-api \
-
             --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs-testing.iopex.ai/api/core/ \
-
             --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
-
             --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
-
             -f apps/toshiba/Dockerfile \
-
             -t "${IMAGE}:${TAG}" \
-
             .
-
           docker push "${IMAGE}:${TAG}"
-
-
 
       - name: Build API
-
         run: |
-
           IMAGE="${ECR_REGISTRY}/elevaite-toshiba-backend"
-
           docker build \
-
             -f python_apps/toshiba_backends/toshiba_backend/Dockerfile \
-
             -t "${IMAGE}:${TAG}" \
-
             python_apps/toshiba_backends/toshiba_backend
-
           docker push "${IMAGE}:${TAG}"
-
-
 
       - name: Build Auth
-
         run: |
-
           IMAGE="${ECR_REGISTRY}/elevaite-auth-api"
-
           docker build \
-
             -f python_apps/auth_api/Dockerfile \
-
             -t "${IMAGE}:${TAG}" \
-
             .
-
           docker push "${IMAGE}:${TAG}"
 
-
-
       - name: Build ALL retrievers
-
         id: retr
-
         run: |
-
           set -euo pipefail
-
           shopt -s nullglob
-
           for dir in python_apps/toshiba_backends/*retriever*; do
-
             [[ -f "$dir/Dockerfile" ]] || continue
-
             base="$(basename "$dir")"
-
-
-
             case "$base" in
-
               top_gun_retriever) repo="elevaite-toshiba-topgun-retriever" ;;
-
               *)                  repo="elevaite-toshiba-${base//_/-}" ;;
-
             esac
-
-
 
             IMAGE="${ECR_REGISTRY}/${repo}"
-
             echo ">> Building ${IMAGE}:${TAG} from ${dir}"
-
             docker build -f "${dir}/Dockerfile" -t "${IMAGE}:${TAG}" "${dir}"
-
             docker push "${IMAGE}:${TAG}"
 
-
-
             case "$base" in
-
               power_retriever)   echo "retr_power_tag=${TAG}"   >> "$GITHUB_OUTPUT" ;;
-
               sql_retriever)     echo "retr_sql_tag=${TAG}"     >> "$GITHUB_OUTPUT" ;;
-
               tgcs_retriever)    echo "retr_tgcs_tag=${TAG}"    >> "$GITHUB_OUTPUT" ;;
-
               top_gun_retriever) echo "retr_topgun_tag=${TAG}"  >> "$GITHUB_OUTPUT" ;;
-
             esac
-
           done
 
-
-
       - name: Export main tags
-
         id: out
-
         run: |
-
           echo "ui_tag=${TAG}"   >> "$GITHUB_OUTPUT"
 
           echo "api_tag=${TAG}"  >> "$GITHUB_OUTPUT"
