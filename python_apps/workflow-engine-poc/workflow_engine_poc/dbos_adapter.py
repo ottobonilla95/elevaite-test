@@ -14,6 +14,7 @@ Phase 0: Proof of Concept
 import asyncio
 import inspect
 import logging
+from pprint import pprint
 from typing import Dict, Any, Optional, TypedDict, cast
 from datetime import datetime
 import uuid
@@ -401,7 +402,10 @@ async def dbos_execute_step_durable(
     input_data: Dict[str, Any],
     execution_context_data: Dict[str, Any],
 ) -> DBOSStepResult:
-    print("Executing step under DBOS:", step_type, step_config, input_data, execution_context_data)
+    print("Executing step under DBOS:", step_type)
+    pprint(step_config)
+    pprint(input_data)
+    pprint(execution_context_data)
     adapter = await get_dbos_adapter()
     # Reconstruct execution context
     user_context_data = execution_context_data.get("user_context", {})
@@ -481,6 +485,44 @@ async def dbos_execute_workflow_durable(
     except Exception:
         # Don't let streaming errors break execution
         pass
+    # Record DBOS workflow_id on our execution immediately (before any waits)
+    try:
+        from .db.service import DatabaseService as _DBSvc
+        from .db.database import get_db_session as _get_sess
+        from dbos import DBOS as _DBOS
+
+        _dbs = _DBSvc()
+        _s = _get_sess()
+        try:
+            dbos_wfid = cast(str, _DBOS.workflow_id)
+            details = _dbs.get_execution(_s, execution_id)
+            if not details:
+                # Create placeholder and rekey so router can find it
+                logger.warning(f"Execution {execution_id} not found at start; creating placeholder to persist DBOS wf_id")
+                ent = _dbs.create_execution_entity(
+                    _s,
+                    {
+                        "workflow_id": workflow_id,
+                        "user_id": (user_context_data or {}).get("user_id"),
+                        "session_id": (user_context_data or {}).get("session_id"),
+                        "organization_id": (user_context_data or {}).get("organization_id"),
+                        "metadata": {"dbos_workflow_id": dbos_wfid},
+                    },
+                )
+                _dbs.rekey_execution(_s, str(ent.id), execution_id)
+                details = _dbs.get_execution(_s, execution_id) or {}
+            meta = dict(details.get("metadata") or {})
+            if meta.get("dbos_workflow_id") != dbos_wfid:
+                meta["dbos_workflow_id"] = dbos_wfid
+                _dbs.update_execution(_s, execution_id, {"execution_metadata": meta})
+            logger.info(f"DBOS workflow_id recorded at start: exec={execution_id} wf_id={dbos_wfid}")
+        finally:
+            try:
+                _s.close()
+            except Exception:
+                pass
+    except Exception as _rec_err:
+        logger.warning(f"Failed to record DBOS wf_id for exec={execution_id}: {_rec_err}")
 
     steps = workflow_config.get("steps", [])
     if not steps:
@@ -579,67 +621,95 @@ async def dbos_execute_workflow_durable(
                     except Exception:
                         pass
 
-                    # Persist execution status to DB as WAITING
+                    # Also emit a step-level waiting event with the paused step_id so clients can route replies
+                    try:
+                        step_wait_evt = create_step_event(
+                            execution_id=execution_id,
+                            step_id=step_id,
+                            step_status="waiting",
+                            workflow_id=workflow_id,
+                        )
+                        await stream_manager.emit_execution_event(step_wait_evt)
+                        await stream_manager.emit_workflow_event(step_wait_evt)
+                    except Exception:
+                        pass
+
+                    # Persist execution status to DB as WAITING and record DBOS workflow_id for later resume
                     try:
                         from .db.service import DatabaseService
                         from .db.database import get_db_session
                         from .db.models.executions import ExecutionStatus as DBExecStatus
 
-                        _session = get_db_session()
                         _dbs = DatabaseService()
-                        _dbs.update_execution(_session, execution_id, {"status": DBExecStatus.WAITING})
-
-                        # Establish baseline message count for this step
-                        baseline = 0
+                        _sess0 = get_db_session()
                         try:
-                            rows = _dbs.list_agent_messages(
-                                _session, execution_id=execution_id, step_id=step_id, limit=1_000_000, offset=0
-                            )
-                            baseline = len(rows or [])
-                        except Exception:
-                            baseline = 0
-                    except Exception:
-                        baseline = 0
+                            from dbos import DBOS as _DBOS
 
-                    # Poll until a new message arrives for this step
+                            dbos_wfid = cast(str, _DBOS.workflow_id)
+                            details = _dbs.get_execution(_sess0, execution_id)
+                            if not details:
+                                # Create execution row if missing (e.g., DBOS-first path), then rekey to our execution_id
+                                logger.warning(
+                                    f"Execution {execution_id} not found; creating placeholder to persist DBOS wf_id"
+                                )
+                                create_payload = {
+                                    "workflow_id": workflow_id,
+                                    "user_id": (user_context_data or {}).get("user_id"),
+                                    "session_id": (user_context_data or {}).get("session_id"),
+                                    "organization_id": (user_context_data or {}).get("organization_id"),
+                                    "metadata": {"dbos_workflow_id": dbos_wfid},
+                                }
+                                ent = _dbs.create_execution_entity(_sess0, create_payload)
+                                _dbs.rekey_execution(_sess0, str(ent.id), execution_id)
+                                details = _dbs.get_execution(_sess0, execution_id) or {}
+
+                            meta = dict(details.get("metadata") or {})
+                            meta["dbos_workflow_id"] = dbos_wfid
+                            ok = _dbs.update_execution(
+                                _sess0,
+                                execution_id,
+                                {
+                                    "status": DBExecStatus.WAITING.value,
+                                    "execution_metadata": meta,
+                                },
+                            )
+                            if not ok:
+                                logger.error(f"Failed to update execution {execution_id} with DBOS WAITING metadata")
+                            # Read-back to confirm persistence for debugging
+                            details2 = _dbs.get_execution(_sess0, execution_id) or {}
+                            meta2 = details2.get("metadata") or {}
+                            logger.info(
+                                f"DBOS WAITING persisted: exec={execution_id} dbos_wfid={dbos_wfid} saved_meta_wfid={meta2.get('dbos_workflow_id')}"
+                            )
+                        finally:
+                            try:
+                                _sess0.close()
+                            except Exception:
+                                pass
+                    except Exception as persist_err:
+                        logger.error(f"Error persisting DBOS WAITING state for exec={execution_id}: {persist_err}")
+
+                    # Block on DBOS event instead of polling so the workflow truly WAITs under DBOS
                     try:
+                        decision_key = f"wf:{execution_id}:{step_id}:user_msg"
+                        from dbos import DBOS as _DBOS
+
+                        # Block on DBOS event scoped to this workflow; long timeout with retry keeps it WAITING
+                        payload = None
+                        wid = cast(str, _DBOS.workflow_id)
+                        adapter.logger.info(f"DBOS waiting: exec={execution_id} wf_id={wid} step={step_id} key={decision_key}")
+                        while payload is None:
+                            payload = await _DBOS.get_event_async(wid, decision_key, timeout_seconds=3600)
+                        adapter.logger.info(f"DBOS event received for step={step_id} execution={execution_id}: {bool(payload)}")
+                    except Exception as _ev_err:
+                        # If waiting fails, return waiting state (caller can decide next action)
+                        adapter.logger.warning(f"DBOS get_event_async failed: {_ev_err}; retrying in 1s")
                         import asyncio as _asyncio
 
-                        poll_interval = 0.5
-                        max_wait_seconds = 3600  # keep durable workflow alive up to an hour by default
-                        waited = 0.0
-                        while True:
-                            try:
-                                rows = _dbs.list_agent_messages(
-                                    _session, execution_id=execution_id, step_id=step_id, limit=1_000_000, offset=0
-                                )
-                                count_now = len(rows or [])
-                            except Exception:
-                                count_now = baseline
-                            if count_now > baseline:
-                                break
-                            if waited >= max_wait_seconds:
-                                # Timeout waiting; keep workflow alive but return waiting state to caller
-                                return {
-                                    "success": False,
-                                    "status": "waiting",
-                                    "waiting_for": (res.get("output_data") or {}).get("waiting_for") or "user_input",
-                                    "paused_step": step_id,
-                                    "step_results": step_results,
-                                }
-                            await _asyncio.sleep(poll_interval)
-                            waited += poll_interval
-                    except Exception:
-                        # If polling fails, return waiting state (caller can decide next action)
-                        return {
-                            "success": False,
-                            "status": "waiting",
-                            "waiting_for": (res.get("output_data") or {}).get("waiting_for") or "user_input",
-                            "paused_step": step_id,
-                            "step_results": step_results,
-                        }
+                        await _asyncio.sleep(1)
+                        continue
 
-                    # New message detected -> loop to re-execute this step with updated DB messages
+                    # Event received -> loop to re-execute this step with updated DB messages
                     continue
 
                 # Otherwise, emit error event for failed step

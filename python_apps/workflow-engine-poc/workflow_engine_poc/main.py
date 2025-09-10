@@ -60,9 +60,21 @@ ElevaiteLogger.attach_to_uvicorn(
 )  # OTEL
 
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging (honor LOG_LEVEL env, default INFO)
+_LOG_LEVEL_NAME = os.getenv("LOG_LEVEL", "INFO").upper()
+_NUM_LEVEL = getattr(logging, _LOG_LEVEL_NAME, logging.INFO)
+logging.basicConfig(level=_NUM_LEVEL)
 logger = logging.getLogger(__name__)
+logger.setLevel(_NUM_LEVEL)
+# Raise level on our internal loggers as well
+for _name in [
+    "workflow_engine_poc",
+    "workflow_engine_poc.dbos_adapter",
+    "workflow_engine_poc.workflow_engine",
+    "workflow_engine_poc.routers.messages",
+    "workflow_engine_poc.steps.ai_steps",
+]:
+    logging.getLogger(_name).setLevel(_NUM_LEVEL)
 
 
 @asynccontextmanager

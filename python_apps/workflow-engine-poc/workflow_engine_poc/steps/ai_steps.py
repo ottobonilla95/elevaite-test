@@ -714,10 +714,16 @@ async def agent_execution_step(
             from ..db.database import get_db_session
 
             session = get_db_session()
-            dbs = DatabaseService()
-            step_msgs = dbs.list_agent_messages(
-                session, execution_id=execution_context.execution_id, step_id=step_config.get("step_id")
-            )
+            try:
+                dbs = DatabaseService()
+                step_msgs = dbs.list_agent_messages(
+                    session, execution_id=execution_context.execution_id, step_id=step_config.get("step_id")
+                )
+            finally:
+                try:
+                    session.close()
+                except Exception:
+                    pass
             # Convert to simple role/content list
             step_msgs = [
                 {
@@ -847,10 +853,33 @@ async def agent_execution_step(
     accumulated = ""
     if stream_enabled:
         try:
-            # If tools are available, fall back to non-streaming to preserve tool-call behavior
+            backend = step_config.get("_backend")
+            # If tools are available, or backend is DBOS (for now), fall back to pseudo/one-shot to ensure progress
             llm_tools_for_agent = load_agent_db_tool_schemas(agent_name=agent_name)
-            if llm_tools_for_agent:
-                result = await agent.execute(query, context=input_data)
+            if llm_tools_for_agent or backend == "dbos":
+                # Pseudo-streaming: run once and emit deltas
+                tmp_result = await agent.execute(query, context=input_data)
+                full_text = str((tmp_result or {}).get("response") or (tmp_result or {}).get("output") or "")
+                chunk_size = max(40, min(400, len(full_text) // 20 or 40))
+                sid = step_config.get("step_id") or ""
+                for i in range(0, len(full_text), chunk_size):
+                    delta = full_text[i : i + chunk_size]
+                    accumulated += delta
+                    try:
+                        if sid:
+                            evt = create_step_event(
+                                execution_id=execution_context.execution_id,
+                                step_id=sid,
+                                step_status="running",
+                                workflow_id=execution_context.workflow_id,
+                                output_data={"delta": delta, "accumulated_len": len(accumulated)},
+                            )
+                            await stream_manager.emit_execution_event(evt)
+                            if execution_context.workflow_id:
+                                await stream_manager.emit_workflow_event(evt)
+                    except Exception:
+                        pass
+                result = {**tmp_result, "response": accumulated}
             else:
                 # Build messages chronologically from context
                 messages: List[Dict[str, str]] = []

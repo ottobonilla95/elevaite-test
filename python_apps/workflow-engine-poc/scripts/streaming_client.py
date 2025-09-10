@@ -163,6 +163,8 @@ class StreamingClient:
         waiting_indicator_printed = False
         assistant_printed = False
         seen_non_status_event = False
+        had_delta = False  # track whether we streamed any deltas for the current assistant turn
+        current_step_id = None
 
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:
@@ -197,15 +199,20 @@ class StreamingClient:
                                     step_id = (event.get("data") or {}).get("step_id")
                                     if exec_id and step_id:
                                         self._last_step_id[exec_id] = step_id
+                                        current_step_id = step_id
                                 # Assistant response or delta
                                 a = self._extract_assistant_text(event)
                                 if a:
                                     if a.get("type") == "delta":
                                         print(WHITE + a.get("text", ""), end="", flush=True)
+                                        had_delta = True
                                     else:
-                                        print(WHITE + "Assistant: " + a.get("text", "") + RESET)
+                                        # If we've already printed deltas for this step, don't print the full text again
+                                        if not had_delta:
+                                            print(WHITE + "Assistant: " + a.get("text", "") + RESET)
                                         waiting_indicator_printed = False
                                         assistant_printed = True
+                                        had_delta = False  # reset for next turn
                                         if until_assistant:
                                             print(RESET)
                                             return
@@ -230,6 +237,8 @@ class StreamingClient:
 
                                 # Check for completion
                                 if event.get("type") == "complete":
+                                    if had_delta:
+                                        print(RESET)
                                     print(f"\n🏁 Stream completed after {event_count} events")
                                     return
 
