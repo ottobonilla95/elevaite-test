@@ -120,22 +120,25 @@ class StreamingClient:
             return (data.get("status") or "").lower() == "waiting"
         return False
 
-    def _extract_assistant_text(self, event: dict) -> Optional[str]:
-        """Try to extract assistant text from a step event payload.
-        Supports both completed outputs and waiting outputs that include agent_response.
+    def _extract_assistant_text(self, event: dict) -> Optional[dict]:
+        """Extract assistant text or delta from a step event payload.
+        Returns dict {"type": "delta"|"full", "text": str} or None.
         """
         if event.get("type") != "step":
             return None
         data = event.get("data") or {}
         out = data.get("output_data") if isinstance(data, dict) else None
         if isinstance(out, dict):
+            # Streaming delta
+            if isinstance(out.get("delta"), str) and out.get("delta"):
+                return {"type": "delta", "text": str(out.get("delta"))}
             # Completed agent step shape
             if isinstance(out.get("response"), str) and out.get("response"):
-                return str(out.get("response"))
+                return {"type": "full", "text": str(out.get("response"))}
             # Waiting agent step shape: { status: "waiting", agent_response: { response: "..." } }
             agent_resp = out.get("agent_response")
             if isinstance(agent_resp, dict) and isinstance(agent_resp.get("response"), str) and agent_resp.get("response"):
-                return str(agent_resp.get("response"))
+                return {"type": "full", "text": str(agent_resp.get("response"))}
         return None
 
     async def stream_execution(
@@ -194,14 +197,18 @@ class StreamingClient:
                                     step_id = (event.get("data") or {}).get("step_id")
                                     if exec_id and step_id:
                                         self._last_step_id[exec_id] = step_id
-                                # Assistant response (if present) in white
-                                assistant_text = self._extract_assistant_text(event)
-                                if assistant_text:
-                                    print(WHITE + "Assistant: " + assistant_text + RESET)
-                                    waiting_indicator_printed = False
-                                    assistant_printed = True
-                                    if until_assistant:
-                                        return
+                                # Assistant response or delta
+                                a = self._extract_assistant_text(event)
+                                if a:
+                                    if a.get("type") == "delta":
+                                        print(WHITE + a.get("text", ""), end="", flush=True)
+                                    else:
+                                        print(WHITE + "Assistant: " + a.get("text", "") + RESET)
+                                        waiting_indicator_printed = False
+                                        assistant_printed = True
+                                        if until_assistant:
+                                            print(RESET)
+                                            return
                                 else:
                                     print(self._format_event(event))
                                     # If we are in a waiting state, show a subtle indicator
@@ -273,9 +280,12 @@ class StreamingClient:
                                     try:
                                         event = json.loads(line[6:])
                                         # Assistant response (if present) in white
-                                        assistant_text = self._extract_assistant_text(event)
-                                        if assistant_text:
-                                            print(WHITE + assistant_text + RESET)
+                                        a = self._extract_assistant_text(event)
+                                        if a:
+                                            if a.get("type") == "delta":
+                                                print(WHITE + a.get("text", ""), end="", flush=True)
+                                            else:
+                                                print(WHITE + "Assistant: " + a.get("text", "") + RESET)
                                         else:
                                             print(self._format_event(event))
                                         event_count += 1

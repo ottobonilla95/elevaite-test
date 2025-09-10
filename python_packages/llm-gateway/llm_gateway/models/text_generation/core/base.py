@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Iterable
 
 from .interfaces import TextGenerationResponse
 
@@ -40,6 +40,25 @@ class BaseTextGenerationProvider(ABC):
                  - 'finish_reason': Reason the model stopped generating ('stop', 'tool_calls', etc.).
         """
         pass
+
+    def stream_text(
+        self,
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
+    ) -> Iterable[Dict[str, Any]]:
+        """Optional streaming interface. Default raises NotImplementedError.
+        Yields dict events: {"type": "delta", "text": str} ... and a final
+        {"type": "final", "response": TextGenerationResponse.model_dump()}.
+        """
+        raise NotImplementedError("Streaming not implemented for this provider")
 
     @abstractmethod
     def validate_config(self, config: Dict[str, Any]) -> bool:

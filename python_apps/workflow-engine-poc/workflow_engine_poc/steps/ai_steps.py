@@ -22,6 +22,9 @@ from ..db.models import Agent as DBAgent, Prompt as DBPrompt, AgentToolBinding a
 
 from ..execution_context import ExecutionContext, StepResult, StepStatus, ExecutionStatus
 
+# Streaming utilities
+from ..streaming import stream_manager, create_step_event
+
 # Initialize logger first
 logger = logging.getLogger(__name__)
 
@@ -838,8 +841,40 @@ async def agent_execution_step(
     except Exception:
         pass
 
-    # Execute query
-    result = await agent.execute(query, context=input_data)
+    # Execute query, optionally streaming deltas
+    stream_enabled = bool(config.get("stream", False))
+    accumulated = ""
+    if stream_enabled:
+        try:
+            # For now, we do pseudo-streaming: split final response into chunks to emit deltas.
+            # When LLM gateway adds native streaming, replace this with real token streaming.
+            tmp_result = await agent.execute(query, context=input_data)
+            full_text = str((tmp_result or {}).get("response") or (tmp_result or {}).get("output") or "")
+            chunk_size = max(40, min(400, len(full_text) // 20 or 40))
+            sid = step_config.get("step_id") or ""
+            for i in range(0, len(full_text), chunk_size):
+                delta = full_text[i : i + chunk_size]
+                accumulated += delta
+                try:
+                    if sid:
+                        evt = create_step_event(
+                            execution_id=execution_context.execution_id,
+                            step_id=sid,
+                            step_status="running",
+                            workflow_id=execution_context.workflow_id,
+                            output_data={"delta": delta, "accumulated_len": len(accumulated)},
+                        )
+                        await stream_manager.emit_execution_event(evt)
+                        if execution_context.workflow_id:
+                            await stream_manager.emit_workflow_event(evt)
+                except Exception:
+                    pass
+            result = {**tmp_result, "response": accumulated}
+        except Exception as _se:
+            logger.debug(f"Streaming emission failed, falling back to non-streaming: {_se}")
+            result = await agent.execute(query, context=input_data)
+    else:
+        result = await agent.execute(query, context=input_data)
 
     # Persist assistant response to DB as a message for this step
     try:

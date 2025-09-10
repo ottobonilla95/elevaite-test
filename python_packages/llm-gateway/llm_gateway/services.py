@@ -76,6 +76,43 @@ class TextGenerationService:
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
 
+    def stream(
+        self,
+        prompt: str,
+        config: Dict[str, Any],
+        max_tokens: Optional[int] = None,
+        model_name: Optional[str] = None,
+        sys_msg: Optional[str] = None,
+        retries: Optional[int] = None,
+        temperature: Optional[float] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
+    ):
+        """Yield streaming events from the provider. Events are dicts like:
+        {"type": "delta", "text": "..."} and a final {"type": "final", "response": {...}}.
+        """
+        provider = self.factory.get_provider(config["type"])
+        try:
+            if not isinstance(provider, BaseTextGenerationProvider):
+                raise TypeError("Provider is not a BaseTextGenerationProvider")
+            yield from provider.stream_text(
+                prompt=prompt,
+                config=config,
+                max_tokens=max_tokens,
+                model_name=model_name,
+                sys_msg=sys_msg,
+                retries=retries,
+                temperature=temperature,
+                tools=tools,
+                tool_choice=tool_choice,
+                messages=messages,
+            )
+        except Exception as e:
+            error_msg = f"Error in text generation streaming for provider {config['type']}: {str(e)}"
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
+
 
 class VisionService:
     """Service class to handle image-to-text requests."""

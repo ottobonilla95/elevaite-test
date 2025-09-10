@@ -1,7 +1,7 @@
 import logging
 import time
 import json
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Iterable
 import openai
 
 from .core.base import BaseTextGenerationProvider
@@ -126,6 +126,80 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 time.sleep((2**attempt) * 0.5)
 
         raise Exception
+
+    def stream_text(
+        self,
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
+    ) -> Iterable[Dict[str, Any]]:
+        model_name = model_name or "gpt-4o"
+        temperature = temperature or 0.5
+        max_tokens = max_tokens or 100
+        prompt = prompt or ""
+        sys_msg = sys_msg or ""
+        retries = retries or 5
+        config = config or {}
+        role = config.get("role", "system")
+
+        for attempt in range(retries):
+            try:
+                if model_name.startswith("gpt-"):
+                    api_params = {
+                        "model": model_name,
+                        "messages": (
+                            messages
+                            if isinstance(messages, list) and len(messages) > 0
+                            else [
+                                {"role": role, "content": sys_msg},
+                                {"role": "user", "content": prompt},
+                            ]
+                        ),
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                        "stream": True,
+                    }
+                    if tools:
+                        api_params["tools"] = tools
+                        if tool_choice:
+                            api_params["tool_choice"] = tool_choice
+
+                    full_text = ""
+                    start_time = time.time()
+                    stream = self.client.chat.completions.create(**api_params)
+                    for chunk in stream:
+                        try:
+                            ch = chunk.choices[0]
+                        except Exception:
+                            continue
+                        delta = getattr(ch, "delta", None)
+                        if delta and getattr(delta, "content", None):
+                            text = delta.content
+                            full_text += text
+                            yield {"type": "delta", "text": text}
+                        # You may also handle tool_calls deltas here if needed
+                        if getattr(ch, "finish_reason", None):
+                            break
+                    latency = time.time() - start_time
+                    # Usage not available during streaming in standard SDK; set -1
+                    response = TextGenerationResponse(text=full_text.strip(), tokens_in=-1, tokens_out=-1, latency=latency)
+                    yield {"type": "final", "response": response.model_dump()}
+                    return
+                else:
+                    # Legacy completions streaming could be added similarly if needed
+                    raise NotImplementedError("Streaming not supported for this model endpoint")
+            except Exception as e:
+                logging.warning(f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
+                if attempt == retries - 1:
+                    raise RuntimeError(f"Streaming failed after {retries} attempts: {e}")
+                time.sleep((2**attempt) * 0.5)
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:
