@@ -1,41 +1,71 @@
+// Clean, component-based rendering with interleaved HTML + <CodeBlockParser />
 import { useEffect, useState } from "react";
 import "./AgentTestingParser.scss";
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 
 
 
-interface CodeBlock { token: string; html: string }
+type InterleavedPart =
+  | { kind: "html"; html: string }
+  | { kind: "code"; block: CodeBlockToken };
+interface CodeBlockToken { token: string; lang?: string; code: string }
+interface ListStructure { type: "ul" | "ol"; indent: number; liOpen: boolean }
+
 interface AgentTestingParserProps {
-    message: string;
-    isUser?: boolean;
+  message: string;
+  isUser?: boolean;
 }
 
+
+
 export function AgentTestingParser({ message, isUser }: AgentTestingParserProps): JSX.Element {
-    const [formattedText, setFormattedText] = useState<string>("");
-    const [expanded, setExpanded] = useState(false);
+  const [parts, setParts] = useState<InterleavedPart[]>([]);
+  const [expanded, setExpanded] = useState(false);
 
-    const isUserLong = isUser && (message.split(/\r?\n/).length > 5);
+  const isUserLong = Boolean(isUser) && (message.split(/\r?\n/).length > 5);
+
+  useEffect(() => {
+    console.log("Raw message", message);
+    const extractors: ((text: string) => string | undefined)[] = [
+      matchArrayOfStringsFormat,
+      matchJsonContentMessage,
+    ];
+
+    const extracted = extractors.reduce<string | undefined>(
+      (result, fn) => result ?? fn(message), undefined
+    ) ?? message;
+
+    const masked = maskCodeFencesReact(extracted);
+    const safe = escapeHtml(masked.text);
+    const rich = matchRichTextFormat(safe) ?? safe;
+    const linked = linkify(rich);
+    const interleaved = splitHtmlByTokens(linked, masked.blocks);
+
+    setParts(interleaved);
+  }, [message]);
+
+  return (
+    <div className="agent-testing-parser-container">
+      <div className={["parsed-text", isUserLong && !expanded ? "is-clamped" : undefined].filter(Boolean).join(" ")}>
+        {renderInterleaved(parts)}
+      </div>
+
+      {!isUserLong ? undefined : (
+        <div className="parser-button-container">
+          <CommonButton
+            className={["parser-expand-btn", expanded ? "expanded" : undefined].filter(Boolean).join(" ")}
+            noBackground
+            onClick={() => { setExpanded(v => !v); }}
+          >
+            <ElevaiteIcons.SVGChevron type="down" />
+          </CommonButton>
+        </div>
+      )}
+    </div>
+  );
+}
 
 
-    useEffect(() => {
-        const extractors: ((text: string) => string | undefined)[] = [
-            matchArrayOfStringsFormat,
-            matchJsonContentMessage,
-        ];
-
-        const extracted = extractors.reduce<string | undefined>(
-            (result, fn) => result ?? fn(message), undefined
-        ) ?? message;
-
-        const masked = maskCodeFences(extracted);
-
-        const rich = matchRichTextFormat(masked.text) ?? masked.text;
-        const linked = linkify(rich);
-        
-        const finalHtml = restoreCodeFences(linked, masked.blocks);
-
-        setFormattedText(finalHtml);
-    }, [message]);
 
 
 
@@ -43,17 +73,13 @@ export function AgentTestingParser({ message, isUser }: AgentTestingParserProps)
     function matchJsonContentMessage(text: string): string | undefined {
         try {
             const parsed = JSON.parse(text) as unknown;
-
             if (typeof parsed !== "object" || parsed === null) return undefined;
 
             const obj = parsed as Record<string, unknown>;
             const candidateKeys = ["content", "text", "response", "reply", "message", "output", "result"];
-
             for (const key of candidateKeys) {
-                const value = obj[key];
-                if (typeof value === "string" && value.trim()) {
-                    return value;
-                }
+            const value = obj[key];
+            if (typeof value === "string" && value.trim()) return value;
             }
             return undefined;
         } catch {
@@ -64,182 +90,246 @@ export function AgentTestingParser({ message, isUser }: AgentTestingParserProps)
     function matchArrayOfStringsFormat(text: string): string | undefined {
         try {
             const parsed = JSON.parse(text) as unknown;
-
             if (Array.isArray(parsed)) {
-                const last = parsed[parsed.length - 1] as unknown;
-                if (typeof last === "string" && last.trim()) {
-                    return last.trim();
-                }
+            const last = parsed[parsed.length - 1] as unknown;
+            if (typeof last === "string" && last.trim()) return last.trim();
             }
             return undefined;
         } catch {
             try {
-                // eslint-disable-next-line no-eval -- Well, we don't have many choices with data formatted like this >.<
-                const evaluated = eval(text) as unknown;
-
-                if (Array.isArray(evaluated)) {
-                    const last = evaluated[evaluated.length - 1] as unknown;
-                    return typeof last === "string" && last.trim() ? last.trim() : undefined;
-                }
+            // eslint-disable-next-line no-eval -- Yeah, the whole thing needs a rewrite.
+            const evaluated = eval(text) as unknown;
+            if (Array.isArray(evaluated)) {
+                const last = evaluated[evaluated.length - 1] as unknown;
+                return typeof last === "string" && last.trim() ? last.trim() : undefined;
+            }
             } catch {
-                return undefined;
+            return undefined;
             }
         }
     }
 
-    function escapeHtml(text: string): string {
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-    }
-
-
-    function maskCodeFences(src: string): { text: string; blocks: CodeBlock[] } {
-        const blocks: CodeBlock[] = [];
-
+    function maskCodeFencesReact(src: string): { text: string; blocks: CodeBlockToken[] } {
+        const blocks: CodeBlockToken[] = [];
         const fenceRe = /(?<prefix>^|\n)(?<fence>```|~~~)(?<lang>[a-zA-Z0-9+_-]*)[ \t]*\n(?<code>[\s\S]*?)(?:\n\k<fence>)(?=(?:\n|$))/g;
 
         let index = 0;
 
         const text = src.replace(fenceRe, (_m, prefix: string, ...rest: unknown[]) => {
-            const groups = rest[rest.length - 1] as {
-                fence?: string;
-                lang?: string;
-                code?: string;
-            };
-
-            const lang = (groups.lang ?? "").trim();
-            // Preserve internal whitespace; trim a single trailing newline if present
+            const groups = rest[rest.length - 1] as { fence?: string; lang?: string; code?: string };
+            const lang = (groups.lang ?? "").trim() || undefined;
             const body = (groups.code ?? "").replace(/\n$/, "");
-            const cls = lang ? ` class="language-${lang}"` : "";
-            const html = `<pre class="code-block"><code${cls}>${escapeHtml(body)}</code></pre>`;
-
             const token = `\uE000CODE_${(index++).toString()}\uE000`;
-            blocks.push({ token, html });
-
+            blocks.push({ token, lang, code: body });
             return `${prefix}${token}`;
         });
 
         return { text, blocks };
     }
 
-    function restoreCodeFences(maskedText: string, blocks: CodeBlock[]): string {
-        let out = maskedText;
-        for (const { token, html } of blocks) {
-            out = out.split(token).join(html);
+    function splitHtmlByTokens(html: string, blocks: CodeBlockToken[]): InterleavedPart[] {
+        if (!blocks.length) return [{ kind: "html", html }];
+
+        let cursor = 0;
+        const parts: InterleavedPart[] = [];
+
+        const ordered = [...blocks]
+            .map(b => ({ block: b, idx: html.indexOf(b.token) }))
+            .filter(x => x.idx !== -1)
+            .sort((a, b) => a.idx - b.idx);
+
+        for (const { block, idx } of ordered) {
+            if (idx > cursor) {
+            parts.push({ kind: "html", html: html.slice(cursor, idx) });
+            }
+            parts.push({ kind: "code", block });
+            cursor = idx + block.token.length;
         }
-        return out;
+
+        if (cursor < html.length) {
+            parts.push({ kind: "html", html: html.slice(cursor) });
+        }
+
+        return parts;
+    }
+
+    function renderInterleaved(parts: InterleavedPart[]): JSX.Element[] {
+        let keySeq = 0;
+        return parts.map((p) => {
+            if (p.kind === "html") {
+            return <div key={`h-${(keySeq++).toString()}`} dangerouslySetInnerHTML={{ __html: p.html }} />;
+            }
+            return <CodeBlockParser key={`c-${(keySeq++).toString()}`} lang={p.block.lang} code={p.block.code} />;
+        });
     }
 
     function matchRichTextFormat(text: string): string | undefined {
-        if (
-            !text.includes("###") &&
-            !text.includes("**") &&
-            !/^(?:\d+\. |- |\* )/m.test(text)
-        ) {
-            return undefined;
+        // early-out if nothing markdowny present
+        if (!(/#{2,6}\s|[*]{2}|^\s*[-•]\s|\d+\.\s|`/.test(text))) return undefined;
+
+        // 1) Inline transforms first (safe: we escape outside code blocks earlier)
+        let formattedResult = text
+            // inline code: `code`
+            .replace(/`(?<inline>[^`\n]+)`/g, (_m, _g1, _off, _str, g?: { inline?: string }) =>
+            `<code class="inline-code">${g?.inline ?? ""}</code>`
+            )
+            // headings: ##..###### <text>
+            .replace(/^(?<hashes>#{2,6}) (?<content>.*)$/gm, (m: string) => {
+            const r = /^(?<hashes>#{2,6}) (?<content>.*)$/.exec(m);
+            if (!r?.groups) return m;
+            const level = r.groups.hashes.length.toString();
+            return `<h${level}>${r.groups.content.trim()}</h${level}>`;
+            })
+            // bold: **text**
+            .replace(/\*\*(?<b>.+?)\*\*/g, (_m, _g1, _off, _str, g?: { b?: string }) =>
+            `<strong>${(g?.b ?? "").trim()}</strong>`
+            )
+            // horizontal rule
+            .replace(/^\s*-{3,}\s*$/gm, "<hr/>");
+
+        // 2) Block-level list rendering (ordered + unordered, with simple nesting)
+        formattedResult = renderLists(formattedResult);
+
+        return formattedResult;
+    }
+
+    function renderLists(src: string): string {
+        const lines = src.split(/\r?\n/);
+        let out = "";
+        const stack: ListStructure[] = [];
+
+        function closeLi(): void {
+            if (stack.length && stack[stack.length - 1].liOpen) {
+            out += "</li>";
+            stack[stack.length - 1].liOpen = false;
+            }
+        }
+        function openList(type: "ul" | "ol", indent: number): void {
+            out += type === "ul" ? "<ul>" : "<ol>";
+            stack.push({ type, indent, liOpen: false });
+        }
+        function closeList(): void {
+            const ctx = stack.pop();
+            if (!ctx) return;
+            if (ctx.liOpen) out += "</li>";
+            out += ctx.type === "ul" ? "</ul>" : "</ol>";
+        }
+        function unwindTo(targetIndent: number): void {
+            while (stack.length && stack[stack.length - 1].indent > targetIndent) {
+            closeList();
+            }
         }
 
-        const html = text
-            // Headings
-            .replace(/^(?<hashes>#{2,6}) (?<content>.*)$/gm, (match: string) => {
-                // Use RegExp.exec() to get named groups with proper typing
-                const regex = /^(?<hashes>#{2,6}) (?<content>.*)$/;
-                const result = regex.exec(match);
-                if (!result?.groups) return match;
+        for (const raw of lines) {
+            const line = raw; // already escaped/inline-processed upstream
+            const m = /^(?<spaces>\s*)(?:(?<num>\d+)\.\s+(?<o>.+)|(?<bullet>[-•])\s+(?<u>.+))$/.exec(line);
 
-                const { hashes, content } = result.groups;
-                // eslint-disable-next-line no-console -- Debug logging
-                console.log("🔍 Heading match:", { match, hashes, content });
-                const level = hashes.length.toString();
-                return `<h${level}>${content.trim()}</h${level}>`;
-            })
-            // Bold **text**
-            .replace(/\*\*(?:.*?)\*\*/g, (match) => {
-                const boldText = match.slice(2, -2).trim();
-                return `<strong>${boldText}</strong>`;
-            })
-            // Break between adjacent **bold** sections
-            .replace(/(?<bold>\*\*[^*]+?\*\*)(?=[\s:;,]*\*\*)/g, (
-                _match: string,
-                _g1: string,
-                _offset: number,
-                _str: string,
-                groups?: { bold?: string }
-            ): string => {
-                return `${groups?.bold ?? _match}<br/>`;
-            })
-            // Horizontal Rulers
-            .replace(/^\s*-{3,}\s*$/gm, "<hr/>")
-            // Numbered list items
-            .replace(/^\d+\. (?:.*?)$/gm, (match) => {
-                const content = match.replace(/^\d+\.\s*/, "");
-                return `<li>${content}</li>`;
-            })
-            // Bulleted list items (- or •)
-            .replace(/^\s*[-•] (?:.*?)$/gm, (match) => {
-                const content = match.replace(/^\s*[-•]\s*/, "");
-                return `<li>${content}</li>`;
-            })
-            // Group <li> items inside <ul> blocks (basic grouping)
-            .replace(/(?:<li>.*?<\/li>)/gs, "<ul>$&</ul>")
-            .replace(/<\/ul>\s*<ul>/g, "");
+            if (m?.groups) {
+            const indent = (m.groups.spaces).length; // simple indent (spaces)
+            const isOrdered = Boolean(m.groups.num);
+            const content = isOrdered ? m.groups.o : m.groups.u;
+            const type: "ul" | "ol" = isOrdered ? "ol" : "ul";
 
-        return html;
+            // open/close lists to match current indent and type
+            if (!stack.length) {
+                openList(type, indent);
+            } else {
+                // unwind deeper lists if necessary
+                if (stack[stack.length - 1].indent > indent) {
+                unwindTo(indent);
+                }
+                // same indent but different type? close and reopen
+                if (!stack.length || stack[stack.length - 1].indent < indent) {
+                openList(type, indent);
+                } else if (stack[stack.length - 1].type !== type) {
+                closeList();
+                openList(type, indent);
+                }
+            }
+
+            // close previous <li> at this level, open a new one
+            closeLi();
+            stack[stack.length - 1].liOpen = true;
+            out += `<li>${content}`;
+            } else {
+            // non-list line
+            if (stack.length) {
+                // treat as continuation of current <li> (soft break)
+                out += line.trim() ? `<br/>${line}` : "";
+            } else {
+                out += line;
+            }
+            out += "\n";
+            }
+        }
+
+        // close any remaining lists
+        while (stack.length) closeList();
+
+        return out;
     }
 
 
     function linkify(text: string): string {
-        // Convert markdown-style links first
         let html = text.replace(/\[(?<linkText>[^\]]+)\]\((?<url>https?:\/\/[^\s)]+)\)/g,
-            (_match, ...args) => {
-                const groups = args[args.length - 1] as { linkText: string; url: string };
-                return `<a href="${groups.url}" title="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.linkText}</a>`;
+            (_m, ...args) => {
+            const groups = args[args.length - 1] as { linkText: string; url: string };
+            return `<a href="${groups.url}" title="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.linkText}</a>`;
             }
         );
 
-        // Then linkify any remaining plain URLs - FIXED to capture full URLs including dots
         html = html.replace(/(?<prefix>^|[^"'>])(?<url>https?:\/\/[^\s<>"'[\]()]+)/g,
-            (_match, ...args) => {
-                const groups = args[args.length - 1] as { prefix: string; url: string };
-                return `${groups.prefix}<a href="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.url}</a>`;
+            (_m, ...args) => {
+            const groups = args[args.length - 1] as { prefix: string; url: string };
+            return `${groups.prefix}<a href="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.url}</a>`;
             }
         );
 
         return html;
+    }
 
-        // OLD CODE (commented out):
-        // Original problematic URL regex that was cutting off URLs at dots:
-        // html = html.replace(/(?<!["'>])\b(?<url>https?:\/\/[^\s<>"')\],.]+[^\s<>"')\],.])/g, (
-        //     _match, _p1, _offset, _string, groups: { label?: string; url?: string }
-        // ) => {
-        //     if (!groups.url) return _match;
-        //     return `<a href="${groups.url}" target="_blank" rel="noopener noreferrer">${groups.url}</a>`;
-        // });
+    function escapeHtml(text: string): string {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
 
 
-    return (
-        <div className="agent-testing-parser-container">
-            <div
-                className={["parsed-text", isUserLong && !expanded ? "is-clamped" : undefined].filter(Boolean).join(" ")}
-                dangerouslySetInnerHTML={{ __html: formattedText }}
-            />
-            {!isUserLong ? undefined :
-                <div className="parser-button-container">
-                    <CommonButton
-                        className={["parser-expand-btn", expanded ? "expanded" : undefined].filter(Boolean).join(" ")}
-                        noBackground
-                        onClick={() => { setExpanded(v => !v); }}
-                    >
-                        <ElevaiteIcons.SVGChevron type="down"/>
-                    </CommonButton>
-                </div>
-            }
+
+
+
+
+export function CodeBlockParser(props: { lang?: string; code: string }): JSX.Element {
+  const { lang, code } = props;
+  const [copied, setCopied] = useState(false);
+
+  function onCopy(): void {
+    void navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      window.setTimeout(() => { setCopied(false); }, 1500);
+    });
+  }
+
+  return (
+    <div className="code-block-container">
+        <div className="code-block-header">
+            <CommonButton
+                className={["code-copy-button", copied ? "copied" : undefined].filter(Boolean).join(" ")}                
+                onClick={onCopy}
+                noBackground
+            >
+                {copied ? <ElevaiteIcons.SVGCheckmark/> : <ElevaiteIcons.SVGCopy/> }
+                {copied ? "Copied!" : "Copy code" }
+            </CommonButton>
         </div>
-    );
+
+        <pre className="code-block">
+            <code className={lang ? `language-${lang}` : undefined}>{code}</code>
+        </pre>
+    </div>
+  );
 }

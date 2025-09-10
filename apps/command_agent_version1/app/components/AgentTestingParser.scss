@@ -50,12 +50,44 @@
         }
 
 
-        .code-block {
-            white-space: pre-wrap;
-            word-break: break-word;
+        .code-block-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
             background-color: #e0e0e0;
-            padding: 1rem;
+            padding: 0.2rem 1rem 1rem;
             border-radius: 8px;
+
+            .code-block-header {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+            }
+
+            .code-block {
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+        }
+
+        ol, ul {
+            margin-left: 1.5rem;
+            padding-left: 0.5rem;
+            li {
+                margin: 0.25rem 0;
+                ol, ul {
+                    margin-top: 0.25rem;
+                    margin-bottom: 0.25rem;
+                }
+            }
+        }
+        ol {
+            list-style: decimal;
+            li { list-style-type: decimal; }
+        }
+        ul {
+            list-style: disc;
+            li { list-style-type: disc; }
         }
     }
 
