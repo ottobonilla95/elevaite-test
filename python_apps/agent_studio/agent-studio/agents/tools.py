@@ -512,20 +512,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
         for category, amount in base_costs.items():
             print(f"      {category}: £{amount:.2f}")
 
-        # 5. APPLY REGIONAL UPLIFTS
-        print(f"\n🌍 Step 5: Applying regional uplifts...")
-        print(f"   Site postcode: {site_postcode}")
-        regional_uplift = calculator.apply_regional_uplift(site_postcode, base_costs)
-        print(f"   Regional uplift result: {regional_uplift['region']} +{regional_uplift['percentage']:.1f}% = £{regional_uplift['amount']:.2f}")
-
-        # Apply uplift to all base costs
-        uplifted_costs = {}
-        for category, amount in base_costs.items():
-            uplifted_amount = amount * (1 + regional_uplift["percentage"] / 100)
-            uplifted_costs[category] = uplifted_amount
-            print(f"   {category}: £{amount:.2f} → £{uplifted_amount:.2f}")
-
-        # 6. APPLY CATEGORY-SPECIFIC MARKUPS
+        # 5. APPLY CATEGORY-SPECIFIC MARKUPS (without regional uplift first)
         print(f"\n💼 Step 6: Applying category-specific markups...")
         markup_rates = calculator.get_markup_rates(is_framework)
         print(f"   Markup rates: {markup_rates}")
@@ -536,10 +523,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
             category = item["category"]
             base_amount = item["total"]
 
-            # Apply regional uplift first
-            uplifted_amount = base_amount * (1 + regional_uplift["percentage"] / 100)
-
-            # Get appropriate markup rate
+            # Get appropriate markup rate (no regional uplift here yet)
             if category == "preferred_supplier":
                 markup_rate = markup_rates["preferred_supplier"]
             elif category == "subcontractors":
@@ -547,11 +531,10 @@ def calculate_mitie_quote(extracted_data: str) -> str:
             else:
                 markup_rate = markup_rates["materials_labour"]
 
-            markup_amount = uplifted_amount * markup_rate
-            final_amount = uplifted_amount + markup_amount
+            markup_amount = base_amount * markup_rate
+            final_amount = base_amount + markup_amount
 
-            # Update item with final amounts
-            item["regional_uplift"] = uplifted_amount - base_amount
+            # Update item with final amounts (no regional uplift yet)
             item["markup_rate"] = markup_rate
             item["markup_amount"] = markup_amount
             item["final_total"] = final_amount
@@ -589,6 +572,20 @@ def calculate_mitie_quote(extracted_data: str) -> str:
         print(f"   Preliminaries: £{preliminaries['amount']:.2f}")
         print(f"   Subtotal after markups: £{subtotal_after_markups:.2f}")
 
+        # 8.5. APPLY REGIONAL UPLIFTS (on the subtotal)
+        print(f"\n🌍 Step 8.5: Applying regional uplifts...")
+        print(f"   Site postcode: {site_postcode}")
+        print(f"   Subtotal before regional uplift: £{subtotal_after_markups:.2f}")
+
+        # Calculate regional uplift on the subtotal (not just base costs)
+        regional_uplift_base = {"subtotal": subtotal_after_markups}
+        regional_uplift = calculator.apply_regional_uplift(site_postcode, regional_uplift_base)
+        print(f"   Regional uplift result: {regional_uplift['region']} +{regional_uplift['percentage']:.1f}% = £{regional_uplift['amount']:.2f}")
+
+        # Apply regional uplift to subtotal
+        subtotal_after_regional = subtotal_after_markups + regional_uplift["amount"]
+        print(f"   Subtotal after regional uplift: £{subtotal_after_regional:.2f}")
+
         # 9. APPLY RISK-BASED CONTINGENCY
         print(f"\n⚠️ Step 9: Applying risk-based contingency...")
 
@@ -601,7 +598,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
             risk_rates = {"standard": 0.05, "moderate": 0.10, "critical": 0.15}
             risk_rate = risk_rates.get(risk_level, 0.05)
 
-            contingency_amount = subtotal_after_markups * risk_rate
+            contingency_amount = subtotal_after_regional * risk_rate
             contingency = {
                 "risk_level": risk_level,
                 "rate": risk_rate,
@@ -609,7 +606,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                 "final_amount": contingency_amount,
                 "cap_applied": False,
                 "cap_amount": 25000,
-                "subtotal_base": subtotal_after_markups
+                "subtotal_base": subtotal_after_regional
             }
 
             print(f"   LLM Risk Level: {risk_level} ({risk_rate*100:.0f}%) = £{contingency_amount:.2f}")
@@ -618,13 +615,13 @@ def calculate_mitie_quote(extracted_data: str) -> str:
             # FALLBACK: Original risk calculation
             risk_factors = rfq_data.get("risk_factors", technical_scope)
             print(f"   Risk factors: {risk_factors[:100]}...")
-            contingency = calculator.calculate_risk_contingency(risk_factors, subtotal_after_markups)
+            contingency = calculator.calculate_risk_contingency(risk_factors, subtotal_after_regional)
             print(f"   Contingency: {contingency['risk_level']} ({contingency['rate']*100:.0f}%) = £{contingency['final_amount']:.2f}")
 
         # 10. CALCULATE FINAL TOTAL
-        final_total = subtotal_after_markups + contingency["final_amount"]
+        final_total = subtotal_after_regional + contingency["final_amount"]
         print(f"\n💰 Step 10: Final total calculation...")
-        print(f"   Subtotal: £{subtotal_after_markups:.2f}")
+        print(f"   Subtotal after regional uplift: £{subtotal_after_regional:.2f}")
         print(f"   Contingency: £{contingency['final_amount']:.2f}")
         print(f"   FINAL TOTAL: £{final_total:.2f}")
 
@@ -1148,7 +1145,27 @@ def _build_mitie_cost_table_data(costs: dict) -> Dict[str, Any]:
     )
     table_rows.append(["Active Total", f"£{active_total:,.2f}"])
 
-    # Add contingency if present
+    # Add subtotal before regional uplift (work + preliminaries)
+    subtotal_before_regional = costs.get("subtotal_after_markups", 0)
+    if subtotal_before_regional > 0:
+        table_rows.append(["SUBTOTAL (Before Regional Uplift)", f"£{subtotal_before_regional:,.2f}"])
+
+    # Always add regional uplift line (even if 0%)
+    regional_uplift = costs.get("regional_uplift", {})
+    regional_amount = regional_uplift.get("amount", 0)
+    region_name = regional_uplift.get("region", "Standard")
+    percentage = regional_uplift.get("percentage", 0)
+
+    if percentage > 0:
+        table_rows.append([f"REGIONAL UPLIFT ({region_name}) +{percentage:.0f}%", f"£{regional_amount:,.2f}"])
+    else:
+        table_rows.append([f"REGIONAL UPLIFT ({region_name}) {percentage:.0f}%", f"£{regional_amount:,.2f}"])
+
+    # Add subtotal after regional uplift
+    subtotal_after_regional = subtotal_before_regional + regional_amount
+    table_rows.append(["SUBTOTAL (After Regional Uplift)", f"£{subtotal_after_regional:,.2f}"])
+
+    # Add contingency if present (markups are already included in subtotal)
     contingency = costs.get("contingency", {})
     contingency_amount = contingency.get("final_amount", contingency.get("calculated_amount", 0))
     if contingency_amount > 0:

@@ -419,11 +419,19 @@ class MitieCalculator:
                 "applied_to": "none"
             }
 
-        postcode_prefix = postcode[:2].upper()
+        # Extract postcode prefix - try 2 chars first, then 1 char
+        postcode_clean = postcode.upper().strip()
+        postcode_prefix_2 = postcode_clean[:2] if len(postcode_clean) >= 2 else postcode_clean
+        postcode_prefix_1 = postcode_clean[:1] if len(postcode_clean) >= 1 else ""
 
         # Check London/South East (+10%)
         london_config = self.db.get_config("regional_uplift", "london")
-        if london_config and postcode_prefix in london_config.get("postcodes", []):
+        london_postcodes = london_config.get("postcodes", []) if london_config else []
+
+        # Try 2-character prefix first (for EC, NW, SE, SW, WC), then 1-character (for E, N, W)
+        is_london = (postcode_prefix_2 in london_postcodes) or (postcode_prefix_1 in london_postcodes)
+
+        if london_config and is_london:
             uplift_rate = london_config.get("uplift", 0.10)
             region = "London/South East"
         else:
@@ -435,7 +443,10 @@ class MitieCalculator:
             if "IV" not in remote_postcodes:
                 remote_postcodes.append("IV")
 
-            if remote_config and postcode_prefix in remote_postcodes:
+            # Try 2-character prefix first, then 1-character for remote areas
+            is_remote = (postcode_prefix_2 in remote_postcodes) or (postcode_prefix_1 in remote_postcodes)
+
+            if remote_config and is_remote:
                 # Use maximum uplift for remote areas
                 uplift_rate = remote_config.get("uplift_max", remote_config.get("uplift", 0.15))
                 region = "Remote/Rural"
