@@ -220,52 +220,64 @@ export function AgentTestingParser({ message, isUser }: AgentTestingParserProps)
             }
         }
 
-        for (const raw of lines) {
+        for (let i = 0; i < lines.length; i++) {
+            const raw = lines[i];
             const line = raw; // already escaped/inline-processed upstream
             const m = /^(?<spaces>\s*)(?:(?<num>\d+)\.\s+(?<o>.+)|(?<bullet>[-•])\s+(?<u>.+))$/.exec(line);
 
             if (m?.groups) {
-            const indent = (m.groups.spaces).length; // simple indent (spaces)
-            const isOrdered = Boolean(m.groups.num);
-            const content = isOrdered ? m.groups.o : m.groups.u;
-            const type: "ul" | "ol" = isOrdered ? "ol" : "ul";
+                const indent = (m.groups.spaces).length;
+                const isOrdered = Boolean(m.groups.num);
+                let content = isOrdered ? m.groups.o : m.groups.u;
+                const type: "ul" | "ol" = isOrdered ? "ol" : "ul";
 
-            // open/close lists to match current indent and type
-            if (!stack.length) {
+                if (!stack.length) {
                 openList(type, indent);
-            } else {
-                // unwind deeper lists if necessary
-                if (stack[stack.length - 1].indent > indent) {
-                unwindTo(indent);
-                }
-                // same indent but different type? close and reopen
+                } else {
+                if (stack[stack.length - 1].indent > indent) unwindTo(indent);
                 if (!stack.length || stack[stack.length - 1].indent < indent) {
-                openList(type, indent);
+                    openList(type, indent);
                 } else if (stack[stack.length - 1].type !== type) {
-                closeList();
-                openList(type, indent);
+                    closeList();
+                    openList(type, indent);
                 }
-            }
+                }
 
-            // close previous <li> at this level, open a new one
-            closeLi();
-            stack[stack.length - 1].liOpen = true;
-            out += `<li>${content}`;
+                // ensure no literal "1. " leaks into content
+                if (isOrdered) content = content.replace(/^\d+\.\s*/, "");
+
+                closeLi();
+                stack[stack.length - 1].liOpen = true;
+                out += `<li>${content}`;
+            } else if (raw.trim() === "") {
+                // look ahead: if the next non-empty line starts a list, keep the current list open
+                let j = i + 1;
+                let nextNonEmpty: string | undefined;
+                while (j < lines.length && (nextNonEmpty = lines[j]) !== undefined && nextNonEmpty.trim() === "") j++;
+                const nextIsList = Boolean(nextNonEmpty && /^(?<spaces>\s*)(?:(?<num>\d+)\.\s+.+|(?<bullet>[-•])\s+.+)$/.test(nextNonEmpty));
+
+                if (stack.length) {
+                if (nextIsList) {
+                    // end current <li>, keep list(s) open
+                    closeLi();
+                    out += "\n";
+                } else {
+                    // end all lists
+                    while (stack.length) closeList();
+                    out += "\n";
+                }
+                } else {
+                out += "\n";
+                }
+            } else if (stack.length) {
+                out += `<br/>${line}`;
             } else {
-            // non-list line
-            if (stack.length) {
-                // treat as continuation of current <li> (soft break)
-                out += line.trim() ? `<br/>${line}` : "";
-            } else {
-                out += line;
-            }
-            out += "\n";
+                out += `${line}\n`;
             }
         }
 
         // close any remaining lists
         while (stack.length) closeList();
-
         return out;
     }
 
