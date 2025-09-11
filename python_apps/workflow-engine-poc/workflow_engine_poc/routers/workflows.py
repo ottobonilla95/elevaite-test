@@ -18,14 +18,14 @@ from fastapi import (
 )
 from fastapi.responses import StreamingResponse
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlmodel import Session, select
 from ..db.database import get_db_session
 from ..db.models import Workflow, WorkflowRead, WorkflowBase
 from ..db.service import DatabaseService
 from ..workflow_engine import WorkflowEngine
-from ..dbos_adapter import get_dbos_adapter
+from ..dbos_impl.workflows import execute_and_persist_dbos_result
 from ..db.models import WorkflowExecutionRead, ExecutionStatus
 from ..streaming import (
     stream_manager,
@@ -289,122 +289,25 @@ async def execute_workflow_by_id(
             raise HTTPException(status_code=400, detail=f"Invalid execution backend: {chosen_backend}")
 
         if chosen_backend == "dbos":
-            # Run synchronously via DBOS adapter and persist results
-            adapter = await get_dbos_adapter()
-            result = await adapter.start_workflow(
-                workflow_config=workflow,
-                trigger_data=trigger_payload,
-                user_context={
-                    "user_id": user_id,
-                    "session_id": session_id_val,
-                    "organization_id": organization_id,
-                },
-                execution_id=execution_id,
-                wait=wait,
-            )
-
-            if not isinstance(result, dict):
-                raise HTTPException(status_code=502, detail=f"DBOS returned unexpected result type: {type(result)}")
-
-            # If DBOS produced its own execution_id, rekey the DB row to match
-            dbos_exec_id = result.get("execution_id")
-            if dbos_exec_id and dbos_exec_id != execution_id:
-                print(f"Rekeying execution {execution_id} to {dbos_exec_id}")
-            if isinstance(dbos_exec_id, str):
-                try:
-                    db_service.rekey_execution(session, execution_id, dbos_exec_id)
-                    execution_id = dbos_exec_id
-                except Exception as e:
-                    print(f"Rekeying execution {execution_id} to {dbos_exec_id} failed because {e}")
-                    pass
-
-            # Map adapter result into execution record
-            success_val = result.get("success")
-            if success_val is True:
-                status = ExecutionStatus.COMPLETED
-            elif success_val is False:
-                status = ExecutionStatus.FAILED
-            else:
-                # DBOS started (wait=False) and still in progress
-                status = ExecutionStatus.RUNNING
-
-            step_results = result.get("step_results", {})
-            # Construct step_io_data from outputs
-            step_io_data = {}
-            if isinstance(step_results, dict):
-                for sid, sres in step_results.items():
-                    if isinstance(sres, dict) and "output_data" in sres:
-                        step_io_data[sid] = sres["output_data"]
-
-            # Step summary for analytics
-            steps_executed = len(step_results) if isinstance(step_results, dict) else 0
-            completed_steps = 0
-            failed_steps = 0
-            if isinstance(step_results, dict):
-                for sres in step_results.values():
-                    if isinstance(sres, dict):
-                        if sres.get("success") is True:
-                            completed_steps += 1
-                        elif sres.get("success") is False:
-                            failed_steps += 1
-            steps_defined = 0
+            # Execute via DBOS adapter and persist normalized results using helper
             try:
-                steps_defined = len(workflow.get("steps", []) or [])
-            except Exception:
-                steps_defined = 0
-
-            # Compute execution time using stored started_at and current UTC
-            now_utc = datetime.now(timezone.utc)
-            start_iso = None
-            try:
-                created_pre = db_service.get_execution(session, execution_id)
-                start_iso = created_pre.get("started_at") if isinstance(created_pre, dict) else None
-            except Exception:
-                start_iso = None
-            exec_secs = None
-            if isinstance(start_iso, str):
-                try:
-                    # Handle Z suffix
-                    s = start_iso.replace("Z", "+00:00")
-                    from datetime import datetime as _dt
-
-                    start_dt = _dt.fromisoformat(s)
-                    if start_dt.tzinfo is None:
-                        from datetime import timezone as _tz
-
-                        start_dt = start_dt.replace(tzinfo=_tz.utc)
-                    exec_secs = (now_utc - start_dt).total_seconds()
-                except Exception:
-                    exec_secs = None
-
-            update_payload = {
-                "status": status,
-                "output_data": {"success": success_val, "error": result.get("error")},
-                "step_io_data": step_io_data,
-                "execution_metadata": {
-                    **(result.get("_dbos") or {}),
-                    **(metadata or {}),
-                    "backend": chosen_backend,
-                    "summary": {
-                        "total_steps": steps_defined,
-                        "steps_executed": steps_executed,
-                        "completed_steps": completed_steps,
-                        "failed_steps": failed_steps,
+                execution_id = await execute_and_persist_dbos_result(
+                    session,
+                    db_service,
+                    workflow=workflow,
+                    trigger_payload=trigger_payload,
+                    user_context={
+                        "user_id": user_id,
+                        "session_id": session_id_val,
+                        "organization_id": organization_id,
                     },
-                },
-                "error_message": result.get("error"),
-            }
-            # Only set completion timestamps for terminal states
-            if status in (
-                ExecutionStatus.COMPLETED,
-                ExecutionStatus.FAILED,
-                ExecutionStatus.CANCELLED,
-                ExecutionStatus.TIMEOUT,
-            ):
-                update_payload["completed_at"] = now_utc
-                update_payload["execution_time_seconds"] = exec_secs
-
-            db_service.update_execution(session, execution_id, update_payload)
+                    execution_id=execution_id,
+                    wait=wait,
+                    metadata=metadata,
+                    chosen_backend=chosen_backend,
+                )
+            except RuntimeError as e:
+                raise HTTPException(status_code=502, detail=str(e))
         else:
             # Local backend: async or sync based on 'wait'
             if wait:
