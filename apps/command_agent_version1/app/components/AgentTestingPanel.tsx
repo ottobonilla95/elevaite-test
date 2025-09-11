@@ -2,7 +2,7 @@ import { ChatbotIcons, CommonButton } from "@repo/ui/components";
 import { useAutoSizeTextArea } from "@repo/ui/hooks";
 import { AlertCircle, Bot, FileText, Maximize2, Minimize2, Upload, User, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-import { executeWorkflowModern } from "../lib/actions";
+import { BACKEND_URL } from "../lib/constants";
 import { useWorkflows } from "../ui/contexts/WorkflowsContext";
 import UploadModal from "./agents/UploadModal";
 import "./AgentTestingPanel.scss";
@@ -121,7 +121,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
   }
 
   async function handleSendMessage(): Promise<void> {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || !workflowId) return;
 
     const userMessage: ChatMessage = {
       id: Date.now(),
@@ -136,8 +136,16 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
     setIsLoading(true);
     setAgentStatus("Processing your request...");
 
+    // Prepare a placeholder bot message that we'll update as streaming content arrives
+    const placeholderBotMessage: ChatMessage = {
+      id: Date.now() + 1,
+      text: "",
+      sender: "bot",
+    };
+    setChatMessages((prev) => [...prev, placeholderBotMessage]);
+
     try {
-      const chatHistory = chatMessages.map((message) => ({
+      const chatHistory = [...chatMessages, userMessage].map((message) => ({
         actor: message.sender,
         content: message.text,
       }));
@@ -146,47 +154,85 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
         query,
         chat_history: chatHistory,
         runtime_overrides: {},
-        files: uploadedFiles.map(file => ({
-          id: file.backendFileId ?? file.id,
-          name: file.name
-        }))
       };
 
-      const result = await executeWorkflowModern(workflowId ?? "", executionRequest);
+      const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(executionRequest),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status.toString()}`);
+      if (!response.body) throw new Error("No stream body returned");
 
-      let responseText = "No response received";
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let accumulatedText = "";
 
-      if (result.response) {
-        try {
-          const parsedResponse = JSON.parse(result.response) as unknown;
-          responseText =
-            typeof parsedResponse === "object" &&
-            parsedResponse !== null &&
-            "content" in parsedResponse &&
-            parsedResponse.content &&
-            typeof parsedResponse.content === "string"
-              ? parsedResponse.content
-              : "No content found";
-        } catch (parseError) {
-          console.error("Failed to parse response JSON:", parseError);
-          responseText = result.response || "No response received";
+      let doneReading = false;
+      while (!doneReading) {
+        const { done, value } = await reader.read();
+        if (done) { doneReading = true; break; }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        // Keep the last partial line in buffer
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data: ")) continue;
+          const payload = trimmed.slice(6);
+          if (!payload) continue;
+
+          try {
+            const parsed = JSON.parse(payload) as unknown;
+            // status messages
+            if (typeof parsed === "object" && parsed !== null && "status" in parsed) {
+              const status = (parsed as { status?: string }).status;
+              if (status === "started") setAgentStatus("Started");
+              if (status === "completed") setAgentStatus("Completed");
+              if (status === "error") {
+                const errMsg = (parsed as { error?: string }).error ?? "Unknown error";
+                throw new Error(errMsg);
+              }
+              continue;
+            }
+
+            // typed content/events
+            if (typeof parsed === "object" && parsed !== null && "type" in parsed) {
+              const evt = parsed as { type: string; data?: unknown };
+              if (evt.type === "content") {
+                const data = typeof evt.data === "string" ? evt.data : "";
+                const nextText = accumulatedText + data;
+                accumulatedText = nextText;
+                // Live update the placeholder message
+                setChatMessages((prev) => prev.map((m) => (m.id === placeholderBotMessage.id ? { ...m, text: nextText } : m)));
+              } else if (evt.type === "tool_call_started") {
+                const d = (evt.data ?? {}) as { tool_name?: string };
+                setAgentStatus(d.tool_name ? `Using: ${d.tool_name}` : "Using tool...");
+              } else if (evt.type === "tool_call_completed") {
+                const d = (evt.data ?? {}) as { tool_name?: string; success?: boolean };
+                setAgentStatus(d.tool_name ? `Finished: ${d.tool_name}${d.success === false ? " (failed)" : ""}` : "Tool done");
+              }
+            }
+          } catch (e) {
+            // Some back-compat chunks can be plain strings (e.g., "Agent Responded")
+            const nextText = accumulatedText + payload;
+            accumulatedText = nextText;
+            setChatMessages((prev) => prev.map((m) => (m.id === placeholderBotMessage.id ? { ...m, text: nextText } : m)));
+          }
         }
       }
 
-      const botMessage: ChatMessage = {
-        id: Date.now() + 1,
-        text: responseText,
-        sender: "bot",
-      };
-
-      setChatMessages((prevMessages) => [...prevMessages, botMessage]);
+      // Finalize placeholder message
+      setChatMessages((prev) => prev.map((m) => (m.id === placeholderBotMessage.id ? { ...m, text: accumulatedText || m.text } : m)));
     } catch (error) {
-      console.error("Error running workflow:", error);
-
+      console.error("Error running workflow (stream):", error);
       setChatMessages((prevMessages) => [
         ...prevMessages,
         {
-          id: Date.now() + 1,
+          id: Date.now() + 2,
           text: `Error: ${(error as Error).message || "Failed to process message"}`,
           sender: "bot",
           error: true,
@@ -200,14 +246,14 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
 
   const handleFilesUploaded = (files: UploadedFile[]): void => {
     setUploadedFiles((prev) => [...prev, ...files]);
-    
+
     const fileNames = files.map(f => f.name).join(', ');
     const systemMessage: ChatMessage = {
       id: Date.now(),
       text: `📎 Uploaded ${files.length.toString()} file(s): ${fileNames}. You can now ask questions about these documents!`,
       sender: "bot",
     };
-    
+
     setChatMessages((prevMessages) => [...prevMessages, systemMessage]);
   };
 
