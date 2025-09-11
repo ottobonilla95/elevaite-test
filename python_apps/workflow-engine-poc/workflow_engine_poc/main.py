@@ -69,7 +69,7 @@ logger.setLevel(_NUM_LEVEL)
 # Raise level on our internal loggers as well
 for _name in [
     "workflow_engine_poc",
-    "workflow_engine_poc.dbos_adapter",
+    "workflow_engine_poc.dbos_impl",
     "workflow_engine_poc.workflow_engine",
     "workflow_engine_poc.routers.messages",
     "workflow_engine_poc.steps.ai_steps",
