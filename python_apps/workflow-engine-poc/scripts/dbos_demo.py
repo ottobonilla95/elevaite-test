@@ -22,7 +22,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from workflow_engine_poc.dbos_adapter import get_dbos_adapter, DBOS_AVAILABLE
+from workflow_engine_poc.dbos_impl.runtime import get_dbos_adapter, DBOS_AVAILABLE
 from workflow_engine_poc.step_registry import StepRegistry
 
 # Configure logging

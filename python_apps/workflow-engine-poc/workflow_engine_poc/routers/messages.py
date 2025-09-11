@@ -115,34 +115,21 @@ async def create_step_message(
 
         # Always signal DBOS event; if it fails, raise so the client sees the error
         from dbos import DBOS as _DBOS  # Let ImportError propagate
-        from ..dbos_adapter import dbos_submit_approval
 
         decision_key = f"wf:{execution_id}:{step_id}:user_msg"
         try:
-            _ = await _DBOS.start_workflow_async(dbos_submit_approval, decision_key, {"message_id": msg_id})
-            logger.info(
-                f"DBOS approval-workflow started to set event for {execution_id}/{step_id} key={decision_key} msg_id={msg_id}"
-            )
-            # Attempt to resume the specific DBOS workflow instance if we have it
+            # Send the message directly to the DBOS workflow instance using topic-based messaging
             details = db_service.get_execution(session, execution_id) or {}
-            meta = details.get("metadata") or {}
-            dbos_wfid = meta.get("dbos_workflow_id")
+            dbos_wfid = (details.get("metadata") or {}).get("dbos_workflow_id")
+            if not isinstance(dbos_wfid, str) or not dbos_wfid:
+                raise RuntimeError("DBOS workflow ID not recorded for this execution yet")
+            _DBOS.send(destination_id=dbos_wfid, message={"message_id": msg_id}, topic=decision_key)
             logger.info(
-                f"DBOS resume check: exec={execution_id} step={step_id} dbos_workflow_id={dbos_wfid} decision_key={decision_key}"
+                f"DBOS send done for exec={execution_id}/{step_id} wf_id={dbos_wfid} topic={decision_key} msg_id={msg_id}"
             )
-            if isinstance(dbos_wfid, str) and dbos_wfid:
-                try:
-                    status_before = await _DBOS.get_workflow_status_async(dbos_wfid)
-                    logger.info(f"DBOS status before resume wf_id={dbos_wfid}: {status_before}")
-                    handle = await _DBOS.resume_workflow_async(dbos_wfid)
-                    logger.info(f"DBOS resume_workflow_async called for wf_id={dbos_wfid}; handle={type(handle)}")
-                    status_after = await _DBOS.get_workflow_status_async(dbos_wfid)
-                    logger.info(f"DBOS status after resume wf_id={dbos_wfid}: {status_after.status}")
-                except Exception as _re:
-                    logger.warning(f"DBOS.resume_workflow_async failed for wf_id={dbos_wfid}: {_re}")
         except Exception as _e2:
-            logger.error(f"DBOS.start_workflow_async(dbos_submit_approval, ...) failed: {_e2}")
-            raise HTTPException(status_code=502, detail=f"Failed to signal DBOS event for {execution_id}/{step_id}: {_e2}")
+            logger.error(f"DBOS send failed: {_e2}")
+            raise HTTPException(status_code=502, detail=f"Failed to signal DBOS message for {execution_id}/{step_id}: {_e2}")
 
         # Emit status/step event to wake up clients regardless (helps UI reflect running)
         from ..streaming import stream_manager, create_step_event, create_status_event

@@ -16,7 +16,7 @@ from ..db.models import WorkflowExecutionRead, ExecutionStatus
 from ..db.models import WorkflowRead
 from ..db.models import Workflow
 
-from ..dbos_adapter import get_dbos_adapter
+from ..dbos_impl import get_dbos_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -70,4 +70,3 @@ async def execute_workflow_dbos(
     except Exception as e:
         logger.error(f"DBOS execution failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-

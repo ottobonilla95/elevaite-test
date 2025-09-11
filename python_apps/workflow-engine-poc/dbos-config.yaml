@@ -23,5 +23,5 @@ telemetry:
 
 # Runtime configuration
 runtime:
-  entrypoint: workflow_engine_poc.dbos_adapter
+  entrypoint: workflow_engine_poc.dbos_impl.adapter
   port: ${PORT:-3000}
