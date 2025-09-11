@@ -1,31 +1,30 @@
 // DesignerSidebar.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import {
-  Router,
-  Globe,
-  Database,
-  Link2,
-  Wrench,
-  Search,
-  X,
   ChevronsLeft,
   ChevronsRight,
+  Database,
+  Globe,
+  Router,
+  Search,
+  Wrench,
+  X
 } from "lucide-react";
-import { CommonModal } from "@repo/ui/components";
+import React, { useEffect, useState } from "react";
+import { isValidAgentType } from "../../lib/discriminators";
 import {
   type AgentResponse,
-  type SavedWorkflow,
   type AgentType,
+  type SavedWorkflow,
 } from "../../lib/interfaces";
 import { useAgents } from "../../ui/contexts/AgentsContext";
-import { isValidAgentType } from "../../lib/discriminators";
 import { RouterAgentIcon } from "../icons";
 import TabHeader, { type Tab } from "../TabHeader";
-import WorkflowsTab from "./WorkflowsTab";
-import "./DesignerSidebar.scss";
 import { ToolsTabViewOnly } from "./config/ToolsTabViewOnly";
+import "./DesignerSidebar.scss";
+import WorkflowsTab from "./WorkflowsTab";
 
 // SidebarItem component for draggable items
 interface SidebarItemProps {
@@ -132,7 +131,8 @@ function DesignerSidebar({
       case "web_search":
         return <Globe size={20} className="text-brand-primary" />;
       case "api":
-        return <Link2 size={20} className="text-brand-primary" />;
+        // return <Link2 size={20} className="text-brand-primary" />;
+        return <ElevaiteIcons.SVGRobot/>
       case "data":
         return <Database size={20} className="text-brand-primary" />;
       case "troubleshooting":
@@ -195,7 +195,7 @@ function DesignerSidebar({
             ) : null}
 
             {/* Search Bar */}
-            <div className="flex items-center border border-gray-300 rounded-md px-3 py-2 mb-3">
+            <div className="designer-bar-agent-search flex items-center border border-gray-300 rounded-md px-3 py-2 mb-3">
               <Search size={16} className="text-gray-400 mr-2" />
               <input
                 type="text"

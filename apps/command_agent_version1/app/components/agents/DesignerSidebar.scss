@@ -194,3 +194,12 @@
     border-bottom: 1px solid $gray-200;
   }
 }
+
+
+
+.designer-bar-agent-search {
+  position: sticky;
+  top: 42px;
+  z-index: 2;
+  background-color: var(--ev-colors-background);
+}

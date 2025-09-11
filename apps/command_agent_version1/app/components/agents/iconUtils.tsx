@@ -13,6 +13,7 @@ import {
   Layers,
 } from "lucide-react";
 import { type AgentType } from "../../lib/interfaces";
+import { ElevaiteIcons } from "@repo/ui/components";
 
 // Get the appropriate icon based on agent type
 export function getAgentIcon(_type: AgentType): JSX.Element {
@@ -22,7 +23,8 @@ export function getAgentIcon(_type: AgentType): JSX.Element {
     case "web_search":
       return <Globe size={20} className="text-blue-600" />;
     case "api":
-      return <Link2 size={20} className="text-blue-600" />;
+      // return <Link2 size={20} className="text-blue-600" />;
+      return <ElevaiteIcons.SVGRobot/>
     case "data":
       return <Database size={20} className="text-blue-600" />;
     case "troubleshooting":
