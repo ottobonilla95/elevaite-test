@@ -5187,6 +5187,7 @@ tool_store = {
 }
 
 
+
 # Kevel Tools
 @function_schema
 def kevel_get_sites() -> str:
@@ -5281,25 +5282,40 @@ def kevel_get_sites() -> str:
 @function_schema
 def kevel_get_ad_types() -> str:
     """
-    Get all available ad types (sizes) from Kevel network 11679.
+    Get all available ad types (sizes) from Kevel network 11679 with unique element IDs.
 
-    This tool retrieves all ad types/sizes configured in the Kevel network.
+    This tool retrieves all ad types/sizes configured in the Kevel network and generates
+    unique element IDs for each ad type that can be used in HTML ad placements.
     Ad types define the dimensions and format of ad placements (e.g., 300x250, 728x90).
-    You'll need the ad type ID for generating ad code.
+    You'll need the ad type ID and element ID for generating ad code.
 
     Returns:
-        str: JSON string containing list of ad types with their IDs, names, and dimensions
+        str: JSON string containing list of ad types with their IDs, names, dimensions, and unique element IDs
 
     Example response:
         {
             "success": true,
             "ad_types": [
-                {"Id": 5, "Name": "Medium Rectangle", "Width": 300, "Height": 250},
-                {"Id": 6, "Name": "Leaderboard", "Width": 728, "Height": 90}
+                {
+                    "Id": 5,
+                    "Name": "Medium Rectangle",
+                    "Width": 300,
+                    "Height": 250,
+                    "element_id": "azk12345"
+                },
+                {
+                    "Id": 6,
+                    "Name": "Leaderboard",
+                    "Width": 728,
+                    "Height": 90,
+                    "element_id": "azk67890"
+                }
             ]
         }
     """
     try:
+        import uuid
+
         if not KEVEL_API_KEY:
             return json.dumps({
                 "success": False,
@@ -5320,9 +5336,16 @@ def kevel_get_ad_types() -> str:
 
         if response.status_code == 200:
             ad_types = response.json()
+
+            # Add unique element IDs to each ad type
+            for ad_type in ad_types:
+                # Generate unique element ID using uuid (first 8 characters)
+                unique_id = str(uuid.uuid4())[:8]
+                ad_type["element_id"] = f"azk{unique_id}"
+
             return json.dumps({
                 "success": True,
-                "message": f"Retrieved {len(ad_types)} ad types from network {KEVEL_NETWORK_ID}",
+                "message": f"Retrieved {len(ad_types)} ad types from network {KEVEL_NETWORK_ID} with unique element IDs",
                 "ad_types": ad_types
             })
         else:
@@ -5422,6 +5445,8 @@ tool_store.update({
     "kevel_get_ad_types": kevel_get_ad_types,
     "kevel_debug_api": kevel_debug_api,
 })
+
+
 
 
 tool_schemas = {
