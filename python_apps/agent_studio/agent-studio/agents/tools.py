@@ -5335,7 +5335,13 @@ def kevel_get_ad_types() -> str:
         )
 
         if response.status_code == 200:
-            ad_types = response.json()
+            response_data = response.json()
+
+            # Extract the items array from the response
+            if isinstance(response_data, dict) and "items" in response_data:
+                ad_types = response_data["items"]
+            else:
+                ad_types = response_data  # Fallback for direct array response
 
             # Add unique element IDs to each ad type
             for ad_type in ad_types:
