@@ -5,14 +5,14 @@ Approvals API router: list, get, approve, deny
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlmodel import Session
 
 from ..db.database import get_db_session
-from ..db.service import DatabaseService
+from ..services.approvals_service import ApprovalsService
 from ..db.models import ApprovalStatus
 from ..workflow_engine import WorkflowEngine
 
@@ -34,14 +34,14 @@ async def list_approvals(
     offset: int = 0,
     session: Session = Depends(get_db_session),
 ):
-    db = DatabaseService()
-    return db.list_approval_requests(session, execution_id=execution_id, status=status, limit=limit, offset=offset)
+    return ApprovalsService.list_approval_requests(
+        session, execution_id=execution_id, status=status, limit=limit, offset=offset
+    )
 
 
 @router.get("/{approval_id}")
 async def get_approval(approval_id: str, session: Session = Depends(get_db_session)):
-    db = DatabaseService()
-    rec = db.get_approval_request(session, approval_id)
+    rec = ApprovalsService.get_approval_request(session, approval_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Approval not found")
     return rec
@@ -64,13 +64,12 @@ async def approve(
     request: Request,
     session: Session = Depends(get_db_session),
 ):
-    db = DatabaseService()
-    rec = db.get_approval_request(session, approval_id)
+    rec = ApprovalsService.get_approval_request(session, approval_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Approval not found")
 
     # Update DB record
-    db.update_approval_request(
+    ApprovalsService.update_approval_request(
         session,
         approval_id,
         {
@@ -105,13 +104,12 @@ async def deny(
     request: Request,
     session: Session = Depends(get_db_session),
 ):
-    db = DatabaseService()
-    rec = db.get_approval_request(session, approval_id)
+    rec = ApprovalsService.get_approval_request(session, approval_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Approval not found")
 
     # Update DB record
-    db.update_approval_request(
+    ApprovalsService.update_approval_request(
         session,
         approval_id,
         {

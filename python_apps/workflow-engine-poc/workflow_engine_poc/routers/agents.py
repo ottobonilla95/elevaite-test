@@ -1,11 +1,15 @@
 """
-Agents API router: CRUD for Agents, Prompts, and Tool bindings
+Agents API router: CRUD for Agents, and Tool bindings
 """
 
-from typing import List, Optional, Dict, Any, cast
+from typing import List, Optional, Dict, Any
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlmodel import Session, select
+
+# Provider config validation models
+from pydantic import BaseModel, ValidationError
+from enum import Enum
 
 from ..db.database import get_db_session
 from ..db.models import (
@@ -15,16 +19,8 @@ from ..db.models import (
     AgentUpdate,
     AgentToolBinding,
     Prompt,
-    PromptCreate,
-    PromptRead,
-    PromptUpdate,
-    Tool,
 )
-from ..tools.registry import tool_registry
-
-# Provider config validation models
-from pydantic import BaseModel, Field as PydField, ValidationError
-from enum import Enum
+from ..services.agents_service import AgentsService, AgentsListQuery
 
 
 class ProviderType(str, Enum):
@@ -88,26 +84,12 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 # ---------- Agents CRUD ----------
 @router.post("/", response_model=AgentRead)
 async def create_agent(agent: AgentCreate, session: Session = Depends(get_db_session)):
-    # Basic uniqueness within org by name
-    if agent.organization_id:
-        existing = session.exec(
-            select(Agent).where(Agent.name == agent.name, Agent.organization_id == agent.organization_id)
-        ).first()
-    else:
-        existing = session.exec(select(Agent).where(Agent.name == agent.name)).first()
-    if existing:
-        raise HTTPException(status_code=409, detail="Agent with this name already exists")
-
-    # Validate provider_config
     agent_data = agent.model_dump()
     agent_data["provider_config"] = validate_provider_config(agent.provider_type, agent.provider_config or {})
-
-    db_agent = Agent(**agent_data)
-    session.add(db_agent)
-    session.commit()
-    session.refresh(db_agent)
-
-    return db_agent
+    try:
+        return AgentsService.create_agent(session, agent_data)
+    except ValueError as ve:
+        raise HTTPException(status_code=409, detail=str(ve))
 
 
 @router.get("/", response_model=List[AgentRead])
@@ -120,31 +102,27 @@ async def list_agents(
     limit: int = 100,
     offset: int = 0,
 ):
-    query = select(Agent)
-    if organization_id:
-        query = query.where(Agent.organization_id == organization_id)
-    if status:
-        query = query.where(Agent.status == status)
+    params = AgentsListQuery(
+        organization_id=organization_id,
+        status=status,
+        q=q,
+        limit=limit,
+        offset=offset,
+    )
+    agents = AgentsService.list_agents(session, params)
 
-    agents = session.exec(query.offset(offset).limit(limit)).all()
-
-    # Apply Python-level filters for portability across DBs
+    # Apply Python-level tag filter for portability across DBs
     if tag:
         agents = [a for a in agents if tag in (a.tags or [])]
-    if q:
-        agents = [a for a in agents if q.lower() in (a.name or "").lower()]
 
     return agents
 
 
 @router.get("/{agent_id}", response_model=AgentRead)
 async def get_agent(agent_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    agent = session.exec(select(Agent).where(Agent.id == UUID(agent_id))).first()
+    agent = AgentsService.get_agent(session, agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-
     return agent
 
 
@@ -154,141 +132,24 @@ async def update_agent(
     payload: AgentUpdate,
     session: Session = Depends(get_db_session),
 ):
-    from uuid import UUID
-
-    db_agent = session.exec(select(Agent).where(Agent.id == UUID(agent_id))).first()
-    if not db_agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-
-    for k, v in payload.model_dump(exclude_unset=True).items():
-        setattr(db_agent, k, v)
-
-    session.add(db_agent)
-    session.commit()
-    session.refresh(db_agent)
-
-    return db_agent
+    try:
+        return AgentsService.update_agent(session, agent_id, payload)
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
 
 
 @router.delete("/{agent_id}")
 async def delete_agent(agent_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    db_agent = session.exec(select(Agent).where(Agent.id == UUID(agent_id))).first()
-    if not db_agent:
+    deleted = AgentsService.delete_agent(session, agent_id)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Agent not found")
-
-    session.delete(db_agent)
-    session.commit()
-    return {"deleted": True}
-
-
-# ---------- Prompts CRUD ----------
-@router.post("/prompts", response_model=PromptRead)
-async def create_prompt(prompt: PromptCreate, session: Session = Depends(get_db_session)):
-    # uniqueness by unique_label within org
-    if prompt.organization_id:
-        existing = session.exec(
-            select(Prompt).where(
-                Prompt.unique_label == prompt.unique_label,
-                Prompt.organization_id == prompt.organization_id,
-            )
-        ).first()
-    else:
-        existing = session.exec(select(Prompt).where(Prompt.unique_label == prompt.unique_label)).first()
-
-    if existing:
-        raise HTTPException(status_code=409, detail="Prompt with this unique_label already exists")
-
-    db_prompt = Prompt(**prompt.model_dump())
-    session.add(db_prompt)
-    session.commit()
-    session.refresh(db_prompt)
-
-    return db_prompt
-
-
-@router.get("/prompts", response_model=List[PromptRead])
-async def list_prompts(
-    session: Session = Depends(get_db_session),
-    organization_id: Optional[str] = Query(default=None),
-    app_name: Optional[str] = Query(default=None),
-    provider: Optional[str] = Query(default=None),
-    model: Optional[str] = Query(default=None),
-    tag: Optional[str] = Query(default=None),
-    q: Optional[str] = Query(default=None),
-    limit: int = 100,
-    offset: int = 0,
-):
-    query = select(Prompt)
-    if organization_id:
-        query = query.where(Prompt.organization_id == organization_id)
-    if app_name:
-        query = query.where(Prompt.app_name == app_name)
-    if provider:
-        query = query.where(Prompt.ai_model_provider == provider)
-    if model:
-        query = query.where(Prompt.ai_model_name == model)
-    if tag:
-        query = query.where(Prompt.tags.contains([tag]))
-    if q:
-        query = query.where(Prompt.prompt_label.contains(q))
-
-    prompts = session.exec(query.offset(offset).limit(limit)).all()
-
-    return prompts
-
-
-@router.get("/prompts/{prompt_id}", response_model=PromptRead)
-async def get_prompt(prompt_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    prompt = session.exec(select(Prompt).where(Prompt.pid == UUID(prompt_id))).first()
-    if not prompt:
-        raise HTTPException(status_code=404, detail="Prompt not found")
-
-    return prompt
-
-
-@router.patch("/prompts/{prompt_id}", response_model=PromptRead)
-async def update_prompt(prompt_id: str, payload: PromptUpdate, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    db_prompt = session.exec(select(Prompt).where(Prompt.pid == UUID(prompt_id))).first()
-    if not db_prompt:
-        raise HTTPException(status_code=404, detail="Prompt not found")
-
-    for k, v in payload.model_dump(exclude_unset=True).items():
-        setattr(db_prompt, k, v)
-
-    session.add(db_prompt)
-    session.commit()
-    session.refresh(db_prompt)
-
-    return db_prompt
-
-
-@router.delete("/prompts/{prompt_id}")
-async def delete_prompt(prompt_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    db_prompt = session.exec(select(Prompt).where(Prompt.pid == UUID(prompt_id))).first()
-    if not db_prompt:
-        raise HTTPException(status_code=404, detail="Prompt not found")
-
-    session.delete(db_prompt)
-    session.commit()
     return {"deleted": True}
 
 
 # ---------- Agent Tool Bindings ----------
 @router.get("/{agent_id}/tools", response_model=List[AgentToolBinding])
 async def list_agent_tools(agent_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    bindings = session.exec(select(AgentToolBinding).where(AgentToolBinding.agent_id == UUID(agent_id))).all()
-
-    return bindings
+    return AgentsService.list_agent_tools(session, agent_id)
 
 
 @router.post("/{agent_id}/tools", response_model=AgentToolBinding)
@@ -297,40 +158,23 @@ async def attach_tool_to_agent(
     body: Dict[str, Any],
     session: Session = Depends(get_db_session),
 ):
-    from uuid import UUID
-
-    # Validate agent exists
-    db_agent = session.exec(select(Agent).where(Agent.id == UUID(agent_id))).first()
-    if not db_agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-
-    # Accept either tool_id directly or a local tool name via local_tool_name
-    tool_id = body.get("tool_id")
-    local_tool_name = body.get("local_tool_name")
-    if not tool_id and not local_tool_name:
-        raise HTTPException(status_code=400, detail="Provide tool_id or local_tool_name")
-
-    if local_tool_name:
-        # Ensure the local tool exists in DB (create/update) and retrieve its id
-        synced_id = tool_registry.sync_local_tool_by_name(session, str(local_tool_name))
-        if not synced_id:
-            raise HTTPException(status_code=404, detail="Local tool not found in registry")
-        tool_id = str(synced_id)
-
-    binding = AgentToolBinding(
-        agent_id=db_agent.id,
-        tool_id=UUID(tool_id),
-        override_parameters=body.get("override_parameters", {}),
-        is_active=bool(body.get("is_active", True)),
-        organization_id=db_agent.organization_id,
-        created_by=db_agent.created_by,
-    )
-
-    session.add(binding)
-    session.commit()
-    session.refresh(binding)
-
-    return binding
+    try:
+        return AgentsService.attach_tool_to_agent(
+            session,
+            agent_id,
+            tool_id=body.get("tool_id"),
+            local_tool_name=body.get("local_tool_name"),
+            override_parameters=body.get("override_parameters", {}),
+            is_active=bool(body.get("is_active", True)),
+        )
+    except ValueError as ve:
+        msg = str(ve)
+        if msg == "Agent not found":
+            raise HTTPException(status_code=404, detail=msg)
+        elif msg in {"Provide tool_id or local_tool_name", "Agent/binding mismatch", "Local tool not found in registry"}:
+            raise HTTPException(status_code=400, detail=msg)
+        else:
+            raise HTTPException(status_code=400, detail=msg)
 
 
 @router.patch("/{agent_id}/tools/{binding_id}", response_model=AgentToolBinding)
@@ -340,41 +184,25 @@ async def update_agent_tool_binding(
     body: Dict[str, Any],
     session: Session = Depends(get_db_session),
 ):
-    from uuid import UUID
-
-    binding = session.get(AgentToolBinding, binding_id)
-    if not binding:
-        raise HTTPException(status_code=404, detail="Binding not found")
-
-    # Optional: validate binding.agent_id matches URL
-    if str(binding.agent_id) != str(UUID(agent_id)):
-        raise HTTPException(status_code=400, detail="Agent/binding mismatch")
-
-    for k in ["override_parameters", "is_active"]:
-        if k in body:
-            setattr(binding, k, body[k])
-
-    session.add(binding)
-    session.commit()
-    session.refresh(binding)
-
-    return binding
+    try:
+        return AgentsService.update_agent_tool_binding(session, agent_id, binding_id, body)
+    except ValueError as ve:
+        msg = str(ve)
+        if msg in {"Binding not found"}:
+            raise HTTPException(status_code=404, detail=msg)
+        else:
+            raise HTTPException(status_code=400, detail=msg)
 
 
 @router.delete("/{agent_id}/tools/{binding_id}")
 async def detach_tool_from_agent(agent_id: str, binding_id: int, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    binding = session.get(AgentToolBinding, binding_id)
-    if not binding:
-        raise HTTPException(status_code=404, detail="Binding not found")
-
-    if str(binding.agent_id) != str(UUID(agent_id)):
-        raise HTTPException(status_code=400, detail="Agent/binding mismatch")
-
-    session.delete(binding)
-    session.commit()
-    return {"deleted": True}
+    try:
+        deleted = AgentsService.detach_tool_from_agent(session, agent_id, binding_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Binding not found")
+        return {"deleted": True}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
 
 
 # ---------- Available Tools ----------

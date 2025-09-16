@@ -4,28 +4,28 @@ Tools API router: GET endpoints for tools and stubs for full CRUD including exte
 
 import uuid
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from fastapi import APIRouter, HTTPException, Query, Depends
-from sqlmodel import Session, select
+from sqlmodel import Session
 from ..db.database import get_db_session
 from ..db.models import (
-    Tool,
     ToolCreate,
     ToolRead,
     ToolUpdate,
-    ToolCategory,
     ToolCategoryCreate,
     ToolCategoryRead,
     ToolCategoryUpdate,
-    MCPServer,
     MCPServerCreate,
     MCPServerRead,
     MCPServerUpdate,
 )
 from ..tools.registry import tool_registry
+from ..services.tools_service import ToolsService
 
 
 router = APIRouter(prefix="/tools", tags=["tools"])
+if TYPE_CHECKING:
+    from ..db.models import Tool  # for type hints only
 
 
 # --------- Read-only endpoints (available now) ---------
@@ -111,7 +111,7 @@ async def list_tools(
     items: List[ToolRead] = []
     for ut in unified:
         if ut.source == "db" and ut.db_id is not None:
-            db_record = session.exec(select(Tool).where(Tool.id == ut.db_id)).first()
+            db_record = ToolsService.get_db_tool_by_id(session, str(ut.db_id))
             if db_record:
                 items.append(to_tool_read_from_db(db_record))
                 continue
@@ -129,7 +129,7 @@ async def list_tools(
 async def get_tool(tool_name: str, session: Session = Depends(get_db_session)):
     """Get a tool by name as ToolRead. Prefers DB; falls back to local registry."""
     # Prefer DB with enriched ToolRead
-    db_tool = session.exec(select(Tool).where(Tool.name == tool_name)).first()
+    db_tool = ToolsService.get_db_tool_by_name(session, tool_name)
     if db_tool:
         return ToolRead(
             id=db_tool.id,
@@ -210,15 +210,10 @@ async def get_tool(tool_name: str, session: Session = Depends(get_db_session)):
 # -- Tool CRUD --
 @router.post("/db", response_model=ToolRead)
 async def create_tool(tool: ToolCreate, session: Session = Depends(get_db_session)):
-    # Uniqueness by (name, version)
-    existing = session.exec(select(Tool).where(Tool.name == tool.name, Tool.version == tool.version)).first()
-    if existing:
-        raise HTTPException(status_code=409, detail="Tool with this name and version already exists")
-    db_tool = Tool(**tool.model_dump())
-    session.add(db_tool)
-    session.commit()
-    session.refresh(db_tool)
-    return db_tool
+    try:
+        return ToolsService.create_tool(session, tool)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @router.get("/db", response_model=List[ToolRead])
@@ -228,21 +223,12 @@ async def list_db_tools(
     limit: int = 100,
     offset: int = 0,
 ):
-    query = select(Tool)
-    if q:
-        # basic filter by name substring match (portable)
-        tools = session.exec(query.offset(offset).limit(limit)).all()
-        tools = [t for t in tools if q.lower() in (t.name or "").lower()]
-    else:
-        tools = session.exec(query.offset(offset).limit(limit)).all()
-    return tools
+    return ToolsService.list_db_tools(session, q=q, limit=limit, offset=offset)
 
 
 @router.get("/db/{tool_id}", response_model=ToolRead)
 async def get_db_tool(tool_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    tool = session.exec(select(Tool).where(Tool.id == UUID(tool_id))).first()
+    tool = ToolsService.get_db_tool_by_id(session, tool_id)
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
     return tool
@@ -250,70 +236,47 @@ async def get_db_tool(tool_id: str, session: Session = Depends(get_db_session)):
 
 @router.patch("/db/{tool_id}", response_model=ToolRead)
 async def update_db_tool(tool_id: str, payload: ToolUpdate, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    db_tool = session.exec(select(Tool).where(Tool.id == UUID(tool_id))).first()
-    if not db_tool:
+    try:
+        _ = ToolsService.update_db_tool(session, tool_id, payload)
+    except LookupError:
         raise HTTPException(status_code=404, detail="Tool not found")
-    for k, v in payload.model_dump(exclude_unset=True).items():
-        setattr(db_tool, k, v)
-    session.add(db_tool)
-    session.commit()
-    session.refresh(db_tool)
     return await get_db_tool(tool_id, session)
 
 
 @router.delete("/db/{tool_id}")
 async def delete_db_tool(tool_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    db_tool = session.exec(select(Tool).where(Tool.id == UUID(tool_id))).first()
-    if not db_tool:
+    ok = ToolsService.delete_db_tool(session, tool_id)
+    if not ok:
         raise HTTPException(status_code=404, detail="Tool not found")
-    session.delete(db_tool)
-    session.commit()
     return {"deleted": True}
 
 
 # -- Tool Category CRUD --
 @router.post("/categories", response_model=ToolCategoryRead)
 async def create_category(category: ToolCategoryCreate, session: Session = Depends(get_db_session)):
-    existing = session.exec(select(ToolCategory).where(ToolCategory.name == category.name)).first()
-    if existing:
-        raise HTTPException(status_code=409, detail="Category with this name already exists")
-    db_cat = ToolCategory(**category.model_dump())
-    session.add(db_cat)
-    session.commit()
-    session.refresh(db_cat)
-    return db_cat
+    try:
+        return ToolsService.create_category(session, category)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @router.get("/categories", response_model=List[ToolCategoryRead])
 async def list_categories(session: Session = Depends(get_db_session)):
-    cats = session.exec(select(ToolCategory)).all()
-    return cats
+    return ToolsService.list_categories(session)
 
 
 @router.patch("/categories/{category_id}", response_model=ToolCategoryRead)
 async def update_category(category_id: str, payload: ToolCategoryUpdate, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    db_cat = session.exec(select(ToolCategory).where(ToolCategory.id == UUID(category_id))).first()
-    if not db_cat:
+    try:
+        _ = ToolsService.update_category(session, category_id, payload)
+    except LookupError:
         raise HTTPException(status_code=404, detail="Category not found")
-    for k, v in payload.model_dump(exclude_unset=True).items():
-        setattr(db_cat, k, v)
-    session.add(db_cat)
-    session.commit()
-    session.refresh(db_cat)
     return await get_category(category_id, session)
 
 
 @router.get("/categories/{category_id}", response_model=ToolCategoryRead)
 async def get_category(category_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    cat = session.exec(select(ToolCategory).where(ToolCategory.id == UUID(category_id))).first()
+    cat = ToolsService.get_category(session, category_id)
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
     return cat
@@ -321,40 +284,29 @@ async def get_category(category_id: str, session: Session = Depends(get_db_sessi
 
 @router.delete("/categories/{category_id}")
 async def delete_category(category_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    db_cat = session.exec(select(ToolCategory).where(ToolCategory.id == UUID(category_id))).first()
-    if not db_cat:
+    ok = ToolsService.delete_category(session, category_id)
+    if not ok:
         raise HTTPException(status_code=404, detail="Category not found")
-    session.delete(db_cat)
-    session.commit()
     return {"deleted": True}
 
 
 # -- MCP Server CRUD --
 @router.post("/mcp-servers", response_model=MCPServerRead)
 async def create_mcp_server(server: MCPServerCreate, session: Session = Depends(get_db_session)):
-    existing = session.exec(select(MCPServer).where(MCPServer.name == server.name)).first()
-    if existing:
-        raise HTTPException(status_code=409, detail="MCP server with this name already exists")
-    db_server = MCPServer(**server.model_dump())
-    session.add(db_server)
-    session.commit()
-    session.refresh(db_server)
-    return db_server
+    try:
+        return ToolsService.create_mcp_server(session, server)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @router.get("/mcp-servers", response_model=List[MCPServerRead])
 async def list_mcp_servers(session: Session = Depends(get_db_session)):
-    servers = session.exec(select(MCPServer)).all()
-    return servers
+    return ToolsService.list_mcp_servers(session)
 
 
 @router.get("/mcp-servers/{server_id}", response_model=MCPServerRead)
 async def get_mcp_server(server_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    server = session.exec(select(MCPServer).where(MCPServer.id == UUID(server_id))).first()
+    server = ToolsService.get_mcp_server(session, server_id)
     if not server:
         raise HTTPException(status_code=404, detail="MCP server not found")
     return server
@@ -362,28 +314,18 @@ async def get_mcp_server(server_id: str, session: Session = Depends(get_db_sessi
 
 @router.patch("/mcp-servers/{server_id}", response_model=MCPServerRead)
 async def update_mcp_server(server_id: str, payload: MCPServerUpdate, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    db_server = session.exec(select(MCPServer).where(MCPServer.id == UUID(server_id))).first()
-    if not db_server:
+    try:
+        _ = ToolsService.update_mcp_server(session, server_id, payload)
+    except LookupError:
         raise HTTPException(status_code=404, detail="MCP server not found")
-    for k, v in payload.model_dump(exclude_unset=True).items():
-        setattr(db_server, k, v)
-    session.add(db_server)
-    session.commit()
-    session.refresh(db_server)
     return await get_mcp_server(server_id, session)
 
 
 @router.delete("/mcp-servers/{server_id}")
 async def delete_mcp_server(server_id: str, session: Session = Depends(get_db_session)):
-    from uuid import UUID
-
-    db_server = session.exec(select(MCPServer).where(MCPServer.id == UUID(server_id))).first()
-    if not db_server:
+    ok = ToolsService.delete_mcp_server(session, server_id)
+    if not ok:
         raise HTTPException(status_code=404, detail="MCP server not found")
-    session.delete(db_server)
-    session.commit()
     return {"deleted": True}
 
 

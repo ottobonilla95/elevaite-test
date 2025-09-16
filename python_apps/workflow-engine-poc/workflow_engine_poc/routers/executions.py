@@ -4,20 +4,20 @@ Execution status and results endpoints
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from typing import Optional
 from fastapi import Depends
 from sqlmodel import Session
-from ..db.models import WorkflowExecutionRead, WorkflowExecutionUpdate, ExecutionStatus
 from ..db.database import get_db_session
-from ..db.service import DatabaseService
+from ..services.executions_service import ExecutionsService
+from ..services.workflows_service import WorkflowsService
 from ..streaming import (
     stream_manager,
     create_sse_stream,
     get_sse_headers,
     create_status_event,
-    StreamEventType,
 )
 
 from ..workflow_engine import WorkflowEngine
@@ -42,8 +42,7 @@ async def get_execution_status(execution_id: str, request: Request, session: Ses
             return execution_context.get_execution_summary()
 
         # Fallback to DB record
-        db_service = DatabaseService()
-        details = db_service.get_execution(session, execution_id)
+        details = ExecutionsService.get_execution(session, execution_id)
         if not details:
             raise HTTPException(status_code=404, detail="Execution not found")
 
@@ -52,6 +51,23 @@ async def get_execution_status(execution_id: str, request: Request, session: Ses
             status_str = "unknown"
         else:
             status_str = getattr(status_val, "value", status_val)
+
+        # Heuristic: if DB says waiting but we just received a recent user message, surface as running
+        if status_str == "waiting":
+            try:
+                msgs = WorkflowsService.list_agent_messages(session, execution_id=execution_id, limit=1, offset=0)
+                if msgs:
+                    created_at = msgs[0].get("created_at")
+                    if isinstance(created_at, str):
+                        ts = datetime.fromisoformat(created_at)
+                    else:
+                        ts = None
+                    now = datetime.now(timezone.utc)
+                    if ts and (now - ts).total_seconds() <= 90:
+                        status_str = "running"
+            except Exception:
+                pass
+
         return {
             "execution_id": details.get("execution_id"),
             "workflow_id": details.get("workflow_id"),
@@ -105,8 +121,7 @@ async def get_execution_results(execution_id: str, request: Request, session: Se
             }
 
         # Fallback: DB
-        db_service = DatabaseService()
-        details = db_service.get_execution(session, execution_id)
+        details = ExecutionsService.get_execution(session, execution_id)
         if not details:
             raise HTTPException(status_code=404, detail="Execution not found")
         status_val = details.get("status")
@@ -161,8 +176,9 @@ async def get_execution_analytics(
         if exclude_db:
             return analytics
 
-        db_service = DatabaseService()
-        db_items = db_service.list_executions(session, workflow_id=workflow_id, status=status, limit=limit, offset=offset)
+        db_items = ExecutionsService.list_executions(
+            session, workflow_id=workflow_id, status=status, limit=limit, offset=offset
+        )
         # Merge: keep analytics as-is and attach db_executions; additive for clients
         return {**analytics, "db_executions": db_items}
     except Exception as e:
@@ -175,13 +191,12 @@ async def stream_execution_updates(execution_id: str, request: Request, session:
     """Stream real-time updates for a specific execution using Server-Sent Events (SSE)."""
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
-        db_service = DatabaseService()
 
         # Verify execution exists (either in memory or DB)
         execution_context = await workflow_engine.get_execution_context(execution_id)
         if not execution_context:
             # Check if it exists in DB
-            db_execution = db_service.get_execution(session, execution_id)
+            db_execution = ExecutionsService.get_execution(session, execution_id)
             if not db_execution:
                 raise HTTPException(status_code=404, detail="Execution not found")
 

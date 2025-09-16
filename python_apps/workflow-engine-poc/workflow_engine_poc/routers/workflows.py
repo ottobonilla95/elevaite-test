@@ -14,25 +14,23 @@ from fastapi import (
     File,
     Form,
     Depends,
-    BackgroundTasks,
 )
 from fastapi.responses import StreamingResponse
 from typing import Dict, Any, Optional, List
-from datetime import datetime
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 from ..db.database import get_db_session
-from ..db.models import Workflow, WorkflowRead, WorkflowBase
-from ..db.service import DatabaseService
+from ..db.models import WorkflowRead, WorkflowBase
+from ..services.workflows_service import WorkflowsService
 from ..workflow_engine import WorkflowEngine
 from ..dbos_impl.workflows import execute_and_persist_dbos_result
 from ..db.models import WorkflowExecutionRead, ExecutionStatus
+from ..db.service import DatabaseService
 from ..streaming import (
     stream_manager,
     create_sse_stream,
     get_sse_headers,
     create_status_event,
-    StreamEventType,
 )
 
 from ..execution_context import ExecutionContext, UserContext
@@ -85,10 +83,8 @@ async def execute_workflow_by_id(
     """
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
-        db_service = DatabaseService()
-
         # Ensure workflow exists
-        workflow = db_service.get_workflow(session, workflow_id)
+        workflow = WorkflowsService.get_workflow_config(session, workflow_id)
         if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
@@ -225,7 +221,7 @@ async def execute_workflow_by_id(
             }
 
         # Persist execution first
-        execution_id = db_service.create_execution(
+        execution_id = WorkflowsService.create_execution(
             session,
             {
                 "workflow_id": workflow_id,
@@ -267,7 +263,7 @@ async def execute_workflow_by_id(
                     if first_agent_step_id:
                         for m in initial_msgs:
                             if isinstance(m, dict) and m.get("role") and m.get("content"):
-                                db_service.create_agent_message(
+                                WorkflowsService.create_agent_message(
                                     session,
                                     execution_id=execution_id,
                                     step_id=first_agent_step_id,
@@ -293,7 +289,7 @@ async def execute_workflow_by_id(
             try:
                 execution_id = await execute_and_persist_dbos_result(
                     session,
-                    db_service,
+                    DatabaseService(),
                     workflow=workflow,
                     trigger_payload=trigger_payload,
                     user_context={
@@ -316,7 +312,7 @@ async def execute_workflow_by_id(
                 asyncio.create_task(workflow_engine.execute_workflow(execution_context))
 
         # Return the execution as response
-        created = db_service.get_execution(session, execution_id)
+        created = WorkflowsService.get_execution(session, execution_id)
         assert created is not None
         return WorkflowExecutionRead(
             id=uuid.UUID(created["execution_id"]),
@@ -355,10 +351,8 @@ async def stream_workflow_execution(
     """
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
-        db_service = DatabaseService()
-
         # Verify workflow exists
-        workflow = db_service.get_workflow(session, workflow_id)
+        workflow = WorkflowsService.get_workflow_config(session, workflow_id)
         if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
@@ -396,7 +390,7 @@ async def stream_workflow_execution(
                         yield initial_event.to_sse()
                 else:
                     # Send status for latest execution of the workflow
-                    executions = db_service.list_executions(session, workflow_id=workflow_id, limit=1, offset=0)
+                    executions = WorkflowsService.list_executions(session, workflow_id=workflow_id, limit=1, offset=0)
                     if executions:
                         latest_execution = executions[0]
                         initial_event = create_status_event(
@@ -451,8 +445,7 @@ async def validate_workflow(workflow_config: WorkflowBase, request: Request):
 async def list_workflows(session: Session = Depends(get_db_session), limit: int = 100, offset: int = 0) -> List[WorkflowRead]:
     """List all saved workflows returning ORM entities"""
     try:
-        db_service = DatabaseService()
-        workflows = db_service.list_workflow_entities(session, limit=limit, offset=offset)
+        workflows = WorkflowsService.list_workflows_entities(session, limit=limit, offset=offset)
         # Convert Workflow entities to WorkflowRead schemas
         return [WorkflowRead.model_validate(workflow) for workflow in workflows]
     except Exception as e:
@@ -464,8 +457,7 @@ async def list_workflows(session: Session = Depends(get_db_session), limit: int 
 async def delete_workflow(workflow_id: str, session: Session = Depends(get_db_session)):
     """Delete a workflow configuration"""
     try:
-        db_service = DatabaseService()
-        deleted = db_service.delete_workflow(session, workflow_id)
+        deleted = WorkflowsService.delete_workflow(session, workflow_id)
 
         if not deleted:
             raise HTTPException(status_code=404, detail="Workflow not found")
@@ -479,66 +471,6 @@ async def delete_workflow(workflow_id: str, session: Session = Depends(get_db_se
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/execute-with-file")
-async def execute_workflow_with_file(
-    request: Request,
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    workflow_config: str = Form(...),
-    user_id: Optional[str] = Form("file_user"),
-):
-    """Execute a workflow with an uploaded file"""
-    try:
-        import json
-        from pathlib import Path
-
-        # Parse workflow config
-        workflow_data = json.loads(workflow_config)
-        workflow_config_obj = WorkflowBase.model_validate(workflow_data)
-
-        # Save uploaded file
-        upload_dir = Path("uploads")
-        upload_dir.mkdir(exist_ok=True)
-        file_path = f"{upload_dir}/{file.filename}"
-
-        with open(file_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
-
-        # Build user and execution context directly
-        workflow_engine: WorkflowEngine = request.app.state.workflow_engine
-        session_id_val = f"file-session-{datetime.now().isoformat()}"
-        user_context = UserContext(
-            user_id=user_id,
-            session_id=session_id_val,
-            organization_id="file-org",
-        )
-
-        execution_context = ExecutionContext(
-            workflow_config=workflow_config_obj.model_dump(),
-            user_context=user_context,
-            workflow_engine=workflow_engine,
-        )
-        execution_context.step_io_data["file_upload"] = {
-            "file_path": str(file_path),
-            "filename": file.filename,
-        }
-
-        # Start execution in background
-        background_tasks.add_task(workflow_engine.execute_workflow, execution_context)
-
-        return {
-            "execution_id": execution_context.execution_id,
-            "status": "started",
-            "message": f"Workflow execution started with file: {file.filename}",
-            "started_at": datetime.now().isoformat(),
-        }
-
-    except Exception as e:
-        logger.error(f"Failed to execute workflow with file: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 # New SQLModel-based endpoints
 
 
@@ -549,20 +481,7 @@ async def create_workflow(workflow_data: WorkflowConfig, session: Session = Depe
     Request body schema: WorkflowConfig
     """
     try:
-        db_service = DatabaseService()
-
-        import uuid as uuid_module
-
-        workflow_id = str(uuid_module.uuid4())
-
-        # Persist via service (upsert by id), then fetch ORM entity
-        db_service.save_workflow(session, workflow_id, workflow_data.model_dump())
-        from uuid import UUID
-
-        workflow_obj = session.exec(select(Workflow).where(Workflow.id == UUID(workflow_id))).first()
-        if not workflow_obj:
-            raise HTTPException(status_code=500, detail="Failed to retrieve saved workflow entity")
-
+        workflow_obj = WorkflowsService.create_workflow(session, workflow_data.model_dump())
         return workflow_obj  # type: ignore[return-value]
 
     except Exception as e:
@@ -574,12 +493,9 @@ async def create_workflow(workflow_data: WorkflowConfig, session: Session = Depe
 async def get_workflow_by_id(workflow_id: str, session: Session = Depends(get_db_session)) -> WorkflowRead:
     """Get a workflow by ID using SQLModel and return the SQLModel entity."""
     try:
-        from uuid import UUID
-
-        workflow_obj = session.exec(select(Workflow).where(Workflow.id == UUID(workflow_id))).first()
+        workflow_obj = WorkflowsService.get_workflow_entity(session, workflow_id)
         if not workflow_obj:
             raise HTTPException(status_code=404, detail="Workflow not found")
-
         # Return ORM entity; FastAPI will serialize it to WorkflowRead
         return workflow_obj  # type: ignore[return-value]
 

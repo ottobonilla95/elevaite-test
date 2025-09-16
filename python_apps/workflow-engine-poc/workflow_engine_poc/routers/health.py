@@ -1,9 +1,9 @@
 """
 Health and system status endpoints
 """
+
 import logging
 from fastapi import APIRouter, Request
-from typing import Dict, Any
 
 from ..step_registry import StepRegistry
 from ..monitoring import monitoring
@@ -42,7 +42,7 @@ async def detailed_health_check():
     """Detailed health check with error statistics"""
     try:
         error_stats = error_handler.get_error_statistics()
-        
+
         return {
             "status": "healthy",
             "timestamp": error_stats.get("last_updated"),
@@ -69,7 +69,7 @@ async def monitoring_health_check():
     """Health check specifically for monitoring components"""
     try:
         summary = monitoring.get_monitoring_summary()
-        
+
         return {
             "status": "healthy",
             "monitoring": {
