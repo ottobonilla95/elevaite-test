@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "workflow-core-sdk"
+version = "0.1.0"
+description = "Shared core SDK for workflow execution runtime (engine, models, clients, utils)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Elevaite" }]
+maintainers = [{ name = "Elevaite" }]
+dependencies = [
+    "typing-extensions>=4.9.0"
+]
+
+[tool.hatch.version]
+path = "src/workflow_core_sdk/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/workflow_core_sdk"]
+
