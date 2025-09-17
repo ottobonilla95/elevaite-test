@@ -11,7 +11,11 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Elevaite" }]
 maintainers = [{ name = "Elevaite" }]
-dependencies = ["typing-extensions>=4.9.0"]
+dependencies = [
+    "cohere>=5.18.0",
+    "colbert>=0.40",
+    "typing-extensions>=4.9.0",
+]
 
 [tool.hatch.version]
 path = "workflow_core_sdk/__init__.py"

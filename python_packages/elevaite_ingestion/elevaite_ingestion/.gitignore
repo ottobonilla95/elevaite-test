@@ -1,0 +1,10 @@
+.env
+opensearch_db.py
+**/output
+**/check_dir
+**/pdf_dir
+**/logs
+**/input_data
+**/output_data
+**/extracted_images_only*
+**/figures*
