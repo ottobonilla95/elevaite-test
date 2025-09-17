@@ -40,6 +40,10 @@ from .condition_evaluator import (
 from .monitoring import monitoring
 
 from .services.analytics_service import analytics_service
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # type-only import to avoid runtime dependency
+    from workflow_core_sdk.execution import StepRegistryProtocol
 
 
 logger = logging.getLogger(__name__)
@@ -54,7 +58,7 @@ class WorkflowEngine:
     dependencies and execution patterns.
     """
 
-    def __init__(self, step_registry: StepRegistry):
+    def __init__(self, step_registry: "StepRegistryProtocol"):
         self.step_registry = step_registry
         self.active_executions: Dict[str, ExecutionContext] = {}
         self.execution_history: List[ExecutionContext] = []
