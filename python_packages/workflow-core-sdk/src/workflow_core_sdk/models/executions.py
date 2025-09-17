@@ -1,4 +1,23 @@
 from typing import Any, Dict, Optional, TypedDict
+from enum import Enum
+
+
+class ExecutionStatus(str, Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    WAITING = "waiting"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class StepStatus(str, Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    WAITING = "waiting"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
 
 
 class ExecutionSummary(TypedDict, total=False):
@@ -15,4 +34,3 @@ class ExecutionSummary(TypedDict, total=False):
     failed_steps: Optional[int]
     pending_steps: Optional[int]
     user_context: Optional[Dict[str, Any]]
-
