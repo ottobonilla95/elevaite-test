@@ -126,6 +126,8 @@ class StepRegistry:
                     result = await self._execute_rpc_step(step_type, step_config, input_data, execution_context)
                 elif execution_type == "api":
                     result = await self._execute_api_step(step_type, step_config, input_data, execution_context)
+                elif execution_type == "grpc":
+                    result = await self._execute_grpc_step(step_type, step_config, input_data, execution_context)
                 else:
                     raise Exception(f"Unknown execution type: {execution_type}")
 
@@ -271,9 +273,60 @@ class StepRegistry:
             ) as response:
                 if response.status not in [200, 201]:
                     raise StepExecutionError(f"API call failed: {response.status}")
-
                 result = await response.json()
                 return result
+
+    async def _execute_grpc_step(
+        self,
+        step_type: str,
+        step_config: Dict[str, Any],
+        input_data: Dict[str, Any],
+        execution_context: ExecutionContext,
+    ) -> Dict[str, Any]:
+        """Execute a gRPC step via a user-provided invoker.
+
+        Design:
+        - Keep this registry light by delegating heavy gRPC client code to an external package/app.
+        - endpoint_config.invoker should be a dotted path to a callable that performs the gRPC call.
+          Example: "elevaite_ingestion.client.vectorize_invoker"
+        - The callable can be sync or async and must accept kwargs: step_config, input_data, execution_context, endpoint_config.
+        - It should return a JSON-serializable dict or a StepResult.
+        """
+        step_info = self.registered_steps[step_type]
+        endpoint_config = step_info.get("endpoint_config", {}) or {}
+        invoker_ref = endpoint_config.get("invoker")
+        if not invoker_ref:
+            raise StepExecutionError(
+                "gRPC invoker not configured; set endpoint_config.invoker to '<module>:<callable>' or '<module>.<callable>'"
+            )
+
+        # Support both module:function and module.function formats
+        if ":" in invoker_ref:
+            module_path, func_name = invoker_ref.split(":", 1)
+        else:
+            module_path, func_name = invoker_ref.rsplit(".", 1)
+
+        try:
+            mod = importlib.import_module(module_path)
+            invoker = getattr(mod, func_name)
+        except Exception as e:
+            raise StepExecutionError(f"Failed to import gRPC invoker '{invoker_ref}': {e}")
+
+        kwargs = {
+            "step_config": step_config,
+            "input_data": input_data,
+            "execution_context": execution_context,
+            "endpoint_config": endpoint_config,
+        }
+
+        try:
+            if asyncio.iscoroutinefunction(invoker):
+                return await invoker(**kwargs)
+            else:
+                return invoker(**kwargs)
+        except Exception as e:
+            # Surface underlying gRPC/client errors as step failures
+            raise StepExecutionError(f"gRPC invoker execution failed: {e}")
 
     async def get_registered_steps(self) -> List[Dict[str, Any]]:
         """Get list of all registered steps"""
