@@ -96,9 +96,7 @@ async def process_file_through_vectorizer(
         if not vectorizer_steps:
             return {"status": "error", "error": "No vectorizer steps found in workflow"}
 
-        logger.info(
-            f"🔄 Processing {file_name} through {len(vectorizer_steps)} vectorizer steps"
-        )
+        logger.info(f"🔄 Processing {file_name} through {len(vectorizer_steps)} vectorizer steps")
 
         # Initialize processing context
         processing_data = {
@@ -108,9 +106,7 @@ async def process_file_through_vectorizer(
         }
 
         # Step 1: File reading
-        file_reader_impl = tokenizer_steps_registry.get_step_implementation(
-            "file_reader"
-        )
+        file_reader_impl = tokenizer_steps_registry.get_step_implementation("file_reader")
         if file_reader_impl:
             logger.info("📖 Running file reader step...")
             file_reader_config = {
@@ -122,18 +118,12 @@ async def process_file_through_vectorizer(
                     "extract_metadata": True,
                 },
             }
-            file_result = await file_reader_impl(
-                file_reader_config, processing_data, execution_context
-            )
+            file_result = await file_reader_impl(file_reader_config, processing_data, execution_context)
             processing_data.update(file_result)
-            logger.info(
-                f"✅ File reading completed: {len(file_result.get('content', ''))} characters"
-            )
+            logger.info(f"✅ File reading completed: {len(file_result.get('content', ''))} characters")
 
         # Step 2: Text chunking
-        text_chunking_impl = tokenizer_steps_registry.get_step_implementation(
-            "text_chunking"
-        )
+        text_chunking_impl = tokenizer_steps_registry.get_step_implementation("text_chunking")
         if text_chunking_impl:
             logger.info("✂️ Running text chunking step...")
             chunking_config = {
@@ -146,17 +136,13 @@ async def process_file_through_vectorizer(
                     "preserve_structure": True,
                 },
             }
-            chunk_result = await text_chunking_impl(
-                chunking_config, processing_data, execution_context
-            )
+            chunk_result = await text_chunking_impl(chunking_config, processing_data, execution_context)
             processing_data.update(chunk_result)
             chunks = chunk_result.get("chunks", [])
             logger.info(f"✅ Text chunking completed: {len(chunks)} chunks created")
 
         # Step 3: Embedding generation
-        embedding_impl = tokenizer_steps_registry.get_step_implementation(
-            "embedding_generation"
-        )
+        embedding_impl = tokenizer_steps_registry.get_step_implementation("embedding_generation")
         if embedding_impl:
             logger.info("🧠 Running embedding generation step...")
             embedding_config = {
@@ -167,25 +153,17 @@ async def process_file_through_vectorizer(
                     "batch_size": 50,
                 },
             }
-            embedding_result = await embedding_impl(
-                embedding_config, processing_data, execution_context
-            )
+            embedding_result = await embedding_impl(embedding_config, processing_data, execution_context)
             processing_data.update(embedding_result)
             embeddings = embedding_result.get("embeddings", [])
-            logger.info(
-                f"✅ Embedding generation completed: {len(embeddings)} embeddings created"
-            )
+            logger.info(f"✅ Embedding generation completed: {len(embeddings)} embeddings created")
 
         # Step 4: Vector storage
-        vector_storage_impl = tokenizer_steps_registry.get_step_implementation(
-            "vector_storage"
-        )
+        vector_storage_impl = tokenizer_steps_registry.get_step_implementation("vector_storage")
         if vector_storage_impl:
             logger.info("💾 Running vector storage step...")
             # Use session-specific collection name
-            collection_name = (
-                f"uploaded_docs_{execution_context.get('session_id', 'default')}"
-            )
+            collection_name = f"uploaded_docs_{execution_context.get('session_id', 'default')}"
             storage_config = {
                 "step_id": "file_upload_storage",
                 "step_name": "File Upload Storage",
@@ -195,13 +173,9 @@ async def process_file_through_vectorizer(
                     "create_collection": True,
                 },
             }
-            storage_result = await vector_storage_impl(
-                storage_config, processing_data, execution_context
-            )
+            storage_result = await vector_storage_impl(storage_config, processing_data, execution_context)
             processing_data.update(storage_result)
-            logger.info(
-                f"✅ Vector storage completed: stored in collection '{collection_name}'"
-            )
+            logger.info(f"✅ Vector storage completed: stored in collection '{collection_name}'")
 
         # Return processing summary
         return {
@@ -225,9 +199,7 @@ def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_
     """Create a new workflow with agents and connections"""
     try:
         # Check if workflow with same name and version already exists
-        existing = crud.workflows.get_workflow_by_name(
-            db, workflow.name, workflow.version
-        )
+        existing = crud.workflows.get_workflow_by_name(db, workflow.name, workflow.version)
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -289,9 +261,7 @@ def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_
                         workflow_id=db_workflow.workflow_id,
                         source_agent_id=uuid.UUID(source_agent_id),
                         target_agent_id=uuid.UUID(target_agent_id),
-                        connection_type=connection_config.get(
-                            "connection_type", "default"
-                        ),
+                        connection_type=connection_config.get("connection_type", "default"),
                         conditions=connection_config.get("conditions"),
                         priority=connection_config.get("priority", 0),
                         source_handle=connection_config.get("source_handle"),
@@ -321,9 +291,7 @@ def list_workflows(
     db: Session = Depends(get_db),
 ):
     """List all workflows with optional filters"""
-    workflows = crud.get_workflows(
-        db, skip=skip, limit=limit, is_active=is_active, is_deployed=is_deployed
-    )
+    workflows = crud.get_workflows(db, skip=skip, limit=limit, is_active=is_active, is_deployed=is_deployed)
     return workflows
 
 
@@ -332,9 +300,7 @@ def get_workflow(workflow_id: uuid.UUID, db: Session = Depends(get_db)):
     """Get a specific workflow by ID with all related data"""
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
 
     # Load related data
     workflow_agents = crud.get_workflow_agents(db, workflow_id)
@@ -360,9 +326,7 @@ def update_workflow(
     """Update a workflow"""
     workflow = crud.update_workflow(db, workflow_id, workflow_update)
     if not workflow:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
     return workflow
 
 
@@ -371,9 +335,7 @@ def delete_workflow(workflow_id: uuid.UUID, db: Session = Depends(get_db)):
     """Delete a workflow"""
     success = crud.delete_workflow(db, workflow_id)
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
     return {"message": "Workflow deleted successfully"}
 
 
@@ -387,16 +349,12 @@ def add_agent_to_workflow(
     # Verify workflow exists
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
 
     # Verify agent exists
     agent = crud.get_agent(db, workflow_agent.agent_id)
     if not agent:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
     # Set workflow_id
     workflow_agent.workflow_id = workflow_id
@@ -411,9 +369,7 @@ def add_agent_to_workflow(
         )
 
 
-@router.post(
-    "/{workflow_id}/connections", response_model=schemas.WorkflowConnectionResponse
-)
+@router.post("/{workflow_id}/connections", response_model=schemas.WorkflowConnectionResponse)
 def add_connection_to_workflow(
     workflow_id: uuid.UUID,
     connection: schemas.WorkflowConnectionCreate,
@@ -423,9 +379,7 @@ def add_connection_to_workflow(
     # Verify workflow exists
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
 
     # Set workflow_id
     connection.workflow_id = workflow_id
@@ -450,9 +404,7 @@ def deploy_workflow(
     # Verify workflow exists
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
 
     # Create deployment data with workflow_id
     deployment_data = schemas.WorkflowDeploymentCreate(
@@ -468,9 +420,7 @@ def deploy_workflow(
         db_deployment = crud.create_workflow_deployment(db, deployment_data)
 
         # Update workflow's is_deployed flag and deployed_at timestamp
-        workflow_update = schemas.WorkflowUpdate(
-            is_deployed=True, deployed_at=db_deployment.deployed_at
-        )
+        workflow_update = schemas.WorkflowUpdate(is_deployed=True, deployed_at=db_deployment.deployed_at)
         crud.update_workflow(db, workflow_id, workflow_update)
 
         # Build and store the CommandAgent for this deployment
@@ -489,9 +439,7 @@ def deploy_workflow(
         )
 
 
-@router.get(
-    "/deployments/active", response_model=List[schemas.WorkflowDeploymentResponse]
-)
+@router.get("/deployments/active", response_model=List[schemas.WorkflowDeploymentResponse])
 def list_active_deployments(db: Session = Depends(get_db)):
     """List all active workflow deployments"""
     deployments = crud.workflows.get_active_workflow_deployments(db)
@@ -503,13 +451,9 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
     """Stop/undeploy a workflow deployment by name"""
     try:
         # Find the deployment by name (try development first, then production)
-        deployment = crud.workflows.get_workflow_deployment_by_name(
-            db, deployment_name, "development"
-        )
+        deployment = crud.workflows.get_workflow_deployment_by_name(db, deployment_name, "development")
         if not deployment:
-            deployment = crud.workflows.get_workflow_deployment_by_name(
-                db, deployment_name, "production"
-            )
+            deployment = crud.workflows.get_workflow_deployment_by_name(db, deployment_name, "production")
 
         if not deployment:
             raise HTTPException(
@@ -519,9 +463,7 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
 
         # Update deployment status to inactive
         deployment_update = schemas.WorkflowDeploymentUpdate(status="inactive")
-        updated_deployment = crud.update_workflow_deployment(
-            db, deployment.deployment_id, deployment_update
-        )
+        updated_deployment = crud.update_workflow_deployment(db, deployment.deployment_id, deployment_update)
 
         if not updated_deployment:
             raise HTTPException(
@@ -530,9 +472,7 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
             )
 
         # Check if there are any other active deployments for this workflow
-        active_deployments = crud.workflows.get_active_workflow_deployments(
-            db, deployment.workflow_id
-        )
+        active_deployments = crud.workflows.get_active_workflow_deployments(db, deployment.workflow_id)
         if not active_deployments:
             # No more active deployments, update workflow's is_deployed flag
             workflow_update = schemas.WorkflowUpdate(is_deployed=False)
@@ -546,11 +486,7 @@ def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)
             "message": f"Deployment '{deployment_name}' stopped successfully",
             "deployment_id": str(updated_deployment.deployment_id),
             "status": updated_deployment.status,
-            "stopped_at": (
-                updated_deployment.stopped_at.isoformat()
-                if updated_deployment.stopped_at
-                else None
-            ),
+            "stopped_at": (updated_deployment.stopped_at.isoformat() if updated_deployment.stopped_at else None),
         }
 
     except Exception as e:
@@ -628,18 +564,14 @@ def execute_workflow(
     # Verify workflow exists
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
 
     try:
         # Check if this is a pure deterministic workflow
         if is_deterministic_workflow(workflow.configuration):
             import asyncio
 
-            return asyncio.run(
-                execute_deterministic_workflow(workflow, execution_request, db)
-            )
+            return asyncio.run(execute_deterministic_workflow(workflow, execution_request, db))
 
         # Check if this is a hybrid workflow with conditional execution
         if is_hybrid_workflow(workflow.configuration):
@@ -712,10 +644,7 @@ def execute_workflow(
                     )
                 else:
                     # Use provided session_id or generate one
-                    session_id = (
-                        execution_request.session_id
-                        or f"workflow_{workflow_id}_{int(time.time())}"
-                    )
+                    session_id = execution_request.session_id or f"workflow_{workflow_id}_{int(time.time())}"
                     user_id = execution_request.user_id or "workflow_user"
                     future = executor.submit(
                         command_agent.execute,
@@ -786,9 +715,7 @@ async def execute_workflow_stream(
     # Verify workflow exists
     workflow = crud.get_workflow(db, workflow_id)
     if not workflow:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
 
     # Check if this is a pure deterministic workflow before starting the stream
     if is_deterministic_workflow(workflow.configuration):
@@ -824,30 +751,21 @@ async def execute_workflow_stream(
 
                 if agent_type == "ToshibaAgent":
                     # Build ToshibaAgent directly
-                    agent = build_toshiba_agent_from_workflow(
-                        db, workflow, agent_config
-                    )
+                    agent = build_toshiba_agent_from_workflow(db, workflow, agent_config)
                 else:
                     # Build other single agents directly
                     agent = build_single_agent_from_workflow(db, workflow, agent_config)
 
                 # Check if agent has streaming capability
-                if hasattr(agent, "execute_stream") and callable(
-                    getattr(agent, "execute_stream")
-                ):
+                if hasattr(agent, "execute_stream") and callable(getattr(agent, "execute_stream")):
                     # Use agent's streaming execution (note: streaming doesn't support analytics yet)
-                    for chunk in agent.execute_stream(
-                        execution_request.query, execution_request.chat_history
-                    ):
+                    for chunk in agent.execute_stream(execution_request.query, execution_request.chat_history):
                         if chunk:
-                            yield f"data: {json.dumps({'type': 'content', 'data': chunk, 'timestamp': datetime.now().isoformat()})}\n\n"
+                            yield f"data: {json.dumps({'type': chunk.type, 'data': chunk.message, 'timestamp': datetime.now().isoformat()})}\n\n"
                             await asyncio.sleep(0.01)
                 else:
                     # Fallback to regular execution with analytics
-                    session_id = (
-                        execution_request.session_id
-                        or f"workflow_{workflow_id}_{int(time.time())}"
-                    )
+                    session_id = execution_request.session_id or f"workflow_{workflow_id}_{int(time.time())}"
                     user_id = execution_request.user_id or "workflow_user"
                     result = agent.execute(
                         query=execution_request.query,
@@ -877,10 +795,7 @@ async def execute_workflow_stream(
                             await asyncio.sleep(0.01)
                 else:
                     # For non-streaming execution, simulate streaming by chunking the response
-                    session_id = (
-                        execution_request.session_id
-                        or f"workflow_{workflow_id}_{int(time.time())}"
-                    )
+                    session_id = execution_request.session_id or f"workflow_{workflow_id}_{int(time.time())}"
                     user_id = execution_request.user_id or "workflow_user"
                     result = command_agent.execute(
                         query=execution_request.query,
@@ -958,9 +873,7 @@ async def execute_workflow_async(
                 try:
                     parsed_runtime_overrides = json.loads(runtime_overrides)
                 except json.JSONDecodeError:
-                    logger.warning(
-                        f"Invalid runtime_overrides JSON: {runtime_overrides}"
-                    )
+                    logger.warning(f"Invalid runtime_overrides JSON: {runtime_overrides}")
 
             execution_request = schemas.WorkflowExecutionRequest(
                 query=query or "",
@@ -1010,9 +923,7 @@ async def execute_workflow_async(
             try:
                 # Create temporary file
                 temp_dir = tempfile.mkdtemp()
-                temp_file_path = os.path.join(
-                    temp_dir, file.filename or "uploaded_file"
-                )
+                temp_file_path = os.path.join(temp_dir, file.filename or "uploaded_file")
 
                 # Save uploaded file
                 content = await file.read()
@@ -1042,28 +953,20 @@ async def execute_workflow_async(
                 file_processing_result = {"status": "error", "error": str(file_error)}
 
         elif file and not has_vectorizer_steps:
-            logger.warning(
-                "🚨 File uploaded but workflow does not contain vectorizer steps - file will be ignored"
-            )
+            logger.warning("🚨 File uploaded but workflow does not contain vectorizer steps - file will be ignored")
 
         elif not file and has_vectorizer_steps:
-            logger.info(
-                "ℹ️ Workflow has vectorizer capabilities but no file was uploaded"
-            )
+            logger.info("ℹ️ Workflow has vectorizer capabilities but no file was uploaded")
 
         # Store file processing result in runtime overrides for the workflow
         if file_processing_result:
             if execution_request.runtime_overrides is None:
                 execution_request.runtime_overrides = {}
-            execution_request.runtime_overrides["file_processing_result"] = (
-                file_processing_result
-            )
+            execution_request.runtime_overrides["file_processing_result"] = file_processing_result
 
         # If we have an uploaded file and vectorizer steps, modify workflow config directly
         if temp_file_path and has_vectorizer_steps:
-            logger.info(
-                f"🔧 Injecting uploaded file path into workflow step configurations"
-            )
+            logger.info(f"🔧 Injecting uploaded file path into workflow step configurations")
 
             # Directly modify the workflow configuration to use uploaded file
             # This ensures the file_reader step gets the file_path in its config
@@ -1076,13 +979,9 @@ async def execute_workflow_async(
                         modified_step["config"] = {}
 
                     modified_step["config"]["file_path"] = temp_file_path
-                    modified_step["config"]["file_name"] = (
-                        file.filename or "uploaded_file"
-                    )
+                    modified_step["config"]["file_name"] = file.filename or "uploaded_file"
                     modified_steps.append(modified_step)
-                    logger.info(
-                        f"✅ Injected file path into file_reader step config: {temp_file_path}"
-                    )
+                    logger.info(f"✅ Injected file path into file_reader step config: {temp_file_path}")
                 else:
                     modified_steps.append(step)
 
@@ -1093,9 +992,7 @@ async def execute_workflow_async(
 
             modified_workflow_config = workflow.configuration.copy()
             modified_workflow_config["steps"] = modified_steps
-            execution_request.runtime_overrides["modified_workflow_config"] = (
-                modified_workflow_config
-            )
+            execution_request.runtime_overrides["modified_workflow_config"] = modified_workflow_config
 
             # Also store cleanup info
             execution_request.runtime_overrides["uploaded_file"] = {

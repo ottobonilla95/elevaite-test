@@ -501,30 +501,79 @@ class AgentStep:
                         },
                     }
 
-                # Execute tool calls and prepare concise summaries for the follow-up LLM call
-                iteration_results: List[Dict[str, Any]] = []
+                # Add assistant message with tool_calls (required by OpenAI format)
+                assistant_message = {"role": "assistant", "tool_calls": []}
+
+                # Convert tool calls to proper format for the assistant message
+                for tool_call in response.tool_calls or []:
+                    # Extract tool call info
+                    tool_call_id = getattr(tool_call, "id", None) or getattr(tool_call, "tool_call_id", None)
+                    function_name = getattr(tool_call, "name", None)
+                    function_args = getattr(tool_call, "arguments", None)
+
+                    if function_name is None and hasattr(tool_call, "function"):
+                        function_name = getattr(tool_call.function, "name", None)
+                        function_args = getattr(tool_call.function, "arguments", None)
+
+                    # Ensure we have a tool_call_id
+                    if not tool_call_id:
+                        import uuid
+
+                        tool_call_id = str(uuid.uuid4())
+
+                    # Normalize arguments to string if needed
+                    if isinstance(function_args, dict):
+                        function_args = json.dumps(function_args)
+                    elif function_args is None:
+                        function_args = "{}"
+
+                    assistant_message["tool_calls"].append(
+                        {
+                            "id": tool_call_id,
+                            "type": "function",
+                            "function": {"name": function_name, "arguments": function_args},
+                        }
+                    )
+
+                messages.append(assistant_message)
+
+                # Execute tool calls and add proper tool response messages
                 for tool_call in response.tool_calls or []:
                     try:
                         tool_result = await self._execute_tool_call(tool_call)
                         tool_calls_trace.append(tool_result)
 
-                        summary: Dict[str, Any] = {
-                            "name": tool_result.get("tool_name"),
-                            "success": tool_result.get("success", False),
-                        }
+                        # Get tool_call_id for the response
+                        tool_call_id = getattr(tool_call, "id", None) or getattr(tool_call, "tool_call_id", None)
+                        if not tool_call_id:
+                            # Find the corresponding tool call from assistant message
+                            function_name = getattr(tool_call, "name", None)
+                            if function_name is None and hasattr(tool_call, "function"):
+                                function_name = getattr(tool_call.function, "name", None)
+
+                            # Find matching tool call in assistant message
+                            for tc in assistant_message["tool_calls"]:
+                                if tc["function"]["name"] == function_name:
+                                    tool_call_id = tc["id"]
+                                    break
+
+                        # Format tool result content
                         if tool_result.get("success"):
                             res_val = tool_result.get("result")
                             # Prefer child agent response when present
                             if isinstance(res_val, dict) and res_val.get("response"):
-                                summary["output"] = res_val.get("response")
+                                content = str(res_val.get("response"))
                             else:
                                 try:
-                                    summary["output"] = res_val if isinstance(res_val, str) else json.dumps(res_val)[:1500]
+                                    content = res_val if isinstance(res_val, str) else json.dumps(res_val)
                                 except Exception:
-                                    summary["output"] = str(res_val)[:1500]
+                                    content = str(res_val)
                         else:
-                            summary["error"] = str(tool_result.get("error", "Unknown error"))[:400]
-                        iteration_results.append(summary)
+                            content = f"Error: {tool_result.get('error', 'Unknown error')}"
+
+                        # Add proper tool response message
+                        messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": content})
+
                     except Exception as e:
                         err = {
                             "tool_name": getattr(tool_call, "name", "unknown"),
@@ -532,23 +581,17 @@ class AgentStep:
                             "error": str(e)[:400],
                         }
                         tool_calls_trace.append(err)
-                        iteration_results.append({"name": err["tool_name"], "success": False, "error": err["error"]})
 
-                # Feed tool results back into the next round
-                tools_json = json.dumps(iteration_results, ensure_ascii=False)
-                # Append assistant tool summary as a message and follow-up user prompt for clarity
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": f"Tool call results (JSON): {tools_json}",
-                    }
-                )
-                messages.append(
-                    {
-                        "role": "user",
-                        "content": "Using these tool results, provide the best possible answer to the user's query.",
-                    }
-                )
+                        # Add error tool response
+                        tool_call_id = getattr(tool_call, "id", None) or getattr(tool_call, "tool_call_id", None)
+                        if not tool_call_id:
+                            import uuid
+
+                            tool_call_id = str(uuid.uuid4())
+
+                        messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": f"Error: {str(e)}"})
+
+                # Keep the current prompt for the next iteration
                 current_prompt = base_prompt
 
             # If iteration cap reached without final text

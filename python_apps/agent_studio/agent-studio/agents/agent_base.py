@@ -22,6 +22,11 @@ def get_redis_manager():
     return redis_manager
 
 
+class AgentStreamChunk(BaseModel):
+    type: Literal["content"] | Literal["info"] | Literal["error"] | Literal["agent_response"]
+    message: str
+
+
 class Agent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -49,9 +54,7 @@ class Agent(BaseModel):
     reasoning: bool = False
     input_type: Optional[List[Literal["text", "voice", "image"]]] = ["text", "voice"]
     output_type: Optional[List[Literal["text", "voice", "image"]]] = ["text", "voice"]
-    response_type: Optional[Literal["json", "yaml", "markdown", "HTML", "None"]] = (
-        "json"
-    )
+    response_type: Optional[Literal["json", "yaml", "markdown", "HTML", "None"]] = "json"
 
     # Model configuration - simplified agent creation
     model: str = "gpt-4o-mini"
@@ -69,9 +72,7 @@ class Agent(BaseModel):
     last_active: Optional[datetime] = None
     # logging_level: Optional[Literal["debug", "info", "warning", "error"]] = "info"  # Debug level
 
-    collaboration_mode: Optional[
-        Literal["single", "team", "parallel", "sequential"]
-    ] = "single"  # Multi-agent behavior
+    collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = "single"  # Multi-agent behavior
 
     stream_name: Optional[str] = None
     consumer_group: str = "agent_group"
@@ -86,6 +87,8 @@ class Agent(BaseModel):
     ) -> List[ChatCompletionMessageParam]:
         """
         Process chat history and build messages array for both execution methods.
+        Also sanitizes any invalid tool-call sequences that would cause OpenAI API errors
+        (assistant message with tool_calls not followed by corresponding tool messages).
         """
         messages: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": system_prompt},
@@ -94,22 +97,64 @@ class Agent(BaseModel):
         # Add chat history if provided
         if chat_history:
             # Convert chat history to proper OpenAI format
-            converted_history = []
+            converted_history: List[Dict[str, Any]] = []
             for msg in chat_history:
                 if isinstance(msg, dict):
                     # Handle different possible formats
                     if "actor" in msg:
                         # Convert 'actor' format to 'role' format
-                        role = "assistant" if msg["actor"] == "bot" else msg["actor"]
-                        converted_history.append(
-                            {"role": role, "content": msg.get("content", "")}
-                        )
+                        role = "assistant" if msg.get("actor") == "bot" else msg.get("actor")
+                        converted_history.append({"role": role, "content": msg.get("content", "")})
                     elif "role" in msg:
-                        # Already in correct format
-                        converted_history.append(msg)
+                        # Already in (approximately) correct format; shallow copy to allow edits
+                        converted_history.append(dict(msg))
                     else:
                         # Skip malformed messages
                         continue
+
+            # # Sanitize: An assistant message with tool_calls must be immediately followed by
+            # # tool messages responding to each tool_call_id. If history lacks those tool messages,
+            # # strip tool_calls from that assistant message to avoid API errors.
+            # i = 0
+            # while i < len(converted_history):
+            #     m = converted_history[i]
+            #     try:
+            #         if (
+            #             isinstance(m, dict)
+            #             and m.get("role") == "assistant"
+            #             and isinstance(m.get("tool_calls"), list)
+            #             and m.get("tool_calls")
+            #         ):
+            #             # Collect tool_call ids from assistant message
+            #             ids = []
+            #             for tc in m.get("tool_calls") or []:
+            #                 if isinstance(tc, dict):
+            #                     tcid = tc.get("id") or tc.get("tool_call_id")
+            #                     if isinstance(tcid, str) and tcid:
+            #                         ids.append(tcid)
+            #             # Scan following messages for tool responses
+            #             found_ids = set()
+            #             j = i + 1
+            #             while j < len(converted_history):
+            #                 mj = converted_history[j]
+            #                 if isinstance(mj, dict) and mj.get("role") == "tool":
+            #                     tcid2 = mj.get("tool_call_id")
+            #                     if isinstance(tcid2, str) and tcid2:
+            #                         found_ids.add(tcid2)
+            #                     j += 1
+            #                     continue
+            #                 # Stop when we hit the next non-tool message
+            #                 break
+            #             if not ids or not set(ids).issubset(found_ids):
+            #                 # Incomplete tool-call sequence in history; drop tool_calls to satisfy API
+            #                 try:
+            #                     m.pop("tool_calls", None)
+            #                 except Exception:
+            #                     pass
+            #     except Exception:
+            #         # Never let history sanitation break execution
+            #         pass
+            #     i += 1
 
             # Add converted history to messages
             messages.extend(cast(List[ChatCompletionMessageParam], converted_history))
@@ -126,9 +171,7 @@ class Agent(BaseModel):
         chat_history: Optional[List[Dict[str, Any]]] = None,
         enable_analytics: bool = False,
         max_tool_calls: int = 10,  # Higher limit for non-streaming to maintain compatibility
-        execution_id: Optional[
-            str
-        ] = None,  # Allow custom execution_id to override UUID generation
+        execution_id: Optional[str] = None,  # Allow custom execution_id to override UUID generation
         **kwargs: Any,
     ) -> str:
         """
@@ -198,9 +241,7 @@ class Agent(BaseModel):
             tool_call_count = 0
 
             if self.routing_options:
-                routing_options = "\n".join(
-                    [f"{k}: {v}" for k, v in self.routing_options.items()]
-                )
+                routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
                 system_prompt = (
                     self.system_prompt.prompt
                     + f"""
@@ -219,11 +260,8 @@ class Agent(BaseModel):
 
             # Main retry loop
             while tries < self.max_retries:
-
                 if enable_analytics and analytics_service:
-                    analytics_service.logger.info(
-                        f"{self.name} attempt {tries + 1}/{self.max_retries}"
-                    )
+                    analytics_service.logger.info(f"{self.name} attempt {tries + 1}/{self.max_retries}")
 
                 try:
                     # Track API call
@@ -245,15 +283,10 @@ class Agent(BaseModel):
                     update_status("superuser@iopex.com", "Thinking...")
 
                     if enable_analytics and analytics_service:
-                        analytics_service.logger.debug(
-                            f"OpenAI API response received for execution {execution_id}"
-                        )
+                        analytics_service.logger.debug(f"OpenAI API response received for execution {execution_id}")
 
                     # Handle tool calls
-                    if (
-                        response.choices[0].finish_reason == "tool_calls"
-                        and response.choices[0].message.tool_calls is not None
-                    ):
+                    if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
                         # Check if we've exceeded max tool calls
                         if tool_call_count >= max_tool_calls:
                             if enable_analytics and analytics_service and execution_id:
@@ -272,17 +305,13 @@ class Agent(BaseModel):
 
                         _message: ChatCompletionAssistantMessageParam = {
                             "role": "assistant",
-                            "tool_calls": cast(
-                                List[ChatCompletionMessageToolCallParam], tool_calls
-                            ),
+                            "tool_calls": cast(List[ChatCompletionMessageToolCallParam], tool_calls),
                         }
                         messages.append(_message)
 
                         for tool in tool_calls:
                             if enable_analytics and analytics_service:
-                                analytics_service.logger.info(
-                                    f"Executing tool: {tool.function.name}"
-                                )
+                                analytics_service.logger.info(f"Executing tool: {tool.function.name}")
 
                             tool_id = tool.id
                             arguments = json.loads(tool.function.arguments)
@@ -310,9 +339,7 @@ class Agent(BaseModel):
 
                                 except Exception as tool_error:
                                     # If tool execution fails, still provide a response to maintain conversation flow
-                                    print(
-                                        f"❌ Tool '{function_name}' failed: {str(tool_error)}"
-                                    )
+                                    print(f"❌ Tool '{function_name}' failed: {str(tool_error)}")
                                     result = f"Error executing tool {function_name}: {str(tool_error)}"
                                     if enable_analytics and analytics_service:
                                         analytics_service.logger.error(
@@ -323,9 +350,7 @@ class Agent(BaseModel):
                                 if enable_analytics and analytics_service and usage_id:
                                     analytics_service.update_tool_metrics(
                                         usage_id=usage_id,
-                                        output_data={
-                                            "result": str(result)[:1000]
-                                        },  # Truncate for storage
+                                        output_data={"result": str(result)[:1000]},  # Truncate for storage
                                     )
 
                                 # Track tool call for execution metrics
@@ -373,9 +398,7 @@ class Agent(BaseModel):
 
                 except Exception as e:
                     if enable_analytics and analytics_service:
-                        analytics_service.logger.error(
-                            f"Error in {self.name} execution: {str(e)}"
-                        )
+                        analytics_service.logger.error(f"Error in {self.name} execution: {str(e)}")
 
                     print(f"❌ Error in agent execution: {e}")
                     tries += 1
@@ -409,7 +432,7 @@ class Agent(BaseModel):
         max_tool_calls: int = 5,
         execution_id: Optional[str] = None,  # Allow custom execution_id
         **kwargs: Any,
-    ) -> Generator[str, None, None]:
+    ) -> Generator[AgentStreamChunk, None, None]:
         """
         Streaming execution method that yields incremental responses.
         """
@@ -475,9 +498,7 @@ class Agent(BaseModel):
 
             # Build system prompt with routing options
             if self.routing_options:
-                routing_options = "\n".join(
-                    [f"{k}: {v}" for k, v in self.routing_options.items()]
-                )
+                routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
                 system_prompt = (
                     self.system_prompt.prompt
                     + f"""
@@ -497,9 +518,7 @@ class Agent(BaseModel):
             # Main retry loop
             while tries < self.max_retries:
                 if enable_analytics and analytics_service:
-                    analytics_service.logger.info(
-                        f"{self.name} streaming attempt {tries + 1}/{self.max_retries}"
-                    )
+                    analytics_service.logger.info(f"{self.name} streaming attempt {tries + 1}/{self.max_retries}")
 
                 try:
                     # Track API call
@@ -522,18 +541,15 @@ class Agent(BaseModel):
                     update_status("superuser@iopex.com", "Thinking...")
 
                     if enable_analytics and analytics_service:
-                        analytics_service.logger.debug(
-                            f"OpenAI API response received for streaming execution {execution_id}"
-                        )
+                        analytics_service.logger.debug(f"OpenAI API response received for streaming execution {execution_id}")
 
                     # Handle tool calls
-                    if (
-                        response.choices[0].finish_reason == "tool_calls"
-                        and response.choices[0].message.tool_calls is not None
-                    ):
+                    if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
                         # Check if we've exceeded max tool calls
                         if tool_call_count >= max_tool_calls:
-                            yield f"Maximum tool calls ({max_tool_calls}) reached. Ending conversation.\n"
+                            yield AgentStreamChunk(
+                                type="info", message=f"Maximum tool calls ({max_tool_calls}) reached. Ending conversation.\n"
+                            )
                             break
 
                         tool_call_count += 1
@@ -541,96 +557,104 @@ class Agent(BaseModel):
 
                         _message: ChatCompletionAssistantMessageParam = {
                             "role": "assistant",
-                            "tool_calls": cast(
-                                List[ChatCompletionMessageToolCallParam], tool_calls
-                            ),
+                            "tool_calls": cast(List[ChatCompletionMessageToolCallParam], tool_calls),
                         }
                         messages.append(_message)
 
+                        # Process all tool calls and ensure tool response messages are added
+                        # even if exceptions occur during individual tool execution
                         for tool in tool_calls:
-                            yield f"Agent Called: {tool.function.name}\n"
-
-                            if enable_analytics and analytics_service:
-                                analytics_service.logger.info(
-                                    f"Executing tool: {tool.function.name}"
-                                )
-
                             tool_id = tool.id
-                            arguments = json.loads(tool.function.arguments)
                             function_name = tool.function.name
-                            update_status("superuser@iopex.com", function_name)
-
-                            # Track tool usage
-                            usage_id = None
-                            tool_context = None
-                            if enable_analytics and analytics_service and execution_id:
-                                tool_context = analytics_service.track_tool_usage(
-                                    tool_name=function_name,
-                                    execution_id=execution_id,
-                                    input_data=arguments,
-                                )
-                                usage_id = tool_context.__enter__()
 
                             try:
-                                # Execute tool or agent
-                                try:
-                                    if function_name in agent_store:
-                                        result = agent_store[function_name](**arguments)
-                                    else:
-                                        result = tool_store[function_name](**arguments)
+                                yield AgentStreamChunk(type="info", message=f"Agent Called: {tool.function.name}\n")
 
-                                except Exception as tool_error:
-                                    print(
-                                        f"❌ Tool '{function_name}' failed: {str(tool_error)}"
+                                if enable_analytics and analytics_service:
+                                    analytics_service.logger.info(f"Executing tool: {tool.function.name}")
+
+                                arguments = json.loads(tool.function.arguments)
+                                update_status("superuser@iopex.com", function_name)
+
+                                # Track tool usage
+                                usage_id = None
+                                tool_context = None
+                                if enable_analytics and analytics_service and execution_id:
+                                    tool_context = analytics_service.track_tool_usage(
+                                        tool_name=function_name,
+                                        execution_id=execution_id,
+                                        input_data=arguments,
                                     )
-                                    result = f"Error executing tool {function_name}: {str(tool_error)}"
-                                    if enable_analytics and analytics_service:
-                                        analytics_service.logger.error(
-                                            f"Tool execution failed for {function_name}: {str(tool_error)}"
+                                    usage_id = tool_context.__enter__()
+
+                                try:
+                                    # Execute tool or agent
+                                    try:
+                                        if function_name in agent_store:
+                                            result = agent_store[function_name](**arguments)
+                                        else:
+                                            result = tool_store[function_name](**arguments)
+
+                                    except Exception as tool_error:
+                                        print(f"❌ Tool '{function_name}' failed: {str(tool_error)}")
+                                        result = f"Error executing tool {function_name}: {str(tool_error)}"
+                                        if enable_analytics and analytics_service:
+                                            analytics_service.logger.error(
+                                                f"Tool execution failed for {function_name}: {str(tool_error)}"
+                                            )
+
+                                    # Update tool metrics if analytics enabled
+                                    if enable_analytics and analytics_service and usage_id:
+                                        analytics_service.update_tool_metrics(
+                                            usage_id=usage_id,
+                                            output_data={"result": str(result)[:1000]},
                                         )
 
-                                # Update tool metrics if analytics enabled
-                                if enable_analytics and analytics_service and usage_id:
-                                    analytics_service.update_tool_metrics(
-                                        usage_id=usage_id,
-                                        output_data={"result": str(result)[:1000]},
+                                    # Track tool call for execution metrics
+                                    tools_called.append(
+                                        {
+                                            "tool_name": function_name,
+                                            "arguments": arguments,
+                                            "usage_id": str(usage_id) if usage_id else None,
+                                        }
+                                    )
+                                    update_status("superuser@iopex.com", "Thinking...")
+
+                                    # Yield tool result
+                                    try:
+                                        if isinstance(result, str):
+                                            json.loads(result)  # Validate JSON format
+                                            yield AgentStreamChunk(type="agent_response", message=result + "\n")
+                                        else:
+                                            yield AgentStreamChunk(type="content", message=str(result) + "\n")
+                                    except json.JSONDecodeError:
+                                        yield AgentStreamChunk(type="content", message=str(result) + "\n")
+
+                                finally:
+                                    # Exit tool tracking context if it was entered
+                                    if tool_context:
+                                        tool_context.__exit__(None, None, None)
+
+                            except Exception as tool_processing_error:
+                                # If any error occurs during tool processing, still add a tool response message
+                                # to maintain the required OpenAI message format
+                                print(f"❌ Error processing tool '{function_name}': {str(tool_processing_error)}")
+                                result = f"Error processing tool {function_name}: {str(tool_processing_error)}"
+
+                                if enable_analytics and analytics_service:
+                                    analytics_service.logger.error(
+                                        f"Tool processing failed for {function_name}: {str(tool_processing_error)}"
                                     )
 
-                                # Track tool call for execution metrics
-                                tools_called.append(
-                                    {
-                                        "tool_name": function_name,
-                                        "arguments": arguments,
-                                        "usage_id": str(usage_id) if usage_id else None,
-                                    }
-                                )
-                                update_status("superuser@iopex.com", "Thinking...")
-
-                                # Add tool response message
-                                messages.append(
-                                    {
-                                        "role": "tool",
-                                        "tool_call_id": tool_id,
-                                        "content": str(result),
-                                    }
-                                )
-
-                                # Yield tool result
-                                try:
-                                    if isinstance(result, str):
-                                        parsed_result = json.loads(result)
-                                        yield parsed_result.get(
-                                            "content", "Agent Responded"
-                                        ) + "\n"
-                                    else:
-                                        yield str(result) + "\n"
-                                except json.JSONDecodeError:
-                                    yield str(result) + "\n"
-
-                            finally:
-                                # Exit tool tracking context if it was entered
-                                if tool_context:
-                                    tool_context.__exit__(None, None, None)
+                            # Always add tool response message to maintain OpenAI format consistency
+                            # This ensures that every tool_call in the assistant message has a corresponding tool response
+                            messages.append(
+                                {
+                                    "role": "tool",
+                                    "tool_call_id": tool_id,
+                                    "content": str(result),
+                                }
+                            )
 
                         # Continue the conversation after processing all tool calls
                         tries += 1
@@ -639,7 +663,7 @@ class Agent(BaseModel):
                         if response.choices[0].message.content is None:
                             raise Exception("No content in response")
 
-                        yield "Agent Responded\n"
+                        yield AgentStreamChunk(type="info", message="Agent Responded\n")
 
                         # Update execution metrics before yielding final response
                         if enable_analytics and analytics_service and execution_id:
@@ -654,21 +678,15 @@ class Agent(BaseModel):
 
                         # Yield final response
                         try:
-                            parsed_content = json.loads(
-                                response.choices[0].message.content
-                            )
-                            yield parsed_content.get(
-                                "content", "Agent Could Not Respond"
-                            ) + "\n\n"
+                            parsed_content = json.loads(response.choices[0].message.content)
+                            yield parsed_content.get("content", "Agent Could Not Respond") + "\n\n"
                         except json.JSONDecodeError:
                             yield response.choices[0].message.content + "\n\n"
                         return
 
                 except Exception as e:
                     if enable_analytics and analytics_service:
-                        analytics_service.logger.error(
-                            f"Error in {self.name} streaming execution: {str(e)}"
-                        )
+                        analytics_service.logger.error(f"Error in {self.name} streaming execution: {str(e)}")
 
                     print(f"❌ Error in streaming agent execution: {e}")
                     tries += 1
@@ -683,7 +701,7 @@ class Agent(BaseModel):
                                 retry_count=tries,
                                 api_calls_count=api_calls_count,
                             )
-                        yield f"Error after {self.max_retries} attempts: {str(e)}\n"
+                        yield AgentStreamChunk(type="error", message=f"Error after {self.max_retries} attempts: {str(e)}\n")
                         return
 
         finally:
@@ -716,18 +734,14 @@ class Agent(BaseModel):
                 return
 
             if redis_manager.create_stream(self.stream_name):
-                redis_manager.create_consumer_group(
-                    self.stream_name, self.consumer_group
-                )
+                redis_manager.create_consumer_group(self.stream_name, self.consumer_group)
                 self.register_message_handler(self._default_message_handler)
 
         except Exception:
             # Redis communication failed - continue without it
             pass
 
-    def register_message_handler(
-        self, handler: Callable[[Dict[str, Any]], Optional[Dict[str, Any]]]
-    ):
+    def register_message_handler(self, handler: Callable[[Dict[str, Any]], Optional[Dict[str, Any]]]):
         try:
             redis_manager = get_redis_manager()
             if self.stream_name is not None and redis_manager.is_connected:
@@ -741,9 +755,7 @@ class Agent(BaseModel):
             # Failed to register message handler - continue without it
             pass
 
-    def _default_message_handler(
-        self, message: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def _default_message_handler(self, message: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         try:
             data = message.get("data", {})
             msg_type = data.get("type", "unknown")
@@ -760,23 +772,17 @@ class Agent(BaseModel):
         except Exception as e:
             return {"error": str(e)}
 
-    def send_message(
-        self, target_stream: str, message: Dict[str, Any], priority: int = 0
-    ) -> Optional[str]:
+    def send_message(self, target_stream: str, message: Dict[str, Any], priority: int = 0) -> Optional[str]:
         try:
             redis_manager = get_redis_manager()
             if redis_manager.is_connected:
-                return redis_manager.publish_message(
-                    target_stream, message, priority=priority
-                )
+                return redis_manager.publish_message(target_stream, message, priority=priority)
             else:
                 return None
         except Exception:
             return None
 
-    def request_reply(
-        self, target_stream: str, message: Dict[str, Any], timeout: int = 5
-    ) -> Optional[Dict[str, Any]]:
+    def request_reply(self, target_stream: str, message: Dict[str, Any], timeout: int = 5) -> Optional[Dict[str, Any]]:
         try:
             redis_manager = get_redis_manager()
             if redis_manager.is_connected:
