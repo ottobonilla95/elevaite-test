@@ -15,21 +15,25 @@ if "chunker_status" not in st.session_state:
 if "chunker_config_saved" not in st.session_state:
     st.session_state.chunker_config_saved = False
 
+
 def load_config():
     if os.path.exists(CONFIG_PATH):
         with open(CONFIG_PATH, "r") as file:
             return json.load(file)
     return {"chunking": {"strategies": {}}}
 
+
 def save_config(updated_config):
     with open(CONFIG_PATH, "w") as file:
         json.dump(updated_config, file, indent=4)
+
 
 def load_status_json(status_path):
     if os.path.exists(status_path):
         with open(status_path, "r") as file:
             return json.load(file)
     return {"message": "No status available yet."}
+
 
 def run_pipeline(script_path, status_path):
     try:
@@ -43,13 +47,15 @@ def run_pipeline(script_path, status_path):
     except Exception as e:
         return {"error": "Execution error", "details": str(e)}
 
+
 st.set_page_config(page_title="Stage 3: Chunking", layout="wide")
 st.markdown("## STAGE 3: CHUNKING")
 
 config = load_config()
 
-if "chunking" not in config:
-    config["chunking"] = {"strategies": {}}
+if ("chunking" not in config) or (not config.get("chunking", {}).get("strategies")):
+    # Initialize default chunking strategies when missing or empty
+    config["chunking"] = config.get("chunking", {})
     config["chunking"]["strategies"] = {
         "semantic_chunking": {"breakpoint_threshold_type": "percentile", "breakpoint_threshold_amount": 80},
         "mdstructure": {"chunk_size": 1500},
@@ -70,33 +76,46 @@ if selected_chunker != "Select Chunking Strategy":
 
     if selected_chunker == "semantic_chunking":
         chunker_config_values["breakpoint_threshold_type"] = st.selectbox(
-            "Breakpoint Threshold Type", ["fixed", "percentile"],
-            index=0 if config["chunking"]["strategies"]["semantic_chunking"].get("breakpoint_threshold_type", "percentile") == "fixed" else 1,
+            "Breakpoint Threshold Type",
+            ["fixed", "percentile"],
+            index=0
+            if config["chunking"]["strategies"]["semantic_chunking"].get("breakpoint_threshold_type", "percentile") == "fixed"
+            else 1,
         )
         chunker_config_values["breakpoint_threshold_amount"] = st.number_input(
-            "Breakpoint Threshold Amount", min_value=1, max_value=100,
+            "Breakpoint Threshold Amount",
+            min_value=1,
+            max_value=100,
             value=config["chunking"]["strategies"]["semantic_chunking"].get("breakpoint_threshold_amount", 80),
         )
 
     elif selected_chunker == "mdstructure":
         chunker_config_values["chunk_size"] = st.number_input(
-            "Chunk Size", min_value=100, max_value=5000,
+            "Chunk Size",
+            min_value=100,
+            max_value=5000,
             value=config["chunking"]["strategies"]["mdstructure"].get("chunk_size", 1500),
         )
 
     elif selected_chunker == "recursive_chunking":
         chunker_config_values["chunk_size"] = st.number_input(
-            "Chunk Size", min_value=100, max_value=5000,
+            "Chunk Size",
+            min_value=100,
+            max_value=5000,
             value=config["chunking"]["strategies"]["recursive_chunking"].get("chunk_size", 700),
         )
         chunker_config_values["chunk_overlap"] = st.number_input(
-            "Chunk Overlap", min_value=0, max_value=500,
+            "Chunk Overlap",
+            min_value=0,
+            max_value=500,
             value=config["chunking"]["strategies"]["recursive_chunking"].get("chunk_overlap", 100),
         )
 
     elif selected_chunker == "sentence_chunking":
         chunker_config_values["max_chunk_size"] = st.number_input(
-            "Max Chunk Size", min_value=100, max_value=5000,
+            "Max Chunk Size",
+            min_value=100,
+            max_value=5000,
             value=config["chunking"]["strategies"]["sentence_chunking"].get("max_chunk_size", 1000),
         )
 
@@ -132,4 +151,3 @@ with col1:
 with col2:
     if st.button("Next to Embedding"):
         st.switch_page("pages/4_Embedding.py")
-

@@ -13,38 +13,21 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional, Union
 from pathlib import Path
 
+# Require elevaite_ingestion components (no fallbacks)
+from elevaite_ingestion.parsers.pdf_parser import PdfParser
+from elevaite_ingestion.parsers.docx_parser import DocxParser
+from elevaite_ingestion.parsers.xlsx_parser import XlsxParser
+from elevaite_ingestion.embedding_factory.openai_embedder import get_embedding
+import qdrant_client
+from qdrant_client.models import Distance, VectorParams, PointStruct
+
+
 from ..execution_context import ExecutionContext
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 
-# Import elevaite_ingestion components with graceful fallback
-try:
-    from elevaite_ingestion.parsers.pdf_parser import PdfParser
-    from elevaite_ingestion.parsers.docx_parser import DocxParser
-    from elevaite_ingestion.parsers.xlsx_parser import XlsxParser
-    from elevaite_ingestion.embedding_factory.openai_embedder import get_embedding
-    from elevaite_ingestion.chunk_strategy.semantic_chunking import semantic_chunk_text
-    from elevaite_ingestion.chunk_strategy.sliding_window_chunking import (
-        sliding_window_chunk_text,
-    )
-
-    ELEVAITE_INGESTION_AVAILABLE = True
-except ImportError as e:
-    logger.warning(
-        f"elevaite_ingestion not available: {e}, using simplified implementations"
-    )
-    ELEVAITE_INGESTION_AVAILABLE = False
-
-# Import vector storage dependencies
-try:
-    import qdrant_client
-    from qdrant_client.models import Distance, VectorParams, PointStruct
-
-    QDRANT_AVAILABLE = True
-except ImportError:
-    logger.warning("qdrant_client not available, vector storage will be simulated")
-    QDRANT_AVAILABLE = False
+QDRANT_AVAILABLE = True
 
 
 async def file_reader_step(
@@ -54,35 +37,35 @@ async def file_reader_step(
 ) -> Dict[str, Any]:
     """
     File reader step that extracts text content from various file formats.
-    
+
     Config options:
     - file_path: Path to the file to read (can be from input_data)
     - supported_formats: List of supported file formats
     """
-    
+
     config = step_config.get("config", {})
-    
+
     # Get file path from config or input data
     file_path = config.get("file_path") or input_data.get("file_path")
-    
+
     if not file_path:
         return {
             "error": "No file_path provided in config or input_data",
             "success": False,
         }
-    
+
     file_path = Path(file_path)
-    
+
     if not file_path.exists():
         return {
             "error": f"File not found: {file_path}",
             "success": False,
         }
-    
+
     try:
         # Determine file type and parse accordingly
         file_extension = file_path.suffix.lower()
-        
+
         if file_extension == ".txt":
             content = await _read_text_file(file_path)
         elif file_extension == ".pdf":
@@ -92,9 +75,12 @@ async def file_reader_step(
         elif file_extension in [".xlsx", ".xls"]:
             content = await _read_xlsx_file(file_path)
         else:
-            # Try to read as text file
-            content = await _read_text_file(file_path)
-        
+            return {
+                "file_path": str(file_path),
+                "error": f"Unsupported file extension: {file_extension}",
+                "success": False,
+            }
+
         return {
             "file_path": str(file_path),
             "file_name": file_path.name,
@@ -104,7 +90,7 @@ async def file_reader_step(
             "processed_at": datetime.now().isoformat(),
             "success": True,
         }
-        
+
     except Exception as e:
         return {
             "file_path": str(file_path),
@@ -120,33 +106,29 @@ async def _read_text_file(file_path: Path) -> str:
 
 
 async def _read_pdf_file(file_path: Path) -> str:
-    """Read a PDF file"""
-    if ELEVAITE_INGESTION_AVAILABLE:
-        parser = PdfParser()
-        return await parser.parse(str(file_path))
-    else:
-        # Simplified fallback
-        return f"[PDF content from {file_path.name} - elevaite_ingestion not available for full parsing]"
+    """Read a PDF file using elevaite_ingestion PdfParser"""
+    parser = PdfParser()
+    parsed = parser.parse(str(file_path), original_filename=file_path.name)
+    # Join paragraph texts into a single content string
+    paragraphs = parsed.get("paragraphs", [])
+    if paragraphs:
+        return "\n\n".join(p.get("paragraph_text", "") for p in paragraphs)
+    # Fallback: if parser returns a plain content
+    return parsed.get("content", "")
 
 
 async def _read_docx_file(file_path: Path) -> str:
-    """Read a DOCX file"""
-    if ELEVAITE_INGESTION_AVAILABLE:
-        parser = DocxParser()
-        return await parser.parse(str(file_path))
-    else:
-        # Simplified fallback
-        return f"[DOCX content from {file_path.name} - elevaite_ingestion not available for full parsing]"
+    """Read a DOCX file using elevaite_ingestion DocxParser"""
+    parser = DocxParser()
+    parsed = parser.parse(str(file_path))
+    return parsed.get("content", "")
 
 
 async def _read_xlsx_file(file_path: Path) -> str:
-    """Read an XLSX file"""
-    if ELEVAITE_INGESTION_AVAILABLE:
-        parser = XlsxParser()
-        return await parser.parse(str(file_path))
-    else:
-        # Simplified fallback
-        return f"[XLSX content from {file_path.name} - elevaite_ingestion not available for full parsing]"
+    """Read an XLSX file using elevaite_ingestion XlsxParser"""
+    parser = XlsxParser()
+    parsed = parser.parse(str(file_path))
+    return parsed.get("content", "")
 
 
 async def text_chunking_step(
@@ -156,37 +138,33 @@ async def text_chunking_step(
 ) -> Dict[str, Any]:
     """
     Text chunking step that divides text into manageable, semantically meaningful chunks.
-    
+
     Config options:
     - strategy: "sliding_window" or "semantic"
     - chunk_size: Size of each chunk (for sliding window)
     - overlap: Overlap between chunks (for sliding window)
     """
-    
+
     config = step_config.get("config", {})
     strategy = config.get("strategy", "sliding_window")
     chunk_size = config.get("chunk_size", 1000)
     overlap = config.get("overlap", 100)
-    
+
     # Get text content from input
     content = input_data.get("content", "")
     if not content:
-        return {
-            "error": "No content provided for chunking",
-            "success": False,
-        }
-    
+        return {"error": "No content provided for chunking", "success": False}
+
     try:
-        if strategy == "semantic" and ELEVAITE_INGESTION_AVAILABLE:
-            chunks = await semantic_chunk_text(content, chunk_size)
+        if strategy == "sliding_window":
+            chunks = _simple_chunk_text(content, chunk_size, overlap)
+        elif strategy == "semantic":
+            # Not wired yet to elevaite_ingestion semantic chunker in PoC
+            return {"error": "semantic strategy not implemented in PoC", "success": False}
         else:
-            # Use sliding window (default or fallback)
-            if ELEVAITE_INGESTION_AVAILABLE:
-                chunks = await sliding_window_chunk_text(content, chunk_size, overlap)
-            else:
-                # Simple fallback chunking
-                chunks = _simple_chunk_text(content, chunk_size, overlap)
-        
+            # Treat any other value as invalid for now
+            return {"error": f"Unsupported chunking strategy: {strategy}", "success": False}
+
         return {
             "chunks": chunks,
             "chunk_count": len(chunks),
@@ -197,28 +175,25 @@ async def text_chunking_step(
             "processed_at": datetime.now().isoformat(),
             "success": True,
         }
-        
+
     except Exception as e:
-        return {
-            "error": str(e),
-            "success": False,
-        }
+        return {"error": str(e), "success": False}
 
 
 def _simple_chunk_text(text: str, chunk_size: int, overlap: int) -> List[str]:
     """Simple text chunking fallback"""
     chunks = []
     start = 0
-    
+
     while start < len(text):
         end = start + chunk_size
         chunk = text[start:end]
         chunks.append(chunk)
         start = end - overlap
-        
+
         if start >= len(text):
             break
-    
+
     return chunks
 
 
@@ -229,16 +204,16 @@ async def embedding_generation_step(
 ) -> Dict[str, Any]:
     """
     Embedding generation step that creates vector embeddings for text chunks.
-    
+
     Config options:
     - model: Embedding model to use
     - batch_size: Number of chunks to process at once
     """
-    
+
     config = step_config.get("config", {})
     model = config.get("model", "text-embedding-ada-002")
     batch_size = config.get("batch_size", 10)
-    
+
     # Get chunks from input
     chunks = input_data.get("chunks", [])
     if not chunks:
@@ -246,29 +221,18 @@ async def embedding_generation_step(
             "error": "No chunks provided for embedding generation",
             "success": False,
         }
-    
+
     try:
         embeddings = []
-        
-        if ELEVAITE_INGESTION_AVAILABLE:
-            # Process chunks in batches
-            for i in range(0, len(chunks), batch_size):
-                batch = chunks[i:i + batch_size]
-                batch_embeddings = []
-                
-                for chunk in batch:
-                    embedding = await get_embedding(chunk, model=model)
-                    batch_embeddings.append(embedding)
-                
-                embeddings.extend(batch_embeddings)
-        else:
-            # Simulate embeddings
-            import random
-            for chunk in chunks:
-                # Generate fake embedding vector
-                embedding = [random.random() for _ in range(1536)]  # OpenAI ada-002 dimension
-                embeddings.append(embedding)
-        
+        # Process chunks in batches
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i : i + batch_size]
+            batch_embeddings = []
+            for chunk in batch:
+                embedding = get_embedding(chunk)
+                batch_embeddings.append(embedding)
+            embeddings.extend(batch_embeddings)
+
         return {
             "embeddings": embeddings,
             "embedding_count": len(embeddings),
@@ -277,12 +241,9 @@ async def embedding_generation_step(
             "processed_at": datetime.now().isoformat(),
             "success": True,
         }
-        
+
     except Exception as e:
-        return {
-            "error": str(e),
-            "success": False,
-        }
+        return {"error": str(e), "success": False}
 
 
 async def vector_storage_step(
@@ -292,41 +253,43 @@ async def vector_storage_step(
 ) -> Dict[str, Any]:
     """
     Vector storage step that stores embeddings in a vector database.
-    
+
     Config options:
     - storage_type: "qdrant" or "in_memory"
     - collection_name: Name of the collection
     - qdrant_host: Qdrant server host (if using qdrant)
     - qdrant_port: Qdrant server port (if using qdrant)
     """
-    
+
     config = step_config.get("config", {})
     storage_type = config.get("storage_type", "in_memory")
     collection_name = config.get("collection_name", "default")
-    
+
     # Get embeddings and chunks from input
     embeddings = input_data.get("embeddings", [])
     chunks = input_data.get("chunks", [])
-    
+
     if not embeddings or not chunks:
         return {
             "error": "No embeddings or chunks provided for storage",
             "success": False,
         }
-    
+
     if len(embeddings) != len(chunks):
         return {
             "error": "Mismatch between number of embeddings and chunks",
             "success": False,
         }
-    
+
     try:
-        if storage_type == "qdrant" and QDRANT_AVAILABLE:
+        if storage_type == "qdrant":
+            if not QDRANT_AVAILABLE:
+                return {"error": "qdrant_client is not installed", "success": False}
             result = await _store_in_qdrant(embeddings, chunks, config)
         else:
-            # In-memory storage (simulation)
+            # In-memory storage (explicit behavior)
             result = await _store_in_memory(embeddings, chunks, config)
-        
+
         return {
             **result,
             "storage_type": storage_type,
@@ -335,12 +298,9 @@ async def vector_storage_step(
             "processed_at": datetime.now().isoformat(),
             "success": True,
         }
-        
+
     except Exception as e:
-        return {
-            "error": str(e),
-            "success": False,
-        }
+        return {"error": str(e), "success": False}
 
 
 async def _store_in_qdrant(embeddings: List[List[float]], chunks: List[str], config: Dict[str, Any]) -> Dict[str, Any]:
@@ -348,9 +308,9 @@ async def _store_in_qdrant(embeddings: List[List[float]], chunks: List[str], con
     host = config.get("qdrant_host", "localhost")
     port = config.get("qdrant_port", 6333)
     collection_name = config.get("collection_name", "default")
-    
+
     client = qdrant_client.QdrantClient(host=host, port=port)
-    
+
     # Create collection if it doesn't exist
     try:
         client.get_collection(collection_name)
@@ -359,7 +319,7 @@ async def _store_in_qdrant(embeddings: List[List[float]], chunks: List[str], con
             collection_name=collection_name,
             vectors_config=VectorParams(size=len(embeddings[0]), distance=Distance.COSINE),
         )
-    
+
     # Prepare points
     points = []
     for i, (embedding, chunk) in enumerate(zip(embeddings, chunks)):
@@ -369,10 +329,10 @@ async def _store_in_qdrant(embeddings: List[List[float]], chunks: List[str], con
             payload={"text": chunk, "chunk_index": i},
         )
         points.append(point)
-    
+
     # Upload points
     client.upsert(collection_name=collection_name, points=points)
-    
+
     return {
         "qdrant_host": host,
         "qdrant_port": port,
@@ -384,16 +344,18 @@ async def _store_in_memory(embeddings: List[List[float]], chunks: List[str], con
     """Store embeddings in memory (simulation)"""
     # This is just a simulation - in a real implementation,
     # you might store in a local database or file
-    
+
     storage_data = []
     for i, (embedding, chunk) in enumerate(zip(embeddings, chunks)):
-        storage_data.append({
-            "id": str(uuid.uuid4()),
-            "embedding": embedding,
-            "text": chunk,
-            "chunk_index": i,
-        })
-    
+        storage_data.append(
+            {
+                "id": str(uuid.uuid4()),
+                "embedding": embedding,
+                "text": chunk,
+                "chunk_index": i,
+            }
+        )
+
     return {
         "storage_location": "in_memory",
         "stored_items": len(storage_data),

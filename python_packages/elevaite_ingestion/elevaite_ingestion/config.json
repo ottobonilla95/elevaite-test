@@ -1,0 +1,62 @@
+{
+    "chunking": {
+        "strategies": {
+            "semantic_chunking": {
+                "breakpoint_threshold_type": "percentile",
+                "breakpoint_threshold_amount": 80
+            },
+            "mdstructure": {
+                "chunk_size": 1500
+            },
+            "recursive_chunking": {
+                "chunk_size": 700,
+                "chunk_overlap": 100
+            },
+            "sentence_chunking": {
+                "max_chunk_size": 1000
+            }
+        }
+    },
+    "embedding": {
+        "providers": {
+            "openai": {
+                "models": {
+                    "text-embedding-ada-002": {
+                        "dimension": 1536
+                    },
+                    "text-embedding-3-small": {
+                        "dimension": 1536
+                    },
+                    "text-embedding-3-large": {
+                        "dimension": 3072
+                    }
+                }
+            },
+            "cohere": {
+                "models": {
+                    "embed-english-light-v3.0": {
+                        "dimension": 1024
+                    },
+                    "embed-english-v3.0": {
+                        "dimension": 1024
+                    },
+                    "embed-multilingual-v3.0": {
+                        "dimension": 1024
+                    }
+                }
+            },
+            "local": {
+                "models": {
+                    "all-MiniLM-L6-v2": {
+                        "dimension": 384
+                    },
+                    "all-mpnet-base-v2": {
+                        "dimension": 768
+                    }
+                }
+            }
+        },
+        "default_provider": "openai",
+        "default_model": "text-embedding-ada-002"
+    }
+}
