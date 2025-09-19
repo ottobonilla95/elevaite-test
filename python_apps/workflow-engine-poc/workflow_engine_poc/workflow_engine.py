@@ -102,6 +102,33 @@ class WorkflowEngine:
             if execution_context.status == ExecutionStatus.RUNNING:
                 execution_context.complete_execution()
                 logger.info(f"Workflow execution completed: {execution_id}")
+                # Persist final status and step I/O snapshot to DB for API reads
+                try:
+                    from sqlmodel import Session as _SQLSession
+                    from .db.database import engine as _engine
+                    from .db.service import DatabaseService as _DBS
+
+                    seconds = None
+                    try:
+                        if execution_context.started_at and execution_context.completed_at:
+                            seconds = (execution_context.completed_at - execution_context.started_at).total_seconds()
+                    except Exception:
+                        pass
+
+                    with _SQLSession(_engine) as _s:
+                        _DBS().update_execution(
+                            _s,
+                            execution_context.execution_id,
+                            {
+                                "status": execution_context.status,
+                                "step_io_data": execution_context.step_io_data,
+                                "output_data": {},
+                                "completed_at": execution_context.completed_at,
+                                "execution_time_seconds": seconds,
+                            },
+                        )
+                except Exception as _persist_e:
+                    logger.warning(f"Failed to persist final execution state: {_persist_e}")
 
                 # Persist workflow-level analytics rollup (tokens-only)
                 try:
@@ -284,6 +311,23 @@ class WorkflowEngine:
 
             # Store result
             execution_context.store_step_result(step_result)
+            # Persist step I/O snapshot to DB so the API response reflects latest data
+            try:
+                from sqlmodel import Session as _SQLSession
+                from .db.database import engine as _engine
+                from .db.service import DatabaseService as _DBS
+
+                with _SQLSession(_engine) as _s:
+                    _DBS().update_execution(
+                        _s,
+                        execution_context.execution_id,
+                        {
+                            "status": execution_context.status,
+                            "step_io_data": execution_context.step_io_data,
+                        },
+                    )
+            except Exception as _persist_step_e:
+                logger.warning(f"Failed to persist step I/O for {execution_context.execution_id}: {_persist_step_e}")
 
             if step_result.status == StepStatus.WAITING:
                 # Early exit; engine will pause

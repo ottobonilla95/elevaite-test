@@ -46,12 +46,25 @@ async def file_reader_step(
 
     config = step_config.get("config", {})
 
-    # Get file path from config or input data
+    # Get file path from config or input data; if missing, try trigger attachments (multipart path)
     file_path = config.get("file_path") or input_data.get("file_path")
 
     if not file_path:
+        # Look for first attachment saved by the router under trigger_raw
+        try:
+            raw = execution_context.step_io_data.get("trigger_raw", {})
+            atts = raw.get("attachments") or raw.get("data", {}).get("attachments") or []
+            if isinstance(atts, list) and atts:
+                first = atts[0] if isinstance(atts[0], dict) else None
+                candidate = first.get("path") if first else None
+                if candidate:
+                    file_path = candidate
+        except Exception:
+            pass
+
+    if not file_path:
         return {
-            "error": "No file_path provided in config or input_data",
+            "error": "No file_path provided in config/input_data and no trigger attachment found",
             "success": False,
         }
 

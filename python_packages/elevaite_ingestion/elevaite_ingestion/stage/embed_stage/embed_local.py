@@ -8,13 +8,31 @@ from typing import List, Optional
 def embed_texts(texts: List[str], provider: Optional[str] = None, model: Optional[str] = None) -> List[List[float]]:
     """Return embeddings for a list of texts.
 
-    - provider: currently supports None or "openai" (default). Others can be added.
-    - model: optional model name override (e.g., "text-embedding-3-small").
+    Providers supported:
+    - openai (default)
+    - cohere
+    - local (sentence-transformers)
+    - bedrock
     """
     prov = (provider or "openai").lower()
 
     if prov == "openai":
         from elevaite_ingestion.embedding_factory.openai_embedder import get_embedding
+
+        return [get_embedding(t, model=model) for t in texts]
+
+    if prov == "cohere":
+        from elevaite_ingestion.embedding_factory.cohere_embedder import get_embedding
+
+        return [get_embedding(t, model=model) for t in texts]
+
+    if prov in ("local", "sentence_transformers", "sentence-transformers"):
+        from elevaite_ingestion.embedding_factory.sentence_transformers_embedder import get_embedding
+
+        return [get_embedding(t, model=model) for t in texts]
+
+    if prov == "bedrock":
+        from elevaite_ingestion.embedding_factory.bedrock_embedder import get_embedding
 
         return [get_embedding(t, model=model) for t in texts]
 

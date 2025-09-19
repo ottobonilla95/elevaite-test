@@ -31,11 +31,14 @@ def store_embeddings(
         client.ensure_collection(collection_name, vector_size=vector_size)
         vectors = []
         for i, (vec, text) in enumerate(zip(embeddings, chunks)):
-            vectors.append({
-                "id": f"{filename or 'doc'}_chunk_{i}",
-                "vector": vec,
-                "payload": {"text": text, "chunk_index": i, "filename": filename or "unknown"},
-            })
+            vectors.append(
+                {
+                    # Qdrant requires integer or UUID point IDs; use integers for batch safety
+                    "id": i,
+                    "vector": vec,
+                    "payload": {"text": text, "chunk_index": i, "filename": filename or "unknown"},
+                }
+            )
         client.upsert_vectors(collection_name=collection_name, vectors=vectors)
         return {"db": "qdrant", "collection_name": collection_name, "upserted": len(vectors)}
 
@@ -59,13 +62,14 @@ def store_embeddings(
         )
         vectors = []
         for i, (vec, text) in enumerate(zip(embeddings, chunks)):
-            vectors.append({
-                "id": f"{filename or 'doc'}_chunk_{i}",
-                "values": vec,
-                "metadata": {"text": text, "chunk_index": i, "filename": filename or "unknown"},
-            })
+            vectors.append(
+                {
+                    "id": f"{filename or 'doc'}_chunk_{i}",
+                    "values": vec,
+                    "metadata": {"text": text, "chunk_index": i, "filename": filename or "unknown"},
+                }
+            )
         client.upsert_vectors(vectors)
         return {"db": "pinecone", "index_name": settings["index_name"], "upserted": len(vectors)}
 
     raise ValueError(f"Unsupported vector database type: {db_type}")
-

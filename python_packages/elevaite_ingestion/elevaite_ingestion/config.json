@@ -58,5 +58,12 @@
         },
         "default_provider": "openai",
         "default_model": "text-embedding-ada-002"
+    },
+    "parsing": {
+        "parsing_mode": "auto_parser",
+        "default_parser": "pdf",
+        "default_tool": null,
+        "custom_parser_selection": {},
+        "parsers": {}
     }
 }

@@ -1,4 +1,5 @@
-from db import PineconeClient, ChromaClient, QdrantClientWrapper
+from elevaite_ingestion.vectorstore.db import PineconeClient, ChromaClient, QdrantClientWrapper
+
 
 class VectorDBFactory:
     @staticmethod
@@ -12,13 +13,8 @@ class VectorDBFactory:
                 dimension=kwargs["dimension"],
             )
         elif db_type == "chroma":
-            return ChromaClient(
-                db_path=kwargs["db_path"]
-                )
+            return ChromaClient(db_path=kwargs["db_path"])
         elif db_type == "qdrant":
-            return QdrantClientWrapper(
-                host=kwargs["host"], 
-                port=int(kwargs["port"])
-                )
+            return QdrantClientWrapper(host=kwargs["host"], port=int(kwargs["port"]))
         else:
             raise ValueError(f"Unsupported vector database type: {db_type}")
