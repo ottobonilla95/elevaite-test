@@ -18,6 +18,14 @@ from elevaite_ingestion.parsers.pdf_parser import PdfParser
 from elevaite_ingestion.parsers.docx_parser import DocxParser
 from elevaite_ingestion.parsers.xlsx_parser import XlsxParser
 from elevaite_ingestion.embedding_factory.openai_embedder import get_embedding
+from elevaite_ingestion.stage.parse_stage.parse_pipeline import (
+    process_file as ingestion_parse_file,
+)
+from elevaite_ingestion.config.chunker_config import CHUNKER_CONFIG
+import importlib
+import inspect
+import tempfile
+
 import qdrant_client
 from qdrant_client.models import Distance, VectorParams, PointStruct
 
@@ -66,14 +74,18 @@ async def file_reader_step(
         # Determine file type and parse accordingly
         file_extension = file_path.suffix.lower()
 
+        parsed_data = None
         if file_extension == ".txt":
             content = await _read_text_file(file_path)
-        elif file_extension == ".pdf":
-            content = await _read_pdf_file(file_path)
-        elif file_extension in [".docx", ".doc"]:
-            content = await _read_docx_file(file_path)
-        elif file_extension in [".xlsx", ".xls"]:
-            content = await _read_xlsx_file(file_path)
+            parsed_data = {"content": content, "filename": file_path.name}
+        elif file_extension in [".pdf", ".docx", ".doc", ".xlsx", ".xls"]:
+            # Delegate to elevaite_ingestion parse pipeline; it reads package config for tool selection
+            md_path, structured = ingestion_parse_file(str(file_path), tempfile.gettempdir(), file_path.name)
+            parsed_data = structured or {}
+            if "paragraphs" in parsed_data:
+                content = "\n\n".join(p.get("paragraph_text", "") for p in parsed_data.get("paragraphs", []))
+            else:
+                content = parsed_data.get("content", "")
         else:
             return {
                 "file_path": str(file_path),
@@ -86,6 +98,7 @@ async def file_reader_step(
             "file_name": file_path.name,
             "file_extension": file_extension,
             "content": content,
+            "parsed": parsed_data,
             "content_length": len(content),
             "processed_at": datetime.now().isoformat(),
             "success": True,
@@ -150,19 +163,32 @@ async def text_chunking_step(
     chunk_size = config.get("chunk_size", 1000)
     overlap = config.get("overlap", 100)
 
-    # Get text content from input
+    # Prefer parsed data from prior step if present; fallback to raw content
+    parsed = input_data.get("parsed")
     content = input_data.get("content", "")
-    if not content:
-        return {"error": "No content provided for chunking", "success": False}
+    if not parsed and not content:
+        return {"error": "No input provided for chunking", "success": False}
 
     try:
         if strategy == "sliding_window":
             chunks = _simple_chunk_text(content, chunk_size, overlap)
-        elif strategy == "semantic":
-            # Not wired yet to elevaite_ingestion semantic chunker in PoC
-            return {"error": "semantic strategy not implemented in PoC", "success": False}
+        elif strategy == "semantic_chunking":
+            # Use elevaite_ingestion semantic chunker (async)
+            module_name = "elevaite_ingestion.chunk_strategy.custom_chunking.semantic_chunk_v1"
+            chunk_module = importlib.import_module(module_name)
+            chunk_func = getattr(chunk_module, "chunk_text")
+            params = {
+                **CHUNKER_CONFIG["available_chunkers"]["semantic_chunking"]["settings"],
+            }
+            parsed_input = parsed or {"content": content, "filename": input_data.get("file_name", "unknown")}
+            # The semantic chunker expects PDF-style paragraphs; it may return empty for plain content
+            if inspect.iscoroutinefunction(chunk_func):
+                chunk_objs = await chunk_func(parsed_input, params)
+            else:
+                chunk_objs = chunk_func(parsed_input, params)
+            # Normalize to list[str]
+            chunks = [c.get("chunk_text", "") for c in (chunk_objs or []) if isinstance(c, dict)]
         else:
-            # Treat any other value as invalid for now
             return {"error": f"Unsupported chunking strategy: {strategy}", "success": False}
 
         return {
