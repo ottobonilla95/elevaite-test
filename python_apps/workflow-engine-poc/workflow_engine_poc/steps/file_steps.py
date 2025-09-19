@@ -199,11 +199,13 @@ async def embedding_generation_step(
     Embedding generation step that creates vector embeddings for text chunks.
 
     Config options:
-    - model: Embedding model to use
-    - batch_size: Number of chunks to process at once
+    - provider: Embedding provider (e.g., "openai"), defaults to "openai"
+    - model: Embedding model to use (e.g., "text-embedding-3-small")
+    - batch_size: Number of chunks to process at once (reserved for future batching)
     """
 
     config = step_config.get("config", {})
+    provider = config.get("provider", "openai")
     model = config.get("model", "text-embedding-ada-002")
     batch_size = config.get("batch_size", 10)
 
@@ -218,11 +220,12 @@ async def embedding_generation_step(
     try:
         from elevaite_ingestion.stage.embed_stage.embed_local import embed_texts
 
-        embeddings = embed_texts(chunks)
+        embeddings = embed_texts(chunks, provider=provider, model=model)
 
         return {
             "embeddings": embeddings,
             "embedding_count": len(embeddings),
+            "provider": provider,
             "model": model,
             "batch_size": batch_size,
             "processed_at": datetime.now().isoformat(),
