@@ -22,9 +22,6 @@ import importlib
 import inspect
 import tempfile
 
-import qdrant_client
-from qdrant_client.models import Distance, VectorParams, PointStruct
-
 
 from ..execution_context import ExecutionContext
 
@@ -272,13 +269,37 @@ async def vector_storage_step(
         }
 
     try:
-        if storage_type == "qdrant":
-            if not QDRANT_AVAILABLE:
-                return {"error": "qdrant_client is not installed", "success": False}
-            result = await _store_in_qdrant(embeddings, chunks, config)
-        else:
-            # In-memory storage (explicit behavior)
+        if storage_type == "in_memory":
             result = await _store_in_memory(embeddings, chunks, config)
+        elif storage_type in {"qdrant", "chroma", "pinecone"}:
+            from elevaite_ingestion.stage.vectorstore_stage.local_store import store_embeddings
+
+            filename = input_data.get("file_name") or input_data.get("filename") or "unknown"
+
+            if storage_type == "qdrant":
+                settings = {
+                    "host": config.get("qdrant_host", "http://localhost"),
+                    "port": config.get("qdrant_port", 6333),
+                    "collection_name": collection_name,
+                }
+            elif storage_type == "chroma":
+                settings = {
+                    "db_path": config.get("db_path", config.get("chroma_db_path", "data/chroma_db")),
+                    "collection_name": collection_name,
+                }
+            else:  # pinecone
+                settings = {
+                    "api_key": config.get("api_key") or os.getenv("PINECONE_API_KEY", ""),
+                    "cloud": config.get("cloud", "aws"),
+                    "region": config.get("region", "us-east-1"),
+                    "index_name": config.get("index_name", collection_name),
+                    "dimension": config.get("dimension", len(embeddings[0]) if embeddings else 1536),
+                }
+
+            result_info = store_embeddings(storage_type, settings, embeddings, chunks, filename)
+            result = {**result_info}
+        else:
+            return {"error": f"Unsupported storage_type: {storage_type}", "success": False}
 
         return {
             **result,
@@ -291,43 +312,6 @@ async def vector_storage_step(
 
     except Exception as e:
         return {"error": str(e), "success": False}
-
-
-async def _store_in_qdrant(embeddings: List[List[float]], chunks: List[str], config: Dict[str, Any]) -> Dict[str, Any]:
-    """Store embeddings in Qdrant vector database"""
-    host = config.get("qdrant_host", "localhost")
-    port = config.get("qdrant_port", 6333)
-    collection_name = config.get("collection_name", "default")
-
-    client = qdrant_client.QdrantClient(host=host, port=port)
-
-    # Create collection if it doesn't exist
-    try:
-        client.get_collection(collection_name)
-    except Exception:
-        client.create_collection(
-            collection_name=collection_name,
-            vectors_config=VectorParams(size=len(embeddings[0]), distance=Distance.COSINE),
-        )
-
-    # Prepare points
-    points = []
-    for i, (embedding, chunk) in enumerate(zip(embeddings, chunks)):
-        point = PointStruct(
-            id=str(uuid.uuid4()),
-            vector=embedding,
-            payload={"text": chunk, "chunk_index": i},
-        )
-        points.append(point)
-
-    # Upload points
-    client.upsert(collection_name=collection_name, points=points)
-
-    return {
-        "qdrant_host": host,
-        "qdrant_port": port,
-        "points_uploaded": len(points),
-    }
 
 
 async def _store_in_memory(embeddings: List[List[float]], chunks: List[str], config: Dict[str, Any]) -> Dict[str, Any]:
