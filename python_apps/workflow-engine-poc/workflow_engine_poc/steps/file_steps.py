@@ -14,10 +14,6 @@ from typing import Dict, Any, List, Optional, Union
 from pathlib import Path
 
 # Require elevaite_ingestion components (no fallbacks)
-from elevaite_ingestion.parsers.pdf_parser import PdfParser
-from elevaite_ingestion.parsers.docx_parser import DocxParser
-from elevaite_ingestion.parsers.xlsx_parser import XlsxParser
-from elevaite_ingestion.embedding_factory.openai_embedder import get_embedding
 from elevaite_ingestion.stage.parse_stage.parse_pipeline import (
     process_file as ingestion_parse_file,
 )
@@ -116,32 +112,6 @@ async def _read_text_file(file_path: Path) -> str:
     """Read a plain text file"""
     with open(file_path, "r", encoding="utf-8") as f:
         return f.read()
-
-
-async def _read_pdf_file(file_path: Path) -> str:
-    """Read a PDF file using elevaite_ingestion PdfParser"""
-    parser = PdfParser()
-    parsed = parser.parse(str(file_path), original_filename=file_path.name)
-    # Join paragraph texts into a single content string
-    paragraphs = parsed.get("paragraphs", [])
-    if paragraphs:
-        return "\n\n".join(p.get("paragraph_text", "") for p in paragraphs)
-    # Fallback: if parser returns a plain content
-    return parsed.get("content", "")
-
-
-async def _read_docx_file(file_path: Path) -> str:
-    """Read a DOCX file using elevaite_ingestion DocxParser"""
-    parser = DocxParser()
-    parsed = parser.parse(str(file_path))
-    return parsed.get("content", "")
-
-
-async def _read_xlsx_file(file_path: Path) -> str:
-    """Read an XLSX file using elevaite_ingestion XlsxParser"""
-    parser = XlsxParser()
-    parsed = parser.parse(str(file_path))
-    return parsed.get("content", "")
 
 
 async def text_chunking_step(
@@ -249,15 +219,9 @@ async def embedding_generation_step(
         }
 
     try:
-        embeddings = []
-        # Process chunks in batches
-        for i in range(0, len(chunks), batch_size):
-            batch = chunks[i : i + batch_size]
-            batch_embeddings = []
-            for chunk in batch:
-                embedding = get_embedding(chunk)
-                batch_embeddings.append(embedding)
-            embeddings.extend(batch_embeddings)
+        from elevaite_ingestion.stage.embed_stage.embed_local import embed_texts
+
+        embeddings = embed_texts(chunks)
 
         return {
             "embeddings": embeddings,
@@ -340,7 +304,7 @@ async def _store_in_qdrant(embeddings: List[List[float]], chunks: List[str], con
     # Create collection if it doesn't exist
     try:
         client.get_collection(collection_name)
-    except:
+    except Exception:
         client.create_collection(
             collection_name=collection_name,
             vectors_config=VectorParams(size=len(embeddings[0]), distance=Distance.COSINE),
