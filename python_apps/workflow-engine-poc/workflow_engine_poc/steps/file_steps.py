@@ -350,3 +350,98 @@ async def _store_in_memory(embeddings: List[List[float]], chunks: List[str], con
         "storage_location": "in_memory",
         "stored_items": len(storage_data),
     }
+
+
+async def vector_search_step(
+    step_config: Dict[str, Any],
+    input_data: Dict[str, Any],
+    execution_context: ExecutionContext,
+) -> Dict[str, Any]:
+    """
+    Vector search step that queries a vector database (Qdrant) with a user query
+    and returns the top matching chunks.
+
+    Config options:
+    - db_type: Currently only "qdrant" supported
+    - collection_name: Qdrant collection to search
+    - qdrant_host: Qdrant server host (default http://localhost)
+    - qdrant_port: Qdrant server port (default 6333)
+    - top_k: Number of results to return (default 5)
+    - provider: Embedding provider (default "openai")
+    - model: Embedding model (default "text-embedding-ada-002")
+    - query: Optional static query if not present in trigger/input
+    """
+
+    config = step_config.get("config", {})
+    db_type = config.get("db_type", "qdrant")
+    collection_name = config.get("collection_name", "default")
+    top_k = int(config.get("top_k", 5))
+    provider = config.get("provider", "openai")
+    model = config.get("model", "text-embedding-ada-002")
+
+    # Determine the query: prefer explicit input, then trigger current_message, then config
+    query: Optional[str] = None
+    if isinstance(input_data, dict):
+        query = input_data.get("query") or input_data.get("current_message")
+    if not query:
+        try:
+            trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+            if isinstance(trig, dict):
+                query = trig.get("current_message")
+        except Exception:
+            pass
+    if not query:
+        query = config.get("query")
+
+    if not query or not isinstance(query, str):
+        return {"error": "No query provided for vector search", "success": False}
+
+    if db_type != "qdrant":
+        return {"error": f"Unsupported db_type: {db_type}", "success": False}
+
+    try:
+        # Embed the query text
+        from elevaite_ingestion.stage.embed_stage.embed_local import embed_texts
+
+        qvecs = embed_texts([query], provider=provider, model=model)
+        if not qvecs:
+            return {"error": "Embedding failed for query", "success": False}
+        qvec = qvecs[0]
+
+        # Search Qdrant
+        from qdrant_client import QdrantClient
+
+        client = QdrantClient(
+            url=config.get("qdrant_host", "http://localhost"),
+            port=int(config.get("qdrant_port", 6333)),
+        )
+        results = client.search(
+            collection_name=collection_name,
+            query_vector=qvec,
+            limit=top_k,
+            with_payload=True,
+        )
+
+        retrieved: List[Dict[str, Any]] = []
+        for m in results or []:
+            payload = getattr(m, "payload", {}) or {}
+            text = payload.get("text") or payload.get("chunk_text") or ""
+            retrieved.append(
+                {
+                    "text": text,
+                    "score": float(getattr(m, "score", 0.0) or 0.0),
+                    "chunk_index": payload.get("chunk_index"),
+                    "filename": payload.get("filename"),
+                }
+            )
+
+        return {
+            "retrieved_chunks": retrieved,
+            "retrieved_count": len(retrieved),
+            "collection_name": collection_name,
+            "query": query,
+            "success": True,
+        }
+
+    except Exception as e:
+        return {"error": str(e), "success": False}

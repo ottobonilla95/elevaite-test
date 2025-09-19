@@ -564,6 +564,29 @@ class StepRegistry:
             }
         )
 
+        await self.register_step(
+            {
+                "step_type": "vector_search",
+                "name": "Vector Search",
+                "description": "Queries a vector database (e.g., Qdrant) and returns top matching chunks",
+                "function_reference": "workflow_engine_poc.steps.file_steps.vector_search_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "db_type": {"type": "string", "enum": ["qdrant"]},
+                        "collection_name": {"type": "string"},
+                        "qdrant_host": {"type": "string"},
+                        "qdrant_port": {"type": "integer"},
+                        "top_k": {"type": "integer", "minimum": 1, "maximum": 100},
+                        "provider": {"type": "string"},
+                        "model": {"type": "string"},
+                        "query": {"type": "string"},
+                    },
+                },
+            }
+        )
+
         # Register subflow step for nested workflow execution
         await self.register_step(
             {
