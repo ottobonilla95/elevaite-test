@@ -529,7 +529,7 @@ class Agent(BaseModel):
                         "model": self.model,  # Use configured model
                         "messages": messages,
                         "temperature": self.temperature,
-                        "stream": False,
+                        "stream": True,
                     }
 
                     # Add tools if available
@@ -543,8 +543,42 @@ class Agent(BaseModel):
                     if enable_analytics and analytics_service:
                         analytics_service.logger.debug(f"OpenAI API response received for streaming execution {execution_id}")
 
-                    # Handle tool calls
-                    if response.choices[0].finish_reason == "tool_calls" and response.choices[0].message.tool_calls is not None:
+                    # Process streaming response
+                    collected_content = ""
+                    tool_calls = []
+                    finish_reason = None
+
+                    for chunk in response:
+                        # Handle content streaming
+                        if chunk.choices[0].delta.content is not None:
+                            token = chunk.choices[0].delta.content
+                            collected_content += token
+                            yield AgentStreamChunk(type="content", message=token)
+
+                        # Handle tool calls
+                        if chunk.choices[0].delta.tool_calls:
+                            # Tool calls are built incrementally across chunks
+                            for i, tool_call_delta in enumerate(chunk.choices[0].delta.tool_calls):
+                                # Extend tool_calls list if needed
+                                while len(tool_calls) <= i:
+                                    tool_calls.append({"id": "", "type": "function", "function": {"name": "", "arguments": ""}})
+
+                                # Update tool call data incrementally
+                                if tool_call_delta.id:
+                                    tool_calls[i]["id"] = tool_call_delta.id
+                                if tool_call_delta.function:
+                                    if tool_call_delta.function.name:
+                                        tool_calls[i]["function"]["name"] = tool_call_delta.function.name
+                                    if tool_call_delta.function.arguments:
+                                        tool_calls[i]["function"]["arguments"] += tool_call_delta.function.arguments
+
+                        # Check for finish reason
+                        if chunk.choices[0].finish_reason is not None:
+                            finish_reason = chunk.choices[0].finish_reason
+                            break
+
+                    # Handle tool calls after streaming is complete
+                    if finish_reason == "tool_calls" and tool_calls:
                         # Check if we've exceeded max tool calls
                         if tool_call_count >= max_tool_calls:
                             yield AgentStreamChunk(
@@ -553,17 +587,30 @@ class Agent(BaseModel):
                             break
 
                         tool_call_count += 1
-                        tool_calls = response.choices[0].message.tool_calls
+
+                        # Convert our collected tool calls to the expected format
+                        formatted_tool_calls = []
+                        for tool_call in tool_calls:
+                            formatted_tool_calls.append(
+                                {
+                                    "id": tool_call["id"],
+                                    "type": tool_call["type"],
+                                    "function": {
+                                        "name": tool_call["function"]["name"],
+                                        "arguments": tool_call["function"]["arguments"],
+                                    },
+                                }
+                            )
 
                         _message: ChatCompletionAssistantMessageParam = {
                             "role": "assistant",
-                            "tool_calls": cast(List[ChatCompletionMessageToolCallParam], tool_calls),
+                            "tool_calls": cast(List[ChatCompletionMessageToolCallParam], formatted_tool_calls),
                         }
                         messages.append(_message)
 
                         # Process all tool calls and ensure tool response messages are added
                         # even if exceptions occur during individual tool execution
-                        for tool in tool_calls:
+                        for tool in formatted_tool_calls:
                             tool_id = tool.id
                             function_name = tool.function.name
 
@@ -660,7 +707,8 @@ class Agent(BaseModel):
                         tries += 1
 
                     else:
-                        if response.choices[0].message.content is None:
+                        # Handle regular content response (not tool calls)
+                        if not collected_content:
                             raise Exception("No content in response")
 
                         yield AgentStreamChunk(type="info", message="Agent Responded\n")
@@ -669,19 +717,22 @@ class Agent(BaseModel):
                         if enable_analytics and analytics_service and execution_id:
                             analytics_service.update_execution_metrics(
                                 execution_id=execution_id,
-                                response=response.choices[0].message.content,
+                                response=collected_content,
                                 tools_called=tools_called,
                                 tool_count=len(tools_called),
                                 retry_count=tries,
                                 api_calls_count=api_calls_count,
                             )
 
-                        # Yield final response
+                        # Try to parse collected content as JSON for routing
                         try:
-                            parsed_content = json.loads(response.choices[0].message.content)
-                            yield parsed_content.get("content", "Agent Could Not Respond") + "\n\n"
+                            parsed_content = json.loads(collected_content)
+                            yield AgentStreamChunk(
+                                type="content", message=parsed_content.get("content", "Agent Could Not Respond") + "\n\n"
+                            )
                         except json.JSONDecodeError:
-                            yield response.choices[0].message.content + "\n\n"
+                            # If not JSON, yield the raw content (already streamed token by token above)
+                            yield AgentStreamChunk(type="content", message="\n\n")  # Just add final newlines
                         return
 
                 except Exception as e:
