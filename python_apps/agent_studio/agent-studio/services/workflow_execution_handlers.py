@@ -337,7 +337,7 @@ def execute_traditional_workflow(
                 dynamic_agent_store=dynamic_agent_store,
             )
             try:
-                result = future.result(timeout=90)
+                result = future.result(timeout=180)
             except concurrent.futures.TimeoutError:
                 future.cancel()
                 raise HTTPException(status_code=504, detail="Agent execution timed out")
@@ -371,7 +371,7 @@ def execute_traditional_workflow(
                     dynamic_agent_store=dynamic_agent_store,
                 )
             try:
-                result = future.result(timeout=90)
+                result = future.result(timeout=180)
             except concurrent.futures.TimeoutError:
                 future.cancel()
                 raise HTTPException(
@@ -432,7 +432,7 @@ def execute_single_agent_with_config(
             dynamic_agent_store=dynamic_agent_store,
         )
         try:
-            result = future.result(timeout=90)
+            result = future.result(timeout=180)
         except concurrent.futures.TimeoutError:
             future.cancel()
             raise HTTPException(status_code=504, detail="Agent execution timed out")
