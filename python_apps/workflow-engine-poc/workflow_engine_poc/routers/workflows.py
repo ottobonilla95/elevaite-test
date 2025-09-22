@@ -34,8 +34,6 @@ from ..streaming import (
 )
 
 from ..execution_context import ExecutionContext, UserContext
-
-
 from ..schemas.workflows import WorkflowConfig, ExecutionRequest
 
 # NOTE: Pydantic BaseModel not strictly required for these new routes
@@ -309,7 +307,24 @@ async def execute_workflow_by_id(
             if wait:
                 await workflow_engine.execute_workflow(execution_context)
             else:
-                asyncio.create_task(workflow_engine.execute_workflow(execution_context))
+                # Run workflow execution in a separate thread to avoid blocking HTTP response
+                import threading
+
+                def execute_in_thread():
+                    try:
+                        # Create new event loop for this thread
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        try:
+                            loop.run_until_complete(workflow_engine.execute_workflow(execution_context))
+                        finally:
+                            loop.close()
+                    except Exception as e:
+                        logger.error(f"Background execution failed for {execution_id}: {e}", exc_info=True)
+
+                # Start thread and don't wait for it
+                thread = threading.Thread(target=execute_in_thread, daemon=True)
+                thread.start()
 
         # Return the execution as response
         created = WorkflowsService.get_execution(session, execution_id)

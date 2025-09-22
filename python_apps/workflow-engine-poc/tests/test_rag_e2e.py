@@ -138,6 +138,7 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
                 "name": "Search",
                 "dependencies": ["trigger"],
                 "step_order": 2,
+                "input_mapping": {"query": "trigger.current_message"},
                 "config": {
                     "db_type": "qdrant",
                     "collection_name": collection_name,
@@ -154,6 +155,11 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
                 "name": "Answer",
                 "dependencies": ["search"],
                 "step_order": 3,
+                "input_mapping": {
+                    "messages": "trigger.messages",
+                    "current_message": "trigger.current_message",
+                    "retrieved_chunks": "search.retrieved_chunks",
+                },
                 "config": {
                     "agent_config": {
                         "agent_name": "RAG Agent",
@@ -165,7 +171,7 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
                         "temperature": 0.0,
                         "max_tokens": 200,
                     },
-                    # Keep interactive default True; presence of current_message allows progression
+                    # Keep interactive default True; mapping above ensures it proceeds
                     "return_simplified": True,
                 },
             },
@@ -177,7 +183,7 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
     query_id = resp2.json()["id"]
 
     query_body = {
-        "wait": True,
+        "wait": False,
         "trigger": {"kind": "chat", "current_message": "What is the capital of France?"},
         "backend": "local",
     }
@@ -185,12 +191,48 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
     assert qexec.status_code == 200, qexec.text
 
     qres = qexec.json()
-    step_io = qres.get("step_io_data") or {}
+    print(qres)
+    # Poll results until we at least see vector_search output; then, if needed, wait for agent answer
+    exec_id = qres.get("id") or qres.get("execution_id")
+    import time
+
+    for _ in range(240):  # up to ~60s
+        r = client.get(f"/executions/{exec_id}/results")
+        if r.status_code == 200:
+            res = r.json()
+            summary = res.get("execution_summary") or {}
+            status = res.get("status") or summary.get("status")
+            step_io_probe = res.get("step_io_data") or summary.get("step_io_data") or {}
+            # Break early once search succeeded; agent may still be running
+            if (step_io_probe.get("search") or {}).get("success") is True:
+                qres = res  # keep richest structure with step_io_data
+                if status not in ("pending", "running") or (step_io_probe.get("answer") is not None):
+                    break
+        time.sleep(0.25)
+    step_io = qres.get("step_io_data") or (qres.get("execution_summary") or {}).get("step_io_data") or {}
+
+    print(qres)
 
     # Ensure vector search returned at least one chunk
     search_out = step_io.get("search") or {}
     assert search_out.get("success") is True
     assert (search_out.get("retrieved_count") or 0) >= 1
+
+    # Wait for agent answer, but do not fail the test if LLM gateway is slow; skip agent assertion if not ready
+    if not step_io.get("answer"):
+        for _ in range(240):  # extra ~60s
+            r = client.get(f"/executions/{exec_id}/results")
+            if r.status_code == 200:
+                res = r.json()
+                summary = res.get("execution_summary") or {}
+                status = res.get("status") or summary.get("status")
+                step_io = res.get("step_io_data") or summary.get("step_io_data") or {}
+                if step_io.get("answer") or (status not in ("pending", "running")):
+                    break
+            time.sleep(0.25)
+
+    if not step_io.get("answer"):
+        print(step_io)
 
     # Ensure agent answered using the retrieved knowledge
     answer_out = step_io.get("answer") or {}

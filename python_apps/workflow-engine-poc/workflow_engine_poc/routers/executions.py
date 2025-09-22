@@ -112,10 +112,12 @@ async def get_execution_results(execution_id: str, request: Request, session: Se
                     "execution_time_ms": result.execution_time_ms,
                 }
 
+            # Include step_io_data for clients that need in-flight outputs (e.g., retrievals)
             return {
                 "execution_id": execution_id,
                 "status": execution_context.status.value,
                 "step_results": step_results,
+                "step_io_data": execution_context.step_io_data,
                 "global_variables": execution_context.global_variables,
                 "execution_summary": execution_context.get_execution_summary(),
             }
