@@ -18,6 +18,7 @@ members = [
     "elevaite-logger",
     "elevaitelib",
     "etl",
+    "ingestion-demo",
     "llm-gateway",
     "rbac-api",
     "rbac-lib",
@@ -1557,13 +1558,17 @@ dependencies = [
     { name = "langchain-openai" },
     { name = "llama-parse" },
     { name = "markitdown" },
-    { name = "matplotlib" },
     { name = "openai" },
     { name = "pdfplumber" },
     { name = "pinecone" },
     { name = "pymupdf4llm" },
     { name = "python-dotenv" },
     { name = "qdrant-client" },
+]
+
+[package.optional-dependencies]
+demo = [
+    { name = "matplotlib" },
     { name = "streamlit" },
 ]
 
@@ -1580,15 +1585,16 @@ requires-dist = [
     { name = "langchain-openai", specifier = ">=0.3.7" },
     { name = "llama-parse", specifier = ">=0.6.2" },
     { name = "markitdown", specifier = ">=0.0.1a5" },
-    { name = "matplotlib", specifier = ">=3.10.6" },
+    { name = "matplotlib", marker = "extra == 'demo'", specifier = ">=3.10.6" },
     { name = "openai", specifier = ">=1.65.2" },
     { name = "pdfplumber", specifier = ">=0.11.5" },
     { name = "pinecone", specifier = ">=6.0.1" },
     { name = "pymupdf4llm", specifier = ">=0.0.17" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "qdrant-client", specifier = ">=1.13.2" },
-    { name = "streamlit", specifier = ">=1.49.1" },
+    { name = "streamlit", marker = "extra == 'demo'", specifier = ">=1.49.1" },
 ]
+provides-extras = ["demo"]
 
 [[package]]
 name = "elevaite-logger"
@@ -2591,6 +2597,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/cf/8c/f834fbf984f691b4f
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a4/ed/1f1afb2e9e7f38a545d628f864d562a5ae64fe6f7a10e28ffb9b185b4e89/importlib_resources-6.5.2-py3-none-any.whl", hash = "sha256:789cfdc3ed28c78b67a06acb8126751ced69a3d5f79c095a98298cd8a760ccec", size = 37461, upload-time = "2025-01-03T18:51:54.306Z" },
 ]
+
+[[package]]
+name = "ingestion-demo"
+version = "0.1.0"
+source = { virtual = "python_apps/ingestion-demo" }
 
 [[package]]
 name = "iniconfig"

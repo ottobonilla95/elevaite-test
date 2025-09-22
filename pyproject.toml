@@ -21,4 +21,5 @@ exclude = [
 	"python_apps/sla_chatbot_backend",
 	"python_packages/email_middleware",
 	"python_apps/toshiba_backends",
+	"python_apps/ingestion_demo",
 ]

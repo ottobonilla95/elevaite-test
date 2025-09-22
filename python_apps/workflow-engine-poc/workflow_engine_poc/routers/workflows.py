@@ -14,6 +14,7 @@ from fastapi import (
     File,
     Form,
     Depends,
+    BackgroundTasks,
 )
 from fastapi.responses import StreamingResponse
 from typing import Dict, Any, Optional, List
@@ -66,6 +67,7 @@ router = APIRouter(prefix="/workflows", tags=["workflows"])
 async def execute_workflow_by_id(
     workflow_id: str,
     request: Request,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_db_session),
     payload: Optional[str] = Form(None),
     files: Optional[list[UploadFile]] = File(None),
@@ -307,24 +309,14 @@ async def execute_workflow_by_id(
             if wait:
                 await workflow_engine.execute_workflow(execution_context)
             else:
-                # Run workflow execution in a separate thread to avoid blocking HTTP response
-                import threading
-
-                def execute_in_thread():
+                # Use FastAPI BackgroundTasks for proper async background execution
+                async def execute_async():
                     try:
-                        # Create new event loop for this thread
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        try:
-                            loop.run_until_complete(workflow_engine.execute_workflow(execution_context))
-                        finally:
-                            loop.close()
+                        await workflow_engine.execute_workflow(execution_context)
                     except Exception as e:
                         logger.error(f"Background execution failed for {execution_id}: {e}", exc_info=True)
 
-                # Start thread and don't wait for it
-                thread = threading.Thread(target=execute_in_thread, daemon=True)
-                thread.start()
+                background_tasks.add_task(execute_async)
 
         # Return the execution as response
         created = WorkflowsService.get_execution(session, execution_id)
