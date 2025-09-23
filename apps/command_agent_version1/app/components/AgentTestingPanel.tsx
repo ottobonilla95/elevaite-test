@@ -27,8 +27,11 @@ interface AgentTestingPanelProps {
   onWorkflowUpdate?: (workflowId: string) => void;
 }
 
-function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdate }: AgentTestingPanelProps): React.ReactElement {
+function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingPanelProps): React.ReactElement {
+  const streamAbortRef = useRef<AbortController | null>(null);
+  const runIdRef = useRef(0);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const inFlightRef = useRef(false);
   const { expandChat, setExpandChat } = useWorkflows();
   const [showAgentWorkflowModal, setShowAgentWorkflowModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -52,21 +55,20 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
 
   // UPDATE: React to workflowId changes
   useEffect(() => {
-    if (workflowId) {
-      setChatMessages(prev => {
-        const intro = {
-          id: Date.now(),
-          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- description can be an empty string
-          text: description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
-          sender: "bot" as const,
-        };
 
-        if (prev.length === 0) return [intro];
-        if (prev.length === 1 && prev[0].sender === "bot") return [intro];
-        return prev;
-      });
-      // Clear any previous uploads when workflow changes
-      setUploadedFiles([]);
+    if (workflowId) {
+      runIdRef.current++;
+      
+      try { streamAbortRef.current?.abort(); } catch { /* noop */ }
+      inFlightRef.current = false;
+      
+      const intro = {
+        id: Date.now(),
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- description can be an empty string
+        text: description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
+        sender: "bot" as const,
+      };
+      setChatMessages([intro]);
     } else {
       setChatMessages([
         {
@@ -76,12 +78,18 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
         },
       ]);
     }
+    
+    setUploadedFiles([]);
+    setIsLoading(false);
+    setAgentStatus("Ready");
+    setShowUploadModal(false);
   }, [workflowId, description]);
 
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
+    // console.log("Chat messages:", chatMessages);
   }, [chatMessages]);
 
   useEffect(() => {
@@ -93,7 +101,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
     );
 
     eventSource.onmessage = (event) => {
-      if (typeof event.data === "string") {
+      if (typeof event.data === "string" && !inFlightRef.current) {
         setAgentStatus(event.data);
       }
     };
@@ -122,6 +130,10 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
 
   async function handleSendMessage(): Promise<void> {
     if (!chatInput.trim() || !workflowId) return;
+    
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
+    const myRunId = ++runIdRef.current;
 
     const userMessage: ChatMessage = {
       id: Date.now(),
@@ -144,6 +156,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
     };
     setChatMessages((prev) => [...prev, placeholderBotMessage]);
 
+    inFlightRef.current = true;
     try {
       const chatHistory = [...chatMessages, userMessage].map((message) => ({
         actor: message.sender,
@@ -160,7 +173,9 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(executionRequest),
+        signal: controller.signal,
       });
+      // console.log("📥 Raw response:", response);
       if (!response.ok) throw new Error(`HTTP ${response.status.toString()}`);
       if (!response.body) throw new Error("No stream body returned");
 
@@ -171,10 +186,12 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
 
       let doneReading = false;
       while (!doneReading) {
+        if (myRunId !== runIdRef.current) break;
         const { done, value } = await reader.read();
         if (done) { doneReading = true; break; }
 
         buffer += decoder.decode(value, { stream: true });
+        // console.log("📦 Chunk received:", buffer);
         const lines = buffer.split("\n");
         // Keep the last partial line in buffer
         buffer = lines.pop() ?? "";
@@ -183,6 +200,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
           const trimmed = line.trim();
           if (!trimmed.startsWith("data: ")) continue;
           const payload = trimmed.slice(6);
+          // console.log("🔍 Payload:", payload);
           if (!payload) continue;
 
           try {
@@ -193,8 +211,29 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
               if (status === "started") setAgentStatus("Started");
               if (status === "completed") setAgentStatus("Completed");
               if (status === "error") {
-                const errMsg = (parsed as { error?: string }).error ?? "Unknown error";
-                throw new Error(errMsg);
+                const errorMessage = (parsed as { error?: string }).error ?? "Unknown error";
+                setAgentStatus("Error");
+                setChatMessages(prev => {
+                  const placeholderHasText = prev.some(m => m.id === placeholderBotMessage.id && m.text && m.text.trim().length > 0);
+                  const withoutEmptyPlaceholder = placeholderHasText
+                    ? prev
+                    : prev.filter(m => m.id !== placeholderBotMessage.id);
+
+                  return [
+                    ...withoutEmptyPlaceholder,
+                    {
+                      id: Date.now(),
+                      text: errorMessage,
+                      sender: "bot",
+                      error: true,
+                    },
+                  ];
+                });
+
+                // Stop streaming
+                try { void reader.cancel(); } catch { /*noop*/}
+                doneReading = true;
+                break;
               }
               continue;
             }
@@ -207,7 +246,23 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
                 const nextText = accumulatedText + data;
                 accumulatedText = nextText;
                 // Live update the placeholder message
-                setChatMessages((prev) => prev.map((m) => (m.id === placeholderBotMessage.id ? { ...m, text: nextText } : m)));
+                setChatMessages((prev) => prev.map((m) => (m.id === placeholderBotMessage.id ? { ...m, text: nextText } : m)));                
+              } else if (evt.type === "info") {
+                const raw = typeof evt.data === "string" ? evt.data : "";
+                const statusMessage = raw.trim();
+                if (statusMessage) setAgentStatus(statusMessage);
+              } else if (evt.type === "error") {
+                const raw = typeof evt.data === "string" ? evt.data : "";
+                setAgentStatus("Error");
+                setChatMessages(prev => [
+                  ...prev,
+                  { id: Date.now(), text: raw, sender: "bot", error: true, },
+                ]);
+                try { void reader.cancel(); } catch { /* noop */ }
+                doneReading = true;
+                break;
+              } else if (evt.type === "agent_response") {
+                handleAgentResponse(evt.data);
               } else if (evt.type === "tool_call_started") {
                 const d = (evt.data ?? {}) as { tool_name?: string };
                 setAgentStatus(d.tool_name ? `Using: ${d.tool_name}` : "Using tool...");
@@ -217,6 +272,9 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
               }
             }
           } catch (e) {
+            // Avoid dumping structured events as content
+            const looksStructured = payload.startsWith("{") && /"status"|"type"/.test(payload);
+            if (looksStructured) continue;
             // Some back-compat chunks can be plain strings (e.g., "Agent Responded")
             const nextText = accumulatedText + payload;
             accumulatedText = nextText;
@@ -228,7 +286,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
       // Finalize placeholder message
       setChatMessages((prev) => prev.map((m) => (m.id === placeholderBotMessage.id ? { ...m, text: accumulatedText || m.text } : m)));
     } catch (error) {
-      console.error("Error running workflow (stream):", error);
+      if (myRunId !== runIdRef.current) return;
       setChatMessages((prevMessages) => [
         ...prevMessages,
         {
@@ -239,12 +297,66 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
         },
       ]);
     } finally {
-      setIsLoading(false);
-      setAgentStatus("Ready");
+      if (myRunId === runIdRef.current) {
+        setIsLoading(false);
+        setAgentStatus("Ready");
+        inFlightRef.current = false;
+      }
     }
   }
 
-  const handleFilesUploaded = (files: UploadedFile[]): void => {
+
+  function handleAgentResponse(data: unknown): void {
+    let responseMessage = "";
+
+    if (typeof data === "string") {
+      const raw = data.trim();
+      try {
+        const parsedResponse = JSON.parse(raw) as unknown;
+        if (parsedResponse && typeof parsedResponse === "object") {
+          const item = parsedResponse as Record<string, unknown>;
+          if (typeof item.message === "string" && item.message.trim()) {
+            responseMessage = item.message.trim();
+          } else if (typeof item.success === "boolean") {
+            responseMessage = item.success ? "Success" : "Failed";
+          } else {
+            const fields = Object.keys(item)
+              .filter((key) => isObjOrArray(item[key]))
+              .map(beautifyName);
+
+            if (fields.length > 0) {
+              responseMessage = `Evaluating: ${fields.join(", ")}.`;
+            } else {
+              responseMessage = raw;
+            }
+          }
+        } else {
+          responseMessage = raw;
+        }
+      } catch {
+        responseMessage = raw;
+      }
+    }
+
+    if (responseMessage) {
+      setAgentStatus(
+        responseMessage.length > 140
+          ? `${responseMessage.slice(0, 137)}…`
+          : responseMessage
+      );
+    }
+  }
+
+  function beautifyName(word: string): string {
+    const spaced = word.replace(/_/g, " ");
+    return spaced.length ? spaced[0].toUpperCase() + spaced.slice(1).toLowerCase() : spaced;
+  }
+
+  function isObjOrArray(item: unknown): boolean {
+    return typeof item === "object" && item !== null;
+  }
+
+  function handleFilesUploaded(files: UploadedFile[]): void {
     setUploadedFiles((prev) => [...prev, ...files]);
 
     const fileNames = files.map(f => f.name).join(', ');
@@ -257,7 +369,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
     setChatMessages((prevMessages) => [...prevMessages, systemMessage]);
   };
 
-  const renderUserAvatar = (): React.ReactElement => {
+  function renderUserAvatar(): React.ReactElement {
     return (
       <div className="message-avatar rounded-full shrink-0 bg-[#FF681F]">
         <User size={16} />
@@ -265,7 +377,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
     );
   };
 
-  const renderBotAvatar = (isError = false): React.ReactElement => {
+  function renderBotAvatar(isError = false): React.ReactElement {
     return (
       <div className="message-avatar rounded-full shrink-0 bg-[#FF681F]">
         {isError ? <AlertCircle size={16} /> : <Bot size={16} />}
@@ -273,7 +385,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
     );
   };
 
-  const formatTime = (timestamp: number): string => {
+  function formatTime(timestamp: number): string {
     const date = new Date(timestamp);
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
@@ -338,7 +450,7 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
                         {formatTime(message.id)}
                       </div>
                       <div className="text-sm text-[#212124] opacity-75">
-                        <AgentTestingParser message={message.text} isUser={message.sender === "user"} />
+                        <AgentTestingParser message={message.text} isUser={message.sender === "user"} isError={message.error} />
                       </div>
                     </div>
                   </div>
@@ -373,9 +485,8 @@ function AgentTestingPanel({ workflowId, sessionId, description, onWorkflowUpdat
                 </div>
               )}
             </div>
-
-            <ChatLoading isLoading={isLoading} loadingMessage={agentStatus} />
           </div>
+          <ChatLoading isLoading={isLoading} loadingMessage={agentStatus} />
         </div>
 
         {!workflowId ? undefined :

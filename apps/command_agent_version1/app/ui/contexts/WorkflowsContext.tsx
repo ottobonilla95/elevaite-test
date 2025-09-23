@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { getWorkflows, getWorkflowDetails, createWorkflow, updateWorkflow, deleteWorkflow, deployWorkflowModern } from "../../lib/actions";
-import type { SavedWorkflow, WorkflowResponse, WorkflowCreateRequest, WorkflowDeployment, WorkflowDeploymentRequest, WorkflowExecuteResponseObject } from "../../lib/interfaces";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createWorkflow, deleteWorkflow, deployWorkflowModern, getWorkflowDetails, getWorkflows, updateWorkflow } from "../../lib/actions";
+import type { SavedWorkflow, WorkflowCreateRequest, WorkflowDeployment, WorkflowDeploymentRequest, WorkflowResponse } from "../../lib/interfaces";
 
 interface WorkflowsContextType {
 	// State
@@ -53,8 +53,8 @@ function transformWorkflowData(workflows: WorkflowResponse[]): SavedWorkflow[] {
 		is_editable: workflow.is_editable,
 		version: workflow.version,
 		tags: workflow.tags,
-		agent_count: workflow.workflow_agents?.length || 0,
-		connection_count: workflow.workflow_connections?.length || 0,
+		agent_count: workflow.workflow_agents.length || 0,
+		connection_count: workflow.workflow_connections.length || 0,
 	}));
 }
 
@@ -89,7 +89,7 @@ export function WorkflowsProvider({
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : "Failed to fetch workflows";
 			setError(errorMessage);
-			console.error("Error fetching workflows:", err);
+			// console.error("Error fetching workflows:", err);
 		} finally {
 			setIsLoading(false);
 		}
@@ -112,8 +112,8 @@ export function WorkflowsProvider({
 				is_editable: newWorkflow.is_editable,
 				version: newWorkflow.version,
 				tags: newWorkflow.tags,
-				agent_count: newWorkflow.workflow_agents?.length || 0,
-				connection_count: newWorkflow.workflow_connections?.length || 0,
+				agent_count: newWorkflow.workflow_agents.length || 0,
+				connection_count: newWorkflow.workflow_connections.length || 0,
 			};
 			setWorkflows(prev => [newSavedWorkflow, ...prev]);
 			setLastUpdated(new Date());
@@ -142,8 +142,8 @@ export function WorkflowsProvider({
 				is_editable: updatedWorkflow.is_editable,
 				version: updatedWorkflow.version,
 				tags: updatedWorkflow.tags,
-				agent_count: updatedWorkflow.workflow_agents?.length || 0,
-				connection_count: updatedWorkflow.workflow_connections?.length || 0,
+				agent_count: updatedWorkflow.workflow_agents.length || 0,
+				connection_count: updatedWorkflow.workflow_connections.length || 0,
 			};
 			setWorkflows(prev => prev.map(workflow =>
 				workflow.workflow_id === workflowId ? updatedSavedWorkflow : workflow
@@ -201,7 +201,7 @@ export function WorkflowsProvider({
 	}, []);
 
 	// Filtered workflows based on current filters
-	const filteredWorkflows = React.useMemo(() => {
+	const filteredWorkflows = useMemo(() => {
 		let filtered = workflows;
 
 		// Apply search filter
@@ -278,7 +278,7 @@ export function WorkflowsProvider({
 			void refreshWorkflows();
 		}, autoRefreshInterval);
 
-		return () => clearInterval(interval);
+		return () => { clearInterval(interval); };
 	}, [refreshWorkflows, autoRefreshInterval]);
 
 	const contextValue: WorkflowsContextType = {

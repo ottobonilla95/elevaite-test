@@ -48,6 +48,21 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        &.parser-error {
+            background-color: var(--ev-colors-primary);
+            border: 1px solid var(--ev-colors-borderColor);
+            border-radius: 6px;
+            padding: 8px 10px;
+
+            .error-header {
+                color: var(--ev-colors-danger);
+                font-size: 0.9em;
+            }
+
+            a { text-decoration: underline; }
+            code.inline-code { background-color: var(--ev-colors-uiSecondary); }
+        }
+
 
 
         .code-block-container {

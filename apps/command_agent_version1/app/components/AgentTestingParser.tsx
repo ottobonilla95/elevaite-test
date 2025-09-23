@@ -4,7 +4,6 @@ import "./AgentTestingParser.scss";
 import { CommonButton, ElevaiteIcons } from "@repo/ui/components";
 
 
-
 type InterleavedPart =
   | { kind: "html"; html: string }
   | { kind: "code"; block: CodeBlockToken };
@@ -14,18 +13,19 @@ interface ListStructure { type: "ul" | "ol"; indent: number; liOpen: boolean }
 interface AgentTestingParserProps {
   message: string;
   isUser?: boolean;
+  isError?: boolean;
 }
 
 
 
-export function AgentTestingParser({ message, isUser }: AgentTestingParserProps): JSX.Element {
+export function AgentTestingParser({ message, isUser, isError }: AgentTestingParserProps): JSX.Element {
   const [parts, setParts] = useState<InterleavedPart[]>([]);
   const [expanded, setExpanded] = useState(false);
 
   const isUserLong = Boolean(isUser) && (message.split(/\r?\n/).length > 5);
 
   useEffect(() => {
-    console.log("Raw message", message);
+    // console.log("Raw message", message);
     const extractors: ((text: string) => string | undefined)[] = [
       matchArrayOfStringsFormat,
       matchJsonContentMessage,
@@ -46,9 +46,16 @@ export function AgentTestingParser({ message, isUser }: AgentTestingParserProps)
 
   return (
     <div className="agent-testing-parser-container">
-      <div className={["parsed-text", isUserLong && !expanded ? "is-clamped" : undefined].filter(Boolean).join(" ")}>
-        {renderInterleaved(parts)}
-      </div>
+        <div className={[
+            "parsed-text",
+            isError ? "parser-error" : undefined,
+            isUserLong && !expanded ? "is-clamped" : undefined
+        ].filter(Boolean).join(" ")}>
+            {!isError ? undefined : 
+                <div className="error-header">Error encountered:</div>
+            }
+            {renderInterleaved(parts)}
+        </div>
 
       {!isUserLong ? undefined : (
         <div className="parser-button-container">
@@ -89,25 +96,40 @@ export function AgentTestingParser({ message, isUser }: AgentTestingParserProps)
 
     function matchArrayOfStringsFormat(text: string): string | undefined {
         try {
-            const parsed = JSON.parse(text) as unknown;
+            const parsed: unknown = JSON.parse(text);
             if (Array.isArray(parsed)) {
-            const last = parsed[parsed.length - 1] as unknown;
-            if (typeof last === "string" && last.trim()) return last.trim();
+                const parsedArray = parsed as unknown[];
+                const last = parsedArray.length > 0 ? parsedArray[parsedArray.length - 1] : undefined;
+                if (typeof last === "string") {
+                    const trimmed = last.trim();
+                    return trimmed ? trimmed : undefined;
+                }
             }
-            return undefined;
         } catch {
-            try {
-            // eslint-disable-next-line no-eval -- Yeah, the whole thing needs a rewrite.
-            const evaluated = eval(text) as unknown;
-            if (Array.isArray(evaluated)) {
-                const last = evaluated[evaluated.length - 1] as unknown;
-                return typeof last === "string" && last.trim() ? last.trim() : undefined;
-            }
-            } catch {
-            return undefined;
-            }
+            // no-op
         }
+
+        // Permissive fallback for array-like payloads: ["a","b"] or ['a','b'] (whitespace allowed)
+        const arrayLikePattern = /^\s*\s*(?:(?:"[^"]*"|'[^']*')(?:\s*,\s*(?:"[^"]*"|'[^']*'))*)?\s*\s*$/s;
+        if (!arrayLikePattern.test(text)) return undefined;
+
+        // Extract quoted string tokens (supports basic escapes) using a named group to satisfy lint
+        const tokenPattern = /(?:"(?<contentDouble>[^"\\]*(?:\\.[^"\\]*)*)"|'(?<contentSingle>[^'\\]*(?:\\.[^'\\]*)*)')/g;
+
+        const tokens: string[] = [];
+        for (const m of text.matchAll(tokenPattern)) {
+            const match = m as RegExpMatchArray;
+            const content: string = match[1] || match[2] || "";
+            tokens.push(content);
+        }
+
+        if (tokens.length === 0) return undefined;
+
+        const last = tokens[tokens.length - 1];
+        const trimmed = last.trim();
+        return trimmed ? trimmed : undefined;
     }
+
 
     function maskCodeFencesReact(src: string): { text: string; blocks: CodeBlockToken[] } {
         const blocks: CodeBlockToken[] = [];
