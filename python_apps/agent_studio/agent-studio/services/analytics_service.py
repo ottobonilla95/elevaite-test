@@ -110,17 +110,11 @@ class AnalyticsService:
             return
         try:
             self._wf_total = self._meter.create_counter("workflow_executions_total")
-            self._wf_duration = self._meter.create_histogram(
-                "workflow_execution_duration_seconds"
-            )
+            self._wf_duration = self._meter.create_histogram("workflow_execution_duration_seconds")
             self._agent_total = self._meter.create_counter("agent_executions_total")
-            self._agent_duration = self._meter.create_histogram(
-                "agent_execution_duration_seconds"
-            )
+            self._agent_duration = self._meter.create_histogram("agent_execution_duration_seconds")
             self._tool_total = self._meter.create_counter("tool_calls_total")
-            self._tool_duration = self._meter.create_histogram(
-                "tool_call_duration_seconds"
-            )
+            self._tool_duration = self._meter.create_histogram("tool_call_duration_seconds")
             self._metric_initialized = True
         except Exception:
             # Safe no-op if meter provider not configured
@@ -135,9 +129,7 @@ class AnalyticsService:
         try:
             if db:
                 existing_session = (
-                    db.query(models.SessionMetrics)
-                    .filter(models.SessionMetrics.session_id == session_id)
-                    .first()
+                    db.query(models.SessionMetrics).filter(models.SessionMetrics.session_id == session_id).first()
                 )
 
                 if not existing_session:
@@ -173,16 +165,10 @@ class AnalyticsService:
             if not db:
                 return
 
-            session = (
-                db.query(models.SessionMetrics)
-                .filter(models.SessionMetrics.session_id == session_id)
-                .first()
-            )
+            session = db.query(models.SessionMetrics).filter(models.SessionMetrics.session_id == session_id).first()
 
             if not session:
-                self.logger.warning(
-                    f"Session {session_id} not found for metrics update"
-                )
+                self.logger.warning(f"Session {session_id} not found for metrics update")
                 return
 
             # Update query counts
@@ -247,11 +233,7 @@ class AnalyticsService:
             if db and agent_id:
                 try:
                     # First check if the agent exists to avoid foreign key violation
-                    agent_exists = (
-                        db.query(models.Agent)
-                        .filter(models.Agent.agent_id == agent_id)
-                        .first()
-                    )
+                    agent_exists = db.query(models.Agent).filter(models.Agent.agent_id == agent_id).first()
 
                     if agent_exists:
                         metrics = models.AgentExecutionMetrics(
@@ -267,17 +249,11 @@ class AnalyticsService:
                         )
                         db.add(metrics)
                         db.commit()
-                        self.logger.info(
-                            f"Created initial execution record: {execution_id}"
-                        )
+                        self.logger.info(f"Created initial execution record: {execution_id}")
                     else:
-                        self.logger.warning(
-                            f"Agent {agent_id} not found in database, skipping metrics creation"
-                        )
+                        self.logger.warning(f"Agent {agent_id} not found in database, skipping metrics creation")
                 except Exception as db_error:
-                    self.logger.error(
-                        f"Failed to create initial execution record: {db_error}"
-                    )
+                    self.logger.error(f"Failed to create initial execution record: {db_error}")
                     # Rollback the transaction to prevent session issues
                     try:
                         db.rollback()
@@ -285,9 +261,7 @@ class AnalyticsService:
                         pass
                     # Continue without database record - fallback to old behavior
 
-            self.logger.info(
-                f"Started tracking execution: {execution_id} for agent: {agent_name}"
-            )
+            self.logger.info(f"Started tracking execution: {execution_id} for agent: {agent_name}")
 
         except Exception as e:
             # OTEL metrics: start agent
@@ -316,25 +290,19 @@ class AnalyticsService:
     ) -> None:
         try:
             if execution_id not in self.current_executions:
-                self.logger.warning(
-                    f"Execution {execution_id} not found in current executions"
-                )
+                self.logger.warning(f"Execution {execution_id} not found in current executions")
                 return
 
             execution_data = self.current_executions[execution_id]
             end_time = datetime.now()
-            duration_ms = int(
-                (end_time - execution_data["start_time"]).total_seconds() * 1000
-            )
+            duration_ms = int((end_time - execution_data["start_time"]).total_seconds() * 1000)
 
             if db:
                 # Try to update existing record first, create new one if it doesn't exist
                 try:
                     existing_metrics = (
                         db.query(models.AgentExecutionMetrics)
-                        .filter(
-                            models.AgentExecutionMetrics.execution_id == execution_id
-                        )
+                        .filter(models.AgentExecutionMetrics.execution_id == execution_id)
                         .first()
                     )
 
@@ -344,13 +312,9 @@ class AnalyticsService:
                         existing_metrics.duration_ms = duration_ms
                         existing_metrics.status = status
                         existing_metrics.response = response
-                        existing_metrics.tool_count = tool_count or execution_data.get(
-                            "tool_count", 0
-                        )
+                        existing_metrics.tool_count = tool_count or execution_data.get("tool_count", 0)
                         db.commit()
-                        self.logger.info(
-                            f"Updated existing execution record: {execution_id}"
-                        )
+                        self.logger.info(f"Updated existing execution record: {execution_id}")
 
                         # Update session metrics after successful execution record update
                         session_id = execution_data.get("session_id")
@@ -367,15 +331,9 @@ class AnalyticsService:
                         agent_id = execution_data.get("agent_id")
                         if agent_id:
                             # Check if agent exists before creating record
-                            agent_exists = (
-                                db.query(models.Agent)
-                                .filter(models.Agent.agent_id == agent_id)
-                                .first()
-                            )
+                            agent_exists = db.query(models.Agent).filter(models.Agent.agent_id == agent_id).first()
                             if not agent_exists:
-                                self.logger.warning(
-                                    f"Agent {agent_id} not found, skipping metrics creation"
-                                )
+                                self.logger.warning(f"Agent {agent_id} not found, skipping metrics creation")
                                 return  # Skip creating metrics for non-existent agents
 
                         metrics = models.AgentExecutionMetrics(
@@ -388,16 +346,13 @@ class AnalyticsService:
                             status=status,
                             query=execution_data.get("query"),
                             response=response,
-                            tool_count=tool_count
-                            or execution_data.get("tool_count", 0),
+                            tool_count=tool_count or execution_data.get("tool_count", 0),
                             session_id=execution_data.get("session_id"),
                             user_id=execution_data.get("user_id"),
                         )
                         db.add(metrics)
                         db.commit()
-                        self.logger.info(
-                            f"Created new execution record: {execution_id}"
-                        )
+                        self.logger.info(f"Created new execution record: {execution_id}")
 
                     # Update session metrics after successful execution record creation
                     session_id = execution_data.get("session_id")
@@ -411,9 +366,7 @@ class AnalyticsService:
                         )
 
                 except Exception as db_error:
-                    self.logger.error(
-                        f"Failed to update/create execution record: {db_error}"
-                    )
+                    self.logger.error(f"Failed to update/create execution record: {db_error}")
             # OTEL metrics: end agent
             try:
                 if self._metric_initialized:
@@ -462,9 +415,7 @@ class AnalyticsService:
             if execution_id in self.current_executions:
                 self.current_executions[execution_id]["tool_count"] += 1
 
-            self.logger.info(
-                f"Started tracking tool usage: {usage_id} for tool: {tool_name}"
-            )
+            self.logger.info(f"Started tracking tool usage: {usage_id} for tool: {tool_name}")
 
             # OTEL metrics: tool start
             try:
@@ -497,9 +448,7 @@ class AnalyticsService:
 
             tool_data = self.current_tools[usage_id]
             end_time = datetime.now()
-            duration_ms = int(
-                (end_time - tool_data["start_time"]).total_seconds() * 1000
-            )
+            duration_ms = int((end_time - tool_data["start_time"]).total_seconds() * 1000)
 
             if db:
                 try:
@@ -519,9 +468,7 @@ class AnalyticsService:
                     self.logger.info(f"Created tool usage record: {usage_id}")
                 except Exception as commit_error:
                     db.rollback()
-                    self.logger.error(
-                        f"Failed to create tool usage record: {commit_error}"
-                    )
+                    self.logger.error(f"Failed to create tool usage record: {commit_error}")
                     # Don't raise the exception to avoid crashing the workflow
 
             # OTEL metrics: tool end
@@ -639,9 +586,7 @@ class AnalyticsService:
             }
 
             self.current_workflows[workflow_id] = workflow_data
-            self.logger.info(
-                f"Started tracking workflow: {workflow_id} of type: {workflow_type}"
-            )
+            self.logger.info(f"Started tracking workflow: {workflow_id} of type: {workflow_type}")
 
             # OTEL metrics: count start
             try:
@@ -668,16 +613,12 @@ class AnalyticsService:
     ) -> None:
         try:
             if workflow_id not in self.current_workflows:
-                self.logger.warning(
-                    f"Workflow {workflow_id} not found in current workflows"
-                )
+                self.logger.warning(f"Workflow {workflow_id} not found in current workflows")
                 return
 
             workflow_data = self.current_workflows[workflow_id]
             end_time = datetime.now()
-            duration_ms = int(
-                (end_time - workflow_data["start_time"]).total_seconds() * 1000
-            )
+            duration_ms = int((end_time - workflow_data["start_time"]).total_seconds() * 1000)
 
             if db:
                 metrics = models.WorkflowMetrics(
@@ -733,9 +674,7 @@ class AnalyticsService:
                     tool_data["output_data"] = output_data
                 self.logger.debug(f"Updated tool metrics for usage_id: {usage_id}")
             else:
-                self.logger.warning(
-                    f"Tool usage {usage_id} not found for metrics update"
-                )
+                self.logger.warning(f"Tool usage {usage_id} not found for metrics update")
 
         except Exception as e:
             self.logger.error(f"Error updating tool metrics: {e}")
@@ -763,13 +702,9 @@ class AnalyticsService:
                 if api_calls_count is not None:
                     execution_data["api_calls_count"] = api_calls_count
 
-                self.logger.debug(
-                    f"Updated execution metrics for execution_id: {execution_id}"
-                )
+                self.logger.debug(f"Updated execution metrics for execution_id: {execution_id}")
             else:
-                self.logger.warning(
-                    f"Execution {execution_id} not found for metrics update"
-                )
+                self.logger.warning(f"Execution {execution_id} not found for metrics update")
 
         except Exception as e:
             self.logger.error(f"Error updating execution metrics: {e}")
@@ -861,9 +796,7 @@ class AnalyticsService:
         if execution_id is None:
             execution_id = str(uuid.uuid4())
         else:
-            self.logger.info(
-                f"Using provided execution_id {execution_id} for agent execution"
-            )
+            self.logger.info(f"Using provided execution_id {execution_id} for agent execution")
 
         workflow_step_id = None
         parent_workflow_execution_id = None
@@ -873,10 +806,7 @@ class AnalyticsService:
             with self._lock:
                 if original_execution_id in self._live_executions:
                     execution = self._live_executions[original_execution_id]
-                    is_sub_agent_in_workflow = (
-                        execution.type == "workflow"
-                        and execution.workflow_trace is not None
-                    )
+                    is_sub_agent_in_workflow = execution.type == "workflow" and execution.workflow_trace is not None
                     parent_workflow_execution_id = original_execution_id
 
         if is_sub_agent_in_workflow:
@@ -894,9 +824,7 @@ class AnalyticsService:
                     "auto_created": True,
                 },
             )
-            self.add_workflow_step(
-                parent_workflow_execution_id or "unknown", agent_step
-            )
+            self.add_workflow_step(parent_workflow_execution_id or "unknown", agent_step)
             self.logger.info(f"Auto-created workflow step for agent: {agent_name}")
 
         try:
@@ -935,9 +863,7 @@ class AnalyticsService:
                 except Exception as inner_e:
                     span.record_exception(inner_e)
                     try:
-                        span.set_status(
-                            trace.Status(trace.StatusCode.ERROR, str(inner_e))
-                        )
+                        span.set_status(trace.Status(trace.StatusCode.ERROR, str(inner_e)))
                     except Exception:
                         span.set_status(trace.Status(trace.StatusCode.ERROR))
                     raise
@@ -995,15 +921,10 @@ class AnalyticsService:
         with self._lock:
             if execution_id in self._live_executions:
                 execution = self._live_executions[execution_id]
-                if (
-                    execution.type == "workflow"
-                    and execution.workflow_trace is not None
-                ):
+                if execution.type == "workflow" and execution.workflow_trace is not None:
                     is_workflow_execution = True
                     workflow_execution_id = execution_id
-                    self.logger.info(
-                        f"Tool tracking for {tool_name}: Direct workflow execution {execution_id}"
-                    )
+                    self.logger.info(f"Tool tracking for {tool_name}: Direct workflow execution {execution_id}")
                 else:
                     self.logger.info(
                         f"Tool tracking for {tool_name}: Agent execution {execution_id}, checking for active workflows"
@@ -1015,10 +936,7 @@ class AnalyticsService:
 
             if not is_workflow_execution:
                 for live_exec_id, live_exec in self._live_executions.items():
-                    if (
-                        live_exec.type == "workflow"
-                        and live_exec.workflow_trace is not None
-                    ):
+                    if live_exec.type == "workflow" and live_exec.workflow_trace is not None:
                         is_workflow_execution = True
                         workflow_execution_id = live_exec_id
                         self.logger.info(
@@ -1042,9 +960,7 @@ class AnalyticsService:
                 },
             )
             self.add_workflow_step(workflow_execution_id, tool_step)
-            self.logger.info(
-                f"Auto-created workflow step for tool: {tool_name} in workflow {workflow_execution_id}"
-            )
+            self.logger.info(f"Auto-created workflow step for tool: {tool_name} in workflow {workflow_execution_id}")
 
         try:
             # For tool usage database persistence, we need to use an agent execution_id
@@ -1062,9 +978,7 @@ class AnalyticsService:
                     # The execution_id is different from workflow_execution_id, so it's likely an agent execution_id
                     tool_tracking_execution_id = execution_id
                     agent_execution_found = True
-                    self.logger.info(
-                        f"Using current execution_id {execution_id} as agent execution_id for tool tracking"
-                    )
+                    self.logger.info(f"Using current execution_id {execution_id} as agent execution_id for tool tracking")
                 else:
                     # Look for the most recent agent execution step in the workflow
                     with self._lock:
@@ -1072,18 +986,14 @@ class AnalyticsService:
                             workflow_exec = self._live_executions[workflow_execution_id]
                             if workflow_exec.workflow_trace:
                                 # Find the most recent agent execution step
-                                for step in reversed(
-                                    workflow_exec.workflow_trace.steps
-                                ):
+                                for step in reversed(workflow_exec.workflow_trace.steps):
                                     if (
                                         step.step_type == "agent_execution"
                                         and step.step_metadata
                                         and step.step_metadata.get("agent_execution_id")
                                     ):
                                         # Use the agent execution_id from the workflow step
-                                        tool_tracking_execution_id = step.step_metadata[
-                                            "agent_execution_id"
-                                        ]
+                                        tool_tracking_execution_id = step.step_metadata["agent_execution_id"]
                                         agent_execution_found = True
                                         self.logger.info(
                                             f"Using agent execution {tool_tracking_execution_id} from workflow trace for tool tracking"
@@ -1094,10 +1004,7 @@ class AnalyticsService:
                 if not agent_execution_found:
                     with self._lock:
                         for live_exec_id, live_exec in self._live_executions.items():
-                            if (
-                                live_exec.type == "agent"
-                                and live_exec_id != workflow_execution_id
-                            ):
+                            if live_exec.type == "agent" and live_exec_id != workflow_execution_id:
                                 tool_tracking_execution_id = live_exec_id
                                 agent_execution_found = True
                                 self.logger.info(
@@ -1124,9 +1031,7 @@ class AnalyticsService:
 
                         db_session = SessionLocal()
                     except Exception as db_create_error:
-                        self.logger.error(
-                            f"Failed to create database session: {db_create_error}"
-                        )
+                        self.logger.error(f"Failed to create database session: {db_create_error}")
                         skip_db_tracking = True
                         db_session = None
 
@@ -1135,10 +1040,7 @@ class AnalyticsService:
                     try:
                         agent_execution_exists = (
                             db_session.query(models.AgentExecutionMetrics)
-                            .filter(
-                                models.AgentExecutionMetrics.execution_id
-                                == tool_tracking_execution_id
-                            )
+                            .filter(models.AgentExecutionMetrics.execution_id == tool_tracking_execution_id)
                             .first()
                         )
 
@@ -1158,15 +1060,11 @@ class AnalyticsService:
                             )
                             skip_db_tracking = True
                     except Exception as db_check_error:
-                        self.logger.error(
-                            f"Error checking agent execution existence: {db_check_error}"
-                        )
+                        self.logger.error(f"Error checking agent execution existence: {db_check_error}")
                         skip_db_tracking = True
                 else:
                     # No database session available - skip tracking
-                    self.logger.warning(
-                        "No database session available for tool usage tracking"
-                    )
+                    self.logger.warning("No database session available for tool usage tracking")
                     skip_db_tracking = True
 
             try:
@@ -1184,9 +1082,7 @@ class AnalyticsService:
                     except Exception as inner_e:
                         span.record_exception(inner_e)
                         try:
-                            span.set_status(
-                                trace.Status(trace.StatusCode.ERROR, str(inner_e))
-                            )
+                            span.set_status(trace.Status(trace.StatusCode.ERROR, str(inner_e)))
                         except Exception:
                             span.set_status(trace.Status(trace.StatusCode.ERROR))
                         raise
@@ -1253,9 +1149,7 @@ class AnalyticsService:
 
         estimated_completion = None
         if estimated_duration:
-            estimated_completion = datetime.now() + timedelta(
-                seconds=estimated_duration
-            )
+            estimated_completion = datetime.now() + timedelta(seconds=estimated_duration)
 
         status = ExecutionStatus(
             execution_id=execution_id,
@@ -1285,9 +1179,7 @@ class AnalyticsService:
     def update_execution(
         self,
         execution_id: str,
-        status: Optional[
-            Literal["queued", "running", "completed", "failed", "cancelled"]
-        ] = None,
+        status: Optional[Literal["queued", "running", "completed", "failed", "cancelled"]] = None,
         progress: Optional[float] = None,
         current_step: Optional[str] = None,
         input_data: Optional[Dict[str, Any]] = None,
@@ -1307,10 +1199,7 @@ class AnalyticsService:
                 execution.status = status
                 if status == "running" and not execution.started_at:
                     execution.started_at = datetime.now()
-                elif (
-                    status in ["completed", "failed", "cancelled"]
-                    and not execution.completed_at
-                ):
+                elif status in ["completed", "failed", "cancelled"] and not execution.completed_at:
                     execution.completed_at = datetime.now()
                     # Persist to database when completed
                     if db:
@@ -1334,6 +1223,13 @@ class AnalyticsService:
             if tools_called is not None:
                 execution.tools_called = tools_called
 
+            # Persist a snapshot of the current execution state to the DB on every update
+            if db:
+                try:
+                    self._upsert_workflow_execution_snapshot(execution, db)
+                except Exception as e:
+                    self.logger.error(f"Failed to upsert live execution snapshot {execution.execution_id}: {e}")
+
             return True
 
     def add_tool_call(self, execution_id: str, tool_name: str) -> bool:
@@ -1348,9 +1244,7 @@ class AnalyticsService:
 
             return True
 
-    def init_workflow_trace(
-        self, execution_id: str, workflow_id: str, total_steps: int = 0
-    ) -> bool:
+    def init_workflow_trace(self, execution_id: str, workflow_id: str, total_steps: int = 0) -> bool:
         """Initialize workflow tracing for an execution."""
         with self._lock:
             if execution_id not in self._live_executions:
@@ -1364,8 +1258,8 @@ class AnalyticsService:
             )
             return True
 
-    def add_workflow_step(self, execution_id: str, step: WorkflowStep) -> bool:
-        """Add a workflow step to the trace."""
+    def add_workflow_step(self, execution_id: str, step: WorkflowStep, db: Optional[Session] = None) -> bool:
+        """Add a workflow step to the trace and optionally persist to DB."""
         with self._lock:
             if execution_id not in self._live_executions:
                 return False
@@ -1375,20 +1269,26 @@ class AnalyticsService:
                 return False
 
             execution.workflow_trace.steps.append(step)
+            # Persist to DB if requested
+            if db:
+                try:
+                    step_index = len(execution.workflow_trace.steps) - 1
+                    self._upsert_workflow_step_record(execution, step, step_index, db)
+                except Exception as e:
+                    self.logger.error(f"Failed to upsert workflow step {step.step_id}: {e}")
             return True
 
     def update_workflow_step(
         self,
         execution_id: str,
         step_id: str,
-        status: Optional[
-            Literal["pending", "running", "completed", "failed", "skipped"]
-        ] = None,
+        status: Optional[Literal["pending", "running", "completed", "failed", "skipped"]] = None,
         input_data: Optional[Dict[str, Any]] = None,
         output_data: Optional[Dict[str, Any]] = None,
         error: Optional[str] = None,
+        db: Optional[Session] = None,
     ) -> bool:
-        """Update a specific workflow step."""
+        """Update a specific workflow step and optionally persist to DB."""
         with self._lock:
             if execution_id not in self._live_executions:
                 return False
@@ -1397,23 +1297,16 @@ class AnalyticsService:
             if not execution.workflow_trace:
                 return False
 
-            for step in execution.workflow_trace.steps:
+            for idx, step in enumerate(execution.workflow_trace.steps):
                 if step.step_id == step_id:
                     if status:
                         step.status = status
                         if status == "running" and not step.started_at:
                             step.started_at = datetime.now()
-                        elif (
-                            status in ["completed", "failed"] and not step.completed_at
-                        ):
+                        elif status in ["completed", "failed"] and not step.completed_at:
                             step.completed_at = datetime.now()
                             if step.started_at:
-                                step.duration_ms = int(
-                                    (
-                                        step.completed_at - step.started_at
-                                    ).total_seconds()
-                                    * 1000
-                                )
+                                step.duration_ms = int((step.completed_at - step.started_at).total_seconds() * 1000)
 
                     if input_data is not None:
                         step.input_data = input_data
@@ -1423,6 +1316,12 @@ class AnalyticsService:
 
                     if error is not None:
                         step.error = error
+
+                    if db:
+                        try:
+                            self._upsert_workflow_step_record(execution, step, idx, db)
+                        except Exception as e:
+                            self.logger.error(f"Failed to upsert workflow step {step.step_id}: {e}")
 
                     return True
 
@@ -1443,8 +1342,7 @@ class AnalyticsService:
             # Update overall progress
             if execution.workflow_trace.total_steps > 0:
                 progress = min(
-                    execution.workflow_trace.current_step_index
-                    / execution.workflow_trace.total_steps,
+                    execution.workflow_trace.current_step_index / execution.workflow_trace.total_steps,
                     1.0,
                 )
                 execution.progress = progress
@@ -1464,9 +1362,7 @@ class AnalyticsService:
             execution.workflow_trace.execution_path.append(agent_name)
             return True
 
-    def add_branch_decision(
-        self, execution_id: str, decision_point: str, outcome: Any
-    ) -> bool:
+    def add_branch_decision(self, execution_id: str, decision_point: str, outcome: Any) -> bool:
         """Record a branching decision in the workflow."""
         with self._lock:
             if execution_id not in self._live_executions:
@@ -1484,9 +1380,7 @@ class AnalyticsService:
 
     def list_executions(
         self,
-        status: Optional[
-            Literal["queued", "running", "completed", "failed", "cancelled"]
-        ] = None,
+        status: Optional[Literal["queued", "running", "completed", "failed", "cancelled"]] = None,
         user_id: Optional[str] = None,
         limit: int = 100,
     ) -> List[ExecutionStatus]:
@@ -1545,9 +1439,7 @@ class AnalyticsService:
             by_type[exec_type] = by_type.get(exec_type, 0) + 1
 
         # Count workflow executions with tracing
-        workflow_with_trace = sum(
-            1 for e in executions if e.type == "workflow" and e.workflow_trace
-        )
+        workflow_with_trace = sum(1 for e in executions if e.type == "workflow" and e.workflow_trace)
 
         return {
             "total_executions": total,
@@ -1557,6 +1449,159 @@ class AnalyticsService:
             "oldest_execution": min((e.created_at for e in executions), default=None),
             "newest_execution": max((e.created_at for e in executions), default=None),
         }
+
+    def _upsert_workflow_execution_snapshot(self, execution: ExecutionStatus, db: Session) -> None:
+        """Upsert a live snapshot of the execution into WorkflowExecution on every update."""
+        try:
+            # Ensure we have a valid UUID for the primary key
+            try:
+                exe_uuid = uuid.UUID(execution.execution_id)
+            except Exception:
+                self.logger.warning(f"Invalid execution_id for snapshot, skipping: {execution.execution_id}")
+                return
+
+            rec = db.query(models.WorkflowExecution).filter(models.WorkflowExecution.execution_id == exe_uuid).one_or_none()
+
+            # Optional foreign keys
+            wf_uuid = None
+            if execution.workflow_id:
+                try:
+                    wf_uuid = uuid.UUID(execution.workflow_id)
+                except Exception:
+                    wf_uuid = None
+
+            agent_uuid = None
+            if execution.agent_id:
+                try:
+                    agent_uuid = uuid.UUID(execution.agent_id)
+                except Exception:
+                    agent_uuid = None
+
+            # Trace fields if available
+            current_step_index = execution.workflow_trace.current_step_index if execution.workflow_trace else 0
+            total_steps = execution.workflow_trace.total_steps if execution.workflow_trace else 0
+            execution_path = execution.workflow_trace.execution_path if execution.workflow_trace else []
+            branch_decisions = execution.workflow_trace.branch_decisions if execution.workflow_trace else {}
+
+            if rec is None:
+                rec = models.WorkflowExecution(
+                    execution_id=exe_uuid,
+                    workflow_id=wf_uuid,
+                    agent_id=agent_uuid,
+                    execution_type=execution.type,
+                    status=execution.status,
+                    progress=execution.progress,
+                    current_step=execution.current_step,
+                    query=execution.query,
+                    input_data=execution.input_data,
+                    result=execution.result,
+                    error=execution.error,
+                    tools_called=execution.tools_called,
+                    started_at=execution.started_at,
+                    completed_at=execution.completed_at,
+                    estimated_completion=execution.estimated_completion,
+                    session_id=execution.session_id,
+                    user_id=execution.user_id,
+                    current_step_index=current_step_index,
+                    total_steps=total_steps,
+                    execution_path=execution_path,
+                    branch_decisions=branch_decisions,
+                )
+                db.add(rec)
+            else:
+                rec.workflow_id = wf_uuid
+                rec.agent_id = agent_uuid
+                rec.execution_type = execution.type
+                rec.status = execution.status
+                rec.progress = execution.progress
+                rec.current_step = execution.current_step
+                rec.query = execution.query
+                rec.input_data = execution.input_data
+                rec.result = execution.result
+                rec.error = execution.error
+                rec.tools_called = execution.tools_called
+                rec.started_at = execution.started_at or rec.started_at
+                rec.completed_at = execution.completed_at
+                rec.estimated_completion = execution.estimated_completion
+                rec.session_id = execution.session_id
+                rec.user_id = execution.user_id
+                rec.current_step_index = current_step_index
+                rec.total_steps = total_steps
+                rec.execution_path = execution_path
+                rec.branch_decisions = branch_decisions
+
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                self.logger.error(f"Failed to upsert workflow execution snapshot {execution.execution_id}: {e}")
+
+    def _upsert_workflow_step_record(
+        self,
+        execution: ExecutionStatus,
+        step: WorkflowStep,
+        step_index: int,
+        db: Session,
+    ) -> None:
+        """Upsert a workflow step row for the given execution/step."""
+        try:
+            exe_uuid = uuid.UUID(execution.execution_id)
+        except Exception:
+            self.logger.warning(
+                f"Invalid execution_id for step upsert, skipping: {execution.execution_id}"
+            )
+            return
+
+        rec = (
+            db.query(models.WorkflowExecutionStep)
+            .filter(
+                models.WorkflowExecutionStep.execution_id == exe_uuid,
+                models.WorkflowExecutionStep.step_id == step.step_id,
+            )
+            .one_or_none()
+        )
+
+        if rec is None:
+            rec = models.WorkflowExecutionStep(
+                step_id=step.step_id,
+                execution_id=exe_uuid,
+                step_type=step.step_type,
+                step_index=step_index,
+                agent_id=step.agent_id,
+                agent_name=step.agent_name,
+                tool_name=step.tool_name,
+                status=step.status,
+                started_at=step.started_at,
+                completed_at=step.completed_at,
+                duration_ms=step.duration_ms,
+                input_data=step.input_data,
+                output_data=step.output_data,
+                error=step.error,
+                step_metadata=step.step_metadata,
+            )
+            db.add(rec)
+        else:
+            rec.step_type = step.step_type
+            rec.step_index = step_index
+            rec.agent_id = step.agent_id
+            rec.agent_name = step.agent_name
+            rec.tool_name = step.tool_name
+            rec.status = step.status
+            rec.started_at = step.started_at or rec.started_at
+            rec.completed_at = step.completed_at
+            rec.duration_ms = step.duration_ms
+            rec.input_data = step.input_data
+            rec.output_data = step.output_data
+            rec.error = step.error
+            rec.step_metadata = step.step_metadata
+
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise e
+
+
 
     def _persist_execution_to_db(self, execution: ExecutionStatus, db: Session) -> None:
         """Persist execution data to database when execution completes."""
@@ -1570,27 +1615,13 @@ class AnalyticsService:
                     start_time=execution.started_at or execution.created_at,
                     end_time=execution.completed_at,
                     duration_ms=(
-                        int(
-                            (
-                                execution.completed_at
-                                - (execution.started_at or execution.created_at)
-                            ).total_seconds()
-                            * 1000
-                        )
+                        int((execution.completed_at - (execution.started_at or execution.created_at)).total_seconds() * 1000)
                         if execution.completed_at
                         else None
                     ),
                     status="success" if execution.status == "completed" else "error",
-                    agents_involved=(
-                        execution.workflow_trace.execution_path
-                        if execution.workflow_trace
-                        else []
-                    ),
-                    agent_count=(
-                        len(execution.workflow_trace.execution_path)
-                        if execution.workflow_trace
-                        else 0
-                    ),
+                    agents_involved=(execution.workflow_trace.execution_path if execution.workflow_trace else []),
+                    agent_count=(len(execution.workflow_trace.execution_path) if execution.workflow_trace else 0),
                     session_id=execution.session_id,
                     user_id=execution.user_id,
                 )
@@ -1620,9 +1651,7 @@ class AnalyticsService:
                                 start_time=step.started_at,
                                 end_time=step.completed_at,
                                 duration_ms=step.duration_ms,
-                                status=(
-                                    "success" if step.status == "completed" else "error"
-                                ),
+                                status=("success" if step.status == "completed" else "error"),
                                 input_data=step.input_data,
                                 output_data=step.output_data,
                             )
@@ -1635,17 +1664,9 @@ class AnalyticsService:
                                 start_time=step.started_at,
                                 end_time=step.completed_at,
                                 duration_ms=step.duration_ms,
-                                status=(
-                                    "success" if step.status == "completed" else "error"
-                                ),
-                                query=(
-                                    step.input_data.get("query")
-                                    if step.input_data
-                                    else None
-                                ),
-                                response=(
-                                    str(step.output_data) if step.output_data else None
-                                ),
+                                status=("success" if step.status == "completed" else "error"),
+                                query=(step.input_data.get("query") if step.input_data else None),
+                                response=(str(step.output_data) if step.output_data else None),
                                 session_id=execution.session_id,
                                 user_id=execution.user_id,
                             )
@@ -1660,13 +1681,7 @@ class AnalyticsService:
                     start_time=execution.started_at or execution.created_at,
                     end_time=execution.completed_at,
                     duration_ms=(
-                        int(
-                            (
-                                execution.completed_at
-                                - (execution.started_at or execution.created_at)
-                            ).total_seconds()
-                            * 1000
-                        )
+                        int((execution.completed_at - (execution.started_at or execution.created_at)).total_seconds() * 1000)
                         if execution.completed_at
                         else None
                     ),
@@ -1680,15 +1695,11 @@ class AnalyticsService:
                 db.add(agent_metrics)
 
             db.commit()
-            self.logger.info(
-                f"Persisted execution {execution.execution_id} to database"
-            )
+            self.logger.info(f"Persisted execution {execution.execution_id} to database")
 
         except Exception as e:
             db.rollback()
-            self.logger.error(
-                f"Failed to persist execution {execution.execution_id} to database: {e}"
-            )
+            self.logger.error(f"Failed to persist execution {execution.execution_id} to database: {e}")
 
 
 analytics_service = AnalyticsService()

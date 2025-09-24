@@ -53,9 +53,7 @@ async def execute_deterministic_workflow(
         workflow_context = WorkflowExecutionContext()
 
         # Convert the workflow configuration to deterministic workflow format
-        deterministic_config = convert_to_deterministic_config(
-            workflow, execution_request
-        )
+        deterministic_config = convert_to_deterministic_config(workflow, execution_request)
 
         # Create execution request for deterministic workflow
         det_execution_request = DetWorkflowExecutionRequest(
@@ -77,11 +75,8 @@ async def execute_deterministic_workflow(
             user_id=execution_request.user_id,
             db=db,
         ) as execution_id:
-
             # Add input data to workflow context
-            workflow_context._active_workflows[execution_id]["step_data"][
-                "input"
-            ] = det_execution_request.input_data
+            workflow_context._active_workflows[execution_id]["step_data"]["input"] = det_execution_request.input_data
 
             # Execute all steps
             results = await workflow_context.execute_workflow(execution_id, db)
@@ -139,9 +134,7 @@ def execute_hybrid_workflow(
         action = selected_rule.get("action", "")
 
         if action == "execute_tokenizer_then_router":
-            return execute_tokenizer_then_router_flow(
-                workflow, execution_request, db, flow
-            )
+            return execute_tokenizer_then_router_flow(workflow, execution_request, db, flow)
         elif action == "execute_router_directly":
             return execute_router_directly_flow(workflow, execution_request, db, flow)
         else:
@@ -151,9 +144,7 @@ def execute_hybrid_workflow(
     except Exception as e:
         return schemas.WorkflowExecutionResponse(
             status="error",
-            response=json.dumps(
-                {"error": f"Hybrid workflow execution failed: {str(e)}"}
-            ),
+            response=json.dumps({"error": f"Hybrid workflow execution failed: {str(e)}"}),
             execution_id="",
             workflow_id=str(workflow.workflow_id),
             deployment_id="",
@@ -186,9 +177,7 @@ def execute_tokenizer_then_router_flow(
                 router_agent = agent
 
         if not tokenizer_agent:
-            raise ValueError(
-                "No DeterministicWorkflowAgent found for tokenizer execution"
-            )
+            raise ValueError("No DeterministicWorkflowAgent found for tokenizer execution")
 
         # Step 2: Execute tokenizer workflow
         tokenizer_config = tokenizer_agent.get("config", {})
@@ -198,9 +187,7 @@ def execute_tokenizer_then_router_flow(
                 "workflow_id": str(workflow.workflow_id) + "_tokenizer",
                 "workflow_name": tokenizer_config.get("workflow_name", "Tokenizer"),
                 "steps": tokenizer_config.get("steps", []),
-                "execution_pattern": tokenizer_config.get(
-                    "execution_pattern", "sequential"
-                ),
+                "execution_pattern": tokenizer_config.get("execution_pattern", "sequential"),
             }
 
             # Execute deterministic workflow
@@ -215,32 +202,24 @@ def execute_tokenizer_then_router_flow(
                 user_id=execution_request.user_id,
                 db=db,
             ) as execution_id:
-                workflow_context._active_workflows[execution_id]["step_data"][
-                    "input"
-                ] = {
+                workflow_context._active_workflows[execution_id]["step_data"]["input"] = {
                     "query": execution_request.query,
                     "chat_history": execution_request.chat_history or [],
                     "runtime_overrides": execution_request.runtime_overrides or {},
                 }
 
-                tokenizer_results = asyncio.run(
-                    workflow_context.execute_workflow(execution_id, db)
-                )
+                tokenizer_results = asyncio.run(workflow_context.execute_workflow(execution_id, db))
 
         # Step 3: Execute router agent with enhanced context from tokenizer
         if router_agent:
             # Build router agent with enhanced RAG capabilities
             enhanced_request = execution_request
-            enhanced_request.runtime_overrides = (
-                enhanced_request.runtime_overrides or {}
-            )
+            enhanced_request.runtime_overrides = enhanced_request.runtime_overrides or {}
             enhanced_request.runtime_overrides["tokenizer_results"] = tokenizer_results
             enhanced_request.runtime_overrides["vector_db_available"] = True
 
             # Execute router agent
-            return execute_single_agent_with_config(
-                workflow, enhanced_request, db, router_agent
-            )
+            return execute_single_agent_with_config(workflow, enhanced_request, db, router_agent)
         else:
             # Return tokenizer results if no router agent
             return schemas.WorkflowExecutionResponse(
@@ -286,9 +265,7 @@ def execute_router_directly_flow(
             # Fallback to traditional workflow execution
             return execute_traditional_workflow(workflow, execution_request, db)
 
-        return execute_single_agent_with_config(
-            workflow, execution_request, db, router_agent
-        )
+        return execute_single_agent_with_config(workflow, execution_request, db, router_agent)
 
     except Exception as e:
         return schemas.WorkflowExecutionResponse(
@@ -357,10 +334,7 @@ def execute_traditional_workflow(
                     dynamic_agent_store,
                 )
             else:
-                session_id = (
-                    execution_request.session_id
-                    or f"workflow_{workflow.workflow_id}_{int(time.time())}"
-                )
+                session_id = execution_request.session_id or f"workflow_{workflow.workflow_id}_{int(time.time())}"
                 user_id = execution_request.user_id or "workflow_user"
                 future = executor.submit(
                     command_agent.execute,
@@ -374,9 +348,7 @@ def execute_traditional_workflow(
                 result = future.result(timeout=180)
             except concurrent.futures.TimeoutError:
                 future.cancel()
-                raise HTTPException(
-                    status_code=504, detail="CommandAgent execution timed out"
-                )
+                raise HTTPException(status_code=504, detail="CommandAgent execution timed out")
 
     # Format response
     def safe_json_serialize(obj):
@@ -471,23 +443,18 @@ def execute_workflow_background(
     from services.analytics_service import analytics_service, WorkflowStep
 
     try:
-        # Update status to running and initialize tracing
-        analytics_service.update_execution(
-            execution_id, status="running", current_step="Initializing workflow"
-        )
-
-        # Get database session for background task
+        # Get database session for background task (open before first update so we can persist)
         from db.database import SessionLocal
 
         db = SessionLocal()
+        # Update status to running and initialize tracing
+        analytics_service.update_execution(execution_id, status="running", current_step="Initializing workflow", db=db)
 
         try:
             # Get the workflow from database
             workflow = crud.get_workflow(db=db, workflow_id=workflow_id)
             if workflow is None:
-                analytics_service.update_execution(
-                    execution_id, status="failed", error="Workflow not found"
-                )
+                analytics_service.update_execution(execution_id, status="failed", error="Workflow not found", db=db)
                 return
 
             # Check if this is a pure deterministic workflow
@@ -496,20 +463,18 @@ def execute_workflow_background(
                     execution_id,
                     status="running",
                     current_step="Executing deterministic workflow",
+                    db=db,
                 )
                 try:
-                    result = asyncio.run(
-                        execute_deterministic_workflow(workflow, execution_request, db)
-                    )
+                    result = asyncio.run(execute_deterministic_workflow(workflow, execution_request, db))
                     analytics_service.update_execution(
                         execution_id,
                         status="completed",
                         result={"output": result.response},
+                        db=db,
                     )
                 except Exception as e:
-                    analytics_service.update_execution(
-                        execution_id, status="failed", error=str(e)
-                    )
+                    analytics_service.update_execution(execution_id, status="failed", error=str(e), db=db)
                 return
 
             # Check if this is a hybrid workflow with conditional execution
@@ -518,6 +483,7 @@ def execute_workflow_background(
                     execution_id,
                     status="running",
                     current_step="Executing hybrid workflow",
+                    db=db,
                 )
                 try:
                     result = execute_hybrid_workflow(workflow, execution_request, db)
@@ -525,23 +491,18 @@ def execute_workflow_background(
                         execution_id,
                         status="completed",
                         result={"output": result.response},
+                        db=db,
                     )
                 except Exception as e:
-                    analytics_service.update_execution(
-                        execution_id, status="failed", error=str(e)
-                    )
+                    analytics_service.update_execution(execution_id, status="failed", error=str(e), db=db)
                 return
 
             # Initialize workflow tracing for traditional agent workflows
             agents = workflow.configuration.get("agents", [])
             connections = workflow.configuration.get("connections", [])
-            estimated_steps = (
-                len(agents) + len(connections) + 2
-            )  # agents + connections + init + finalize
+            estimated_steps = len(agents) + len(connections) + 2  # agents + connections + init + finalize
 
-            analytics_service.init_workflow_trace(
-                execution_id, str(workflow_id), estimated_steps
-            )
+            analytics_service.init_workflow_trace(execution_id, str(workflow_id), estimated_steps)
 
             # Add initial step
             init_step = WorkflowStep(
@@ -550,10 +511,8 @@ def execute_workflow_background(
                 status="running",
                 step_metadata={"description": "Initializing workflow execution"},
             )
-            analytics_service.add_workflow_step(execution_id, init_step)
-            analytics_service.update_execution(
-                execution_id, current_step="Analyzing workflow structure", progress=0.1
-            )
+            analytics_service.add_workflow_step(execution_id, init_step, db=db)
+            analytics_service.update_execution(execution_id, current_step="Analyzing workflow structure", progress=0.1, db=db)
 
             # Determine workflow type and find root agent
             is_single_agent = len(agents) == 1
@@ -588,25 +547,17 @@ def execute_workflow_background(
                     input_data={"query": execution_request.query},
                     step_metadata={"agent_type": agent_type},
                 )
-                analytics_service.add_workflow_step(execution_id, agent_step)
+                analytics_service.add_workflow_step(execution_id, agent_step, db=db)
                 analytics_service.add_execution_path(execution_id, agent_type)
 
-                analytics_service.update_execution(
-                    execution_id, current_step=f"Executing {agent_type}", progress=0.3
-                )
-                analytics_service.update_workflow_step(
-                    execution_id, agent_step.step_id, status="running"
-                )
+                analytics_service.update_execution(execution_id, current_step=f"Executing {agent_type}", progress=0.3, db=db)
+                analytics_service.update_workflow_step(execution_id, agent_step.step_id, status="running", db=db)
 
                 try:
                     if agent_type == "ToshibaAgent":
-                        agent = build_toshiba_agent_from_workflow(
-                            db, workflow, agent_config
-                        )
+                        agent = build_toshiba_agent_from_workflow(db, workflow, agent_config)
                     else:
-                        agent = build_single_agent_from_workflow(
-                            db, workflow, agent_config
-                        )
+                        agent = build_single_agent_from_workflow(db, workflow, agent_config)
 
                     # Build dynamic agent store for inter-agent communication
                     dynamic_agent_store = build_dynamic_agent_store(db, workflow)
@@ -624,6 +575,7 @@ def execute_workflow_background(
                         agent_step.step_id,
                         status="completed",
                         output_data={"result": str(result)},
+                        db=db,
                     )
 
                 except Exception as agent_error:
@@ -632,6 +584,7 @@ def execute_workflow_background(
                         agent_step.step_id,
                         status="failed",
                         error=str(agent_error),
+                        db=db,
                     )
                     raise agent_error
 
@@ -643,6 +596,7 @@ def execute_workflow_background(
                         execution_id,
                         current_step="Executing root agent",
                         progress=0.2,
+                        db=db,
                     )
 
                     # Get the root agent from database
@@ -666,20 +620,17 @@ def execute_workflow_background(
                                 "agent_type": root_agent.agent_type,
                             },
                         )
-                        analytics_service.add_workflow_step(execution_id, root_step)
-                        analytics_service.add_execution_path(
-                            execution_id, root_agent.name
-                        )
+                        analytics_service.add_workflow_step(execution_id, root_step, db=db)
+                        analytics_service.add_execution_path(execution_id, root_agent.name)
 
                         # Use the root agent with workflow functions
-                        command_agent = build_root_agent_with_workflow_functions(
-                            db, workflow
-                        )
+                        command_agent = build_root_agent_with_workflow_functions(db, workflow)
                     else:
                         analytics_service.update_execution(
                             execution_id,
                             status="failed",
                             error=f"Root agent {root_agent_id} not found",
+                            db=db,
                         )
                         return
                 else:
@@ -688,6 +639,7 @@ def execute_workflow_background(
                         execution_id,
                         current_step="Building CommandAgent orchestrator",
                         progress=0.2,
+                        db=db,
                     )
 
                     # Add orchestrator step
@@ -705,28 +657,23 @@ def execute_workflow_background(
                             "orchestrator": True,
                         },
                     )
-                    analytics_service.add_workflow_step(execution_id, orchestrator_step)
+                    analytics_service.add_workflow_step(execution_id, orchestrator_step, db=db)
                     analytics_service.add_execution_path(execution_id, "CommandAgent")
 
-                    command_agent = build_root_agent_with_workflow_functions(
-                        db, workflow
-                    )
+                    command_agent = build_root_agent_with_workflow_functions(db, workflow)
                 dynamic_agent_store = build_dynamic_agent_store(db, workflow)
 
                 analytics_service.update_execution(
                     execution_id,
                     current_step="Orchestrating workflow execution",
                     progress=0.4,
+                    db=db,
                 )
                 # Update the appropriate step as running
                 if root_agent_id:
-                    analytics_service.update_workflow_step(
-                        execution_id, root_step.step_id, status="running"
-                    )
+                    analytics_service.update_workflow_step(execution_id, root_step.step_id, status="running", db=db)
                 else:
-                    analytics_service.update_workflow_step(
-                        execution_id, orchestrator_step.step_id, status="running"
-                    )
+                    analytics_service.update_workflow_step(execution_id, orchestrator_step.step_id, status="running", db=db)
 
                 # Note: Individual tool calls will be tracked by CommandAgent analytics
                 # We don't create placeholder steps here - real tool calls will be captured
@@ -741,10 +688,7 @@ def execute_workflow_background(
                         # Convert generator to string for storage
                         result = "".join(str(chunk) for chunk in result if chunk)
                     else:
-                        session_id = (
-                            execution_request.session_id
-                            or f"workflow_{workflow_id}_{int(time.time())}"
-                        )
+                        session_id = execution_request.session_id or f"workflow_{workflow_id}_{int(time.time())}"
                         user_id = execution_request.user_id or "workflow_user"
                         # Enable analytics with proper execution_id to track tool calls
                         result = command_agent.execute(
@@ -763,6 +707,7 @@ def execute_workflow_background(
                             root_step.step_id,
                             status="completed",
                             output_data={"result": str(result)},
+                            db=db,
                         )
                     else:
                         analytics_service.update_workflow_step(
@@ -770,19 +715,14 @@ def execute_workflow_background(
                             orchestrator_step.step_id,
                             status="completed",
                             output_data={"result": str(result)},
+                            db=db,
                         )
 
                     # Mark sub-agent steps as completed (simplified for now)
                     for agent_config in agents:
-                        agent_id = agent_config.get(
-                            "agent_id", f"agent_{agents.index(agent_config)}"
-                        )
-                        analytics_service.update_workflow_step(
-                            execution_id, f"sub_agent_{agent_id}", status="completed"
-                        )
-                        analytics_service.add_execution_path(
-                            execution_id, agent_config.get("agent_type", "Unknown")
-                        )
+                        agent_id = agent_config.get("agent_id", f"agent_{agents.index(agent_config)}")
+                        analytics_service.update_workflow_step(execution_id, f"sub_agent_{agent_id}", status="completed", db=db)
+                        analytics_service.add_execution_path(execution_id, agent_config.get("agent_type", "Unknown"))
 
                 except Exception as orchestrator_error:
                     # Update the appropriate step as failed
@@ -792,6 +732,7 @@ def execute_workflow_background(
                             root_step.step_id,
                             status="failed",
                             error=str(orchestrator_error),
+                            db=db,
                         )
                     else:
                         analytics_service.update_workflow_step(
@@ -799,6 +740,7 @@ def execute_workflow_background(
                             orchestrator_step.step_id,
                             status="failed",
                             error=str(orchestrator_error),
+                            db=db,
                         )
                     raise orchestrator_error
 
@@ -809,10 +751,8 @@ def execute_workflow_background(
                 status="running",
                 step_metadata={"description": "Finalizing workflow execution"},
             )
-            analytics_service.add_workflow_step(execution_id, final_step)
-            analytics_service.update_execution(
-                execution_id, current_step="Finalizing results", progress=0.9
-            )
+            analytics_service.add_workflow_step(execution_id, final_step, db=db)
+            analytics_service.update_execution(execution_id, current_step="Finalizing results", progress=0.9, db=db)
 
             # Format the final response
             import json
@@ -828,9 +768,7 @@ def execute_workflow_background(
                     else:
                         return json.dumps({"content": str(obj)})
                 except (TypeError, ValueError) as e:
-                    return json.dumps(
-                        {"content": str(obj), "serialization_error": str(e)}
-                    )
+                    return json.dumps({"content": str(obj), "serialization_error": str(e)})
 
             formatted_response = safe_json_serialize(result)
             response_data = {
@@ -847,6 +785,7 @@ def execute_workflow_background(
                 final_step.step_id,
                 status="completed",
                 output_data=response_data,
+                db=db,
             )
 
             # Update execution as completed
