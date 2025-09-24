@@ -60,7 +60,7 @@ class Agent(BaseModel):
     model: str = "gpt-4o-mini"
     temperature: float = 0.7
 
-    max_retries: int = 3
+    max_retries: int = 10
     timeout: Optional[int] = None
     deployed: bool = False
     status: Literal["active", "paused", "terminated"] = "active"
@@ -515,10 +515,14 @@ class Agent(BaseModel):
             # Build messages array using shared chat history processing
             messages = self._process_chat_history(chat_history, system_prompt, query)
 
-            # Main retry loop
-            while tries < self.max_retries:
+            # Main conversation loop - separate from retries
+            conversation_turns = 0
+            max_conversation_turns = 10  # Prevent infinite loops
+
+            while conversation_turns < max_conversation_turns:
+                conversation_turns += 1
                 if enable_analytics and analytics_service:
-                    analytics_service.logger.info(f"{self.name} streaming attempt {tries + 1}/{self.max_retries}")
+                    analytics_service.logger.info(f"{self.name} streaming conversation turn {conversation_turns}")
 
                 try:
                     # Track API call
@@ -570,7 +574,19 @@ class Agent(BaseModel):
                                     if tool_call_delta.function.name:
                                         tool_calls[i]["function"]["name"] = tool_call_delta.function.name
                                     if tool_call_delta.function.arguments:
-                                        tool_calls[i]["function"]["arguments"] += tool_call_delta.function.arguments
+                                        # Handle arguments more carefully - sometimes OpenAI sends complete JSON objects
+                                        new_args = tool_call_delta.function.arguments
+                                        current_args = tool_calls[i]["function"]["arguments"]
+
+                                        # If current args is empty, just use new args
+                                        if not current_args:
+                                            tool_calls[i]["function"]["arguments"] = new_args
+                                        # If new args looks like a complete JSON object, replace current
+                                        elif new_args.strip().startswith("{") and new_args.strip().endswith("}"):
+                                            tool_calls[i]["function"]["arguments"] = new_args
+                                        # Otherwise, concatenate (normal streaming behavior)
+                                        else:
+                                            tool_calls[i]["function"]["arguments"] += new_args
 
                         # Check for finish reason
                         if chunk.choices[0].finish_reason is not None:
@@ -611,16 +627,33 @@ class Agent(BaseModel):
                         # Process all tool calls and ensure tool response messages are added
                         # even if exceptions occur during individual tool execution
                         for tool in formatted_tool_calls:
-                            tool_id = tool.id
-                            function_name = tool.function.name
+                            tool_id = tool["id"]
+                            function_name = tool["function"]["name"]
+                            result = f"Error: Tool {function_name} failed to execute"  # Default fallback
 
                             try:
-                                yield AgentStreamChunk(type="info", message=f"Agent Called: {tool.function.name}\n")
+                                yield AgentStreamChunk(type="info", message=f"Agent Called: {function_name}\n")
 
                                 if enable_analytics and analytics_service:
-                                    analytics_service.logger.info(f"Executing tool: {tool.function.name}")
+                                    analytics_service.logger.info(f"Executing tool: {function_name}")
 
-                                arguments = json.loads(tool.function.arguments)
+                                try:
+                                    print(f"🔍 DEBUG: Tool {function_name} arguments: '{tool['function']['arguments']}'")
+                                    arguments = json.loads(tool["function"]["arguments"])
+                                except json.JSONDecodeError as json_error:
+                                    print(
+                                        f"❌ Invalid JSON in tool arguments for {function_name}: '{tool['function']['arguments']}'"
+                                    )
+                                    result = f"Error: Invalid JSON arguments for tool {function_name}: {str(json_error)}"
+                                    # Skip tool execution but still add tool response message
+                                    messages.append(
+                                        {
+                                            "role": "tool",
+                                            "tool_call_id": tool_id,
+                                            "content": str(result),
+                                        }
+                                    )
+                                    continue
                                 update_status("superuser@iopex.com", function_name)
 
                                 # Track tool usage
@@ -704,7 +737,10 @@ class Agent(BaseModel):
                             )
 
                         # Continue the conversation after processing all tool calls
-                        tries += 1
+                        # Don't increment tries here - this is normal conversation flow, not a retry
+                        print(
+                            f"🔄 DEBUG: Continuing conversation after tool calls. Turn {conversation_turns}, Tool calls: {tool_call_count}"
+                        )
 
                     else:
                         # Handle regular content response (not tool calls)
@@ -731,8 +767,9 @@ class Agent(BaseModel):
                                 type="content", message=parsed_content.get("content", "Agent Could Not Respond") + "\n\n"
                             )
                         except json.JSONDecodeError:
-                            # If not JSON, yield the raw content (already streamed token by token above)
-                            yield AgentStreamChunk(type="content", message="\n\n")  # Just add final newlines
+                            # Content was already streamed token by token, just signal completion
+                            yield AgentStreamChunk(type="info", message="[STREAM_COMPLETE]\n\n")
+                        print("✅ DEBUG: Streaming complete. Final response delivered.")
                         return
 
                 except Exception as e:

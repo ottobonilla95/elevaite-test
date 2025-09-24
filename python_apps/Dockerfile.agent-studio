@@ -1,7 +1,8 @@
-FROM python:3.11-bullseye AS builder
+FROM python:3.11.11-slim-bullseye AS builder
 
 # The installer requires curl (and certificates) to download the release archive
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # Download the latest installer
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
@@ -16,9 +17,9 @@ ENV PATH="/root/.local/bin/:$PATH"
 WORKDIR /elevaite
 
 # Copy workspace configuration
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 
-# Copy the fastapi-logger package (workspace dependency)
+# Copy workspace package dependencies used by agent-studio
 COPY python_packages/fastapi-logger ./python_packages/fastapi-logger
 COPY python_packages/elevaite_ingestion ./python_packages/elevaite_ingestion
 
@@ -28,25 +29,34 @@ COPY python_apps/agent_studio ./python_apps/agent_studio
 # Install dependencies using uv in the agent-studio directory
 WORKDIR /elevaite/python_apps/agent_studio
 
-# Install dependencies using uv (this will create venv automatically)
-RUN uv add python-multipart
-RUN uv sync
+# Install dependencies using uv (this will create .venv automatically)
+RUN uv sync --frozen --no-dev
+# Copy the created venv to a stable location outside the source tree to avoid bind-mount masking
+RUN mkdir -p /opt && if [ -d "/elevaite/.venv" ]; then \
+    cp -a /elevaite/.venv /opt/venv; \
+    else \
+    cp -a /elevaite/python_apps/agent_studio/.venv /opt/venv; \
+    fi
+# Remove source-embedded venvs to avoid duplication when copying app sources
+RUN rm -rf /elevaite/.venv /elevaite/python_apps/agent_studio/.venv || true
 
-FROM python:3.11-slim-buster AS runtime
 
-# Install uv in runtime stage
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    rm -rf /var/lib/apt/lists/*
+FROM python:3.11.11-slim-bullseye AS runtime
 
-# Ensure the installed binary is on the `PATH`
-ENV PATH="/root/.local/bin/:$PATH"
+# Copy only the app sources needed at runtime (dependencies are in /opt/venv)
+COPY --from=builder /elevaite/python_apps/agent_studio /elevaite/python_apps/agent_studio
+COPY --from=builder /elevaite/python_packages/fastapi-logger elevaite/python_packages/fastapi-logger
+COPY --from=builder /elevaite/python_packages/elevaite_ingestion elevaite/python_packages/elevaite_ingestion
+# Copy the virtual environment to runtime
+COPY --from=builder /opt/venv /opt/venv
 
-# Copy the entire project structure from builder (including .venv and uv.lock)
-COPY --from=builder /elevaite /elevaite
 
-# Set working directory
-WORKDIR /elevaite/python_apps/agent_studio
+# Use the prebuilt virtual environment (relocated to /opt/venv)
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Change to the agent-studio application directory
+WORKDIR /elevaite/python_apps/agent_studio/agent-studio
 
 # Expose the port
 EXPOSE 8000
@@ -54,6 +64,10 @@ EXPOSE 8000
 # Set environment variable for port
 ENV PORT=8000
 
-# Change to the agent-studio directory and run the application using uv
-WORKDIR /elevaite/python_apps/agent_studio/agent-studio
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application using the prebuilt environment (resolved via PATH)
+# Verify uvicorn is installed in the relocated venv (fail build early if missing)
+RUN /opt/venv/bin/python -c "import uvicorn, sys; print(uvicorn.__version__)"
+# Start the API server
+ENTRYPOINT ["/opt/venv/bin/python"]
+CMD ["-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
