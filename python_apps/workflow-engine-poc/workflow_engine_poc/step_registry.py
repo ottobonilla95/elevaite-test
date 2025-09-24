@@ -13,7 +13,8 @@ from typing import Dict, Any, List, Optional, Callable, Union
 from datetime import datetime
 import logging
 
-from .execution_context import ExecutionContext, StepResult, StepStatus
+from .execution_context import ExecutionContext, StepResult
+from workflow_core_sdk.models import StepStatus
 from .monitoring import monitoring
 
 

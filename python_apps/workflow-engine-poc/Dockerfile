@@ -5,10 +5,10 @@ FROM python:3.11-bullseye AS builder
 # System deps
 RUN apt-get update \
     && apt-get -y install --no-install-recommends \
-        curl \
-        build-essential \
-        libpq-dev \
-        git \
+    curl \
+    build-essential \
+    libpq-dev \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv (https://github.com/astral-sh/uv)
@@ -25,6 +25,8 @@ COPY python_packages/db-core ./python_packages/db-core
 COPY python_packages/elevaite_ingestion ./python_packages/elevaite_ingestion
 COPY python_packages/fastapi-logger ./python_packages/fastapi-logger
 COPY python_packages/llm-gateway ./python_packages/llm-gateway
+COPY python_packages/workflow-core-sdk ./python_packages/workflow-core-sdk
+
 
 # Copy the workflow-engine-poc project
 COPY python_apps/workflow-engine-poc ./python_apps/workflow-engine-poc

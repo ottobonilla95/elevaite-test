@@ -5,7 +5,8 @@ from pprint import pprint
 
 from dbos import DBOS
 
-from ..execution_context import ExecutionContext, UserContext, StepStatus
+from ..execution_context import ExecutionContext, UserContext
+from workflow_core_sdk.models import StepStatus
 from . import get_dbos_adapter  # temporary import until adapter is split
 
 

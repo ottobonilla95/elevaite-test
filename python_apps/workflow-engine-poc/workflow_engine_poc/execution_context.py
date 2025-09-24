@@ -11,12 +11,11 @@ The execution context is the heart of the workflow engine. It:
 """
 
 import uuid
-import json
 import asyncio
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Set, TYPE_CHECKING
 from dataclasses import dataclass, field
-from enum import Enum
+from workflow_core_sdk.models import ExecutionStatus, StepStatus
 
 if TYPE_CHECKING:
     from .workflow_engine import WorkflowEngine
@@ -28,28 +27,6 @@ from .streaming import (
     create_step_event,
     create_error_event,
 )
-
-
-# Import shared status enums from SDK (extracted types)
-try:
-    from workflow_core_sdk.models import ExecutionStatus, StepStatus
-except Exception:
-    # Fallback to local definitions if SDK not available (shouldn't happen in monorepo)
-    class ExecutionStatus(str, Enum):
-        PENDING = "pending"
-        RUNNING = "running"
-        WAITING = "waiting"
-        COMPLETED = "completed"
-        FAILED = "failed"
-        CANCELLED = "cancelled"
-
-    class StepStatus(str, Enum):
-        PENDING = "pending"
-        RUNNING = "running"
-        WAITING = "waiting"
-        COMPLETED = "completed"
-        FAILED = "failed"
-        SKIPPED = "skipped"
 
 
 @dataclass

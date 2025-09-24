@@ -15,10 +15,7 @@ from datetime import datetime
 from .execution_context import ExecutionContext, StepResult
 
 # Prefer SDK status enums; fallback to local if SDK unavailable
-try:
-    from workflow_core_sdk.models import ExecutionStatus, StepStatus
-except Exception:  # pragma: no cover
-    from .execution_context import ExecutionStatus, StepStatus
+from workflow_core_sdk.models import ExecutionStatus, StepStatus
 from .step_registry import StepRegistry
 from .error_handling import (
     error_handler,
