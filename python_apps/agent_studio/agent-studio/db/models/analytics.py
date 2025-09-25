@@ -22,16 +22,10 @@ class AgentExecutionMetrics(Base):
     __tablename__ = "agent_execution_metrics"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    execution_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4
-    )
-    agent_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("agents.agent_id"), nullable=False
-    )
+    execution_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    agent_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("agents.agent_id"), nullable=False)
     agent_name: Mapped[str] = mapped_column(String, nullable=False)
-    start_time: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now
-    )
+    start_time: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False)
@@ -57,18 +51,14 @@ class ToolUsageMetrics(Base):
     __tablename__ = "tool_usage_metrics"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    usage_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4
-    )
+    usage_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     tool_name: Mapped[str] = mapped_column(String, nullable=False)
     execution_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("agent_execution_metrics.execution_id"),
         nullable=False,
     )
-    start_time: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now
-    )
+    start_time: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False)
@@ -85,16 +75,10 @@ class ToolUsageMetrics(Base):
 class WorkflowMetrics(Base):
     __tablename__ = "workflow_metrics"
 
-    execution_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, nullable=False
-    )
-    workflow_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, default=uuid.uuid4
-    )
+    execution_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, nullable=False)
+    workflow_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, default=uuid.uuid4)
     workflow_type: Mapped[str] = mapped_column(String, nullable=False)
-    start_time: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now
-    )
+    start_time: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False)
@@ -105,12 +89,8 @@ class WorkflowMetrics(Base):
     total_tokens_used: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     session_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     user_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    user_satisfaction_score: Mapped[Optional[float]] = mapped_column(
-        Float, nullable=True
-    )  # 1-5 scale
-    task_completion_rate: Mapped[Optional[float]] = mapped_column(
-        Float, nullable=True
-    )  # 0-1 scale
+    user_satisfaction_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # 1-5 scale
+    task_completion_rate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # 0-1 scale
 
 
 class WorkflowExecution(Base):
@@ -119,24 +99,14 @@ class WorkflowExecution(Base):
     __tablename__ = "workflow_executions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    execution_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4
-    )
+    execution_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     workflow_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("workflows.workflow_id"), nullable=True
     )
-    agent_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("agents.agent_id"), nullable=True
-    )
-    execution_type: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # 'agent', 'workflow', or 'deterministic'
-    status: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # 'queued', 'running', 'completed', 'failed', 'cancelled'
-    progress: Mapped[Optional[float]] = mapped_column(
-        Float, nullable=True
-    )  # 0.0 to 1.0
+    agent_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("agents.agent_id"), nullable=True)
+    execution_type: Mapped[str] = mapped_column(String, nullable=False)  # 'agent', 'workflow', or 'deterministic'
+    status: Mapped[str] = mapped_column(String, nullable=False)  # 'queued', 'running', 'completed', 'failed', 'cancelled'
+    progress: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # 0.0 to 1.0
     current_step: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     # Input/Output data
@@ -147,14 +117,10 @@ class WorkflowExecution(Base):
     tools_called: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
 
     # Timing
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    estimated_completion: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, nullable=True
-    )
+    estimated_completion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # User/Session info
     session_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -163,12 +129,8 @@ class WorkflowExecution(Base):
     # Workflow tracing data
     current_step_index: Mapped[int] = mapped_column(Integer, default=0)
     total_steps: Mapped[int] = mapped_column(Integer, default=0)
-    execution_path: Mapped[Optional[list]] = mapped_column(
-        JSONB, nullable=True
-    )  # List of agents executed in order
-    branch_decisions: Mapped[Optional[dict]] = mapped_column(
-        JSONB, nullable=True
-    )  # Decision points and outcomes
+    execution_path: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)  # List of agents executed in order
+    branch_decisions: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # Decision points and outcomes
 
     # Relationships
     workflow = relationship("Workflow", foreign_keys=[workflow_id])
@@ -179,9 +141,7 @@ class WorkflowExecution(Base):
         cascade="all, delete-orphan",
     )
 
-    __table_args__ = (
-        UniqueConstraint("execution_id", name="uix_workflow_execution_id"),
-    )
+    __table_args__ = (UniqueConstraint("execution_id", name="uix_workflow_execution_id"),)
 
 
 class WorkflowExecutionStep(Base):
@@ -190,9 +150,7 @@ class WorkflowExecutionStep(Base):
     __tablename__ = "workflow_execution_steps"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    step_id: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # Unique within execution
+    step_id: Mapped[str] = mapped_column(String, nullable=False)  # Unique within execution
     execution_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("workflow_executions.execution_id"),
@@ -203,17 +161,13 @@ class WorkflowExecutionStep(Base):
     step_type: Mapped[str] = mapped_column(
         String, nullable=False
     )  # 'agent_execution', 'tool_call', 'decision_point', 'data_processing'
-    step_index: Mapped[int] = mapped_column(
-        Integer, nullable=False
-    )  # Order within execution
-    agent_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    step_index: Mapped[int] = mapped_column(Integer, nullable=False)  # Order within execution
+    agent_id: Mapped[Optional[UUID]] = mapped_column(UUID, nullable=True)
     agent_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     tool_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     # Step status and timing
-    status: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # 'pending', 'running', 'completed', 'failed', 'skipped'
+    status: Mapped[str] = mapped_column(String, nullable=False)  # 'pending', 'running', 'completed', 'failed', 'skipped'
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -227,53 +181,50 @@ class WorkflowExecutionStep(Base):
     # Relationships
     execution = relationship("WorkflowExecution", back_populates="steps")
 
-    __table_args__ = (
-        UniqueConstraint("execution_id", "step_id", name="uix_execution_step"),
-    )
+    __table_args__ = (UniqueConstraint("execution_id", "step_id", name="uix_execution_step"),)
 
 
 class DeterministicWorkflowStep(Base):
     """
     Enhanced step tracking for deterministic workflows.
-    
+
     Extends the basic step tracking with:
     - Step dependencies
     - Batch processing progress
     - Data flow tracking
     - Rollback information
     """
+
     __tablename__ = "deterministic_workflow_steps"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    step_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4
-    )
+    step_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     execution_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), 
-        ForeignKey("workflow_executions.execution_id"), 
-        nullable=False
+        UUID(as_uuid=True), ForeignKey("workflow_executions.execution_id"), nullable=False
     )
-    
+
     # Step identification
     step_name: Mapped[str] = mapped_column(String, nullable=False)
     step_type: Mapped[str] = mapped_column(String, nullable=False)  # From DeterministicStepType enum
     step_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    
+
     # Dependencies and execution pattern
     dependencies: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)  # List of step_ids
     execution_pattern: Mapped[str] = mapped_column(String, default="sequential")  # sequential, parallel, conditional, dag
-    
+
     # Status and timing
-    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")  # pending, running, completed, failed, skipped
+    status: Mapped[str] = mapped_column(
+        String, nullable=False, default="pending"
+    )  # pending, running, completed, failed, skipped
     start_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    
+
     # Data flow
     input_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     output_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     input_mapping: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # How to get data from previous steps
-    
+
     # Batch processing
     total_items: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     processed_items: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -281,21 +232,21 @@ class DeterministicWorkflowStep(Base):
     failed_items: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     current_batch: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     total_batches: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    
+
     # Error handling and rollback
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     rollback_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     rollback_attempted: Mapped[bool] = mapped_column(Boolean, default=False)
     rollback_successful: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    
+
     # Configuration and metadata
     step_config: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     step_metadata: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
-    
+
     # Progress tracking
     progress_percentage: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     estimated_completion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    
+
     execution = relationship("WorkflowExecution")
 
 
@@ -304,9 +255,7 @@ class SessionMetrics(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     session_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    start_time: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now
-    )
+    start_time: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     user_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -315,12 +264,8 @@ class SessionMetrics(Base):
     total_queries: Mapped[int] = mapped_column(Integer, default=0)
     successful_queries: Mapped[int] = mapped_column(Integer, default=0)
     failed_queries: Mapped[int] = mapped_column(Integer, default=0)
-    agents_used: Mapped[Optional[dict]] = mapped_column(
-        JSONB, nullable=True
-    )  # List of agent names used
+    agents_used: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # List of agent names used
     unique_agents_count: Mapped[int] = mapped_column(Integer, default=0)
-    average_response_time_ms: Mapped[Optional[float]] = mapped_column(
-        Float, nullable=True
-    )
+    average_response_time_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     total_tokens_used: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

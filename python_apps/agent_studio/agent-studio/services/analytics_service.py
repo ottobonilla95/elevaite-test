@@ -1452,89 +1452,89 @@ class AnalyticsService:
 
     def _upsert_workflow_execution_snapshot(self, execution: ExecutionStatus, db: Session) -> None:
         """Upsert a live snapshot of the execution into WorkflowExecution on every update."""
+
+        # Ensure we have a valid UUID for the primary key
         try:
-            # Ensure we have a valid UUID for the primary key
+            exe_uuid = uuid.UUID(execution.execution_id)
+        except Exception:
+            self.logger.warning(f"Invalid execution_id for snapshot, skipping: {execution.execution_id}")
+            return
+
+        rec = db.query(models.WorkflowExecution).filter(models.WorkflowExecution.execution_id == exe_uuid).one_or_none()
+
+        # Optional foreign keys
+        wf_uuid = None
+        if execution.workflow_id:
             try:
-                exe_uuid = uuid.UUID(execution.execution_id)
+                wf_uuid = uuid.UUID(execution.workflow_id)
             except Exception:
-                self.logger.warning(f"Invalid execution_id for snapshot, skipping: {execution.execution_id}")
-                return
+                wf_uuid = None
 
-            rec = db.query(models.WorkflowExecution).filter(models.WorkflowExecution.execution_id == exe_uuid).one_or_none()
-
-            # Optional foreign keys
-            wf_uuid = None
-            if execution.workflow_id:
-                try:
-                    wf_uuid = uuid.UUID(execution.workflow_id)
-                except Exception:
-                    wf_uuid = None
-
-            agent_uuid = None
-            if execution.agent_id:
-                try:
-                    agent_uuid = uuid.UUID(execution.agent_id)
-                except Exception:
-                    agent_uuid = None
-
-            # Trace fields if available
-            current_step_index = execution.workflow_trace.current_step_index if execution.workflow_trace else 0
-            total_steps = execution.workflow_trace.total_steps if execution.workflow_trace else 0
-            execution_path = execution.workflow_trace.execution_path if execution.workflow_trace else []
-            branch_decisions = execution.workflow_trace.branch_decisions if execution.workflow_trace else {}
-
-            if rec is None:
-                rec = models.WorkflowExecution(
-                    execution_id=exe_uuid,
-                    workflow_id=wf_uuid,
-                    agent_id=agent_uuid,
-                    execution_type=execution.type,
-                    status=execution.status,
-                    progress=execution.progress,
-                    current_step=execution.current_step,
-                    query=execution.query,
-                    input_data=execution.input_data,
-                    result=execution.result,
-                    error=execution.error,
-                    tools_called=execution.tools_called,
-                    started_at=execution.started_at,
-                    completed_at=execution.completed_at,
-                    estimated_completion=execution.estimated_completion,
-                    session_id=execution.session_id,
-                    user_id=execution.user_id,
-                    current_step_index=current_step_index,
-                    total_steps=total_steps,
-                    execution_path=execution_path,
-                    branch_decisions=branch_decisions,
-                )
-                db.add(rec)
-            else:
-                rec.workflow_id = wf_uuid
-                rec.agent_id = agent_uuid
-                rec.execution_type = execution.type
-                rec.status = execution.status
-                rec.progress = execution.progress
-                rec.current_step = execution.current_step
-                rec.query = execution.query
-                rec.input_data = execution.input_data
-                rec.result = execution.result
-                rec.error = execution.error
-                rec.tools_called = execution.tools_called
-                rec.started_at = execution.started_at or rec.started_at
-                rec.completed_at = execution.completed_at
-                rec.estimated_completion = execution.estimated_completion
-                rec.session_id = execution.session_id
-                rec.user_id = execution.user_id
-                rec.current_step_index = current_step_index
-                rec.total_steps = total_steps
-                rec.execution_path = execution_path
-                rec.branch_decisions = branch_decisions
-
+        agent_uuid = None
+        if execution.agent_id:
             try:
-                db.commit()
-            except Exception as e:
-                db.rollback()
-                self.logger.error(f"Failed to upsert workflow execution snapshot {execution.execution_id}: {e}")
+                agent_uuid = uuid.UUID(execution.agent_id)
+            except Exception:
+                agent_uuid = None
+
+        # Trace fields if available
+        current_step_index = execution.workflow_trace.current_step_index if execution.workflow_trace else 0
+        total_steps = execution.workflow_trace.total_steps if execution.workflow_trace else 0
+        execution_path = execution.workflow_trace.execution_path if execution.workflow_trace else []
+        branch_decisions = execution.workflow_trace.branch_decisions if execution.workflow_trace else {}
+
+        if rec is None:
+            rec = models.WorkflowExecution(
+                execution_id=exe_uuid,
+                workflow_id=wf_uuid,
+                agent_id=agent_uuid,
+                execution_type=execution.type,
+                status=execution.status,
+                progress=execution.progress,
+                current_step=execution.current_step,
+                query=execution.query,
+                input_data=execution.input_data,
+                result=execution.result,
+                error=execution.error,
+                tools_called=execution.tools_called,
+                started_at=execution.started_at,
+                completed_at=execution.completed_at,
+                estimated_completion=execution.estimated_completion,
+                session_id=execution.session_id,
+                user_id=execution.user_id,
+                current_step_index=current_step_index,
+                total_steps=total_steps,
+                execution_path=execution_path,
+                branch_decisions=branch_decisions,
+            )
+            db.add(rec)
+        else:
+            rec.workflow_id = wf_uuid
+            rec.agent_id = agent_uuid
+            rec.execution_type = execution.type
+            rec.status = execution.status
+            rec.progress = execution.progress
+            rec.current_step = execution.current_step
+            rec.query = execution.query
+            rec.input_data = execution.input_data
+            rec.result = execution.result
+            rec.error = execution.error
+            rec.tools_called = execution.tools_called
+            rec.started_at = execution.started_at or rec.started_at
+            rec.completed_at = execution.completed_at
+            rec.estimated_completion = execution.estimated_completion
+            rec.session_id = execution.session_id
+            rec.user_id = execution.user_id
+            rec.current_step_index = current_step_index
+            rec.total_steps = total_steps
+            rec.execution_path = execution_path
+            rec.branch_decisions = branch_decisions
+
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            self.logger.error(f"Failed to upsert workflow execution snapshot {execution.execution_id}: {e}")
 
     def _upsert_workflow_step_record(
         self,
@@ -1547,9 +1547,7 @@ class AnalyticsService:
         try:
             exe_uuid = uuid.UUID(execution.execution_id)
         except Exception:
-            self.logger.warning(
-                f"Invalid execution_id for step upsert, skipping: {execution.execution_id}"
-            )
+            self.logger.warning(f"Invalid execution_id for step upsert, skipping: {execution.execution_id}")
             return
 
         rec = (
@@ -1600,8 +1598,6 @@ class AnalyticsService:
         except Exception as e:
             db.rollback()
             raise e
-
-
 
     def _persist_execution_to_db(self, execution: ExecutionStatus, db: Session) -> None:
         """Persist execution data to database when execution completes."""
