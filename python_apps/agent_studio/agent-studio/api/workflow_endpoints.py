@@ -746,28 +746,41 @@ async def execute_workflow_stream(
         progress=0.05,
         db=db,
     )
+    # Snapshot workflow configuration now to avoid accessing ORM instance after session closes
+    try:
+        workflow_config = (
+            json.loads(json.dumps(workflow.configuration))
+            if isinstance(workflow.configuration, dict)
+            else workflow.configuration
+        )
+    except Exception:
+        # Fallback shallow copy
+        workflow_config = dict(workflow.configuration) if hasattr(workflow, "configuration") else {}
 
     async def stream_generator():
         """Generate streaming response chunks with analytics persistence"""
+        from db.database import SessionLocal
+
+        db2 = SessionLocal()
         try:
             # Send initial status, include execution_id for client-side polling
             yield f"data: {json.dumps({'status': 'started', 'workflow_id': str(workflow_id), 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
 
             # Check if this is a hybrid workflow with conditional execution
-            if is_hybrid_workflow(workflow.configuration):
+            if is_hybrid_workflow(workflow_config):
                 msg = "Hybrid workflow streaming not yet implemented. Use the regular execute endpoint."
                 analytics_service.update_execution(
                     execution_id,
                     current_step="Hybrid routing not implemented",
                     error=msg,
                     status="failed",
-                    db=db,
+                    db=db2,
                 )
                 yield f"data: {json.dumps({'status': 'error', 'message': msg, 'workflow_id': str(workflow_id), 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
                 return
 
             # Determine if this is a single-agent or multi-agent workflow
-            agents = workflow.configuration.get("agents", [])
+            agents = workflow_config.get("agents", [])
             is_single_agent = len(agents) == 1
 
             if is_single_agent:
@@ -775,10 +788,12 @@ async def execute_workflow_stream(
                 agent_config = agents[0]
                 agent_type = agent_config.get("agent_type", "CommandAgent")
 
+                # Re-acquire a fresh workflow bound to the new session
+                fresh_workflow = crud.get_workflow(db2, workflow_id)
                 if agent_type == "ToshibaAgent":
-                    agent = build_toshiba_agent_from_workflow(db, workflow, agent_config)
+                    agent = build_toshiba_agent_from_workflow(db2, fresh_workflow, agent_config)
                 else:
-                    agent = build_single_agent_from_workflow(db, workflow, agent_config)
+                    agent = build_single_agent_from_workflow(db2, fresh_workflow, agent_config)
 
                 # Create and persist a step representing the streaming agent execution
                 step_id = f"stream_agent_{execution_id}"
@@ -793,14 +808,14 @@ async def execute_workflow_stream(
                     },
                     step_metadata={"streaming": True},
                 )
-                analytics_service.add_workflow_step(execution_id, agent_step, db=db)
+                analytics_service.add_workflow_step(execution_id, agent_step, db=db2)
                 analytics_service.add_execution_path(execution_id, getattr(agent, "name", agent_type))
-                analytics_service.update_workflow_step(execution_id, step_id, status="running", db=db)
+                analytics_service.update_workflow_step(execution_id, step_id, status="running", db=db2)
                 analytics_service.update_execution(
                     execution_id,
                     current_step=f"Streaming from {getattr(agent, 'name', agent_type)}",
                     progress=0.2,
-                    db=db,
+                    db=db2,
                 )
 
                 chunk_count = 0
@@ -812,7 +827,7 @@ async def execute_workflow_stream(
                                 analytics_service.update_execution(
                                     execution_id,
                                     current_step=f"Streaming ({chunk_count} chunks)",
-                                    db=db,
+                                    db=db2,
                                 )
                             yield f"data: {json.dumps({'type': chunk.type, 'data': chunk.message, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
                             await asyncio.sleep(0.01)
@@ -822,7 +837,7 @@ async def execute_workflow_stream(
                         step_id,
                         status="completed",
                         output_data={"chunks": chunk_count},
-                        db=db,
+                        db=db2,
                     )
                 else:
                     # Fallback to regular execution
@@ -840,14 +855,15 @@ async def execute_workflow_stream(
                         step_id,
                         status="completed",
                         output_data={"result": str(result)},
-                        db=db,
+                        db=db2,
                     )
                     yield f"data: {json.dumps({'type': 'content', 'data': result, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
 
             else:
                 # Multi-agent workflow - use CommandAgent for orchestration
-                command_agent = build_command_agent_from_workflow(db, workflow)
-                dynamic_agent_store = build_dynamic_agent_store(db, workflow)
+                fresh_workflow = crud.get_workflow(db2, workflow_id)
+                command_agent = build_command_agent_from_workflow(db2, fresh_workflow)
+                dynamic_agent_store = build_dynamic_agent_store(db2, fresh_workflow)
 
                 # Create orchestrator step
                 step_id = f"orchestrator_stream_{execution_id}"
@@ -859,14 +875,14 @@ async def execute_workflow_stream(
                     input_data={"query": execution_request.query, "streaming": True},
                     step_metadata={"orchestrator": True, "streaming": True},
                 )
-                analytics_service.add_workflow_step(execution_id, orchestrator_step, db=db)
+                analytics_service.add_workflow_step(execution_id, orchestrator_step, db=db2)
                 analytics_service.add_execution_path(execution_id, "CommandAgent")
-                analytics_service.update_workflow_step(execution_id, step_id, status="running", db=db)
+                analytics_service.update_workflow_step(execution_id, step_id, status="running", db=db2)
                 analytics_service.update_execution(
                     execution_id,
                     current_step="Orchestrating workflow (streaming)",
                     progress=0.3,
-                    db=db,
+                    db=db2,
                 )
 
                 chunk_count = 0
@@ -882,7 +898,7 @@ async def execute_workflow_stream(
                                 analytics_service.update_execution(
                                     execution_id,
                                     current_step=f"Streaming ({chunk_count} chunks)",
-                                    db=db,
+                                    db=db2,
                                 )
                             yield f"data: {json.dumps({'type': 'content', 'data': chunk, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
                             await asyncio.sleep(0.01)
@@ -901,7 +917,7 @@ async def execute_workflow_stream(
                         step_id,
                         status="completed",
                         output_data={"result": str(result)},
-                        db=db,
+                        db=db2,
                     )
                     yield f"data: {json.dumps({'type': 'content', 'data': result, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
 
@@ -911,7 +927,7 @@ async def execute_workflow_stream(
                 status="completed",
                 current_step="Completed",
                 progress=1.0,
-                db=db,
+                db=db2,
             )
             yield f"data: {json.dumps({'status': 'completed', 'workflow_id': str(workflow_id), 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
 
@@ -925,14 +941,14 @@ async def execute_workflow_stream(
                         step_id,
                         status="failed",
                         error=str(e),
-                        db=db,
+                        db=db2,
                     )
                 analytics_service.update_execution(
                     execution_id,
                     status="failed",
                     error=str(e),
                     current_step="Error during streaming",
-                    db=db,
+                    db=db2,
                 )
             except Exception:
                 pass
@@ -946,6 +962,11 @@ async def execute_workflow_stream(
                 "timestamp": datetime.now().isoformat(),
             }
             yield f"data: {json.dumps(error_chunk)}\n\n"
+        finally:
+            try:
+                db2.close()
+            except Exception:
+                pass
 
     return StreamingResponse(
         stream_generator(),
