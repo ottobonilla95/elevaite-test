@@ -1,61 +1,84 @@
 # Workflow Engine PoC - Dockerfile (two-stage build with uv)
 
-FROM python:3.11-bullseye AS builder
+FROM python:3.11.11-slim-bullseye AS builder
 
-# System deps
-RUN apt-get update \
-    && apt-get -y install --no-install-recommends \
-    curl \
-    build-essential \
-    libpq-dev \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+# The installer requires curl (and certificates) to download the release archive
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install uv (https://github.com/astral-sh/uv)
+# Download the latest installer
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
+
+# Run the installer then remove it
 RUN sh /uv-installer.sh && rm /uv-installer.sh
+
+# Ensure the installed binary is on the `PATH`
 ENV PATH="/root/.local/bin/:$PATH"
 
-# Workspace layout
+# Set up the workspace structure
 WORKDIR /elevaite
 
-# Copy workspace config and local packages referenced by [tool.uv.sources]
-COPY pyproject.toml ./
+# Copy workspace configuration
+COPY pyproject.toml uv.lock ./
+
+# Copy workspace package dependencies used by workflow-engine-poc
 COPY python_packages/db-core ./python_packages/db-core
 COPY python_packages/elevaite_ingestion ./python_packages/elevaite_ingestion
 COPY python_packages/fastapi-logger ./python_packages/fastapi-logger
 COPY python_packages/llm-gateway ./python_packages/llm-gateway
 COPY python_packages/workflow-core-sdk ./python_packages/workflow-core-sdk
 
-
-# Copy the workflow-engine-poc project
+# Copy workflow-engine-poc project files
 COPY python_apps/workflow-engine-poc ./python_apps/workflow-engine-poc
 
-# Install deps (creates .venv and uv.lock)
+# Install dependencies using uv in the workflow-engine-poc directory
 WORKDIR /elevaite/python_apps/workflow-engine-poc
-RUN uv sync
+
+# Install dependencies using uv (this will create .venv automatically)
+RUN uv sync --frozen --no-dev
+# Copy the created venv to a stable location outside the source tree to avoid bind-mount masking
+RUN mkdir -p /opt && if [ -d "/elevaite/.venv" ]; then \
+    cp -a /elevaite/.venv /opt/venv; \
+    else \
+    cp -a /elevaite/python_apps/workflow-engine-poc/.venv /opt/venv; \
+    fi
+# Remove source-embedded venvs to avoid duplication when copying app sources
+RUN rm -rf /elevaite/.venv /elevaite/python_apps/workflow-engine-poc/.venv || true
 
 
-FROM python:3.11-slim-bullseye AS runtime
+FROM python:3.11.11-slim-bullseye AS runtime
 
-# Install uv in runtime stage
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && apt-get purge -y --auto-remove curl \
-    && rm -rf /var/lib/apt/lists/*
-ENV PATH="/root/.local/bin/:$PATH"
+# Copy only the app sources needed at runtime (dependencies are in /opt/venv)
+COPY --from=builder /elevaite/python_apps/workflow-engine-poc /elevaite/python_apps/workflow-engine-poc
+COPY --from=builder /elevaite/python_packages/db-core /elevaite/python_packages/db-core
+COPY --from=builder /elevaite/python_packages/elevaite_ingestion /elevaite/python_packages/elevaite_ingestion
+COPY --from=builder /elevaite/python_packages/fastapi-logger /elevaite/python_packages/fastapi-logger
+COPY --from=builder /elevaite/python_packages/llm-gateway /elevaite/python_packages/llm-gateway
+COPY --from=builder /elevaite/python_packages/workflow-core-sdk /elevaite/python_packages/workflow-core-sdk
+# Copy the virtual environment to runtime
+COPY --from=builder /opt/venv /opt/venv
 
-# Copy entire workspace from builder (includes .venv and uv.lock)
-COPY --from=builder /elevaite /elevaite
 
-# Working dir and port
+# Use the prebuilt virtual environment (relocated to /opt/venv)
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Change to the workflow-engine-poc application directory
 WORKDIR /elevaite/python_apps/workflow-engine-poc
+
+# Expose the port
 EXPOSE 8006
+
+# Set environment variable for port
 ENV PORT=8006
 
 # Create uploads dir used by file APIs (non-persistent)
 RUN mkdir -p /elevaite/python_apps/workflow-engine-poc/uploads
 
-# Default command
-CMD ["uv", "run", "uvicorn", "workflow_engine_poc.main:app", "--host", "0.0.0.0", "--port", "8006"]
+# Run the application using the prebuilt environment (resolved via PATH)
+# Verify uvicorn is installed in the relocated venv (fail build early if missing)
+RUN python -c "import uvicorn, sys; print(uvicorn.__version__)"
+# Start the API server
+ENTRYPOINT ["python"]
+CMD ["-m", "uvicorn", "workflow_engine_poc.main:app", "--host", "0.0.0.0", "--port", "8006"]
 

@@ -11,6 +11,7 @@ dependencies = [
     "aiohttp>=3.9.1",
     "llm-gateway",
     "elevaite-ingestion",
+    "elevaite-logger",
     "db-core",
     "workflow_core_sdk",
     "sqlalchemy>=2.0.0",
