@@ -2,7 +2,9 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Literal, Optional, cast, Generator
 import uuid
 import json
+from openai import Stream
 from pydantic import BaseModel, Field, ConfigDict
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat.chat_completion_assistant_message_param import (
@@ -497,20 +499,21 @@ class Agent(BaseModel):
             tool_call_count = 0
 
             # Build system prompt with routing options
-            if self.routing_options:
-                routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
-                system_prompt = (
-                    self.system_prompt.prompt
-                    + f"""
-                Here are the routing options:
-                {routing_options}
+            # if self.routing_options:
+            #     routing_options = "\n".join([f"{k}: {v}" for k, v in self.routing_options.items()])
+            #     system_prompt = (
+            #         self.system_prompt.prompt
+            #         + f"""
+            #     Here are the routing options:
+            #     {routing_options}
 
-                Your response should be in the format:
-                {{ "routing": "respond", "content": "The answer to the query."}}
-                """
-                )
-            else:
-                system_prompt = self.system_prompt.prompt
+            #     Your response should be in the format:
+            #     {{ "routing": "respond", "content": "The answer to the query."}}
+            #     """
+            #     )
+            # else:
+            #     system_prompt = self.system_prompt.prompt
+            system_prompt = self.system_prompt.prompt
 
             # Build messages array using shared chat history processing
             messages = self._process_chat_history(chat_history, system_prompt, query)
@@ -541,7 +544,7 @@ class Agent(BaseModel):
                         api_params["tools"] = self.functions
                         api_params["tool_choice"] = "auto"
 
-                    response = client.chat.completions.create(**api_params)
+                    response: Stream[ChatCompletionChunk] = client.chat.completions.create(**api_params)
                     update_status("superuser@iopex.com", "Thinking...")
 
                     if enable_analytics and analytics_service:
@@ -593,6 +596,7 @@ class Agent(BaseModel):
                             finish_reason = chunk.choices[0].finish_reason
                             break
 
+                    print(tool_calls)
                     # Handle tool calls after streaming is complete
                     if finish_reason == "tool_calls" and tool_calls:
                         # Check if we've exceeded max tool calls

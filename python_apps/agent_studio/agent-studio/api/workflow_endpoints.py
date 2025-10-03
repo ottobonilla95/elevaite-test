@@ -638,9 +638,12 @@ def execute_workflow(
                 if execution_request.chat_history:
                     future = executor.submit(
                         command_agent.execute_stream,
-                        execution_request.query,
-                        execution_request.chat_history,
-                        dynamic_agent_store,  # Pass dynamic agent store to execute_stream
+                        query=execution_request.query,
+                        chat_history=execution_request.chat_history,
+                        session_id=execution_request.session_id,
+                        user_id=execution_request.user_id,
+                        enable_analytics=False,  # No analytics in non-streaming execute endpoint
+                        dynamic_agent_store=dynamic_agent_store,
                     )
                 else:
                     # Use provided session_id or generate one
@@ -886,40 +889,32 @@ async def execute_workflow_stream(
                 )
 
                 chunk_count = 0
-                if execution_request.chat_history:
-                    for chunk in command_agent.execute_stream(
-                        execution_request.query,
-                        execution_request.chat_history,
-                        dynamic_agent_store,
-                    ):
-                        if chunk:
-                            chunk_count += 1
-                            if chunk_count % 5 == 0:
-                                analytics_service.update_execution(
-                                    execution_id,
-                                    current_step=f"Streaming ({chunk_count} chunks)",
-                                    db=db2,
-                                )
-                            yield f"data: {json.dumps({'type': 'content', 'data': chunk, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
-                            await asyncio.sleep(0.01)
-                else:
-                    session_id = execution_request.session_id or f"workflow_{workflow_id}_{int(time.time())}"
-                    user_id = execution_request.user_id or "workflow_user"
-                    result = command_agent.execute(
-                        query=execution_request.query,
-                        session_id=session_id,
-                        user_id=user_id,
-                        enable_analytics=False,
-                        dynamic_agent_store=dynamic_agent_store,
-                    )
-                    analytics_service.update_workflow_step(
-                        execution_id,
-                        step_id,
-                        status="completed",
-                        output_data={"result": str(result)},
-                        db=db2,
-                    )
-                    yield f"data: {json.dumps({'type': 'content', 'data': result, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
+                # Always use streaming execution for better UX
+                for chunk in command_agent.execute_stream(
+                    query=execution_request.query,
+                    chat_history=execution_request.chat_history or [],
+                    session_id=execution_request.session_id,
+                    user_id=execution_request.user_id,
+                    enable_analytics=True,
+                    execution_id=execution_id,
+                    dynamic_agent_store=dynamic_agent_store,
+                ):
+                    if chunk:
+                        chunk_count += 1
+                        if chunk_count % 5 == 0:
+                            analytics_service.update_execution(
+                                execution_id,
+                                current_step=f"Streaming ({chunk_count} chunks)",
+                                db=db2,
+                            )
+                        # Convert AgentStreamChunk to dict for JSON serialization
+                        chunk_data = (
+                            chunk.model_dump()
+                            if hasattr(chunk, "model_dump")
+                            else {"type": chunk.type, "message": chunk.message}
+                        )
+                        yield f"data: {json.dumps({'type': 'content', 'data': chunk_data, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
+                        await asyncio.sleep(0.01)
 
             # Send completion status and finalize execution
             analytics_service.update_execution(

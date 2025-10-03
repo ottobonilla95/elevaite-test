@@ -25,7 +25,15 @@ class CommandAgent(Agent):
         )
 
     def execute_stream(
-        self, query: Any, chat_history: Any, dynamic_agent_store: Optional[dict] = None
+        self,
+        query: str,
+        chat_history: Optional[List[dict]] = None,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        enable_analytics: bool = True,  # CommandAgent enables analytics by default
+        max_tool_calls: int = 5,
+        execution_id: Optional[str] = None,
+        **kwargs: Any,
     ) -> Any:
         """
         CommandAgent streaming execution - delegates to base class with analytics enabled.
@@ -33,6 +41,10 @@ class CommandAgent(Agent):
         return super().execute_stream(
             query=query,
             chat_history=chat_history,
-            enable_analytics=True,  # CommandAgent enables analytics by default
-            dynamic_agent_store=dynamic_agent_store,
+            session_id=session_id,
+            user_id=user_id,
+            enable_analytics=enable_analytics,
+            max_tool_calls=max_tool_calls,
+            execution_id=execution_id,
+            **kwargs,
         )

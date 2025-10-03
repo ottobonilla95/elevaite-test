@@ -34,20 +34,12 @@ def build_toshiba_agent_from_workflow(db: Session, workflow, agent_config):
     from agents.tools import tool_schemas
 
     # Get ToshibaAgent-specific configuration
-    functions = (
-        [tool_schemas.get("query_retriever2")]
-        if "query_retriever2" in tool_schemas
-        else []
-    )
+    functions = [tool_schemas.get("query_retriever2")] if "query_retriever2" in tool_schemas else []
 
-    return create_toshiba_agent(
-        system_prompt=toshiba_agent_system_prompt, functions=functions
-    )
+    return create_toshiba_agent(system_prompt=toshiba_agent_system_prompt, functions=functions)
 
 
-def build_single_agent_from_workflow(
-    db: Session, workflow: models.Workflow, agent_config
-):
+def build_single_agent_from_workflow(db: Session, workflow: models.Workflow, agent_config):
     """Build a single agent from workflow configuration using its configured prompt and tools"""
     from agents.agent_base import Agent
 
@@ -87,9 +79,7 @@ def build_single_agent_from_workflow(
 
             system_prompt = PromptObject(
                 appName="",
-                createdTime=getattr(
-                    db_agent.system_prompt, "created_time", datetime.now()
-                ),
+                createdTime=getattr(db_agent.system_prompt, "created_time", datetime.now()),
                 prompt=getattr(db_agent.system_prompt, "prompt", ""),
                 uniqueLabel=getattr(db_agent.system_prompt, "unique_label", ""),
                 pid=getattr(db_agent.system_prompt, "pid", uuid.uuid4()),
@@ -102,9 +92,7 @@ def build_single_agent_from_workflow(
                 tags=getattr(db_agent.system_prompt, "tags", []),
                 version=getattr(db_agent.system_prompt, "version", ""),
                 variables=getattr(db_agent.system_prompt, "variables", {}),
-                hyper_parameters=getattr(
-                    db_agent.system_prompt, "hyper_parameters", {}
-                ),
+                hyper_parameters=getattr(db_agent.system_prompt, "hyper_parameters", {}),
                 prompt_label=getattr(db_agent.system_prompt, "prompt_label", ""),
             )
     except Exception as e:
@@ -161,115 +149,32 @@ def build_openai_schema_from_db_agent(db_agent: models.Agent):
         # Sanitize the agent name for use as function name
         function_name = sanitize_function_name(db_agent.name)
 
-        def python_function_to_openai_schema(agent_cls: models.Agent) -> Dict[str, Any]:
-            """Converts an agent class into an OpenAI JSON schema based on its `execute` method."""
-            execute_method = getattr(Agent, "execute", None)
-            if execute_method is None:
-                raise ValueError(f"{agent_cls.name} must have an 'execute' method.")
-
-            signature = inspect.signature(execute_method)
-            type_hints = get_type_hints(execute_method)
-
-            schema = {
-                "type": "function",
-                "function": {
-                    "name": sanitize_function_name(
-                        agent_cls.name
-                    ),  # Tool name = Class name
-                    "description": execute_method.__doc__
-                    or f"Agent {agent_cls.name} execution function",
-                    "parameters": {"type": "object", "properties": {}, "required": []},
-                },
-            }
-
-            for param_name, param in signature.parameters.items():
-                if param_name == "self":
-                    continue  # Skip 'self' parameter
-
-                param_type = type_hints.get(param_name, Any)
-                openai_type, is_optional = python_type_to_openai_type(param_type)
-
-                schema["function"]["parameters"]["properties"][param_name] = {
-                    "type": openai_type,
-                    "description": f"{param_name} parameter",
-                }
-                if openai_type == "array":
-                    schema["function"]["parameters"]["properties"][param_name][
-                        "items"
-                    ] = {"type": "string"}
-
-                if not is_optional and param.default is inspect.Parameter.empty:
-                    schema["function"]["parameters"]["required"].append(param_name)
-
-            return schema
-
-        def python_type_to_openai_type(py_type) -> tuple[str, bool]:
-            """Maps Python types to OpenAI JSON schema types, handling Optional and List types."""
-            from typing import get_origin, get_args
-
-            if get_origin(py_type) is Union:
-                args = get_args(py_type)
-                non_none_types = [t for t in args if t is not type(None)]
-                if len(non_none_types) == 1:
-                    openai_type, _ = python_type_to_openai_type(non_none_types[0])
-                    return openai_type, True  # It's Optional
-
-            if get_origin(py_type) is list or get_origin(py_type) is List:
-                return "array", False
-
-            mapping = {
-                int: "integer",
-                float: "number",
-                str: "string",
-                bool: "boolean",
-                dict: "object",
-            }
-
-            return mapping.get(py_type, "string"), False  # Default to string
-
-        # Use the sophisticated schema generation, but fall back to simple schema if it fails
-        try:
-            return python_function_to_openai_schema(db_agent)
-        except Exception as schema_error:
-            # Fallback to simple schema if advanced generation fails
-            pass
-
-            # Fallback to simple, reliable schema that matches base Agent.execute signature
-            return {
-                "type": "function",
-                "function": {
-                    "name": function_name,
-                    "description": db_agent.description
-                    or f"Execute {db_agent.name} agent - {db_agent.agent_type} type agent",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The query or task to send to the agent",
-                            },
-                            "session_id": {
-                                "type": "string",
-                                "description": "Optional session ID for the agent execution",
-                            },
-                            "user_id": {
-                                "type": "string",
-                                "description": "Optional user ID for the agent execution",
-                            },
-                            "chat_history": {
-                                "type": "array",
-                                "description": "Optional chat history for the agent execution",
-                                "items": {"type": "object"},
-                            },
-                            "enable_analytics": {
-                                "type": "boolean",
-                                "description": "Whether to enable analytics for this execution",
-                            },
+        # Create a simplified schema that only exposes essential parameters
+        # for agent-to-agent communication
+        schema = {
+            "type": "function",
+            "function": {
+                "name": function_name,
+                "description": db_agent.description or f"Execute {db_agent.name} agent",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The query or task to send to the agent",
                         },
-                        "required": ["query"],
+                        "chat_history": {
+                            "type": "array",
+                            "description": "Optional chat history for context",
+                            "items": {"type": "object"},
+                        },
                     },
+                    "required": ["query"],
                 },
-            }
+            },
+        }
+
+        return schema
 
     except Exception as e:
         # Return None if schema generation fails completely
@@ -299,9 +204,7 @@ def build_dynamic_agent_store(db: Session, workflow):
                     ):
                         # Build the agent dynamically and execute
                         try:
-                            agent = build_single_agent_from_workflow(
-                                db, workflow, {"agent_id": str(agent_id)}
-                            )
+                            agent = build_single_agent_from_workflow(db, workflow, {"agent_id": str(agent_id)})
                             result = agent.execute(
                                 query=query,
                                 session_id=session_id,
@@ -316,11 +219,21 @@ def build_dynamic_agent_store(db: Session, workflow):
                                 import json
 
                                 return json.dumps(result)
-                            elif hasattr(result, "__iter__") and not isinstance(
-                                result, str
-                            ):
-                                # Handle generators and other iterables
-                                return str(list(result))
+                            elif hasattr(result, "__iter__") and not isinstance(result, str):
+                                # Handle generators and other iterables (e.g., AgentStreamChunk generators)
+                                import json
+
+                                chunks = []
+                                for item in result:
+                                    # Convert Pydantic models to dicts
+                                    if hasattr(item, "model_dump"):
+                                        chunks.append(item.model_dump())
+                                    elif hasattr(item, "message"):
+                                        # AgentStreamChunk-like object
+                                        chunks.append({"type": getattr(item, "type", "content"), "message": item.message})
+                                    else:
+                                        chunks.append(str(item))
+                                return json.dumps({"chunks": chunks})
                             else:
                                 return str(result)
                         except Exception as e:

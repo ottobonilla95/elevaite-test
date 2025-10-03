@@ -8,10 +8,11 @@ from agents.tools import tool_schemas
 from ..models import Agent
 from ..schemas import AgentCreate, AgentUpdate
 
+
 def validate_agent_functions(functions: List) -> List[ChatCompletionToolParam]:
     validated_functions = []
     for func in functions:
-        if hasattr(func, 'function') and hasattr(func.function, 'name'):
+        if hasattr(func, "function") and hasattr(func.function, "name"):
             function_name = func.function.name
         elif isinstance(func, dict) and "function" in func:
             function_name = func["function"]["name"]
@@ -19,14 +20,22 @@ def validate_agent_functions(functions: List) -> List[ChatCompletionToolParam]:
             continue
 
         if function_name in tool_schemas:
+            # tool_schemas values are already dicts (ChatCompletionToolParam)
             validated_functions.append(tool_schemas[function_name])
         else:
-            validated_functions.append(func)
+            # Convert Pydantic model to dict if needed
+            if hasattr(func, "model_dump"):
+                validated_functions.append(func.model_dump())
+            elif hasattr(func, "dict"):
+                validated_functions.append(func.dict())
+            else:
+                validated_functions.append(func)
     return validated_functions
+
 
 def create_agent(db: Session, agent: AgentCreate) -> Agent:
     validated_functions = validate_agent_functions(agent.functions)
-    
+
     db_agent = Agent(
         name=agent.name,
         agent_type=agent.agent_type,
@@ -57,14 +66,18 @@ def create_agent(db: Session, agent: AgentCreate) -> Agent:
     db.refresh(db_agent)
     return db_agent
 
+
 def get_agent(db: Session, agent_id: uuid.UUID) -> Optional[Agent]:
     return db.query(Agent).filter(Agent.agent_id == agent_id).first()
+
 
 def get_agent_by_id(db: Session, agent_id: uuid.UUID) -> Optional[Agent]:
     return get_agent(db, agent_id)
 
+
 def get_agent_by_name(db: Session, name: str) -> Optional[Agent]:
     return db.query(Agent).filter(Agent.name == name).first()
+
 
 def get_agents(db: Session, skip: int = 0, limit: int = 100, deployed: Optional[bool] = None) -> List[Agent]:
     query = db.query(Agent)
@@ -72,17 +85,22 @@ def get_agents(db: Session, skip: int = 0, limit: int = 100, deployed: Optional[
         query = query.filter(Agent.deployed == deployed)
     return query.offset(skip).limit(limit).all()
 
+
 def get_agents_by_type(db: Session, agent_type: str) -> List[Agent]:
     return db.query(Agent).filter(Agent.agent_type == agent_type).all()
+
 
 def get_available_agents_for_deployment(db: Session) -> List[Agent]:
     return db.query(Agent).filter(Agent.available_for_deployment == True).all()
 
+
 def get_deployed_agents(db: Session) -> List[Agent]:
     return db.query(Agent).filter(Agent.deployed == True).all()
 
+
 def get_active_agents(db: Session) -> List[Agent]:
     return db.query(Agent).filter(Agent.status == "active").all()
+
 
 def update_agent(db: Session, agent_id: uuid.UUID, agent_update: AgentUpdate) -> Optional[Agent]:
     db_agent = get_agent(db, agent_id)
@@ -100,6 +118,7 @@ def update_agent(db: Session, agent_id: uuid.UUID, agent_update: AgentUpdate) ->
     db.refresh(db_agent)
     return db_agent
 
+
 def delete_agent(db: Session, agent_id: uuid.UUID) -> bool:
     db_agent = get_agent(db, agent_id)
     if not db_agent:
@@ -108,6 +127,7 @@ def delete_agent(db: Session, agent_id: uuid.UUID) -> bool:
     db.delete(db_agent)
     db.commit()
     return True
+
 
 def set_agent_deployment_status(db: Session, agent_id: uuid.UUID, deployed: bool) -> Optional[Agent]:
     db_agent = get_agent(db, agent_id)
@@ -119,6 +139,7 @@ def set_agent_deployment_status(db: Session, agent_id: uuid.UUID, deployed: bool
     db.refresh(db_agent)
     return db_agent
 
+
 def set_agent_status(db: Session, agent_id: uuid.UUID, status: str) -> Optional[Agent]:
     db_agent = get_agent(db, agent_id)
     if not db_agent:
@@ -129,6 +150,7 @@ def set_agent_status(db: Session, agent_id: uuid.UUID, status: str) -> Optional[
     db.refresh(db_agent)
     return db_agent
 
+
 def update_agent_session(db: Session, agent_id: uuid.UUID, session_id: Optional[str]) -> Optional[Agent]:
     db_agent = get_agent(db, agent_id)
     if not db_agent:
@@ -137,8 +159,9 @@ def update_agent_session(db: Session, agent_id: uuid.UUID, session_id: Optional[
     db_agent.session_id = session_id
     if session_id:
         from datetime import datetime
+
         db_agent.last_active = datetime.now()
-    
+
     db.commit()
     db.refresh(db_agent)
     return db_agent

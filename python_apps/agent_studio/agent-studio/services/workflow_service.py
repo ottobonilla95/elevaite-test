@@ -103,9 +103,7 @@ class WorkflowService:
                 connection_type = connection_data.get("connection_type", "default")
 
                 if not source_agent_id or not target_agent_id:
-                    print(
-                        f"Warning: Missing agent IDs in connection_data: {connection_data}"
-                    )
+                    print(f"Warning: Missing agent IDs in connection_data: {connection_data}")
                     continue
 
                 # Validate agents exist
@@ -113,15 +111,11 @@ class WorkflowService:
                 target_agent = crud.get_agent(db, uuid.UUID(target_agent_id))
 
                 if not source_agent:
-                    print(
-                        f"Warning: Source agent with ID '{source_agent_id}' not found"
-                    )
+                    print(f"Warning: Source agent with ID '{source_agent_id}' not found")
                     continue
 
                 if not target_agent:
-                    print(
-                        f"Warning: Target agent with ID '{target_agent_id}' not found"
-                    )
+                    print(f"Warning: Target agent with ID '{target_agent_id}' not found")
                     continue
 
                 connection_create_data = schemas.WorkflowConnectionCreate(
@@ -202,9 +196,7 @@ class WorkflowService:
             Execution result
         """
         if deployment_name not in self.active_deployments:
-            raise ValueError(
-                f"No active deployment found with name '{deployment_name}'"
-            )
+            raise ValueError(f"No active deployment found with name '{deployment_name}'")
 
         deployment_info = self.active_deployments[deployment_name]
         deployment = deployment_info["deployment"]
@@ -217,9 +209,7 @@ class WorkflowService:
                 if hasattr(agent, "execute"):
                     result = agent.execute(query, chat_history)
                 else:
-                    raise ValueError(
-                        f"Agent {deployment_info['agent_type']} does not have execute method"
-                    )
+                    raise ValueError(f"Agent {deployment_info['agent_type']} does not have execute method")
             else:
                 # Multi-agent execution via CommandAgent
                 command_agent = deployment_info["command_agent"]
@@ -230,9 +220,7 @@ class WorkflowService:
 
             # Update deployment statistics
             deployment_update = schemas.WorkflowDeploymentUpdate()
-            crud.update_workflow_deployment(
-                db, deployment.deployment_id, deployment_update
-            )
+            crud.update_workflow_deployment(db, deployment.deployment_id, deployment_update)
 
             return {
                 "status": "success",
@@ -244,9 +232,7 @@ class WorkflowService:
         except Exception as e:
             # Update error statistics
             deployment_update = schemas.WorkflowDeploymentUpdate(last_error=str(e))
-            crud.update_workflow_deployment(
-                db, deployment.deployment_id, deployment_update
-            )
+            crud.update_workflow_deployment(db, deployment.deployment_id, deployment_update)
             raise
 
     async def execute_workflow_async(
@@ -269,9 +255,7 @@ class WorkflowService:
             Streaming response chunks
         """
         if deployment_name not in self.active_deployments:
-            yield json.dumps(
-                {"error": f"No active deployment found with name '{deployment_name}'"}
-            )
+            yield json.dumps({"error": f"No active deployment found with name '{deployment_name}'"})
             return
 
         deployment_info = self.active_deployments[deployment_name]
@@ -299,28 +283,32 @@ class WorkflowService:
                     # Use async streaming execution
                     async for chunk in agent.execute_async(query, chat_history):
                         if chunk:
-                            yield json.dumps(
-                                {
-                                    "type": "content",
-                                    "data": chunk,
-                                    "timestamp": datetime.now().isoformat(),
-                                }
-                            ) + "\n"
+                            yield (
+                                json.dumps(
+                                    {
+                                        "type": "content",
+                                        "data": chunk,
+                                        "timestamp": datetime.now().isoformat(),
+                                    }
+                                )
+                                + "\n"
+                            )
                             await asyncio.sleep(0.01)
                 elif hasattr(agent, "execute"):
                     # Fall back to sync execution
                     result = agent.execute(query, chat_history)
-                    yield json.dumps(
-                        {
-                            "type": "content",
-                            "data": result,
-                            "timestamp": datetime.now().isoformat(),
-                        }
-                    ) + "\n"
-                else:
-                    raise ValueError(
-                        f"Agent {deployment_info['agent_type']} does not have execute method"
+                    yield (
+                        json.dumps(
+                            {
+                                "type": "content",
+                                "data": result,
+                                "timestamp": datetime.now().isoformat(),
+                            }
+                        )
+                        + "\n"
                     )
+                else:
+                    raise ValueError(f"Agent {deployment_info['agent_type']} does not have execute method")
             else:
                 # Multi-agent execution via CommandAgent
                 command_agent = deployment_info["command_agent"]
@@ -329,13 +317,22 @@ class WorkflowService:
                     for chunk in command_agent.execute_stream(query, chat_history):
                         if chunk:
                             # Wrap each chunk in a structured format
-                            yield json.dumps(
-                                {
-                                    "type": "content",
-                                    "data": chunk,
-                                    "timestamp": datetime.now().isoformat(),
-                                }
-                            ) + "\n"
+                            # Convert AgentStreamChunk to dict for JSON serialization
+                            chunk_data = (
+                                chunk.model_dump()
+                                if hasattr(chunk, "model_dump")
+                                else {"type": chunk.type, "message": chunk.message}
+                            )
+                            yield (
+                                json.dumps(
+                                    {
+                                        "type": "content",
+                                        "data": chunk_data,
+                                        "timestamp": datetime.now().isoformat(),
+                                    }
+                                )
+                                + "\n"
+                            )
                             # Small delay to prevent overwhelming the client
                             await asyncio.sleep(0.01)
                 else:
@@ -343,13 +340,16 @@ class WorkflowService:
                     result = command_agent.execute(query=query)
 
                     # Send the result as a single chunk
-                    yield json.dumps(
-                        {
-                            "type": "content",
-                            "data": result,
-                            "timestamp": datetime.now().isoformat(),
-                        }
-                    ) + "\n"
+                    yield (
+                        json.dumps(
+                            {
+                                "type": "content",
+                                "data": result,
+                                "timestamp": datetime.now().isoformat(),
+                            }
+                        )
+                        + "\n"
+                    )
 
             # Send completion status
             yield (
@@ -366,9 +366,7 @@ class WorkflowService:
 
             # Update deployment statistics
             deployment_update = schemas.WorkflowDeploymentUpdate()
-            crud.update_workflow_deployment(
-                db, deployment.deployment_id, deployment_update
-            )
+            crud.update_workflow_deployment(db, deployment.deployment_id, deployment_update)
 
         except Exception as e:
             # Send error status
@@ -387,9 +385,7 @@ class WorkflowService:
 
             # Update error statistics
             deployment_update = schemas.WorkflowDeploymentUpdate(last_error=str(e))
-            crud.update_workflow_deployment(
-                db, deployment.deployment_id, deployment_update
-            )
+            crud.update_workflow_deployment(db, deployment.deployment_id, deployment_update)
 
     def stop_deployment(self, db: Session, deployment_name: str) -> bool:
         """
@@ -421,9 +417,7 @@ class WorkflowService:
         """Get all active deployments"""
         return self.active_deployments
 
-    def _build_command_agent_from_workflow(
-        self, db: Session, workflow: models.Workflow
-    ) -> CommandAgent:
+    def _build_command_agent_from_workflow(self, db: Session, workflow: models.Workflow) -> CommandAgent:
         """
         Build a CommandAgent from a workflow configuration
 
@@ -446,25 +440,16 @@ class WorkflowService:
             if source_agent and source_agent.name == "CommandAgent":
                 if target_agent:
                     functions.extend(target_agent.functions)
-                    print(
-                        f"Added {len(target_agent.functions)} functions from {target_agent.name}"
-                    )
+                    print(f"Added {len(target_agent.functions)} functions from {target_agent.name}")
                 else:
-                    target_agent_fallback = crud.get_agent(
-                        db, connection.target_agent_id
-                    )
-                    if (
-                        target_agent_fallback
-                        and target_agent_fallback.name in agent_schemas
-                    ):
+                    target_agent_fallback = crud.get_agent(db, connection.target_agent_id)
+                    if target_agent_fallback and target_agent_fallback.name in agent_schemas:
                         functions.append(agent_schemas[target_agent_fallback.name])
                         print(f"Used fallback schema for {target_agent_fallback.name}")
 
         # Create CommandAgent with workflow-specific configuration
         # Use a deterministic UUID based on workflow ID to avoid random agent IDs
-        workflow_agent_id = uuid.uuid5(
-            uuid.NAMESPACE_DNS, f"workflow.{workflow.workflow_id}"
-        )
+        workflow_agent_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"workflow.{workflow.workflow_id}")
         command_agent = CommandAgent(
             name=f"WorkflowCommandAgent_{workflow.name}",
             agent_id=workflow_agent_id,
@@ -497,9 +482,7 @@ class WorkflowService:
 
         return command_agent
 
-    def _create_workflow_deployment(
-        self, db: Session, workflow, deployment
-    ) -> Dict[str, Any]:
+    def _create_workflow_deployment(self, db: Session, workflow, deployment) -> Dict[str, Any]:
         """
         Create deployment based on workflow type (single-agent vs multi-agent)
         """
@@ -551,15 +534,9 @@ class WorkflowService:
         from agents.tools import tool_schemas
 
         # Get ToshibaAgent-specific configuration
-        functions = (
-            [tool_schemas.get("query_retriever2")]
-            if "query_retriever2" in tool_schemas
-            else []
-        )
+        functions = [tool_schemas.get("query_retriever2")] if "query_retriever2" in tool_schemas else []
 
-        return create_toshiba_agent(
-            system_prompt=toshiba_agent_system_prompt, functions=functions
-        )
+        return create_toshiba_agent(system_prompt=toshiba_agent_system_prompt, functions=functions)
 
     def _build_single_agent(self, db: Session, workflow, agent_config):
         """Build a single agent from configuration"""

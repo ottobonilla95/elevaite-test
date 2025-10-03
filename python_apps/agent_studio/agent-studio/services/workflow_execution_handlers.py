@@ -686,7 +686,10 @@ def execute_workflow_background(
                             dynamic_agent_store,
                         )
                         # Convert generator to string for storage
-                        result = "".join(str(chunk) for chunk in result if chunk)
+                        # Extract message content from AgentStreamChunk objects
+                        result = "".join(
+                            chunk.message if hasattr(chunk, "message") else str(chunk) for chunk in result if chunk
+                        )
                     else:
                         session_id = execution_request.session_id or f"workflow_{workflow_id}_{int(time.time())}"
                         user_id = execution_request.user_id or "workflow_user"

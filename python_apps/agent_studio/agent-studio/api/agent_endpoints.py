@@ -36,24 +36,12 @@ def _create_agent_instance_from_db(db: Session, db_agent: models.Agent):
 
     # Safely cast input_type and output_type
     valid_io_types = ["text", "voice", "image"]
-    input_type = (
-        [t for t in db_agent.input_type if t in valid_io_types]
-        if db_agent.input_type
-        else ["text"]
-    )
-    output_type = (
-        [t for t in db_agent.output_type if t in valid_io_types]
-        if db_agent.output_type
-        else ["text"]
-    )
+    input_type = [t for t in db_agent.input_type if t in valid_io_types] if db_agent.input_type else ["text"]
+    output_type = [t for t in db_agent.output_type if t in valid_io_types] if db_agent.output_type else ["text"]
 
     # Safely cast response_type
     valid_response_types = ["json", "yaml", "markdown", "HTML", "None"]
-    response_type = (
-        db_agent.response_type
-        if db_agent.response_type in valid_response_types
-        else "json"
-    )
+    response_type = db_agent.response_type if db_agent.response_type in valid_response_types else "json"
 
     # Safely cast status
     valid_statuses = ["active", "paused", "terminated"]
@@ -61,11 +49,7 @@ def _create_agent_instance_from_db(db: Session, db_agent: models.Agent):
 
     # Safely cast collaboration_mode
     valid_collaboration_modes = ["single", "team", "parallel", "sequential"]
-    collaboration_mode = (
-        db_agent.collaboration_mode
-        if db_agent.collaboration_mode in valid_collaboration_modes
-        else "single"
-    )
+    collaboration_mode = db_agent.collaboration_mode if db_agent.collaboration_mode in valid_collaboration_modes else "single"
 
     system_prompt = PromptObject(
         appName="",
@@ -91,9 +75,7 @@ def _create_agent_instance_from_db(db: Session, db_agent: models.Agent):
         agent_id=db_agent.agent_id,
         system_prompt=system_prompt,
         persona=db_agent.persona,
-        functions=cast(
-            List[Any], db_agent.functions
-        ),  # Cast to List[Any] for compatibility
+        functions=cast(List[Any], db_agent.functions),  # Cast to List[Any] for compatibility
         routing_options=db_agent.routing_options,
         model="gpt-4o-mini",
         temperature=0.7,
@@ -102,18 +84,14 @@ def _create_agent_instance_from_db(db: Session, db_agent: models.Agent):
         reasoning=db_agent.reasoning,
         input_type=cast(List[Literal["text", "voice", "image"]], input_type),
         output_type=cast(List[Literal["text", "voice", "image"]], output_type),
-        response_type=cast(
-            Literal["json", "yaml", "markdown", "HTML", "None"], response_type
-        ),
+        response_type=cast(Literal["json", "yaml", "markdown", "HTML", "None"], response_type),
         max_retries=db_agent.max_retries,
         timeout=db_agent.timeout,
         deployed=db_agent.deployed,
         status=cast(Literal["active", "paused", "terminated"], status),
         priority=db_agent.priority,
         failure_strategies=db_agent.failure_strategies,
-        collaboration_mode=cast(
-            Literal["single", "team", "parallel", "sequential"], collaboration_mode
-        ),
+        collaboration_mode=cast(Literal["single", "team", "parallel", "sequential"], collaboration_mode),
     )
 
 
@@ -235,17 +213,12 @@ def get_agent_schema(agent_id: uuid.UUID, db: Session = Depends(get_db)):
         # Create an agent instance to get the functions
         agent_instance = _create_agent_instance_from_db(db, db_agent)
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to create agent instance: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create agent instance: {str(e)}")
 
     # Extract model and temperature from system prompt
     model = db_agent.system_prompt.ai_model_name
     temperature = 0.7  # Default temperature
-    if (
-        db_agent.system_prompt.hyper_parameters
-        and "temperature" in db_agent.system_prompt.hyper_parameters
-    ):
+    if db_agent.system_prompt.hyper_parameters and "temperature" in db_agent.system_prompt.hyper_parameters:
         try:
             temperature = float(db_agent.system_prompt.hyper_parameters["temperature"])
         except (ValueError, TypeError):
@@ -257,9 +230,7 @@ def get_agent_schema(agent_id: uuid.UUID, db: Session = Depends(get_db)):
         id=str(agent_id),
         name=db_agent.name,
         instructions=db_agent.system_prompt.prompt,
-        tools=[
-            dict(tool) for tool in agent_instance.functions
-        ],  # Convert to dict format
+        tools=[dict(tool) for tool in agent_instance.functions],  # Convert to dict format
         model=model,
         temperature=temperature,
         max_retries=db_agent.max_retries,
@@ -271,11 +242,7 @@ def get_agent_schema(agent_id: uuid.UUID, db: Session = Depends(get_db)):
         metadata={
             "agent_id": str(agent_id),
             "system_prompt_id": str(db_agent.system_prompt_id),
-            "created_time": (
-                db_agent.system_prompt.created_time.isoformat()
-                if db_agent.system_prompt.created_time
-                else None
-            ),
+            "created_time": (db_agent.system_prompt.created_time.isoformat() if db_agent.system_prompt.created_time else None),
             "deployed": db_agent.deployed,
             "status": db_agent.status,
         },
@@ -306,9 +273,7 @@ def get_agent_functions(agent_id: uuid.UUID, db: Session = Depends(get_db)):
         # Create an agent instance to get the functions
         agent_instance = _create_agent_instance_from_db(db, db_agent)
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to create agent instance: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create agent instance: {str(e)}")
 
     return [dict(tool) for tool in agent_instance.functions]
 
@@ -400,9 +365,7 @@ def update_deployment_status(
     """
     Update whether an agent is available for deployment.
     """
-    agent_update = schemas.AgentUpdate(
-        available_for_deployment=status_update.available_for_deployment
-    )
+    agent_update = schemas.AgentUpdate(available_for_deployment=status_update.available_for_deployment)
     db_agent = crud.update_agent(db=db, agent_id=agent_id, agent_update=agent_update)
     if db_agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -425,9 +388,7 @@ def execute_agent(
 
     # Check if agent is available for execution
     if not db_agent.available_for_deployment:
-        raise HTTPException(
-            status_code=400, detail="Agent is not available for execution"
-        )
+        raise HTTPException(status_code=400, detail="Agent is not available for execution")
 
     try:
         # Create an agent instance from the database record with proper type casting
@@ -472,41 +433,33 @@ async def _execute_agent_background(
     """
     from services.execution_manager import execution_manager
     from db.database import get_db
-    
+
     try:
         # Update status to running
         execution_manager.update_execution(execution_id, status="running", current_step="Initializing agent")
-        
+
         # Get database session
         db = next(get_db())
-        
+
         try:
             # Get the agent from database
             db_agent = crud.get_agent(db=db, agent_id=agent_id)
             if db_agent is None:
-                execution_manager.update_execution(
-                    execution_id, 
-                    status="failed", 
-                    error="Agent not found"
-                )
+                execution_manager.update_execution(execution_id, status="failed", error="Agent not found")
                 return
 
             # Check if agent is available for execution
             if not db_agent.available_for_deployment:
-                execution_manager.update_execution(
-                    execution_id, 
-                    status="failed", 
-                    error="Agent is not available for execution"
-                )
+                execution_manager.update_execution(execution_id, status="failed", error="Agent is not available for execution")
                 return
 
             execution_manager.update_execution(execution_id, current_step="Creating agent instance", progress=0.2)
-            
+
             # Create an agent instance from the database record
             agent_instance = _create_agent_instance_from_db(db, db_agent)
 
             execution_manager.update_execution(execution_id, current_step="Executing agent", progress=0.4)
-            
+
             # Execute the agent
             result = agent_instance.execute(
                 query=execution_request.query,
@@ -517,7 +470,7 @@ async def _execute_agent_background(
             )
 
             execution_manager.update_execution(execution_id, current_step="Processing results", progress=0.8)
-            
+
             # Format the result
             response_data = {
                 "status": "success",
@@ -526,26 +479,18 @@ async def _execute_agent_background(
                 "execution_id": execution_id,
                 "timestamp": datetime.now().isoformat(),
             }
-            
+
             # Update execution as completed
             execution_manager.update_execution(
-                execution_id, 
-                status="completed", 
-                progress=1.0,
-                current_step="Completed",
-                result=response_data
+                execution_id, status="completed", progress=1.0, current_step="Completed", result=response_data
             )
-            
+
         finally:
             db.close()
 
     except Exception as e:
         # Update execution as failed
-        execution_manager.update_execution(
-            execution_id, 
-            status="failed", 
-            error=str(e)
-        )
+        execution_manager.update_execution(execution_id, status="failed", error=str(e))
 
 
 @router.post("/{agent_id}/execute/async")
@@ -559,7 +504,7 @@ async def execute_agent_async(
     Returns immediately with execution_id for status polling.
     """
     from services.execution_manager import execution_manager, AsyncExecutionResponse
-    
+
     # Create execution record
     execution_id = execution_manager.create_execution(
         execution_type="agent",
@@ -567,24 +512,21 @@ async def execute_agent_async(
         session_id=execution_request.session_id,
         user_id=execution_request.user_id,
         query=execution_request.query,
-        estimated_duration=10  # Rough estimate for agents
+        estimated_duration=10,  # Rough estimate for agents
     )
-    
+
     # Queue the background task
     background_tasks.add_task(
-        _execute_agent_background,
-        execution_id=execution_id,
-        agent_id=agent_id,
-        execution_request=execution_request
+        _execute_agent_background, execution_id=execution_id, agent_id=agent_id, execution_request=execution_request
     )
-    
+
     return AsyncExecutionResponse(
         execution_id=execution_id,
         status="accepted",
         type="agent",
         estimated_completion_time=datetime.now() + timedelta(seconds=10),
         status_url=f"/api/executions/{execution_id}/status",
-        timestamp=datetime.now()
+        timestamp=datetime.now(),
     )
 
 
@@ -604,9 +546,7 @@ async def execute_agent_stream(
 
     # Check if agent is available for execution
     if not db_agent.available_for_deployment:
-        raise HTTPException(
-            status_code=400, detail="Agent is not available for execution"
-        )
+        raise HTTPException(status_code=400, detail="Agent is not available for execution")
 
     async def stream_generator():
         """Generate streaming response chunks"""
@@ -618,17 +558,19 @@ async def execute_agent_stream(
             agent_instance = _create_agent_instance_from_db(db, db_agent)
 
             # Check if agent has execute_stream method
-            if hasattr(agent_instance, "execute_stream") and callable(
-                getattr(agent_instance, "execute_stream")
-            ):
+            if hasattr(agent_instance, "execute_stream") and callable(getattr(agent_instance, "execute_stream")):
                 # Use streaming execution
                 execute_stream_method = getattr(agent_instance, "execute_stream")
-                for chunk in execute_stream_method(
-                    execution_request.query, execution_request.chat_history
-                ):
+                for chunk in execute_stream_method(execution_request.query, execution_request.chat_history):
                     if chunk:
                         # Wrap each chunk in a structured format
-                        yield f"data: {json.dumps({'type': 'content', 'data': chunk, 'timestamp': datetime.now().isoformat()})}\n\n"
+                        # Convert AgentStreamChunk to dict for JSON serialization
+                        chunk_data = (
+                            chunk.model_dump()
+                            if hasattr(chunk, "model_dump")
+                            else {"type": chunk.type, "message": chunk.message}
+                        )
+                        yield f"data: {json.dumps({'type': 'content', 'data': chunk_data, 'timestamp': datetime.now().isoformat()})}\n\n"
                         # Small delay to prevent overwhelming the client
                         await asyncio.sleep(0.01)
             else:
