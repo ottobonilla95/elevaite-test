@@ -563,14 +563,11 @@ async def execute_agent_stream(
                 execute_stream_method = getattr(agent_instance, "execute_stream")
                 for chunk in execute_stream_method(execution_request.query, execution_request.chat_history):
                     if chunk:
-                        # Wrap each chunk in a structured format
-                        # Convert AgentStreamChunk to dict for JSON serialization
-                        chunk_data = (
-                            chunk.model_dump()
-                            if hasattr(chunk, "model_dump")
-                            else {"type": chunk.type, "message": chunk.message}
-                        )
-                        yield f"data: {json.dumps({'type': 'content', 'data': chunk_data, 'timestamp': datetime.now().isoformat()})}\n\n"
+                        # Extract type and message from AgentStreamChunk
+                        chunk_type = chunk.type if hasattr(chunk, "type") else "content"
+                        chunk_message = chunk.message if hasattr(chunk, "message") else str(chunk)
+
+                        yield f"data: {json.dumps({'type': chunk_type, 'data': chunk_message, 'timestamp': datetime.now().isoformat()})}\n\n"
                         # Small delay to prevent overwhelming the client
                         await asyncio.sleep(0.01)
             else:

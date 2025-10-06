@@ -907,13 +907,11 @@ async def execute_workflow_stream(
                                 current_step=f"Streaming ({chunk_count} chunks)",
                                 db=db2,
                             )
-                        # Convert AgentStreamChunk to dict for JSON serialization
-                        chunk_data = (
-                            chunk.model_dump()
-                            if hasattr(chunk, "model_dump")
-                            else {"type": chunk.type, "message": chunk.message}
-                        )
-                        yield f"data: {json.dumps({'type': 'content', 'data': chunk_data, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
+                        # Extract type and message from AgentStreamChunk to match single-agent format
+                        chunk_type = chunk.type if hasattr(chunk, "type") else "content"
+                        chunk_message = chunk.message if hasattr(chunk, "message") else str(chunk)
+
+                        yield f"data: {json.dumps({'type': chunk_type, 'data': chunk_message, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
                         await asyncio.sleep(0.01)
 
             # Send completion status and finalize execution
