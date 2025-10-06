@@ -177,23 +177,18 @@ def test_workflow_agent_to_agent_streaming_e2e():
                 chunk = json.loads(data_str)
                 chunks_received.append(chunk)
 
+                # Print full JSON object for debugging
+                print(f"  📦 Full chunk: {json.dumps(chunk, indent=2)}")
+
                 # Track content chunks
                 if chunk.get("type") == "content":
                     content_chunks.append(chunk)
-                    data = chunk.get("data", {})
 
-                    # Handle both dict and string data
-                    if isinstance(data, dict):
-                        message = data.get("message", "")
-                    else:
-                        message = str(data)
-
-                    # Track agent call info
-                    if "Agent Called:" in message:
+                # Track agent call info (now comes as "info" type, not "content")
+                if chunk.get("type") == "info":
+                    data = chunk.get("data", "")
+                    if "Agent Called:" in str(data):
                         agent_call_chunks.append(chunk)
-                        print(f"  🔵 {message.strip()}")
-                    elif message and not message.startswith("["):
-                        print(f"  📝 {message.strip()}")
 
             except json.JSONDecodeError as e:
                 pytest.fail(f"Failed to parse chunk as JSON: {data_str}\nError: {e}")

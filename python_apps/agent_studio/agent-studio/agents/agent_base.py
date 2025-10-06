@@ -704,15 +704,15 @@ class Agent(BaseModel):
                                     )
                                     update_status("superuser@iopex.com", "Thinking...")
 
-                                    # Yield tool result
+                                    # Yield tool result as info (not content) so it doesn't mix with final response
                                     try:
                                         if isinstance(result, str):
                                             json.loads(result)  # Validate JSON format
-                                            yield AgentStreamChunk(type="agent_response", message=result + "\n")
+                                            yield AgentStreamChunk(type="info", message=result + "\n")
                                         else:
-                                            yield AgentStreamChunk(type="content", message=str(result) + "\n")
+                                            yield AgentStreamChunk(type="info", message=str(result) + "\n")
                                     except json.JSONDecodeError:
-                                        yield AgentStreamChunk(type="content", message=str(result) + "\n")
+                                        yield AgentStreamChunk(type="info", message=str(result) + "\n")
 
                                 finally:
                                     # Exit tool tracking context if it was entered
