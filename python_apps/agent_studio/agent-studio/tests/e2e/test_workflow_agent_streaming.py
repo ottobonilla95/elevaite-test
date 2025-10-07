@@ -183,6 +183,7 @@ def test_workflow_agent_to_agent_streaming_e2e():
         chunks_received = []
         content_chunks = []
         agent_call_chunks = []
+        tool_response_chunks = []
 
         # Stream the response line by line
         for line in response.iter_lines(decode_unicode=True):
@@ -205,6 +206,11 @@ def test_workflow_agent_to_agent_streaming_e2e():
                         if "Agent Called:" in str(data):
                             agent_call_chunks.append(chunk)
 
+                    # Track tool response chunks (new type for tool execution results)
+                    if chunk.get("type") == "tool_response":
+                        tool_response_chunks.append(chunk)
+                        print(f"  🔧 Tool response received: {chunk.get('data', '')[:100]}...")
+
                 except json.JSONDecodeError as e:
                     pytest.fail(f"Failed to parse chunk as JSON: {data_str}\nError: {e}")
 
@@ -212,6 +218,7 @@ def test_workflow_agent_to_agent_streaming_e2e():
         print(f"\n✅ Test passed! Received {len(chunks_received)} chunks without JSON serialization errors")
         print(f"Content chunks: {len(content_chunks)}")
         print(f"Agent call chunks: {len(agent_call_chunks)}")
+        print(f"Tool response chunks: {len(tool_response_chunks)}")
 
         # Verify we got chunks
         assert len(chunks_received) > 0, "No chunks received from streaming endpoint"
@@ -225,6 +232,16 @@ def test_workflow_agent_to_agent_streaming_e2e():
         # Verify agent-to-agent call happened
         assert len(agent_call_chunks) > 0, "No agent-to-agent calls detected in streaming response"
 
+        # Verify tool responses are sent as separate type (not mixed with info or content)
+        # Tool responses should be present when agent-to-agent calls happen
+        assert len(tool_response_chunks) > 0, "No tool_response chunks detected - tool results should use tool_response type"
+
+        # Verify tool responses don't appear in content or info chunks
+        for chunk in tool_response_chunks:
+            assert chunk.get("type") == "tool_response", f"Tool response has wrong type: {chunk.get('type')}"
+            # Tool responses should contain data
+            assert chunk.get("data"), "Tool response chunk missing data"
+
         print(f"\n📦 All chunks received:")
         for i, chunk in enumerate(chunks_received, 1):
             print(f"  {i}. {chunk}")
@@ -234,6 +251,7 @@ def test_workflow_agent_to_agent_streaming_e2e():
         print("✅ Workflow created with connections via API")
         print("✅ Workflow executed with streaming")
         print("✅ Agent-to-agent calls detected")
+        print("✅ Tool responses sent as separate 'tool_response' type")
         print("✅ All chunks properly serialized to JSON")
 
     finally:

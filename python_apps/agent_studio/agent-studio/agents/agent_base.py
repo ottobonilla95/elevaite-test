@@ -25,7 +25,7 @@ def get_redis_manager():
 
 
 class AgentStreamChunk(BaseModel):
-    type: Literal["content"] | Literal["info"] | Literal["error"] | Literal["agent_response"]
+    type: Literal["content"] | Literal["info"] | Literal["error"] | Literal["agent_response"] | Literal["tool_response"]
     message: str
 
 
@@ -704,15 +704,15 @@ class Agent(BaseModel):
                                     )
                                     update_status("superuser@iopex.com", "Thinking...")
 
-                                    # Yield tool result as info (not content) so it doesn't mix with final response
+                                    # Yield tool result as tool_response type so frontend can handle it separately
                                     try:
                                         if isinstance(result, str):
                                             json.loads(result)  # Validate JSON format
-                                            yield AgentStreamChunk(type="info", message=result + "\n")
+                                            yield AgentStreamChunk(type="tool_response", message=result + "\n")
                                         else:
-                                            yield AgentStreamChunk(type="info", message=str(result) + "\n")
+                                            yield AgentStreamChunk(type="tool_response", message=str(result) + "\n")
                                     except json.JSONDecodeError:
-                                        yield AgentStreamChunk(type="info", message=str(result) + "\n")
+                                        yield AgentStreamChunk(type="tool_response", message=str(result) + "\n")
 
                                 finally:
                                     # Exit tool tracking context if it was entered

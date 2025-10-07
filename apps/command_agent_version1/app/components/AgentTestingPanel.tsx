@@ -1,6 +1,15 @@
 import { ChatbotIcons, CommonButton } from "@repo/ui/components";
 import { useAutoSizeTextArea } from "@repo/ui/hooks";
-import { AlertCircle, Bot, FileText, Maximize2, Minimize2, Upload, User, X } from "lucide-react";
+import {
+  AlertCircle,
+  Bot,
+  FileText,
+  Maximize2,
+  Minimize2,
+  Upload,
+  User,
+  X,
+} from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { BACKEND_URL } from "../lib/constants";
 import { useWorkflows } from "../ui/contexts/WorkflowsContext";
@@ -27,7 +36,11 @@ interface AgentTestingPanelProps {
   onWorkflowUpdate?: (workflowId: string) => void;
 }
 
-function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingPanelProps): React.ReactElement {
+function AgentTestingPanel({
+  workflowId,
+  sessionId,
+  description,
+}: AgentTestingPanelProps): React.ReactElement {
   const streamAbortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
@@ -46,8 +59,9 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
     {
       id: Date.now(),
       text: workflowId
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- No! Not the same! description can be an empty string.
-        ? (description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`)
+        ? // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- No! Not the same! description can be an empty string.
+          description ||
+          `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`
         : "No workflow detected. Please select a workflow from the left panel or save a new one.",
       sender: "bot",
     },
@@ -55,17 +69,22 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
 
   // UPDATE: React to workflowId changes
   useEffect(() => {
-
     if (workflowId) {
       runIdRef.current++;
-      
-      try { streamAbortRef.current?.abort(); } catch { /* noop */ }
+
+      try {
+        streamAbortRef.current?.abort();
+      } catch {
+        /* noop */
+      }
       inFlightRef.current = false;
-      
+
       const intro = {
         id: Date.now(),
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- description can be an empty string
-        text: description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
+        text:
+          description ||
+          `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
         sender: "bot" as const,
       };
       setChatMessages([intro]);
@@ -78,7 +97,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
         },
       ]);
     }
-    
+
     setUploadedFiles([]);
     setIsLoading(false);
     setAgentStatus("Ready");
@@ -111,7 +130,9 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
     };
   }, [sessionId]);
 
-  function handleInputChange(event: React.ChangeEvent<HTMLTextAreaElement>): void {
+  function handleInputChange(
+    event: React.ChangeEvent<HTMLTextAreaElement>
+  ): void {
     setChatInput(event.target.value);
   }
 
@@ -130,7 +151,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
 
   async function handleSendMessage(): Promise<void> {
     if (!chatInput.trim() || !workflowId) return;
-    
+
     const controller = new AbortController();
     streamAbortRef.current = controller;
     const myRunId = ++runIdRef.current;
@@ -169,12 +190,15 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
         runtime_overrides: {},
       };
 
-      const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}/stream`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(executionRequest),
-        signal: controller.signal,
-      });
+      const response = await fetch(
+        `${BACKEND_URL ?? ""}api/workflows/${workflowId}/stream`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(executionRequest),
+          signal: controller.signal,
+        }
+      );
       // console.log("📥 Raw response:", response);
       if (!response.ok) throw new Error(`HTTP ${response.status.toString()}`);
       if (!response.body) throw new Error("No stream body returned");
@@ -188,7 +212,10 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
       while (!doneReading) {
         if (myRunId !== runIdRef.current) break;
         const { done, value } = await reader.read();
-        if (done) { doneReading = true; break; }
+        if (done) {
+          doneReading = true;
+          break;
+        }
 
         buffer += decoder.decode(value, { stream: true });
         // console.log("📦 Chunk received:", buffer);
@@ -206,18 +233,28 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
           try {
             const parsed = JSON.parse(payload) as unknown;
             // status messages
-            if (typeof parsed === "object" && parsed !== null && "status" in parsed) {
+            if (
+              typeof parsed === "object" &&
+              parsed !== null &&
+              "status" in parsed
+            ) {
               const status = (parsed as { status?: string }).status;
               if (status === "started") setAgentStatus("Started");
               if (status === "completed") setAgentStatus("Completed");
               if (status === "error") {
-                const errorMessage = (parsed as { error?: string }).error ?? "Unknown error";
+                const errorMessage =
+                  (parsed as { error?: string }).error ?? "Unknown error";
                 setAgentStatus("Error");
-                setChatMessages(prev => {
-                  const placeholderHasText = prev.some(m => m.id === placeholderBotMessage.id && m.text && m.text.trim().length > 0);
+                setChatMessages((prev) => {
+                  const placeholderHasText = prev.some(
+                    (m) =>
+                      m.id === placeholderBotMessage.id &&
+                      m.text &&
+                      m.text.trim().length > 0
+                  );
                   const withoutEmptyPlaceholder = placeholderHasText
                     ? prev
-                    : prev.filter(m => m.id !== placeholderBotMessage.id);
+                    : prev.filter((m) => m.id !== placeholderBotMessage.id);
 
                   return [
                     ...withoutEmptyPlaceholder,
@@ -231,7 +268,11 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
                 });
 
                 // Stop streaming
-                try { void reader.cancel(); } catch { /*noop*/}
+                try {
+                  void reader.cancel();
+                } catch {
+                  /*noop*/
+                }
                 doneReading = true;
                 break;
               }
@@ -239,52 +280,89 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
             }
 
             // typed content/events
-            if (typeof parsed === "object" && parsed !== null && "type" in parsed) {
+            if (
+              typeof parsed === "object" &&
+              parsed !== null &&
+              "type" in parsed
+            ) {
               const evt = parsed as { type: string; data?: unknown };
               if (evt.type === "content") {
                 const data = typeof evt.data === "string" ? evt.data : "";
                 const nextText = accumulatedText + data;
                 accumulatedText = nextText;
                 // Live update the placeholder message
-                setChatMessages((prev) => prev.map((m) => (m.id === placeholderBotMessage.id ? { ...m, text: nextText } : m)));                
+                setChatMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === placeholderBotMessage.id
+                      ? { ...m, text: nextText }
+                      : m
+                  )
+                );
               } else if (evt.type === "info") {
                 const raw = typeof evt.data === "string" ? evt.data : "";
                 const statusMessage = raw.trim();
                 if (statusMessage) setAgentStatus(statusMessage);
+              } else if (evt.type === "tool_response") {
+                // Tool responses are logged to console for debugging
+                console.log("🔧 Tool Response:", evt.data);
               } else if (evt.type === "error") {
                 const raw = typeof evt.data === "string" ? evt.data : "";
                 setAgentStatus("Error");
-                setChatMessages(prev => [
+                setChatMessages((prev) => [
                   ...prev,
-                  { id: Date.now(), text: raw, sender: "bot", error: true, },
+                  { id: Date.now(), text: raw, sender: "bot", error: true },
                 ]);
-                try { void reader.cancel(); } catch { /* noop */ }
+                try {
+                  void reader.cancel();
+                } catch {
+                  /* noop */
+                }
                 doneReading = true;
                 break;
               } else if (evt.type === "agent_response") {
                 handleAgentResponse(evt.data);
               } else if (evt.type === "tool_call_started") {
                 const d = (evt.data ?? {}) as { tool_name?: string };
-                setAgentStatus(d.tool_name ? `Using: ${d.tool_name}` : "Using tool...");
+                setAgentStatus(
+                  d.tool_name ? `Using: ${d.tool_name}` : "Using tool..."
+                );
               } else if (evt.type === "tool_call_completed") {
-                const d = (evt.data ?? {}) as { tool_name?: string; success?: boolean };
-                setAgentStatus(d.tool_name ? `Finished: ${d.tool_name}${d.success === false ? " (failed)" : ""}` : "Tool done");
+                const d = (evt.data ?? {}) as {
+                  tool_name?: string;
+                  success?: boolean;
+                };
+                setAgentStatus(
+                  d.tool_name
+                    ? `Finished: ${d.tool_name}${d.success === false ? " (failed)" : ""}`
+                    : "Tool done"
+                );
               }
             }
           } catch (e) {
             // Avoid dumping structured events as content
-            const looksStructured = payload.startsWith("{") && /"status"|"type"/.test(payload);
+            const looksStructured =
+              payload.startsWith("{") && /"status"|"type"/.test(payload);
             if (looksStructured) continue;
             // Some back-compat chunks can be plain strings (e.g., "Agent Responded")
             const nextText = accumulatedText + payload;
             accumulatedText = nextText;
-            setChatMessages((prev) => prev.map((m) => (m.id === placeholderBotMessage.id ? { ...m, text: nextText } : m)));
+            setChatMessages((prev) =>
+              prev.map((m) =>
+                m.id === placeholderBotMessage.id ? { ...m, text: nextText } : m
+              )
+            );
           }
         }
       }
 
       // Finalize placeholder message
-      setChatMessages((prev) => prev.map((m) => (m.id === placeholderBotMessage.id ? { ...m, text: accumulatedText || m.text } : m)));
+      setChatMessages((prev) =>
+        prev.map((m) =>
+          m.id === placeholderBotMessage.id
+            ? { ...m, text: accumulatedText || m.text }
+            : m
+        )
+      );
     } catch (error) {
       if (myRunId !== runIdRef.current) return;
       setChatMessages((prevMessages) => [
@@ -304,7 +382,6 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
       }
     }
   }
-
 
   function handleAgentResponse(data: unknown): void {
     let responseMessage = "";
@@ -349,7 +426,9 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
 
   function beautifyName(word: string): string {
     const spaced = word.replace(/_/g, " ");
-    return spaced.length ? spaced[0].toUpperCase() + spaced.slice(1).toLowerCase() : spaced;
+    return spaced.length
+      ? spaced[0].toUpperCase() + spaced.slice(1).toLowerCase()
+      : spaced;
   }
 
   function isObjOrArray(item: unknown): boolean {
@@ -359,7 +438,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
   function handleFilesUploaded(files: UploadedFile[]): void {
     setUploadedFiles((prev) => [...prev, ...files]);
 
-    const fileNames = files.map(f => f.name).join(', ');
+    const fileNames = files.map((f) => f.name).join(", ");
     const systemMessage: ChatMessage = {
       id: Date.now(),
       text: `📎 Uploaded ${files.length.toString()} file(s): ${fileNames}. You can now ask questions about these documents!`,
@@ -367,7 +446,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
     };
 
     setChatMessages((prevMessages) => [...prevMessages, systemMessage]);
-  };
+  }
 
   function renderUserAvatar(): React.ReactElement {
     return (
@@ -375,7 +454,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
         <User size={16} />
       </div>
     );
-  };
+  }
 
   function renderBotAvatar(isError = false): React.ReactElement {
     return (
@@ -383,7 +462,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
         {isError ? <AlertCircle size={16} /> : <Bot size={16} />}
       </div>
     );
-  };
+  }
 
   function formatTime(timestamp: number): string {
     const date = new Date(timestamp);
@@ -392,7 +471,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
       minute: "2-digit",
       hour12: true,
     });
-  };
+  }
 
   return (
     <>
@@ -420,7 +499,9 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => { setExpandChat(!expandChat); }}
+                    onClick={() => {
+                      setExpandChat(!expandChat);
+                    }}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     type="button"
                     title={expandChat ? "Minimize chat" : "Expand chat"}
@@ -450,7 +531,11 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
                         {formatTime(message.id)}
                       </div>
                       <div className="text-sm text-[#212124] opacity-75">
-                        <AgentTestingParser message={message.text} isUser={message.sender === "user"} isError={message.error} />
+                        <AgentTestingParser
+                          message={message.text}
+                          isUser={message.sender === "user"}
+                          isError={message.error}
+                        />
                       </div>
                     </div>
                   </div>
@@ -461,7 +546,9 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
               {/* Show uploaded files if any */}
               {uploadedFiles.length > 0 && (
                 <div className="uploaded-files px-6 mb-4">
-                  <div className="text-xs font-medium text-gray-500 mb-2">Uploaded Files:</div>
+                  <div className="text-xs font-medium text-gray-500 mb-2">
+                    Uploaded Files:
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {uploadedFiles.map((file) => (
                       <div
@@ -472,7 +559,9 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
                         <span>{file.name}</span>
                         <button
                           onClick={() => {
-                            setUploadedFiles(prev => prev.filter(f => f.id !== file.id));
+                            setUploadedFiles((prev) =>
+                              prev.filter((f) => f.id !== file.id)
+                            );
                           }}
                           className="text-blue-500 hover:text-blue-700"
                           type="button"
@@ -489,15 +578,23 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
           <ChatLoading isLoading={isLoading} loadingMessage={agentStatus} />
         </div>
 
-        {!workflowId ? undefined :
-          <div className={["chatbot-input-container", isLoading ? "is-loading" : undefined].filter(Boolean).join(" ")}>
+        {!workflowId ? undefined : (
+          <div
+            className={[
+              "chatbot-input-container",
+              isLoading ? "is-loading" : undefined,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
             <div className="chatbot-input-contents">
-
               <textarea
                 ref={textAreaRef}
                 className="chatbot-input-field chatbot-input-textarea"
                 value={chatInput}
-                placeholder={isLoading ? "Working, please wait..." : "Type message here"}
+                placeholder={
+                  isLoading ? "Working, please wait..." : "Type message here"
+                }
                 onChange={handleInputChange}
                 onKeyDown={handleKeyPress}
                 disabled={isLoading}
@@ -505,10 +602,11 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
               />
 
               <div className="chatbot-input-actions">
-
                 <CommonButton
                   className="chatbot-input-upload-button"
-                  onClick={() => { setShowUploadModal(true); }}
+                  onClick={() => {
+                    setShowUploadModal(true);
+                  }}
                   title="Upload files"
                   disabled={!workflowId}
                   noBackground
@@ -519,37 +617,45 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
                 <CommonButton
                   className={[
                     "chatbot-input-send-button",
-                    (isLoading || !chatInput.trim()) ? "is-disabled" : undefined
-                  ].filter(Boolean).join(" ")}
+                    isLoading || !chatInput.trim() ? "is-disabled" : undefined,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   onClick={handleSendMessage}
                   disabled={isLoading || !chatInput.trim()}
                   title="Send"
                 >
-                  {isLoading ? <ChatbotIcons.SVGSpinner /> : <ChatbotIcons.SVGSend />}
+                  {isLoading ? (
+                    <ChatbotIcons.SVGSpinner />
+                  ) : (
+                    <ChatbotIcons.SVGSend />
+                  )}
                 </CommonButton>
-
               </div>
-
             </div>
           </div>
-        }
+        )}
       </div>
 
       {/* Upload Modal - Only show if we have a workflow */}
-      {!workflowId ? undefined :
+      {!workflowId ? undefined : (
         <UploadModal
           isOpen={showUploadModal}
-          onClose={() => { setShowUploadModal(false); }}
+          onClose={() => {
+            setShowUploadModal(false);
+          }}
           onFilesUploaded={handleFilesUploaded}
         />
-      }
+      )}
 
       {/* Workflow Details Modal */}
-      {!showAgentWorkflowModal ? undefined :
+      {!showAgentWorkflowModal ? undefined : (
         <AgentWorkflowDetailsModal
-          onClose={() => { setShowAgentWorkflowModal(false); }}
+          onClose={() => {
+            setShowAgentWorkflowModal(false);
+          }}
         />
-      }
+      )}
     </>
   );
 }
