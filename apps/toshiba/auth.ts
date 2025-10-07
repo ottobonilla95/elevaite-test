@@ -103,7 +103,6 @@ export const authOptions: NextAuthConfig = {
               needsPasswordReset,
               is_superuser: userDetails.is_superuser,
               application_admin: userDetails.application_admin,
-              is_manager: userDetails.is_manager,
               mfa_enabled: userDetails.mfa_enabled,
               sms_mfa_enabled: userDetails.sms_mfa_enabled,
               phone_verified: userDetails.phone_verified,

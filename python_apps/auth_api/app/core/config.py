@@ -1,6 +1,6 @@
 import os
 import secrets
-from typing import List, Union, Optional
+from typing import List, Union
 
 from pydantic import field_validator, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -143,23 +143,6 @@ class Settings(BaseSettings):
         if isinstance(v, list):
             return v
         raise ValueError("CORS_ORIGINS should be a comma-separated string or a list")
-
-    # Redis Settings
-    REDIS_ENABLED: bool = os.environ.get("REDIS_ENABLED", "false").lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
-    REDIS_HOST: Optional[str] = os.environ.get("REDIS_HOST")
-    REDIS_PORT: int = int(os.environ.get("REDIS_PORT", "6379"))
-    REDIS_DB: int = int(os.environ.get("REDIS_DB", "0"))
-    REDIS_USERNAME: Optional[str] = os.environ.get("REDIS_USERNAME")
-    REDIS_PASSWORD: Optional[str] = os.environ.get("REDIS_PASSWORD")
-    REDIS_SOCKET_TIMEOUT: int = int(os.environ.get("REDIS_SOCKET_TIMEOUT", "5"))
-    REDIS_CONNECT_TIMEOUT: int = int(os.environ.get("REDIS_CONNECT_TIMEOUT", "5"))
-    # Redis Debounce Settings
-    REDIS_DEBOUNCE_SECONDS: int = int(os.environ.get("REDIS_DEBOUNCE_SECONDS", "60"))
 
 
 settings = Settings()

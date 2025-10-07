@@ -37,12 +37,6 @@ export function ChatMessage(props: ChatMessageProps): JSX.Element {
     }
   }, [props.text, props.isStreaming]);
 
-  useEffect(() => {
-    if (containsVideoDetailsTag(props.text)) {
-      console.log("[ChatMessage] <video-details> detected", { id: props.id });
-    }
-  }, [props.text]);
-
   function handleVote(vote: 1 | -1): void {
     const newVote = props.vote === vote ? 0 : vote;
     if (newVote === -1) setIsFeedbackOpen(true);
@@ -55,12 +49,6 @@ export function ChatMessage(props: ChatMessageProps): JSX.Element {
 
   function toggleFiles(): void {
     setIsFilesOpen((current) => !current);
-  }
-
-  function containsVideoDetailsTag(text?: string | null): boolean {
-    if (!text) return false;
-    // matches: <video-details> or <video-details ...>
-    return /<\s*video-details(?:\s|>)/i.test(text);
   }
 
   return (
@@ -92,9 +80,10 @@ export function ChatMessage(props: ChatMessageProps): JSX.Element {
           {props.isBot ? (
               <span>
               ELEV<span className="highlight">AI</span>TE
-                {/* {props.isStreaming && (
+                {props.isStreaming && (
                     <span className="agent-status"> • {chatContext.agentStatus ? chatContext.agentStatus : "Thinking..."} </span>
-                )} */}
+
+                )}
             </span>
           ) : (
               <span>{props.userName}</span>
@@ -106,9 +95,25 @@ export function ChatMessage(props: ChatMessageProps): JSX.Element {
         </div>
 
         <div className="message" ref={messageRef}>
-          {props.text ?
-            <InlineSourceMessage text={props.text} sources={props.sources} isStreaming={props.isStreaming} />
-          : props.isStreaming ? (
+          {props.text ? (
+            <>
+              {props.sources && props.sources.length > 0 ? (
+                <InlineSourceMessage text={props.text} sources={props.sources} />
+              ) : (
+                <ReactMarkdown
+                  children={props.text}
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    table: ({ node, ...props }) => (
+                      <table className="custom-table" {...props} />
+                    ),
+                    th: ({ node, ...props }) => <th {...props} />,
+                    td: ({ node, ...props }) => <td {...props} />,
+                  }}
+                />
+              )}
+            </>
+          ) : props.isStreaming ? (
             <div className="typing-indicator">
               <span></span>
               <span></span>
@@ -181,7 +186,14 @@ export function ChatMessage(props: ChatMessageProps): JSX.Element {
         )}
 
         {!props.isBot || props.isStreaming ? null : (
-          <div className={["feedback-container", isFeedbackOpen ? "open" : undefined].filter(Boolean).join(" ")} >
+          <div
+            className={[
+              "feedback-container",
+              isFeedbackOpen ? "open" : undefined,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
             <div className="feedback-accordion">
               <ChatMessageFeedback
                 id={props.id}

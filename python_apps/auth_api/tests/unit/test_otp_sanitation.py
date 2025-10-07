@@ -84,8 +84,8 @@ class TestOTPGeneration:
             assert any(c.islower() for c in password)
             assert any(c.isupper() for c in password)
             assert any(c.isdigit() for c in password)
-            # Accept any non-alphanumeric as a special character
-            assert any(not c.isalnum() for c in password)
+            special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+            assert any(c in special_chars for c in password)
 
 
 @pytest.mark.asyncio
@@ -140,10 +140,8 @@ class TestOTPEmailRendering:
             )
             if html_match:
                 html_password = html_match.group(1)
-                from html import escape as _escape
-
                 assert (
-                    password in html_password or _escape(password) in html_password
+                    password in html_password
                 ), f"Password '{password}' not correctly rendered in HTML"
 
     @patch("app.services.email_service.send_email")
@@ -214,10 +212,8 @@ class TestOTPEmailRendering:
                     ), f"Password '{password}' not found in HTML section"
             else:
                 # If we can't find the styled paragraph, just check if the password is in the HTML
-                from html import escape as _escape
-
                 assert (
-                    password in html_body or _escape(password) in html_body
+                    password in html_body
                 ), f"Password '{password}' not found in HTML body"
 
             # Reset the mock for the next iteration

@@ -21,29 +21,12 @@ from app.core.multitenancy import multitenancy_settings
 from app.db.models import Base
 
 
-from urllib.parse import urlsplit, urlunsplit
-
-
-def _derive_test_db_url(db_url: str) -> str:
-    # Strip accidental quotes from env files
-    db_url = db_url.strip().strip('"').strip("'")
-    parts = urlsplit(db_url)
-    if not parts.path or parts.path == "/":
-        raise ValueError(f"Could not derive DB name from URL: {db_url}")
-    dbname = parts.path.lstrip("/")
-    if not dbname.endswith("_test"):
-        dbname = f"{dbname}_test"
-    return urlunsplit(
-        (parts.scheme, parts.netloc, f"/{dbname}", parts.query, parts.fragment)
-    )
-
-
+# Test database URL - use a separate database for testing
 # Get the database URL from settings or use a default for testing
-base_db_url = (
-    settings.DATABASE_URI
-    or "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth"
-)
-TEST_DATABASE_URL = _derive_test_db_url(base_db_url)
+db_url = settings.DATABASE_URI
+if not db_url:
+    db_url = "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth"
+TEST_DATABASE_URL = db_url.replace("/auth", "/auth_test").replace("auth_test_db", "auth_test")
 
 
 @pytest.fixture(scope="session")
@@ -114,14 +97,9 @@ async def test_session_factory(test_engine, test_db_setup):
 
 @pytest_asyncio.fixture
 async def test_session(test_session_factory) -> AsyncGenerator[AsyncSession, None]:
-    """Create a test session for database operations (default tenant)."""
+    """Create a test session for database operations."""
     session = test_session_factory()
     try:
-        # Default all sessions to the 'default' tenant unless a test overrides it
-        set_current_tenant_id("default")
-        schema_name = get_schema_name("default", multitenancy_settings)
-        await session.execute(text(f'SET search_path TO "{schema_name}", public'))
-
         yield session
         # Roll back all changes after each test
         await session.rollback()
@@ -158,74 +136,11 @@ async def test_client(test_db_setup) -> AsyncGenerator[AsyncClient, None]:
 
     test_app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
-    client = AsyncClient(
-        transport=httpx.ASGITransport(app=test_app), base_url="http://test"
-    )
+    client = AsyncClient(transport=httpx.ASGITransport(app=test_app), base_url="http://test")
     try:
         yield client
     finally:
         await client.aclose()
-
-
-# Helper fixture to relax rate limiting during tests that don't validate rate limits
-import uuid
-
-
-@pytest_asyncio.fixture
-async def relax_auth_rate_limit():
-    """Temporarily override auth router limiter key_func to avoid cross-test 429s.
-
-    The auth router's Limiter instance is module-scoped and keeps in-memory state
-    across tests. We switch key_func to use a unique key per request so non-rate-limit
-    tests can run reliably without interference, then restore it after the test.
-    """
-    try:
-        from app.routers import auth as auth_router
-    except Exception:
-        yield  # If import fails for any reason, don't block tests
-        return
-
-    limiter = getattr(auth_router, "limiter", None)
-    if limiter is None:
-        yield
-        return
-
-    original_key_func = getattr(limiter, "_key_func", None)
-
-    def _test_key_func(request):
-        # Allow explicit override via header for future flexibility, otherwise unique per request
-        return request.headers.get("X-Rate-Test-Key", uuid.uuid4().hex)
-
-    limiter._key_func = _test_key_func
-    try:
-        yield
-    finally:
-        limiter._key_func = original_key_func
-
-
-# Ensure rate limiter storage is clean between tests to avoid cross-test interference
-import pytest
-
-
-@pytest.fixture(autouse=True)
-def _reset_auth_rate_limiter_between_tests():
-    try:
-        from app.routers import auth as auth_router
-
-        limiter = getattr(auth_router, "limiter", None)
-        if limiter is not None:
-            limiter.reset()
-    except Exception:
-        pass
-    yield
-    try:
-        from app.routers import auth as auth_router
-
-        limiter = getattr(auth_router, "limiter", None)
-        if limiter is not None:
-            limiter.reset()
-    except Exception:
-        pass
 
 
 @pytest_asyncio.fixture
@@ -278,11 +193,6 @@ async def test_user(test_session_factory) -> Dict:
         # Reset tenant context
         set_current_tenant_id(None)
 
-        return {
-            "id": user_id,
-            "email": test_email,
-            "password": test_password,
-            "tenant": "default",
-        }
+        return {"id": user_id, "email": test_email, "password": test_password, "tenant": "default"}
     finally:
         await session.close()

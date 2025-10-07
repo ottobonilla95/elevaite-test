@@ -28,8 +28,6 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=9)
     is_one_time_password: bool = Field(default=False)
     application_admin: bool = Field(default=False)
-    is_manager: bool = Field(default=False)
-
 
     @field_validator("password")
     @classmethod
@@ -135,8 +133,6 @@ class UserDetail(UserResponse):
     phone_verified: bool = False
     phone_number: Optional[str] = None
     email_mfa_enabled: bool = False
-    is_manager: bool
-
 
 
 class Token(BaseModel):

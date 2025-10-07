@@ -1,45 +1,84 @@
 name: Deploy to Testing (EKS)
 
+
+
 on:
+
   push:
+
     branches: [ testing ]
 
+
+
 permissions:
+
   contents: read
 
+
+
 concurrency:
+
   group: testing-deploy-${{ github.sha }}
+
   cancel-in-progress: true
 
+
+
 jobs:
+
   build-and-push-all:
+
     name: Build & Push ALL images
+
     runs-on: ubuntu-latest
+
     outputs:
-      ui_tag:            ${{ steps.main_tags.outputs.ui_tag }}
-      api_tag:           ${{ steps.main_tags.outputs.api_tag }}
-      analytics_api_tag: ${{ steps.main_tags.outputs.analytics_api_tag }}
-      auth_tag:          ${{ steps.main_tags.outputs.auth_tag }}
-      retr_power_tag:    ${{ steps.build_retrievers.outputs.retr_power_tag }}
-      retr_sql_tag:      ${{ steps.build_retrievers.outputs.retr_sql_tag }}
-      retr_tgcs_tag:     ${{ steps.build_retrievers.outputs.retr_tgcs_tag }}
-      retr_topgun_tag:   ${{ steps.build_retrievers.outputs.retr_topgun_tag }}
-      retr_video_tag:    ${{ steps.build_retrievers.outputs.retr_video_tag }}
+
+      ui_tag:   ${{ steps.out.outputs.ui_tag }}
+
+      api_tag:  ${{ steps.out.outputs.api_tag }}
+
+      auth_tag: ${{ steps.out.outputs.auth_tag }}
+
+      retr_power_tag:   ${{ steps.retr.outputs.retr_power_tag }}
+
+      retr_sql_tag:     ${{ steps.retr.outputs.retr_sql_tag }}
+
+      retr_tgcs_tag:    ${{ steps.retr.outputs.retr_tgcs_tag }}
+
+      retr_topgun_tag:  ${{ steps.retr.outputs.retr_topgun_tag }}
+
     env:
+
       ECR_REGISTRY: ${{ secrets.TGCS_ECR_REGISTRY }}
+
       TAG: testing-${{ github.sha }}
+
     steps:
+
       - uses: actions/checkout@v4
+
+
 
       - uses: docker/setup-buildx-action@v3
 
+
+
       - uses: aws-actions/configure-aws-credentials@v3
+
         with:
+
           aws-access-key-id: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+
           aws-secret-access-key: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+
           aws-region: ${{ secrets.STAGE_AWS_REGION }}
 
+
+
       - uses: aws-actions/amazon-ecr-login@v1
+
+
 
       - name: Build UI
         run: |
@@ -48,7 +87,6 @@ jobs:
             --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
             --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs-testing.iopex.ai/auth-api \
             --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs-testing.iopex.ai/api/core/ \
-            --build-arg NEXT_PUBLIC_API_URL=https://tgcs-testing.iopex.ai \
             --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
             --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
             -f apps/toshiba/Dockerfile \
@@ -65,25 +103,6 @@ jobs:
             python_apps/toshiba_backends/toshiba_backend
           docker push "${IMAGE}:${TAG}"
 
-      - name: Build Analytics API
-        run: |
-          IMAGE="${ECR_REGISTRY}/elevaite-toshiba-analytics-backend"
-          docker build \
-            -f python_apps/toshiba_backends/analytics_backend/Dockerfile \
-            -t "${IMAGE}:${TAG}" \
-            python_apps/toshiba_backends/analytics_backend
-          docker push "${IMAGE}:${TAG}"
-
-      # Note: this is not a running service, just a container to hold the code and push to ECR
-      - name: Build Toshiba Data Schema image
-        run: |
-          IMAGE="${ECR_REGISTRY}/elevaite-toshiba-data-schema"
-          docker build \
-            -f python_apps/toshiba_backends/toshiba_data_schema/Dockerfile \
-            -t "${IMAGE}:${TAG}" \
-            python_apps/toshiba_backends/toshiba_data_schema
-          docker push "${IMAGE}:${TAG}"
-
       - name: Build Auth
         run: |
           IMAGE="${ECR_REGISTRY}/elevaite-auth-api"
@@ -94,7 +113,7 @@ jobs:
           docker push "${IMAGE}:${TAG}"
 
       - name: Build ALL retrievers
-        id: build_retrievers
+        id: retr
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -103,7 +122,7 @@ jobs:
             base="$(basename "$dir")"
             case "$base" in
               top_gun_retriever) repo="elevaite-toshiba-topgun-retriever" ;;
-              *)                 repo="elevaite-toshiba-${base//_/-}" ;;
+              *)                  repo="elevaite-toshiba-${base//_/-}" ;;
             esac
 
             IMAGE="${ECR_REGISTRY}/${repo}"
@@ -116,36 +135,52 @@ jobs:
               sql_retriever)     echo "retr_sql_tag=${TAG}"     >> "$GITHUB_OUTPUT" ;;
               tgcs_retriever)    echo "retr_tgcs_tag=${TAG}"    >> "$GITHUB_OUTPUT" ;;
               top_gun_retriever) echo "retr_topgun_tag=${TAG}"  >> "$GITHUB_OUTPUT" ;;
-              video_retriever)   echo "retr_video_tag=${TAG}"   >> "$GITHUB_OUTPUT" ;;
             esac
           done
 
       - name: Export main tags
-        id: main_tags
+        id: out
         run: |
-          echo "ui_tag=${TAG}"            >> "$GITHUB_OUTPUT"
-          echo "api_tag=${TAG}"           >> "$GITHUB_OUTPUT"
-          echo "analytics_api_tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "auth_tag=${TAG}"          >> "$GITHUB_OUTPUT"
+          echo "ui_tag=${TAG}"   >> "$GITHUB_OUTPUT"
+
+          echo "api_tag=${TAG}"  >> "$GITHUB_OUTPUT"
+
+          echo "auth_tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+
 
   deploy:
+
     needs: build-and-push-all
+
     uses: iopexses/elev8s/.github/workflows/reusable-dep-to-env.yml@main
+
     with:
+
       environment: testing
-      toshiba_ui_tag:            ${{ needs.build-and-push-all.outputs.ui_tag }}
-      toshiba_api_tag:           ${{ needs.build-and-push-all.outputs.api_tag }}
-      toshiba_analytics_api_tag: ${{ needs.build-and-push-all.outputs.analytics_api_tag }}
-      toshiba_auth_tag:          ${{ needs.build-and-push-all.outputs.auth_tag }}
-      # FIXME retriever tags are currently ignored by elev8s code and always deploys 'latest' tag
-      retr_power_tag:            ${{ needs.build-and-push-all.outputs.retr_power_tag }}
-      retr_sql_tag:              ${{ needs.build-and-push-all.outputs.retr_sql_tag }}
-      retr_tgcs_tag:             ${{ needs.build-and-push-all.outputs.retr_tgcs_tag }}
-      retr_topgun_tag:           ${{ needs.build-and-push-all.outputs.retr_topgun_tag }}
-      retr_video_tag:            ${{ needs.build-and-push-all.outputs.retr_video_tag }}
+
+      toshiba_ui_tag:   ${{ needs.build-and-push-all.outputs.ui_tag }}
+
+      toshiba_api_tag:  ${{ needs.build-and-push-all.outputs.api_tag }}
+
+      toshiba_auth_tag: ${{ needs.build-and-push-all.outputs.auth_tag }}
+
+      retr_power_tag:   ${{ needs.build-and-push-all.outputs.retr_power_tag }}
+
+      retr_sql_tag:     ${{ needs.build-and-push-all.outputs.retr_sql_tag }}
+
+      retr_tgcs_tag:    ${{ needs.build-and-push-all.outputs.retr_tgcs_tag }}
+
+      retr_topgun_tag:  ${{ needs.build-and-push-all.outputs.retr_topgun_tag }}
+
     secrets:
+
       STAGE_AWS_ACCESS_KEY_ID:     ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+
       STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+
       STAGE_AWS_REGION:            ${{ secrets.STAGE_AWS_REGION }}
+
       STAGE_EKS_CLUSTER_NAME:      ${{ secrets.STAGE_EKS_CLUSTER_NAME }}
+
       ELEV8S_READ_TOKEN:           ${{ secrets.ELEV8S_READ_TOKEN }}

@@ -2,7 +2,7 @@
 import { Logos, NavBar } from "@repo/ui/components";
 import { useSession } from "next-auth/react";
 import type { ReactNode } from "react";
-import { clientLogout } from "../lib/clientLogout";
+import { logout } from "../lib/actions";
 import "./AppLayout.scss";
 
 interface AppLayoutProps {
@@ -17,21 +17,17 @@ export function AppLayout({
   const { data: session } = useSession();
 
   const additionalMenuItems: never[] = [];
+  
 
   return (
     <div className="chatbot-layout-container">
       <NavBar
-        customLogo={<Logos.Toshiba />}
-        customRightSide={
-          <div className="right-side-logo">
-            <img
-              src="/icons/Maintenance_Services.png"
-              alt="Maintenance Services"
-            />
-          </div>
-        }
+        customLogo={<Logos.Toshiba/>}
+        customRightSide={<div className="right-side-logo">
+                          <img src="/icons/Maintenance_Services.png" alt="Maintenance Services"/>
+                        </div>}
         breadcrumbLabels={breadcrumbs}
-        logOut={clientLogout}
+        logOut={logout}
         user={{ image: session?.user?.image ?? "" }}
         additionalMenuItems={additionalMenuItems}
         hideHelp

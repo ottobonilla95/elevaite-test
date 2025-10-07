@@ -3,7 +3,6 @@ import Jupyter from "./jupyter";
 import JupyterLarge from "./jupyterLarge";
 import Preprocess from "./preprocess";
 import Toshiba from "./toshiba";
-import Youtube from "./youtube";
 
 
 export const Logos = {
@@ -12,5 +11,4 @@ export const Logos = {
     JupyterLarge,
     Preprocess,
     Toshiba,
-    Youtube,
 };

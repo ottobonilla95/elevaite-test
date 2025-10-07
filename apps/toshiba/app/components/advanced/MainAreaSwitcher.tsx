@@ -161,7 +161,7 @@ export function MainAreaSwitcher({ isSidebarCollapsed }): JSX.Element {
                                 inlinePrompts={[
                                     "Customer Query",
                                     "Part Number Lookup",
-                                    "SR Data",
+                                    "Diagnostic Code Lookup",
                                 ]}
                             />
                             {/*<div className="batch-evaluation-button-container">*/}

@@ -13,9 +13,7 @@ class TestSecurityImprovements:
     """Integration tests for security improvements."""
 
     @pytest.mark.asyncio
-    async def test_progressive_account_lockout(
-        self, test_client, test_session, relax_auth_rate_limit
-    ):
+    async def test_progressive_account_lockout(self, test_client, test_session):
         """Test progressive account lockout mechanism."""
         # Create a user
         user_email = "lockout_test@example.com"
@@ -46,44 +44,33 @@ class TestSecurityImprovements:
         # First 4 failed attempts should not lock the account
         for i in range(4):
             response = await test_client.post(
-                "/api/auth/login",
-                json=login_data,
-                headers={
-                    "X-Tenant-ID": "default",
-                    "X-Forwarded-For": f"127.0.0.{i+1}",
-                    "X-Rate-Test-Key": f"lockout-{i+1}",
-                },
+                "/api/auth/login", json=login_data, headers={"X-Tenant-ID": "default"}
             )
             assert response.status_code == 401
             assert "Incorrect email or password" in response.json()["detail"]
 
-        # 5th failed attempt should set lock, but implementation returns 401 on that attempt
+        # 5th failed attempt should lock the account for 5 minutes
+        response = await test_client.post(
+            "/api/auth/login", json=login_data, headers={"X-Tenant-ID": "default"}
+        )
+        assert response.status_code == 423
+        assert response.json()["detail"] == "account_locked"
+
+        # Verify subsequent login attempts are blocked even with correct password
+        correct_login_data = {
+            "email": user_email,
+            "password": user_password,
+        }
         response = await test_client.post(
             "/api/auth/login",
-            json=login_data,
-            headers={
-                "X-Tenant-ID": "default",
-                "X-Forwarded-For": "127.0.0.5",
-                "X-Rate-Test-Key": "lockout-5",
-            },
+            json=correct_login_data,
+            headers={"X-Tenant-ID": "default"},
         )
-        assert response.status_code == 401
-
-        # Verify lock status directly in DB to avoid rate-limit flakiness on the 6th call
-        from sqlalchemy import select
-
-        result = await test_session.execute(
-            select(User).where(User.email == user_email)
-        )
-        user = result.scalars().first()
-        assert user.failed_login_attempts == 5
-        assert user.locked_until is not None
-        assert user.locked_until > datetime.now(timezone.utc)
+        assert response.status_code == 423
+        assert response.json()["detail"] == "account_locked"
 
     @pytest.mark.asyncio
-    async def test_account_lockout_escalation(
-        self, test_client, test_session, relax_auth_rate_limit
-    ):
+    async def test_account_lockout_escalation(self, test_client, test_session):
         """Test that lockout duration escalates with more failures."""
         # Create a user with existing failed attempts
         user_email = "escalation_test@example.com"
@@ -113,26 +100,7 @@ class TestSecurityImprovements:
         }
 
         response = await test_client.post(
-            "/api/auth/login",
-            json=login_data,
-            headers={
-                "X-Tenant-ID": "default",
-                "X-Forwarded-For": "127.0.0.99",
-                "X-Rate-Test-Key": "escalate-1",
-            },
-        )
-        # Implementation returns 401 on the attempt that triggers the lock
-        assert response.status_code == 401
-
-        # Next attempt should observe the lock
-        response = await test_client.post(
-            "/api/auth/login",
-            json=login_data,
-            headers={
-                "X-Tenant-ID": "default",
-                "X-Forwarded-For": "127.0.0.100",
-                "X-Rate-Test-Key": "escalate-2",
-            },
+            "/api/auth/login", json=login_data, headers={"X-Tenant-ID": "default"}
         )
         assert response.status_code == 423
         assert response.json()["detail"] == "account_locked"
@@ -150,7 +118,7 @@ class TestSecurityImprovements:
 
     @pytest.mark.asyncio
     async def test_successful_login_resets_failed_attempts(
-        self, test_client, test_session, relax_auth_rate_limit
+        self, test_client, test_session
     ):
         """Test that successful login resets failed login attempts."""
         # Create a user with some failed attempts
@@ -180,13 +148,7 @@ class TestSecurityImprovements:
         }
 
         response = await test_client.post(
-            "/api/auth/login",
-            json=login_data,
-            headers={
-                "X-Tenant-ID": "default",
-                "X-Forwarded-For": "127.0.0.101",
-                "X-Rate-Test-Key": "reset-1",
-            },
+            "/api/auth/login", json=login_data, headers={"X-Tenant-ID": "default"}
         )
         assert response.status_code == 200
 
@@ -231,12 +193,7 @@ class TestSecurityImprovements:
         responses = []
         for i in range(6):  # Try 6 requests (should hit rate limit)
             response = await test_client.post(
-                "/api/auth/login",
-                json=login_data,
-                headers={
-                    "X-Tenant-ID": "default",
-                    # Keep same IP so rate limit triggers as designed in this test
-                },
+                "/api/auth/login", json=login_data, headers={"X-Tenant-ID": "default"}
             )
             responses.append(response)
 
@@ -263,11 +220,7 @@ class TestSecurityImprovements:
             response = await test_client.post(
                 "/api/auth/forgot-password",
                 json=reset_data,
-                headers={
-                    "X-Tenant-ID": "default",
-                    "X-Forwarded-For": f"127.0.0.{200+i}",
-                    "X-Rate-Test-Key": f"reset-lock-{i}",
-                },
+                headers={"X-Tenant-ID": "default"},
             )
             responses.append(response)
 
@@ -283,7 +236,7 @@ class TestSecurityImprovements:
 
     @pytest.mark.asyncio
     async def test_password_reset_for_locked_account_with_logging(
-        self, test_client, test_session, relax_auth_rate_limit
+        self, test_client, test_session
     ):
         """Test password reset for locked account includes proper logging."""
         # Create a locked user
@@ -315,11 +268,7 @@ class TestSecurityImprovements:
             response = await test_client.post(
                 "/api/auth/forgot-password",
                 json=reset_data,
-                headers={
-                    "X-Tenant-ID": "default",
-                    "X-Forwarded-For": "127.0.0.210",
-                    "X-Rate-Test-Key": "dup-reset-1",
-                },
+                headers={"X-Tenant-ID": "default"},
             )
 
             # Should still allow password reset
@@ -332,9 +281,7 @@ class TestSecurityImprovements:
             assert user_email in warning_call
 
     @pytest.mark.asyncio
-    async def test_duplicate_password_reset_prevention(
-        self, test_client, test_session, relax_auth_rate_limit
-    ):
+    async def test_duplicate_password_reset_prevention(self, test_client, test_session):
         """Test that duplicate password reset requests are prevented."""
         # Create a user with active password reset
         user_email = "duplicate_reset@example.com"
@@ -365,10 +312,7 @@ class TestSecurityImprovements:
         response = await test_client.post(
             "/api/auth/forgot-password",
             json=reset_data,
-            headers={
-                "X-Tenant-ID": "default",
-                "X-Forwarded-For": "127.0.0.220",
-            },
+            headers={"X-Tenant-ID": "default"},
         )
         assert response.status_code == 200
 
@@ -377,9 +321,7 @@ class TestSecurityImprovements:
         assert "If your email is registered" in response_data["message"]
 
     @pytest.mark.asyncio
-    async def test_account_lockout_logging(
-        self, test_client, test_session, relax_auth_rate_limit
-    ):
+    async def test_account_lockout_logging(self, test_client, test_session):
         """Test that account lockout events are properly logged."""
         # Create a user
         user_email = "logging_test@example.com"
@@ -408,18 +350,12 @@ class TestSecurityImprovements:
                 "password": wrong_password,
             }
 
-            # This should trigger account lockout; implementation returns 401 on triggering attempt
+            # This should trigger account lockout
             response = await test_client.post(
-                "/api/auth/login",
-                json=login_data,
-                headers={
-                    "X-Tenant-ID": "default",
-                    "X-Forwarded-For": "127.0.0.240",
-                    "X-Rate-Test-Key": "lock-logging",
-                },
+                "/api/auth/login", json=login_data, headers={"X-Tenant-ID": "default"}
             )
 
-            assert response.status_code in (401, 423)
+            assert response.status_code == 423
 
             # Verify lockout was logged
             mock_logger.warning.assert_called()
@@ -431,7 +367,7 @@ class TestSecurityImprovements:
 
     @pytest.mark.asyncio
     async def test_locked_account_login_attempt_logging(
-        self, test_client, test_session, relax_auth_rate_limit
+        self, test_client, test_session
     ):
         """Test that login attempts on locked accounts are logged."""
         # Create a locked user

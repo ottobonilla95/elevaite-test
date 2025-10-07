@@ -20,10 +20,8 @@ jobs:
     outputs:
       toshiba_ui_changed: ${{ steps.filter.outputs.ui }}
       toshiba_backend_changed: ${{ steps.filter.outputs.backend }}
-      toshiba_analytics_backend_changed: ${{ steps.filter.outputs.analytics_backend }}
-      toshiba_data_schema_changed: ${{ steps.filter.outputs.toshiba_data_schema }}
       toshiba_auth_changed: ${{ steps.filter.outputs.auth }}
-      should_deploy: ${{ steps.set.outputs.should_deploy }}
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,25 +35,67 @@ jobs:
               - 'apps/toshiba/**'
             backend:
               - 'python_apps/toshiba_backends/toshiba_backend/**'
-            analytics_backend:
-              - 'python_apps/toshiba_backends/analytics_backend/**'
-            toshiba_data_schema:
-              - 'python_apps/toshiba_backends/toshiba_data_schema/**'
             auth:
-              - 'python_apps/auth_api/**'
+              - 'python_apps/auth_api/**'            
 
       - name: Decide deploy
         id: set
         run: |
           if [[ "${{ steps.filter.outputs.ui }}" == "true" || \
             "${{ steps.filter.outputs.backend }}" == "true" || \
-            "${{ steps.filter.outputs.analytics_backend }}" == "true" || \
-            "${{ steps.filter.outputs.toshiba_data_schema }}" == "true" || \
             "${{ steps.filter.outputs.auth }}" == "true" ]]; then
             echo "should_deploy=true" >> $GITHUB_OUTPUT
           else
             echo "should_deploy=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Checkout (shallow, no blobs, PAT)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: true
+          token: ${{ github.token }}
+
+      - name: Fetch base branch
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=0 || true
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=0 || true
+
+      - name: Detect changes
+        id: check
+        run: |
+          BASE=origin/${{ github.event.pull_request.base.ref }}
+          if git merge-base --is-ancestor "$BASE" HEAD || git merge-base "$BASE" HEAD >/dev/null 2>&1; then
+            git diff --name-only "$BASE"...HEAD > changed_files.txt
+          else
+            echo "No merge base; using two-dot diff"
+            git diff --name-only "$BASE" HEAD > changed_files.txt
+          fi
+
+          UI_CHANGED=false
+          BACKEND_CHANGED=false
+          AUTH_CHANGED=false
+
+          if grep -q '^apps/toshiba/' changed_files.txt; then
+            UI_CHANGED=true
+          fi
+
+          if grep -q '^python_apps/toshiba_backends/toshiba_backend/' changed_files.txt; then
+            BACKEND_CHANGED=true
+          fi
+
+          if grep -q '^python_apps/auth_api/' changed_files.txt; then
+            AUTH_CHANGED=true
+          fi
+
+          echo "toshiba_ui_changed=$UI_CHANGED" >> $GITHUB_OUTPUT
+          echo "toshiba_backend_changed=$BACKEND_CHANGED" >> $GITHUB_OUTPUT
+          echo "toshiba_auth_changed=$AUTH_CHANGED" >> $GITHUB_OUTPUT
+          SHOULD_DEPLOY=$([[ "$UI_CHANGED" == "true" || "$BACKEND_CHANGED" == "true" || "$AUTH_CHANGED" == "true" ]] && echo "true" || echo "false")
+          echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
 
   build-and-push:
     if: needs.check-changes.outputs.should_deploy == 'true'
@@ -64,8 +104,6 @@ jobs:
     outputs:
       toshiba_ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
       toshiba_backend_tag: ${{ steps.set_tags.outputs.backend_tag }}
-      toshiba_analytics_backend_tag: ${{ steps.set_tags.outputs.analytics_backend_tag }}
-      toshiba_data_schema_tag: ${{ steps.set_tags.outputs.toshiba_data_schema_tag }}
       toshiba_auth_tag: ${{ steps.set_tags.outputs.auth_tag }}
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -100,7 +138,6 @@ jobs:
           --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
           --build-arg NEXT_PUBLIC_AUTH_API_URL=https://${{ steps.meta.outputs.preview_host }}/auth-api \
           --build-arg NEXT_PUBLIC_BACKEND_URL=https://${{ steps.meta.outputs.preview_host }}/api/core/ \
-          --build-arg NEXT_PUBLIC_API_URL=https://${{ steps.meta.outputs.preview_host }} \
           --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
           --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
           -f apps/toshiba/Dockerfile \
@@ -117,29 +154,6 @@ jobs:
           -f python_apps/toshiba_backends/toshiba_backend/Dockerfile \
           -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
           python_apps/toshiba_backends/toshiba_backend
-
-          docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
-
-      - name: Build and Push Analytics Backend
-        if: needs.check-changes.outputs.toshiba_analytics_backend_changed == 'true'
-        run: |
-          IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-analytics-backend"
-          docker build \
-          -f python_apps/toshiba_backends/analytics_backend/Dockerfile \
-          -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
-          python_apps/toshiba_backends/analytics_backend
-
-          docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
-
-      # Note: this is not a running service, just a container to hold the code and push to ECR
-      - name: Build and Push Toshiba Data Schema
-        if: needs.check-changes.outputs.toshiba_data_schema_changed == 'true'
-        run: |
-          IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-data-schema"
-          docker build \
-          -f python_apps/toshiba_backends/toshiba_data_schema/Dockerfile \
-          -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
-          python_apps/toshiba_backends/toshiba_data_schema
 
           docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
 
@@ -165,14 +179,6 @@ jobs:
             echo "backend_tag=${{ steps.meta.outputs.branch_tag }}" >> "$GITHUB_OUTPUT"
           fi
 
-          if [[ "${{ needs.check-changes.outputs.toshiba_analytics_backend_changed }}" == "true" ]]; then
-            echo "analytics_backend_tag=${{ steps.meta.outputs.branch_tag }}" >> "$GITHUB_OUTPUT"
-          fi
-
-          if [[ "${{ needs.check-changes.outputs.toshiba_data_schema_changed }}" == "true" ]]; then
-            echo "toshiba_data_schema_tag=${{ steps.meta.outputs.branch_tag }}" >> "$GITHUB_OUTPUT"
-          fi
-
           if [[ "${{ needs.check-changes.outputs.toshiba_auth_changed }}" == "true" ]]; then
             echo "auth_tag=${{ steps.meta.outputs.branch_tag }}" >> "$GITHUB_OUTPUT"
           fi
@@ -189,7 +195,6 @@ jobs:
       tls_secret_namespace: default
       toshiba_ui_tag: ${{ needs.build-and-push.outputs.toshiba_ui_tag }}
       toshiba_api_tag: ${{ needs.build-and-push.outputs.toshiba_backend_tag }}
-      toshiba_analytics_api_tag: ${{ needs.build-and-push.outputs.toshiba_analytics_backend_tag }}
       toshiba_auth_tag: ${{ needs.build-and-push.outputs.toshiba_auth_tag }}
     secrets:
       KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}

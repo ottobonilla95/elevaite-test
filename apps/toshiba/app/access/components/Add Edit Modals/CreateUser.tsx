@@ -49,7 +49,6 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
   const [userPassword, setUserPassword] = useState(generateClientPassword());
   const [isOneTimePassword, setIsOneTimePassword] = useState(true);
   const [isApplicationAdmin, setIsApplicationAdmin] = useState(false);
-  const [isManager, setIsManager] = useState(false);
   const [showPassword, setShowPassword] = useState(false); // Hide password by default
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -135,7 +134,6 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
         password: userPassword,
         isOneTimePassword,
         isApplicationAdmin,
-        isManager,
       });
 
       if (result.success) {
@@ -258,12 +256,6 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
           defaultTrue={isApplicationAdmin}
           onChange={setIsApplicationAdmin}
           info="Make the user an application admin?"
-        />
-        <CommonCheckbox
-          label="Manager"
-          defaultTrue={isManager}
-          onChange={setIsManager}
-          info="Make the user a manager (dashboard access only)?"
         />
 
         {apiError ? <div className="api-error-message">{apiError}</div> : null}

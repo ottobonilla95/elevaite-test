@@ -1,5 +1,0 @@
-.env
-.env*
-
-# retain only env template files
-!.env-template

@@ -18,11 +18,11 @@ const AccessManagementTabsArray: {
   label: ACCESS_MANAGEMENT_TABS;
   isDisabled?: boolean;
 }[] = [
-    { label: ACCESS_MANAGEMENT_TABS.ACCOUNTS },
-    { label: ACCESS_MANAGEMENT_TABS.PROJECTS },
-    { label: ACCESS_MANAGEMENT_TABS.USERS },
-    { label: ACCESS_MANAGEMENT_TABS.ROLES },
-  ];
+  { label: ACCESS_MANAGEMENT_TABS.ACCOUNTS },
+  { label: ACCESS_MANAGEMENT_TABS.PROJECTS },
+  { label: ACCESS_MANAGEMENT_TABS.USERS },
+  { label: ACCESS_MANAGEMENT_TABS.ROLES },
+];
 
 interface AccessTabsProps {
   selectedTab: ACCESS_MANAGEMENT_TABS;
@@ -46,9 +46,9 @@ export function AccessTabs({
   }
 
   const visibleTabs = AccessManagementTabsArray.filter((item) => {
+    // Server-enforced: only superusers see all tabs; app-admins see Users only
     if (effectiveIsSuper) return true;
-    if (isAppAdminSession) return item.label === ACCESS_MANAGEMENT_TABS.USERS;
-    return true;
+    return item.label === ACCESS_MANAGEMENT_TABS.USERS;
   });
 
   return (

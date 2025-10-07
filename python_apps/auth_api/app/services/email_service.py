@@ -19,23 +19,21 @@ async def send_email(
 ) -> bool:
     """
     Send an email using SMTP.
+
+    Args:
+        recipient: Email address of the recipient
+        subject: Email subject
+        text_body: Plain text email body
+        html_body: HTML email body (optional)
+        sender: Sender email address (defaults to settings.EMAILS_FROM_EMAIL)
+        sender_name: Sender name (defaults to settings.EMAILS_FROM_NAME)
+
+    Returns:
+        bool: True if email was sent successfully, False otherwise
     """
- 
+    # Use default sender if not provided
     sender_email = sender or settings.EMAILS_FROM_EMAIL
     from_name = sender_name or settings.EMAILS_FROM_NAME
-
-  
-    logger.info("=" * 50)
-    logger.info("EMAIL SEND ATTEMPT")
-    logger.info(f"Recipient: {recipient}")
-    logger.info(f"Subject: {subject}")
-    logger.info(f"SMTP Host: {settings.SMTP_HOST}")
-    logger.info(f"SMTP Port: {settings.SMTP_PORT}")
-    logger.info(f"SMTP TLS: {settings.SMTP_TLS}")
-    logger.info(f"SMTP User: {settings.SMTP_USER[:10] if settings.SMTP_USER else 'NOT SET'}***")
-    logger.info(f"SMTP Password Set: {bool(settings.SMTP_PASSWORD)}")
-    logger.info(f"From Email: {sender_email}")
-    logger.info("=" * 50)
 
     # Create message
     message = MIMEMultipart("alternative")
@@ -43,54 +41,38 @@ async def send_email(
     message["From"] = f"{from_name} <{sender_email}>"
     message["To"] = recipient
 
-
+    # Add text body
     message.attach(MIMEText(text_body, "plain"))
 
- 
+    # Add HTML body if provided
     if html_body:
         message.attach(MIMEText(html_body, "html"))
 
     try:
         # Use SSL or TLS based on settings
         if settings.SMTP_TLS:
-            logger.info("Attempting TLS connection...")
             # Use TLS
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-                logger.info("SMTP connection established")
-                
-                logger.info("Starting TLS...")
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
                 server.starttls()
-                logger.info("TLS started successfully")
 
                 # Login if credentials are provided
                 if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                    logger.info("Attempting SMTP login...")
                     server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                    logger.info("SMTP login successful")
 
                 # Send email
-                logger.info("Sending email...")
                 server.sendmail(sender_email, recipient, message.as_string())
-                logger.info("Email sent successfully!")
         else:
-            logger.info("Attempting SSL connection...")
             # Use SSL
             context = ssl.create_default_context()
             with smtplib.SMTP_SSL(
-                settings.SMTP_HOST, settings.SMTP_PORT, context=context, timeout=10
+                settings.SMTP_HOST, settings.SMTP_PORT, context=context
             ) as server:
-                logger.info("SMTP SSL connection established")
-                
                 # Login if credentials are provided
                 if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                    logger.info("Attempting SMTP login...")
                     server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                    logger.info("SMTP login successful")
 
                 # Send email
-                logger.info("Sending email...")
                 server.sendmail(sender_email, recipient, message.as_string())
-                logger.info("Email sent successfully!")
 
         logger.info(
             f"Email sent to {recipient}: {subject}",
@@ -103,74 +85,7 @@ async def send_email(
             },
         )
         return True
-        
-    except smtplib.SMTPAuthenticationError as e:
-        logger.error("=" * 50)
-        logger.error("❌ SMTP AUTHENTICATION FAILED")
-        logger.error(f"Error: {str(e)}")
-        logger.error(f"SMTP User: {settings.SMTP_USER}")
-        logger.error(f"SMTP Host: {settings.SMTP_HOST}")
-        logger.error(f"SMTP Port: {settings.SMTP_PORT}")
-        logger.error("Likely cause: Password expired or incorrect")
-        logger.error("=" * 50)
-        logger.error(
-            f"Failed to send email to {recipient}: Authentication failed - {str(e)}",
-            extra={
-                "recipient": recipient,
-                "subject": subject,
-                "sender": sender_email,
-                "smtp_host": settings.SMTP_HOST,
-                "smtp_port": settings.SMTP_PORT,
-                "error": str(e),
-                "error_type": "SMTPAuthenticationError"
-            },
-        )
-        return False
-        
-    except smtplib.SMTPConnectError as e:
-        logger.error("=" * 50)
-        logger.error("❌ SMTP CONNECTION FAILED")
-        logger.error(f"Error: {str(e)}")
-        logger.error(f"SMTP Host: {settings.SMTP_HOST}")
-        logger.error(f"SMTP Port: {settings.SMTP_PORT}")
-        logger.error("Likely cause: Wrong host/port or firewall blocking")
-        logger.error("=" * 50)
-        logger.error(
-            f"Failed to send email to {recipient}: Connection failed - {str(e)}",
-            extra={
-                "recipient": recipient,
-                "error": str(e),
-                "error_type": "SMTPConnectError"
-            },
-        )
-        return False
-        
-    except smtplib.SMTPException as e:
-        logger.error("=" * 50)
-        logger.error("❌ SMTP ERROR")
-        logger.error(f"Error Type: {type(e).__name__}")
-        logger.error(f"Error: {str(e)}")
-        logger.error("=" * 50)
-        logger.error(
-            f"Failed to send email to {recipient}: SMTP error - {str(e)}",
-            extra={
-                "recipient": recipient,
-                "subject": subject,
-                "error": str(e),
-                "error_type": type(e).__name__
-            },
-        )
-        return False
-        
     except Exception as e:
-        logger.error("=" * 50)
-        logger.error("❌ UNEXPECTED EMAIL ERROR")
-        logger.error(f"Error Type: {type(e).__name__}")
-        logger.error(f"Error: {str(e)}")
-        logger.error("Full Traceback:")
-        import traceback
-        logger.error(traceback.format_exc())
-        logger.error("=" * 50)
         logger.error(
             f"Failed to send email to {recipient}: {str(e)}",
             extra={
@@ -180,7 +95,6 @@ async def send_email(
                 "smtp_host": settings.SMTP_HOST,
                 "smtp_port": settings.SMTP_PORT,
                 "error": str(e),
-                "error_type": type(e).__name__
             },
         )
         return False
@@ -345,7 +259,7 @@ async def send_welcome_email_with_temp_password(
             <h2 style="color: {primary_color}; text-align: center;">Welcome to {settings.BRANDING_NAME}!</h2>
             <p>Hello {name},</p>
 
-            <p>Please <a href="{login_url}" style="color: {primary_color}; text-decoration: none; font-weight: bold; font-size: 18px;">log in</a> with this temporary password. You will be prompted to change your password after your first login.</p>
+            <p>Please <a href="{login_url}" style="color: {primary_color}; text-decoration: none; font-weight: bold;">log in</a> with this temporary password. You will be prompted to change your password after your first login.</p>
             
             <div style="background-color: #f8f9fa; border: 2px solid {primary_color}; border-radius: 10px; padding: 20px; margin: 20px 0; text-align: center;">
                 <p style="margin: 0 0 10px 0;"><strong>Your temporary password:</strong></p>
@@ -355,7 +269,7 @@ async def send_welcome_email_with_temp_password(
             </div>
 
             <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
-                <p style="margin: 0 0 10px 0;"><strong>Important Security Notice:</strong></p>
+                <p style="margin: 0 0 10px 0;"><strong>🔒 Important Security Notice:</strong></p>
                 <p style="margin: 0;">For your account security, <strong>{mfa_method.upper()}</strong> multi-factor authentication will be automatically enabled after <strong>{grace_period} days</strong>. We strongly recommend that you enable it sooner by visiting your <a href="{mfa_url}" style="color: {primary_color}; text-decoration: none; font-weight: bold;">account settings</a> to enhance your account security immediately.</p>
             </div>
 

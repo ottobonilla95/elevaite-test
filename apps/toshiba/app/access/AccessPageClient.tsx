@@ -23,11 +23,10 @@ export default function AccessPageClient({
 
   const isApplicationAdmin = (session?.user as any)?.application_admin === true;
 
-  // Default to Users tab for application admins, Accounts tab for superusers
-  const defaultTab =
-    isApplicationAdmin && !isSuperAdmin
-      ? ACCESS_MANAGEMENT_TABS.USERS
-      : ACCESS_MANAGEMENT_TABS.ACCOUNTS;
+  // Default strictly from server role: superusers -> Accounts, others -> Users
+  const defaultTab = isSuperAdmin
+    ? ACCESS_MANAGEMENT_TABS.ACCOUNTS
+    : ACCESS_MANAGEMENT_TABS.USERS;
 
   const [selectedTab, setSelectedTab] =
     useState<ACCESS_MANAGEMENT_TABS>(defaultTab);

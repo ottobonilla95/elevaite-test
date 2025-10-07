@@ -17,9 +17,6 @@ for abbr, full in abbreviations.items():
     trie.insert(abbr, full)
     trie.insert(full, abbr)
 
-oem_mapping = {'FSCO': 'Kroger', 'Fujitsu': 'Kroger', 'Bosch': 'Walgreens', 'PVM': 'Walgreens', 'DVR': 'Walgreens', 'Zooter': 'Kroger', 'Lenovo': 'Kroger', 'Dell': "Sam's Club", 'Access Point': 'Kroger', 'AP': 'Kroger', 'Cherry POS': 'Tractor Supply', 'Honeywell': 'Tractor Supply', 'Epson': 'Tractor Supply', 'Veriphone': 'Tractor Supply', 'Elo': 'Tractor Supply', 'Aruba': 'Kroger', 'Cisco': 'Tractor Supply', 'Juniper': 'Tractor Supply', 'Inseego': 'Tractor Supply', 'KVM': 'Kroger', 'Stockyard': 'Tractor Supply', 'Lexmark': 'Tractor Supply', 'Barix': 'Tractor Supply', 'Cradlepoint': 'Tractor Supply', 'Garden Center': 'Tractor Supply', 'Palo Alto': 'Tractor Supply', 'ENS': 'Tractor Supply', 'Yealink': 'Tractor Supply', 'Grandstream': 'Tractor Supply', 'Ucaas': 'Tractor Supply', 'Phoenix America': 'Tractor Supply', 'T-mobile': 'Tractor Supply', 'Algo': 'Tractor Supply', 'Eaton': 'Tractor Supply', 'Theatro': 'Tractor Supply', 'Accu-Time Systems': "Sam's Club", 'Anixter': "Sam's Club", 'Apple': "Sam's Club", 'ATEB': "Sam's Club", 'BNSF': "Sam's Club", 'Cable Electronics Inc': "Sam's Club", 'CDW Direct': "Sam's Club", 'CTA': "Sam's Club", 'First Data': "Sam's Club", 'HP': "Sam's Club", 'Ingenico': "Sam's Club", 'Invue': "Sam's Club", 'Invue Security Products': "Sam's Club", 'KIOSK': "Sam's Club", 'Mist': "Sam's Club", 'NCR': "Sam's Club", 'Par Tech': "Sam's Club", 'Perc. Opt.': "Sam's Club", 'Prime': "Sam's Club", 'SCHNEIDER ELECTRIC IT USA INC': "Sam's Club", 'Star Tech': "Sam's Club", 'Tellermate Inc': "Sam's Club", 'Toshiba': "Sam's Club", 'Velcro': "Sam's Club", 'Verifone': "Sam's Club", 'Zebra': "Sam's Club", 'IBM': 'Kroger', 'Mettler Toledo': 'Kroger', 'Datalogic': 'Kroger', 'Corn Fiber': 'Kroger', 'T-flex': 'Kroger', 'Teleq': 'Kroger', 'Pay Station': 'Kroger', 'Gryphon': 'Kroger', 'RJ45 Patch Cable': 'Kroger', 'Compulink': 'Kroger', 'Tripp Lite': 'Kroger', 'Lock-In': 'Kroger', 'Lock In': 'Kroger', 'CTG': 'Kroger', 'Insignia': 'Kroger', 'Panduit': 'Kroger', 'IOGEAR': 'Kroger', 'Avant': 'Kroger', 'StarTech': 'Kroger', 'Powercart': 'Kroger', 'ONC': 'Kroger', 'Oneac': 'Kroger', 'Genesis': 'Kroger', 'NextGen': 'Kroger', 'Alarm': 'Kroger', 'Telequip': 'Kroger', 'FC###': 'Kroger', 'Edgeport': 'Kroger', 'Bill dispenser': 'Kroger', 'Cash Acceptor': 'Kroger', 'Interstate': 'Kroger', 'Well Shin': 'Kroger', 'PSC': 'Kroger', 'Load cell': 'Kroger', 'Magellan': 'Kroger', 'Scaletron': 'Kroger', 'PowerVar': 'Kroger', 'Shekel': 'Kroger', 'Pand': 'Kroger', 'Cybex': 'Kroger', 'Avalan': 'Kroger', 'Fuel Controller': 'Kroger', 'Controller Unit Controller': 'Toshiba', 'Payment Unit Controller': 'Toshiba', 'Scanning Unit Controller': 'Toshiba', 'SUC': 'Toshiba', 'CUC': 'Toshiba', 'PUC': 'Toshiba', 'curtain': 'Kroger', 'flat pack': 'Kroger', 'APC': 'BJs', 'UPS': 'Kroger', 'Tripp Lite KVM': 'BJs', 'Fujitsu Monitor': 'Ross', 'Fujitsu D75': 'Ross', 'VISTA': 'Walgreens', 'Ademco': 'Walgreens', 'Altronix': 'Walgreens', 'Sentrol': 'Walgreens', 'Teldat': 'Walgreens', 'Yuasa': 'Walgreens', 'Equinox': 'Walgreens', 'Aigis Mechtronics': 'Walgreens', 'Aten': 'Walgreens', 'Clinton Electronics (CE)': 'Walgreens', 'Grainger': 'Walgreens', 'Workstation': 'Walgreens', 'Meraki': 'Walgreens', 'analog box camera': 'Walgreens', 'Indyme': 'Walgreens', 'WYSE': 'Walgreens', 'Samsung': 'Walgreens', 'HP engage go': 'Walgreens', 'HP MP9': 'Walgreens', 'Avaya': 'Walgreens', 'TM-T88': 'Walgreens', 'T88': 'Walgreens', 'daktronics': 'Walgreens', 'Sensormatic': 'Zara', 'Nixdorf': 'Zara', 'Surepoint Display': 'Toshiba', 'Overhead Paging': 'Walgreens', 'Rally bar': 'Kroger', 'E & M': 'Walgreens', 'spectralink': 'Kroger', 'Catalina': 'Walgreens'}
-
-
 def extract_abbreviation_expansions(query: str) -> dict:
     words = query.split()
     matches = {}
@@ -81,10 +78,6 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     MLSE (Maple Leaf Sports & Entertainment), Coach, TCA (Travel Centers of America), Bass Pro, Kirkland, 
     Simmons Bank, GNC, Zara, STCR, Boston Pizza, LCBO (Liquor Control Board of Ontario), NLLC (Newfoundland and Labrador Liquor Corporation)
     , Husky, Princess Auto, Albertson, Signature Aviation, New Brunswick Liquor Corporation (Alcool NB Liquor Corporation or ANBL).
-    
-    If the customer name is not in the query, but has one of the OEM names in the query, add the customer name to the query.
-    Here is the mapping of OEM names to their respective customers:
-    {oem_mapping}
 
     ### DO NOT EXPAND:
     - Invalid machine types (not in the list)
@@ -129,7 +122,7 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     Chat History: {chat_history}
     
     IMPORTANT:
-    - If the query begins with "KG:", "CAM: " or "SR Data:", do not rewrite it. These are special queries that should be passed through exactly.
+    - If the query begins with "KG:", "CAM: " or "SQL:", do not rewrite it. These are special queries that should be passed through exactly.
     - For example, if the query is "KG: What are the SR tickets closed on 2024-11-06 and who resolved them?", do not rewrite it.
 
     Rewrite the query as follows:

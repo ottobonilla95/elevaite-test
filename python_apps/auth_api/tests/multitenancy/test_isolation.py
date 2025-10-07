@@ -34,9 +34,7 @@ async def tenant1_session(test_session_factory):
         # Verify the search path is set correctly
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly: {search_path}"
+        assert schema_name in search_path, f"Search path not set correctly: {search_path}"
 
         yield session
     finally:
@@ -56,9 +54,7 @@ async def tenant2_session(test_session_factory):
         # Verify the search path is set correctly
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly: {search_path}"
+        assert schema_name in search_path, f"Search path not set correctly: {search_path}"
 
         yield session
     finally:
@@ -78,9 +74,7 @@ async def default_tenant_session(test_session_factory):
         # Verify the search path is set correctly
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly: {search_path}"
+        assert schema_name in search_path, f"Search path not set correctly: {search_path}"
 
         # Commit any pending transactions
         await session.commit()
@@ -96,9 +90,7 @@ async def default_tenant_session(test_session_factory):
         # Verify the search path again
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly after reconnect: {search_path}"
+        assert schema_name in search_path, f"Search path not set correctly after reconnect: {search_path}"
 
         yield session
     finally:
@@ -109,89 +101,48 @@ async def default_tenant_session(test_session_factory):
 async def test_tenant_isolation_db(tenant1_session, tenant2_session):
     """Test that tenants are isolated at the database level."""
     # Create a user in tenant1
-    user_data1 = UserCreate(
-        email="tenant1@example.com",
-        password="Password123!@#",
-        full_name="Tenant 1 User",
-    )
-    user1 = await create_user(
-        tenant1_session,
-        UserCreate(**{**user_data1.model_dump(), "application_admin": False}),
-    )
+    user_data1 = UserCreate(email="tenant1@example.com", password="Password123!@#", full_name="Tenant 1 User")
+    user1 = await create_user(tenant1_session, user_data1)
     assert user1 is not None
-    # Avoid asserting refreshed object's fields due to potential cross-connection refresh
-    # Detailed verification is performed below via get_user_by_email in the same session
+    assert user1.email == "tenant1@example.com"
+    assert user1.full_name == "Tenant 1 User"
 
     # Create a user in tenant2
-    user_data2 = UserCreate(
-        email="tenant2@example.com",
-        password="Password456!@#",
-        full_name="Tenant 2 User",
-    )
-    user2 = await create_user(
-        tenant2_session,
-        UserCreate(**{**user_data2.model_dump(), "application_admin": False}),
-    )
+    user_data2 = UserCreate(email="tenant2@example.com", password="Password456!@#", full_name="Tenant 2 User")
+    user2 = await create_user(tenant2_session, user_data2)
     assert user2 is not None
-    # Avoid asserting refreshed object's fields due to potential cross-connection refresh
-    # Detailed verification is performed below via get_user_by_email in the same session
+    assert user2.email == "tenant2@example.com"
+    assert user2.full_name == "Tenant 2 User"
 
-    # Verify that users exist in their respective tenants using direct SQL to avoid ORM refresh issues
-    # Re-assert schema search_path to avoid losing it after commits/refreshes
-    schema1 = get_schema_name("tenant1", multitenancy_settings)
-    await tenant1_session.execute(text(f'SET search_path TO "{schema1}", public'))
-    result = await tenant1_session.execute(
-        text("SELECT email, full_name FROM users WHERE email = :email"),
-        {"email": "tenant1@example.com"},
-    )
-    row = result.fetchone()
-    assert row is not None
-    assert row.email == "tenant1@example.com"
-    assert row.full_name == "Tenant 1 User"
+    # Verify that users exist in their respective tenants
+    tenant1_user = await get_user_by_email(tenant1_session, "tenant1@example.com")
+    assert tenant1_user is not None
+    assert tenant1_user.email == "tenant1@example.com"
+    assert tenant1_user.full_name == "Tenant 1 User"
 
-    schema2 = get_schema_name("tenant2", multitenancy_settings)
-    await tenant2_session.execute(text(f'SET search_path TO "{schema2}", public'))
-    result = await tenant2_session.execute(
-        text("SELECT email, full_name FROM users WHERE email = :email"),
-        {"email": "tenant2@example.com"},
-    )
-    row = result.fetchone()
-    assert row is not None
-    assert row.email == "tenant2@example.com"
-    assert row.full_name == "Tenant 2 User"
+    tenant2_user = await get_user_by_email(tenant2_session, "tenant2@example.com")
+    assert tenant2_user is not None
+    assert tenant2_user.email == "tenant2@example.com"
+    assert tenant2_user.full_name == "Tenant 2 User"
 
     # Verify that tenant1 can't see tenant2's user
-    tenant2_user_in_tenant1 = await get_user_by_email(
-        tenant1_session, "tenant2@example.com"
-    )
+    tenant2_user_in_tenant1 = await get_user_by_email(tenant1_session, "tenant2@example.com")
     assert tenant2_user_in_tenant1 is None, "Tenant1 should not see tenant2's user"
 
     # Verify that tenant2 can't see tenant1's user
-    tenant1_user_in_tenant2 = await get_user_by_email(
-        tenant2_session, "tenant1@example.com"
-    )
+    tenant1_user_in_tenant2 = await get_user_by_email(tenant2_session, "tenant1@example.com")
     assert tenant1_user_in_tenant2 is None, "Tenant2 should not see tenant1's user"
 
 
 @pytest.mark.asyncio
-async def test_tenant_context_switching(
-    tenant1_session, tenant2_session, test_session_factory
-):
+async def test_tenant_context_switching(tenant1_session, tenant2_session, test_session_factory):
     """Test that switching tenant context works correctly."""
     # Create a user in tenant1
-    user_data1 = UserCreate(
-        email="switch1@example.com",
-        password="Password123!@#",
-        full_name="Tenant 1 User",
-    )
+    user_data1 = UserCreate(email="switch1@example.com", password="Password123!@#", full_name="Tenant 1 User")
     await create_user(tenant1_session, user_data1)
 
     # Create a user in tenant2
-    user_data2 = UserCreate(
-        email="switch2@example.com",
-        password="Password456!@#",
-        full_name="Tenant 2 User",
-    )
+    user_data2 = UserCreate(email="switch2@example.com", password="Password456!@#", full_name="Tenant 2 User")
     await create_user(tenant2_session, user_data2)
 
     # Use a new session and switch between tenants
@@ -205,9 +156,7 @@ async def test_tenant_context_switching(
         # Verify search path
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly: {search_path}"
+        assert schema_name in search_path, f"Search path not set correctly: {search_path}"
 
         tenant1_user = await get_user_by_email(session, "switch1@example.com")
         assert tenant1_user is not None
@@ -221,9 +170,7 @@ async def test_tenant_context_switching(
         # Verify search path
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly: {search_path}"
+        assert schema_name in search_path, f"Search path not set correctly: {search_path}"
 
         # Commit any pending transactions
         await session.commit()
@@ -236,9 +183,7 @@ async def test_tenant_context_switching(
         # Verify the search path again
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly after reconnect: {search_path}"
+        assert schema_name in search_path, f"Search path not set correctly after reconnect: {search_path}"
 
         # Get the user from tenant2
         tenant2_user = await get_user_by_email(session, "switch2@example.com")
@@ -281,12 +226,10 @@ async def test_default_tenant(test_client):
 
         # Create user directly with SQL
         await session.execute(
-            text(
-                """
-            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, created_at, updated_at)
-            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
-            """
-            ),
+            text("""
+            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, created_at, updated_at)
+            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, NOW(), NOW())
+            """),
             {
                 "email": test_email,
                 "password": hashed_password,

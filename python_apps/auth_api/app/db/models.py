@@ -23,7 +23,6 @@ class UserStatus(str, Enum):
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
     PENDING = "pending"
-    DELETED = "deleted" 
 
 
 # Define timezone-aware datetime functions
@@ -59,8 +58,6 @@ class User(Base, TimestampMixin):
     is_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
     is_superuser: Mapped[bool] = mapped_column(default=False, nullable=False)
     application_admin: Mapped[bool] = mapped_column(default=False, nullable=False)
-    is_manager: Mapped[bool] = mapped_column(default=False, nullable=False)
-
     is_password_temporary: Mapped[bool] = mapped_column(default=False, nullable=False)
 
     # Contact info
@@ -110,9 +107,7 @@ class User(Base, TimestampMixin):
     locked_until: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+
     # Relationships
     sessions: Mapped[List["Session"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
