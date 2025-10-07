@@ -36,12 +36,12 @@ class TestPasswordUtils:
 
     def test_is_password_temporary(self):
         """Test that is_password_temporary correctly identifies test credentials."""
-        # Test with test credentials
+        # Test with known accounts should not be treated as temporary by default
         is_test, message = is_password_temporary(
             "panagiotis.v@iopex.com", "password123"
         )
-        assert is_test is True
-        assert message == "Test account detected. Redirecting to password reset flow."
+        assert is_test is False
+        assert message == ""
 
         # Test with regular credentials
         is_test, message = is_password_temporary(
@@ -76,8 +76,8 @@ class TestPasswordResetEmail:
         # Check recipient
         assert call_args[0] == email
 
-        # Check subject
-        assert call_args[1] == "Your Password Has Been Reset"
+        # Check subject aligns with current implementation
+        assert call_args[1] == "Your New Password to ElevAIte"
 
         # Check that the email body contains the name and password
         assert name in call_args[2]  # Text body

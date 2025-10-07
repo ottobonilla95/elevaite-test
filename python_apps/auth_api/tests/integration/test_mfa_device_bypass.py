@@ -78,7 +78,7 @@ class TestMfaDeviceBypassIntegration:
         await test_session.commit()
 
         # Mock TOTP verification to always succeed
-        with patch("app.core.security.verify_totp", return_value=True):
+        with patch("app.services.auth_orm.verify_totp", return_value=True):
             login_data = {
                 "email": user_email,
                 "password": user_password,
@@ -152,7 +152,7 @@ class TestMfaDeviceBypassIntegration:
 
         # Mock device fingerprint generation to return our test fingerprint
         with patch(
-            "app.core.device_fingerprint.generate_device_fingerprint",
+            "app.services.mfa_device_service.generate_device_fingerprint",
             return_value="test_device_fingerprint",
         ):
 
@@ -216,7 +216,7 @@ class TestMfaDeviceBypassIntegration:
 
         # Mock device fingerprint generation
         with patch(
-            "app.core.device_fingerprint.generate_device_fingerprint",
+            "app.services.mfa_device_service.generate_device_fingerprint",
             return_value="expired_device_fingerprint",
         ):
 
@@ -280,7 +280,7 @@ class TestMfaDeviceBypassIntegration:
 
         # Mock device fingerprint generation for current device
         with patch(
-            "app.core.device_fingerprint.generate_device_fingerprint",
+            "app.services.mfa_device_service.generate_device_fingerprint",
             return_value="current_device_fingerprint",
         ):
 
@@ -305,7 +305,9 @@ class TestMfaDeviceBypassIntegration:
         assert "TOTP code required" in response_data["detail"]
 
     @pytest.mark.asyncio
-    async def test_account_locked_error_message(self, test_client, test_session):
+    async def test_account_locked_error_message(
+        self, test_client, test_session, relax_auth_rate_limit
+    ):
         """Test that locked accounts show proper error message."""
         # Create a locked user
         user_email = "locked_user@example.com"

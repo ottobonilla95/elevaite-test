@@ -5,12 +5,12 @@ $profile-backdrop-bot: #FFFFFF;
 /* Add these styles to your ChatMessage.scss file */
 
 /* Agent status styles */
-.agent-status {
-  color: #6b7280;
-  font-size: 0.85em;
-  font-style: italic;
-  margin-left: 5px;
-}
+// .agent-status {
+//   color: #6b7280;
+//   font-size: 0.85em;
+//   font-style: italic;
+//   margin-left: 5px;
+// }
 
 /* Streaming message styling */
 .chat-message-container.streaming {
@@ -140,32 +140,33 @@ $profile-backdrop-bot: #FFFFFF;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        // gap: 10px;
 
         
         & .message {
-            & ol {
-                list-style: decimal;
-                & ul {
-                    margin-left: 1em;
-                }
-            }
+          margin: 20px 0;
+          & ol {
+            list-style: decimal;
             & ul {
-                list-style: disc;
+              margin-left: 1em;
             }
+          }
+          & ul {
+            list-style: disc;
+          }
         }
 
         & .media-container {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
+          display: flex;
+          gap: 10px;
+          margin-top: 10px;
 
-            & img, & video {
-                width: 150px;
-                height: 150px;
-                border-radius: 8px;
-                cursor: pointer;
-            }
+          & img, & video {
+            width: 150px;
+            height: 150px;
+            border-radius: 8px;
+            cursor: pointer;
+          }
         }
 
         & .details-container {
@@ -174,6 +175,7 @@ $profile-backdrop-bot: #FFFFFF;
             gap: 10px;
             font-size: 14px;
             font-weight: 600;
+            user-select: none;
 
             & .highlight { color: var(--ev-colors-highlight); }
 
@@ -254,11 +256,13 @@ $profile-backdrop-bot: #FFFFFF;
             display: grid;
             grid-template-columns: 1fr;
             grid-template-rows: 0fr;
-            transition: grid-template-rows 150ms ease-in-out;
+            margin-top: 0;
+            transition: grid-template-rows 150ms ease-in-out, margin 150ms ease-in-out;
 
 
             &.open {
                 grid-template-rows: 1fr;
+                margin-top: 10px;
             }
 
             & .feedback-accordion {

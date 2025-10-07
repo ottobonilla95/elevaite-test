@@ -1,0 +1,5 @@
+2025-10-02 09:01:52,621 - etl_pipeline - ERROR - FAILED: smoke.csv - OTHER_ERROR: Could not read file temp/smoke.csv: All CSV parsing strategies failed for temp/smoke.csv
+2025-10-02 09:05:41,466 - etl_pipeline - ERROR - FAILED: part-00000-tid-7310107748052234848-45e68189-af8b-41d3-980c-62b436af1f7f-4-1-c000.csv - MISSING_REQUIRED_COLUMNS: CRITICAL COLUMNS MISSING for service_requests: ['SR Number']. Cannot process this CSV.
+2025-10-02 09:08:38,777 - etl_pipeline - ERROR - Error loading table 'service_requests': value too long for type character varying(100)
+2025-10-02 09:08:38,779 - etl_pipeline - ERROR - Database operation failed: value too long for type character varying(100)
+2025-10-02 09:08:38,798 - etl_pipeline - ERROR - FAILED: part-00000-tid-6141084139951731983-abca7579-8e58-4df8-b173-6cd1be544af8-79-1-c000.csv - SCHEMA_LENGTH_ERROR: value too long for type character varying(100)

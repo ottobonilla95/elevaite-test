@@ -11,6 +11,7 @@ interface AuthApiUser {
   full_name?: string;
   is_superuser: boolean;
   application_admin?: boolean;
+  is_manager?: boolean;
   status?: string;
 }
 
@@ -68,7 +69,12 @@ export async function fetchAuthUsers(): Promise<ExtendedUserObject[]> {
 
     const data = (await response.json()) as AuthApiUser[];
 
-    // Transform the auth API user format to match the expected ExtendedUserObject format
+    // Add this debug block AFTER the API call
+    console.log("=== AUTH API RESPONSE DEBUG ===");
+    console.log("Response status:", response.status);
+    console.log("Raw API data:", data);
+
+    // Transform the auth API user format...
     const users: ExtendedUserObject[] = data.map((user) => ({
       id: user.id.toString(),
       email: user.email,
@@ -78,14 +84,23 @@ export async function fetchAuthUsers(): Promise<ExtendedUserObject[]> {
         ? [{ roleLabel: "iOpex Admin" }]
         : user.application_admin
           ? [{ roleLabel: "Application Admin" }]
-          : [{ roleLabel: "User" }],
+          : user.is_manager
+            ? [{ roleLabel: "Manager" }]
+            : [{ roleLabel: "User" }],
       status: user.status ?? "active",
       organization_id: "default",
+      locked_until: false,
       is_superadmin: user.is_superuser,
       application_admin: user.application_admin,
+      is_manager: user.is_manager,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }));
+
+    console.log("=== FINAL MAPPED USERS ===");
+    users.forEach(user => {
+      console.log(`${user.email}: roles=${JSON.stringify(user.displayRoles)}`);
+    });
 
     return users;
   } catch (error) {
@@ -267,3 +282,5 @@ export async function resetUserPassword(
     };
   }
 }
+
+

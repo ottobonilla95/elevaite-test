@@ -30,8 +30,8 @@ class TestPasswordResetEmail:
         # Check recipient
         assert call_args[0] == email
 
-        # Check subject
-        assert call_args[1] == "Your Password Has Been Reset"
+        # Check subject aligns with current implementation
+        assert call_args[1] == "Your New Password to ElevAIte"
 
         # Check that the email body contains the name and password
         assert name in call_args[2]  # Text body

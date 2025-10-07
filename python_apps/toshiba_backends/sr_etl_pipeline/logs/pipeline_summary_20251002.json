@@ -1,0 +1,17 @@
+[
+  {
+    "timestamp": "2025-10-02T10:03:56.622817",
+    "pipeline_type": "etl_data_processing",
+    "duration_seconds": 3741.917645,
+    "files_processed": 519,
+    "files_failed": 3,
+    "files_skipped": 0,
+    "total_rows": 3972330,
+    "throughput_rows_per_second": 1061.5760091106977,
+    "error_breakdown": {
+      "OTHER_ERROR": 1,
+      "MISSING_REQUIRED_COLUMNS": 1,
+      "SCHEMA_LENGTH_ERROR": 1
+    }
+  }
+]

@@ -10,19 +10,20 @@ from data_classes import SessionObject, MessageObject
 from utils import convert_messages_to_chat_history
 import dotenv
 import os
-from shared_state import session_status, update_status, get_status
+from shared_state import session_status, update_status, get_status, get_sources, update_sources, get_logs, reset_logs, update_logs
 import uuid
 from database_connection import ChatRequest
 from pydantic import BaseModel
 from shared_state import database_connection
 from query_reformulator import reformulate_query_final
-from extract_sources import extract_sources_from_text
+from extract_sources import extract_sources_from_text, extract_only_aws_links, remove_prefix,get_image_url,reconstruct_source
 from add_columns import add_columns
 import pandas as pd
 from openai import AsyncOpenAI
 import re
 import tools
 from data_classes import SRNumberRequest
+import requests
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
     dotenv.load_dotenv(".env")
@@ -181,6 +182,7 @@ async def run(request: Request):
     async def response_generator():
         agent_flow_id = str(uuid.uuid4())
         full_response = ""
+        source_response = ""
         try:
             if is_part_number(query):
                 print("Power Search Query: ", query)
@@ -221,14 +223,19 @@ async def run(request: Request):
                     user_id=user_id,
                     agent_flow_id=agent_flow_id,
                 ):
-                    if chunk:
-                        if isinstance(chunk, dict):
-                            await update_status(user_id, chunk[user_id])
-                            await asyncio.sleep(0.1)
-                            continue
+                    # last_word = full_response.split()[-1]
+                    if "**Sources:**" in full_response:
+                        source_response+=chunk
 
-                    full_response += chunk
-                    yield f"{chunk if isinstance(chunk, str) else ''}"
+                    else:
+                        if chunk:
+                            if isinstance(chunk, dict):
+                                await update_status(user_id, chunk[user_id])
+                                await asyncio.sleep(0.1)
+                                continue
+
+                        full_response += chunk
+                        yield f"{chunk if isinstance(chunk, str) else ''}"
 
 
                 # async for chunk in toshiba_video_agent.execute3(
@@ -248,6 +255,83 @@ async def run(request: Request):
                 #     full_response += chunk
                 #     yield f"{chunk if isinstance(chunk, str) else ''}"
             # yield "Hi."
+            print("Source Response: \n", source_response)
+
+            context_sources = await get_sources(user_id)
+            response_sources = await extract_only_aws_links(source_response)
+            # fixed_response_sources = [await remove_prefix(i) for i in response_sources]
+            if response_sources and context_sources:
+                print("Context Sources: ", context_sources)
+                print("Response Sources: ", response_sources)
+                sources_used = []
+                for source in response_sources:
+                    if source not in context_sources:
+                        pass
+                    elif "excel" in source or ".csv" in source or ".xls" in source or ".xlsx" in source:
+                        print("Source Name: ", source)
+                        reconstructed_source = await reconstruct_source(source)
+                        print("Reconstructed Source: ", reconstructed_source)
+                        sources_used.append(reconstructed_source)
+                    else:
+                        source = await remove_prefix(source)
+                        url = await get_image_url(source+".png")
+                        print("URL: ", url)
+                        # Verify if the URL works
+                        response = requests.get(url)
+                        if response.status_code == 200:
+                            sources_used.append(await reconstruct_source(source))
+                        else:
+                            sources_used.append(await reconstruct_source(source, False))
+
+
+                print("Sources Used: ", sources_used)
+                if len(sources_used) == 0:
+                    full_response=full_response.replace("**Sources:**", "")
+                    yield " None"
+                    pass
+                else:
+                    # Sort sources such that any source that has None_ in it is at the end
+                    sources_used.sort(key=lambda x: "None_" in x)
+                    full_response += "\n\n" + f"\n".join(sources_used)
+                    yield "\n\n"+f"\n".join(sources_used)
+                context_log = await get_logs(user_id)
+                print("LOGS FOR RETRIEVER: ", context_log)
+                yield context_log
+                await reset_logs(user_id)
+            #         yield "\n\n"
+            #         yield """
+            #         <video-details>
+            #
+            #     <video-description>
+            #         video stuff blahblah
+            #     </video-description>
+            #
+            #     <video-link>
+            #         https://www.youtube.com/watch?v=O5b0ZxUWNf0
+            #     </video-link>
+            #
+            #     <timestamp>
+            #         [[10,20],[min,max]]
+            #     </timestamp>
+            #
+            # </video-details>
+            #
+            # <video-details>
+            #
+            #     <video-description>
+            #         video stuff blahblah
+            #     </video-description>
+            #
+            #     <video-link>
+            #         https://www.youtube.com/watch?v=O5b0ZxUWNf0
+            #     </video-link>
+            #
+            #     <timestamp>
+            #         [[10,20],[min,max]]
+            #     </timestamp>
+            #
+            # </video-details>
+            #         """
 
         except Exception as e:
             error_msg = f"Error during streaming: {str(e)}"
@@ -297,6 +381,7 @@ async def run(request: Request):
                     sr_ticket_id=""
                 )
                 print("Data Log: ", data_log)
+                await update_sources(user_id, [])
                 try:
                     success = await database_connection.save_chat_request(data_log)
                     if success:
@@ -308,6 +393,19 @@ async def run(request: Request):
             except Exception as e:
                 print(f"Error preparing chat request data: {str(e)}")
 
+    # ONLY FOR TESTING
+#     async def response_generator():
+#         yield """The part number for the loader module for System 7 (Machine Type: 6800) is 80Y1564.
+#
+# **Sources:**
+#
+#
+#
+# - 6800 Self Checkout System 7 Parts Manual Models 1x0, 2xx, 3xx, and 4xx page 38 [aws_id: None_6800 Self Checkout System 7 Parts Manual Models 1x0, 2xx, 3xx, and 4xx_page_38]
+# - 6800 Parts Manual (3) page 37 [aws_id: 6800 Parts Manual (3)_page_37]
+# - 6800 Parts Manual (4) page 37 [aws_id: None_6800 Parts Manual (3)_page_37]
+#         """
+        # ONLY FOR TESTING
     # Return the streaming response
     return StreamingResponse(
         response_generator(),
@@ -404,6 +502,9 @@ async def update_feedback(feedback_request: FeedbackRequest = Body(...)):
 
 @app.get("/pastSessions")
 async def get_past_sessions(request: Request):
+    # REMOVE AFTER TESTING
+    # return []
+    # REMOVE AFTER TESTING
     print("Getting past sessions")
     start_time = datetime.now()
     user_id = request.query_params.get("uid")

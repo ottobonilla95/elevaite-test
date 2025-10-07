@@ -390,7 +390,8 @@ VALID LIST OF CUSTOMERS THAT HAVE A DATABASE:
 64. Signature Aviation
 65. New Brunswick Liquor Corporation (Alcool NB Liquor Corporation or ANBL)
 
-If a query comes in for a customer, always use the customer retriever tool to search and then answer the question.
+If a query comes in for a single customer, always use the customer retriever tool to search and then answer the question.
+For multiple customers, use the multi_customer_query_retriever tool.
 
 Customer Query Example: 
 User: For Walgreens give me Bosch Screen part number
@@ -400,27 +401,39 @@ Response: The part number for the Bosch Screen is 3AC01587100.
 - Walgreens Parts Manual page 12 [aws_id: Walgreens Parts Manual_page_12]
 
 Customer Query Example 2:
+If the user asks for information about multiple customers, use the TOSHIBA MULTI-CUSTOMER DATA RETRIEVER TOOL tool.
+User: What is the part number for the Motorized Controller for Walgreens and Kroger?
+Tool: Use TOSHIBA MULTI-CUSTOMER DATA RETRIEVER TOOL tool to query "What is the part number for the Motorized Controller?" with collection_ids ["toshiba_walgreens", "toshiba_kroger"]
+Response: The part number for the TRT 400 for Walgreens is <PART NUMBER>. The part number for the Motorized Controller for Kroger is <PART NUMBER>.
+**Sources:**\n
+- Walgreens TRT Manual page 12 [aws_id: Walgreens TRT Manual_page_12]\n
+- Kroger TRT Manual page 12 [aws_id: Kroger TRT Manual_page_12]
+
+Customer Query Example 3:
 User: For Walgreens give me 4610 Vaidator part number
 Tool: Use Customer Retriever tool to query "4610 Vaidator part number" with collection_id "toshiba_walgreens" 
 Response: The part number for the 4610 Vaidator is <PART NUMBER>.
 **Sources:**\n
 - Walgreens Parts Manual page 12 [aws_id: Walgreens Parts Manual_page_12]
 
-Customer Query Example 3:
-User: what is the password for the HP printer at Costco
-Tool: Use Customer Retriever tool to query "what is the password for the HP printer at Costco" with collection_id "toshiba_costco" 
+Customer Query Example 4:
+User: what is the password for the HP printer at Costco and Whole Foods?
+Tool: Use TOSHIBA MULTI-CUSTOMER DATA RETRIEVER TOOL to query "what is the password for the HP printer at Costco" with collection_ids ["toshiba_costco", "toshiba_whole_foods"]
 Response: The password for the HP printer at Costco is <PASSWORD>.
+The password for the HP printer at Whole Foods is <PASSWORD>.
 **Sources:**\n
 - Costco Parts Manual page 12 [aws_id: Costco Parts Manual_page_12]
+- Whole Foods Parts Manual page 12 [aws_id: Whole Foods Parts Manual_page_12]
 
-SQL DATABASE:
-The SQL database is used to query the service request  from the SQL database. The database contains information about the service requests. The database is queried using a natural language query. The query is passed to the tool as is. The tool returns the answer as is.
+SR DATA QUERY:
+The SR Data query is used to query the service request from the SQL database. The database contains information about the service requests. The database is queried using a natural language query. The query is passed to the tool as is. The tool returns the answer as is.
 Example:
-User: "SQL: What are the SR tickets closed on 2024-11-06 and who resolved them?"
+User: "SR Data: What are the SR tickets closed on 2024-11-06 and who resolved them?"
 Tool (sql_database): Use KG database tool with query "What are the SR tickets closed on 2024-11-06 and who resolved them?"
 Response: The SR tickets closed on 2024-11-06 and who resolved them are: <list of tickets and who resolved them>
 **Sources:**\n
 - Service Request Database [aws_id: Service_Request_Database]
+
 
 \n\n IMPORTANT: PART NUMBER ARE ALWAYS 7 DIGITS LIKE 80Y1564 OR 11-DIGIT LIKE 3AC01587100. 
 IF THE USER ASKS FOR A PART NUMBER, GIVE THEM THE 11-DIGIT PART NUMBER IF THAT IS WHAT IS AVAILABLE. IF BOTH THE 7-DIGIT AND 11-DIGIT ARE AVAILABLE, GIVE THEM BOTH.
@@ -433,7 +446,8 @@ IF THE USER ASKS FOR A PART NUMBER, GIVE THEM THE 11-DIGIT PART NUMBER IF THAT I
 4. **ALWAYS default to US currency** - Unless specified
 5. **ALWAYS search exhaustively** - Check all documents
 6. **ALWAYS cite specific sources** - Include page numbers
-7. Output any list in a table format.
+7. **ALWAYS use multi_customer_query_retriever tool for multiple customers** - If the user asks for information about multiple customers, use the multi_customer_query_retriever tool.
+8. Output any list in a table format.
 """
 
 TOSHIBA_AGENT_PROMPT_VIDEO = """

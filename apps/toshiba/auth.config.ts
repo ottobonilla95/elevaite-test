@@ -37,11 +37,11 @@ export const authConfig = {
     async session({ session, token, user }) {
       const stockSession = stockConfig.callbacks?.session
         ? await stockConfig.callbacks.session({
-            session,
-            token,
-            user,
-            newSession: undefined,
-          })
+          session,
+          token,
+          user,
+          newSession: undefined,
+        })
         : session;
 
       if (!stockSession.user) {
@@ -91,6 +91,14 @@ export const authConfig = {
         typeof token.application_admin === "boolean"
       ) {
         stockSession.user.application_admin = token.application_admin;
+      }
+
+      if (
+        token.is_manager !== undefined &&
+        token.is_manager !== null &&
+        typeof token.is_manager === "boolean"
+      ) {
+        stockSession.user.is_manager = token.is_manager;
       }
 
       if (
@@ -199,6 +207,12 @@ export const authConfig = {
             token.application_admin = user.application_admin;
           }
           if (
+            user?.is_manager !== undefined &&
+            typeof user.is_manager === "boolean"
+          ) {
+            token.is_manager = user.is_manager;
+          }
+          if (
             user?.mfa_enabled !== undefined &&
             typeof user.mfa_enabled === "boolean"
           ) {
@@ -236,11 +250,13 @@ export const authConfig = {
 
         if (account.provider === "credentials") {
           const newToken: typeof token = {
-            ...token,
             access_token: user.accessToken,
             expires_at: Math.floor(Date.now() / 1000 + 3600),
             refresh_token: user.refreshToken,
             provider: "credentials" as const,
+            sub: user.id,
+            email: user.email,
+            name: user.name,
           };
 
           if (
@@ -248,51 +264,73 @@ export const authConfig = {
             typeof user.needsPasswordReset === "boolean"
           ) {
             newToken.needsPasswordReset = user.needsPasswordReset;
+          } else {
+            newToken.needsPasswordReset = null;
           }
           if (
             user?.is_superuser !== undefined &&
             typeof user.is_superuser === "boolean"
           ) {
             newToken.is_superuser = user.is_superuser;
+          } else {
+            newToken.is_superuser = null;
           }
           if (
             user?.application_admin !== undefined &&
             typeof user.application_admin === "boolean"
           ) {
             newToken.application_admin = user.application_admin;
+          } else {
+            newToken.application_admin = null;
+          }
+          if (
+            user?.is_manager !== undefined &&
+            typeof user.is_manager === "boolean"
+          ) {
+            newToken.is_manager = user.is_manager;
+          } else {
+            newToken.is_manager = null;
           }
           if (
             user?.mfa_enabled !== undefined &&
             typeof user.mfa_enabled === "boolean"
           ) {
             newToken.mfa_enabled = user.mfa_enabled;
+          } else {
+            newToken.mfa_enabled = null;
           }
           if (
             user?.sms_mfa_enabled !== undefined &&
             typeof user.sms_mfa_enabled === "boolean"
           ) {
             newToken.sms_mfa_enabled = user.sms_mfa_enabled;
+          } else {
+            newToken.sms_mfa_enabled = null;
           }
           if (
             user?.phone_verified !== undefined &&
             typeof user.phone_verified === "boolean"
           ) {
             newToken.phone_verified = user.phone_verified;
+          } else {
+            newToken.phone_verified = null;
           }
-          if (
-            user?.phone_number !== undefined &&
-            typeof user.phone_number === "string"
-          ) {
-            newToken.phone_number = user.phone_number;
-          }
+          // For phone_number, set null explicitly if absent to avoid leaking
+          newToken.phone_number =
+            typeof user?.phone_number === "string" ? user.phone_number : null;
+
           if (
             user?.email_mfa_enabled !== undefined &&
             typeof user.email_mfa_enabled === "boolean"
           ) {
             newToken.email_mfa_enabled = user.email_mfa_enabled;
+          } else {
+            newToken.email_mfa_enabled = null;
           }
           if (user?.grace_period !== undefined) {
             newToken.grace_period = user.grace_period;
+          } else {
+            newToken.grace_period = null;
           }
 
           return newToken;

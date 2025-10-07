@@ -31,6 +31,7 @@ export interface UserResponse {
 }
 
 export interface UserDetailResponse extends UserResponse {
+  is_manager: boolean | null | undefined;
   status: string;
   last_login: string | null;
   is_superuser: boolean;

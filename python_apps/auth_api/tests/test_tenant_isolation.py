@@ -51,13 +51,44 @@ async def test_tenant_isolation_db(test_db_setup):
         set_current_tenant_id("tenant1")
         schema_name = get_schema_name("tenant1", multitenancy_settings)
         await session.execute(text(f'SET search_path TO "{schema_name}", public'))
+        # Ensure tables exist in this schema for this engine
+        from app.db.models import Base
+
+        # Ensure tenant schema and users table exist using SQLAlchemy metadata
+        from app.db.models import Base
+
+        def _ensure_schema_and_tables(sync_session):
+            from app.db.models import User
+
+            bind = sync_session.get_bind()
+            with bind.begin() as conn:
+                conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
+                # Create required tables in the target schema
+                from app.db.models import Session as SessionModel, UserActivity
+
+                user_table = User.__table__.tometadata(
+                    Base.metadata, schema=schema_name
+                )
+                session_table = SessionModel.__table__.tometadata(
+                    Base.metadata, schema=schema_name
+                )
+                activity_table = UserActivity.__table__.tometadata(
+                    Base.metadata, schema=schema_name
+                )
+                user_table.create(bind=conn, checkfirst=True)
+                session_table.create(bind=conn, checkfirst=True)
+                activity_table.create(bind=conn, checkfirst=True)
+
+        await session.run_sync(_ensure_schema_and_tables)
 
         # Create user directly with SQL
         await session.execute(
-            text("""
-            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, created_at, updated_at)
-            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, NOW(), NOW())
-            """),
+            text(
+                f"""
+            INSERT INTO "{schema_name}".users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, created_at, updated_at)
+            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
+            """
+            ),
             {
                 "email": test_email,
                 "password": "$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",  # Dummy hash
@@ -66,9 +97,12 @@ async def test_tenant_isolation_db(test_db_setup):
         )
         await session.commit()
 
+        # Re-assert search_path to ensure subsequent operations use the correct schema
+        await session.execute(text(f'SET search_path TO "{schema_name}", public'))
+
         # Verify user was created
         result = await session.execute(
-            text("SELECT * FROM users WHERE email = :email"),
+            text(f'SELECT * FROM "{schema_name}".users WHERE email = :email'),
             {"email": test_email},
         )
         user1 = result.fetchone()
@@ -80,13 +114,43 @@ async def test_tenant_isolation_db(test_db_setup):
         set_current_tenant_id("tenant2")
         schema_name = get_schema_name("tenant2", multitenancy_settings)
         await session.execute(text(f'SET search_path TO "{schema_name}", public'))
+        # Ensure tables exist in this schema for this engine
+        from app.db.models import Base
+
+        # Ensure tenant schema and users table exist using SQLAlchemy metadata
+        from app.db.models import Base
+
+        def _ensure_schema_and_tables(sync_session):
+            from app.db.models import User
+
+            bind = sync_session.get_bind()
+            from app.db.models import Session as SessionModel, UserActivity
+
+            with bind.begin() as conn:
+                conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
+                user_table = User.__table__.tometadata(
+                    Base.metadata, schema=schema_name
+                )
+                session_table = SessionModel.__table__.tometadata(
+                    Base.metadata, schema=schema_name
+                )
+                activity_table = UserActivity.__table__.tometadata(
+                    Base.metadata, schema=schema_name
+                )
+                user_table.create(bind=conn, checkfirst=True)
+                session_table.create(bind=conn, checkfirst=True)
+                activity_table.create(bind=conn, checkfirst=True)
+
+        await session.run_sync(_ensure_schema_and_tables)
 
         # Create user directly with SQL
         await session.execute(
-            text("""
-            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, created_at, updated_at)
-            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, NOW(), NOW())
-            """),
+            text(
+                f"""
+            INSERT INTO "{schema_name}".users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, created_at, updated_at)
+            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
+            """
+            ),
             {
                 "email": test_email,  # Same email as in tenant1
                 "password": "$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",  # Dummy hash
@@ -95,9 +159,12 @@ async def test_tenant_isolation_db(test_db_setup):
         )
         await session.commit()
 
+        # Re-assert search_path to ensure subsequent operations use the correct schema
+        await session.execute(text(f'SET search_path TO "{schema_name}", public'))
+
         # Verify user was created
         result = await session.execute(
-            text("SELECT * FROM users WHERE email = :email"),
+            text(f'SELECT * FROM "{schema_name}".users WHERE email = :email'),
             {"email": test_email},
         )
         user2 = result.fetchone()
@@ -113,7 +180,7 @@ async def test_tenant_isolation_db(test_db_setup):
 
         # Get user by email
         result = await session.execute(
-            text("SELECT * FROM users WHERE email = :email"),
+            text(f'SELECT * FROM "{schema_name1}".users WHERE email = :email'),
             {"email": test_email},
         )
         tenant1_user = result.fetchone()
@@ -129,7 +196,7 @@ async def test_tenant_isolation_db(test_db_setup):
 
         # Get user by email
         result = await session.execute(
-            text("SELECT * FROM users WHERE email = :email"),
+            text(f'SELECT * FROM "{schema_name2}".users WHERE email = :email'),
             {"email": test_email},
         )
         tenant2_user = result.fetchone()
@@ -147,7 +214,7 @@ async def test_tenant_isolation_db(test_db_setup):
         await session.execute(text(f'SET search_path TO "{schema_name1}", public'))
 
         result = await session.execute(
-            text("SELECT full_name FROM users WHERE email = :email"),
+            text(f'SELECT full_name FROM "{schema_name1}".users WHERE email = :email'),
             {"email": test_email},
         )
         row = result.fetchone()
@@ -161,7 +228,7 @@ async def test_tenant_isolation_db(test_db_setup):
         await session.execute(text(f'SET search_path TO "{schema_name2}", public'))
 
         result = await session.execute(
-            text("SELECT full_name FROM users WHERE email = :email"),
+            text(f'SELECT full_name FROM "{schema_name2}".users WHERE email = :email'),
             {"email": test_email},
         )
         row = result.fetchone()
@@ -201,7 +268,9 @@ async def test_tenant_isolation_api(test_client: AsyncClient):
 
         # Activate the user
         await session.execute(
-            text("UPDATE users SET status = 'active', is_verified = TRUE WHERE email = :email"),
+            text(
+                f"UPDATE \"{schema_name}\".users SET status = 'active', is_verified = TRUE WHERE email = :email"
+            ),
             {"email": "api@example.com"},
         )
         await session.commit()
@@ -227,21 +296,27 @@ async def test_tenant_isolation_api(test_client: AsyncClient):
 
         # Activate the user
         await session.execute(
-            text("UPDATE users SET status = 'active', is_verified = TRUE WHERE email = :email"),
+            text(
+                f"UPDATE \"{schema_name}\".users SET status = 'active', is_verified = TRUE WHERE email = :email"
+            ),
             {"email": "api@example.com"},
         )
         await session.commit()
 
     # Try to login with tenant1 credentials in tenant2 context
     login_response = await test_client.post(
-        "/api/auth/login", json={"email": "api@example.com", "password": "Password123!@#"}, headers={"X-Tenant-ID": "tenant2"}
+        "/api/auth/login",
+        json={"email": "api@example.com", "password": "Password123!@#"},
+        headers={"X-Tenant-ID": "tenant2"},
     )
     # Should fail because the password is different in tenant2
     assert login_response.status_code == 401
 
     # Login with correct tenant context
     login_response = await test_client.post(
-        "/api/auth/login", json={"email": "api@example.com", "password": "Password456!@#"}, headers={"X-Tenant-ID": "tenant2"}
+        "/api/auth/login",
+        json={"email": "api@example.com", "password": "Password456!@#"},
+        headers={"X-Tenant-ID": "tenant2"},
     )
     assert login_response.status_code == 200
     assert "access_token" in login_response.json()
@@ -264,6 +339,32 @@ async def test_cross_tenant_token_invalid(test_client: AsyncClient, test_session
     set_current_tenant_id("default")
     schema_name = get_schema_name("default", multitenancy_settings)
     await session.execute(text(f'SET search_path TO "{schema_name}", public'))
+    # Ensure tables exist in this schema for this engine
+    from app.db.models import Base
+
+    # Ensure default tenant schema and users table exist using SQLAlchemy metadata
+    from app.db.models import Base
+
+    def _ensure_schema_and_tables(sync_session):
+        from app.db.models import User
+
+        bind = sync_session.get_bind()
+        from app.db.models import Session as SessionModel, UserActivity
+
+        with bind.begin() as conn:
+            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
+            user_table = User.__table__.tometadata(Base.metadata, schema=schema_name)
+            session_table = SessionModel.__table__.tometadata(
+                Base.metadata, schema=schema_name
+            )
+            activity_table = UserActivity.__table__.tometadata(
+                Base.metadata, schema=schema_name
+            )
+            user_table.create(bind=conn, checkfirst=True)
+            session_table.create(bind=conn, checkfirst=True)
+            activity_table.create(bind=conn, checkfirst=True)
+
+    await session.run_sync(_ensure_schema_and_tables)
 
     # Get a real password hash
     from app.core.security import get_password_hash
@@ -272,10 +373,12 @@ async def test_cross_tenant_token_invalid(test_client: AsyncClient, test_session
 
     # Create the user directly with SQL
     await session.execute(
-        text("""
-        INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, created_at, updated_at)
-        VALUES (:email, :password, :full_name, 'pending', FALSE, FALSE, FALSE, 0, FALSE, NOW(), NOW())
-        """),
+        text(
+            f"""
+        INSERT INTO "{schema_name}".users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, created_at, updated_at)
+        VALUES (:email, :password, :full_name, 'pending', FALSE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
+        """
+        ),
         {
             "email": test_email,
             "password": hashed_password,
@@ -284,9 +387,14 @@ async def test_cross_tenant_token_invalid(test_client: AsyncClient, test_session
     )
     await session.commit()
 
+    # Re-assert search_path before performing update
+    await session.execute(text(f'SET search_path TO "{schema_name}", public'))
+
     # Activate the user
     await session.execute(
-        text("UPDATE users SET status = 'active', is_verified = TRUE WHERE email = :email"),
+        text(
+            f"UPDATE \"{schema_name}\".users SET status = 'active', is_verified = TRUE WHERE email = :email"
+        ),
         {"email": test_email},
     )
     await session.commit()
@@ -309,7 +417,9 @@ async def test_cross_tenant_token_invalid(test_client: AsyncClient, test_session
 
     # Verify the token contains the tenant ID
     assert "tenant_id" in payload, "Token does not contain tenant_id"
-    assert payload["tenant_id"] == "default", f"Token has wrong tenant_id: {payload['tenant_id']}"
+    assert (
+        payload["tenant_id"] == "default"
+    ), f"Token has wrong tenant_id: {payload['tenant_id']}"
 
     # We don't need to actually try the token in tenant1 since we've verified it has the tenant ID
     # The middleware would reject it in a real request

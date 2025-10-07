@@ -1,3 +1,10 @@
+# This pipeline provides pre-built images for all application components in order to speed up PR builds.
+# PR builds only need to build the components that have changed within the PR.
+#
+# TODO confirm that only the 'testing' env_name instances are used and avoid building the rest.
+# Note: the retrievers might also be used by main Elevaite.
+# Need to check for usages of the 'latest' tags in Elevaite deployments.
+
 name: Nightly Baselines
 on:
   schedule:
@@ -44,6 +51,16 @@ jobs:
             dockerfile: python_apps/toshiba_backends/toshiba_backend/Dockerfile
             image: elevaite-toshiba-backend
             context: python_apps/toshiba_backends/toshiba_backend
+          - name: analytics-api
+            kind: svc
+            dockerfile: python_apps/toshiba_backends/analytics_backend/Dockerfile
+            image: elevaite-toshiba-analytics-backend
+            context: python_apps/toshiba_backends/analytics_backend
+          - name: toshiba_data_schema
+            kind: svc
+            dockerfile: python_apps/toshiba_backends/toshiba_data_schema/Dockerfile
+            image: elevaite-toshiba-data-schema
+            context: python_apps/toshiba_backends/toshiba_data_schema
           - name: auth
             kind: svc
             dockerfile: python_apps/auth_api/Dockerfile
@@ -69,9 +86,18 @@ jobs:
             dockerfile: python_apps/toshiba_backends/power_retriever/Dockerfile
             image: elevaite-toshiba-power-retriever
             context: python_apps/toshiba_backends/power_retriever
+          - name: video-retriever
+            kind: svc
+            dockerfile: python_apps/toshiba_backends/video_retriever/Dockerfile
+            image: elevaite-toshiba-video-retriever
+            context: python_apps/toshiba_backends/video_retriever
 
     steps:
+      # note: must run against the testing branch, because the 'develop' branch (default) can be behind
+      # and either not have newly added components present or be missing important changes needed in PR builds.
       - uses: actions/checkout@v4
+        with:
+          ref: testing
 
       - uses: docker/setup-buildx-action@v3
 
@@ -102,6 +128,7 @@ jobs:
                 --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
                 --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
                 --build-arg NEXT_PUBLIC_BACKEND_URL="${BASE_URL}/api/core/" \
+                --build-arg NEXT_PUBLIC_API_URL="${BASE_URL}" \
                 --build-arg NEXT_PUBLIC_AUTH_API_URL="${BASE_URL}/auth-api" \
                 -f "${{ matrix.dockerfile }}" \
                 -t "${IMAGE}:${TAG_ENV}" \

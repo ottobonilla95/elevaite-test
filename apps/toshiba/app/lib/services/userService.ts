@@ -10,6 +10,7 @@ interface CreateUserParams {
   password: string;
   isOneTimePassword: boolean;
   isApplicationAdmin: boolean;
+  isManager: boolean;
 }
 
 export async function createUser(
@@ -23,6 +24,7 @@ export async function createUser(
       password,
       isOneTimePassword,
       isApplicationAdmin,
+      isManager,
     } = params;
     const fullName = `${firstName} ${lastName}`.trim();
 
@@ -75,6 +77,7 @@ export async function createUser(
         password,
         is_one_time_password: isOneTimePassword,
         application_admin: isApplicationAdmin,
+        is_manager: isManager,
       }),
     });
 
@@ -115,6 +118,152 @@ export async function createUser(
     };
   } catch (error) {
     console.error("User creation error:", error);
+    return {
+      success: false,
+      message: "An unexpected error occurred.",
+    };
+  }
+}
+export async function deleteUser(
+  userId: number
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const session = await auth();
+    const authToken = session?.authToken;
+
+    if (!authToken) {
+      return {
+        success: false,
+        message: "Authentication required. Please log in again.",
+      };
+    }
+
+    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
+
+    if (!backendUrl) {
+      return {
+        success: false,
+        message: "Server configuration error.",
+      };
+    }
+
+    const apiUrl = backendUrl.replace("localhost", "127.0.0.1");
+
+    const response = await fetch(`${apiUrl}/api/auth/admin/delete-user/${userId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant-ID": tenantId,
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = "Failed to delete user";
+
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        if (response.status === 401) {
+          errorMessage = "Unauthorized. Please log in again.";
+        } else if (response.status === 403) {
+          errorMessage = "Forbidden. Admin privileges required.";
+        } else if (response.status === 404) {
+          errorMessage = "User not found.";
+        }
+      }
+
+      return {
+        success: false,
+        message: errorMessage,
+      };
+    }
+
+    const responseData = await response.json();
+    revalidatePath("/access");
+
+    return {
+      success: true,
+      message: responseData.message || "User deleted successfully.",
+    };
+  } catch (error) {
+    console.error("User deletion error:", error);
+    return {
+      success: false,
+      message: "An unexpected error occurred.",
+    };
+  }
+}
+export async function updateUserRoles(
+  userId: number,
+  roles: { application_admin?: boolean; is_manager?: boolean }
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const session = await auth();
+    const authToken = session?.authToken;
+
+    if (!authToken) {
+      return {
+        success: false,
+        message: "Authentication required. Please log in again.",
+      };
+    }
+
+    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
+
+    if (!backendUrl) {
+      return {
+        success: false,
+        message: "Server configuration error.",
+      };
+    }
+
+    const apiUrl = backendUrl.replace("localhost", "127.0.0.1");
+
+    const response = await fetch(`${apiUrl}/api/auth/admin/update-user/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant-ID": tenantId,
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(roles),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = "Failed to update user roles";
+
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        if (response.status === 401) {
+          errorMessage = "Unauthorized. Please log in again.";
+        } else if (response.status === 403) {
+          errorMessage = "Forbidden. Admin privileges required.";
+        }
+      }
+
+      return {
+        success: false,
+        message: errorMessage,
+      };
+    }
+
+    const responseData = await response.json();
+    revalidatePath("/access");
+
+    return {
+      success: true,
+      message: responseData.message || "User roles updated successfully.",
+    };
+  } catch (error) {
+    console.error("User role update error:", error);
     return {
       success: false,
       message: "An unexpected error occurred.",

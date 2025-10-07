@@ -1,0 +1,44 @@
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 0 10px 0;
+    width: 100%;
+
+    .textContent {
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #E61E1E;
+        }
+
+        p {
+            margin: 4px 0 0;
+            font-size: 14px;
+            color: #eb9090;
+            font-weight: 400;
+        }
+    }
+
+    .exportBtn {
+        background-color: #ff6600;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 14px;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+
+        .icon {
+            margin-right: 8px;
+        }
+
+        &:hover {
+            background-color: #e65c00;
+        }
+    }
+}

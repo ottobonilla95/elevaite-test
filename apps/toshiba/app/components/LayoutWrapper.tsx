@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { RolesContextProvider } from "../lib/contexts/RolesContext";
 import { ClientAppLayout } from "../ui/ClientAppLayout";
 import { MfaGracePeriodToast } from "./MfaGracePeriodToast";
+import { NavBar } from "../ui/NavBar";
 
 const breadcrumbLabels: Record<string, { label: string; link: string }> = {
   access: {
@@ -81,6 +82,16 @@ export function LayoutWrapper({
             {children}
           </ClientAppLayout>
         </RolesContextProvider>
+      ) : pathname === "/analytics" ? (
+        // Analytics page with navbar but no sidebar
+        <RolesContextProvider>
+          <div className="elevaite-main-container" id="elevaite-main-container">
+            <NavBar breadcrumbLabels={breadcrumbLabels} user={effectiveSession?.user} />
+            <div className="children-container" style={{ gridColumn: "1 / -1" }}>
+              {children}
+            </div>
+          </div>
+        </RolesContextProvider>
       ) : (
         children
       )}
@@ -88,3 +99,4 @@ export function LayoutWrapper({
     </ColorContextProvider>
   );
 }
+

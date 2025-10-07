@@ -1,0 +1,71 @@
+
+
+.chat-message-video-element-modal-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: var(--ev-colors-primary);
+    max-width: min(92vw, 1200px);
+    max-height: 90dvh;
+
+
+    .controls-container {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 1rem;
+    }
+
+
+    .modal-video-background {
+        padding: 1rem;
+        border-radius: 8px;
+        background-color: var(--ev-colors-background);
+
+        .modal-video-container {
+            min-width: 480px;
+            min-height: 60dvh;
+            aspect-ratio: 16/9;
+
+            & > video {
+                width: auto;
+                height: auto;
+                object-fit: contain;
+            }
+
+            & > iframe {
+                width: 100%;
+                aspect-ratio: 16/9;
+            }
+        }
+    }
+
+
+    .modal-video-details-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-height: 0;
+
+        .description {
+            overflow-y: auto;
+            @include scrollbar();
+        }
+
+        .youtube-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--ev-colors-secondaryText);
+            text-decoration: underline;
+
+            & > svg {
+                height: 15px;
+                width: 20px;
+            }
+        }
+    }
+
+}

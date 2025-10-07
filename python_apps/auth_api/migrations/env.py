@@ -24,14 +24,28 @@ from app.core.config import settings
 
 target_metadata = Base.metadata
 
-# Set the database URL in the Alembic config
-db_url = settings.DATABASE_URI
+# Resolve the database URL used by Alembic in this order:
+# 1) Value provided via Alembic Config (e.g., programmatic runs)
+# 2) ALEMBIC_SQLALCHEMY_URL environment variable (for tests/CI)
+# 3) Application settings (SQLALCHEMY_DATABASE_URL)
+provided_url = config.get_main_option("sqlalchemy.url")
+if provided_url:
+    db_url = provided_url
+else:
+    override_url = os.getenv("ALEMBIC_SQLALCHEMY_URL")
+    if override_url:
+        db_url = override_url
+    else:
+        db_url = settings.DATABASE_URI
+
 if not db_url:
     raise ValueError(
         "Database URL not provided. Set SQLALCHEMY_DATABASE_URL environment variable."
     )
 
-config.set_main_option("sqlalchemy.url", db_url)
+# Strip any accidental surrounding quotes from env files
+_db_url_clean = db_url.strip().strip('"').strip("'")
+config.set_main_option("sqlalchemy.url", _db_url_clean)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

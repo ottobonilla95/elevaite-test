@@ -24,6 +24,8 @@ import { CreateUser } from "./Add Edit Modals/CreateUser";
 import { ResetUserPassword } from "./Add Edit Modals/ResetUserPassword";
 import { UserCreatedConfirmation } from "./Add Edit Modals/UserCreatedConfirmation";
 import { UserRolesListRow } from "./smallParts/UserRolesListRow";
+// import { deleteUser } from "../../lib/services/userService";
+import { deleteUser, updateUserRoles } from "../../lib/services/userService";
 
 import "./UsersList.scss";
 
@@ -34,6 +36,13 @@ interface UsersListProps {
 
 export function UsersList(props: UsersListProps): JSX.Element {
   const { data: session } = useSession();
+
+  console.log("=== USER STATUS DEBUG ===");
+  console.log("Session:", session);
+  console.log("User object:", session?.user);
+  console.log("is_superuser:", (session?.user as any)?.is_superuser);
+  console.log("application_admin:", (session?.user as any)?.application_admin);
+
   const [displayUsers, setDisplayUsers] = useState<ExtendedUserObject[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sorting, setSorting] = useState<SortingObject<ExtendedUserObject>>({
@@ -104,8 +113,7 @@ export function UsersList(props: UsersListProps): JSX.Element {
   };
 
   // Generate dynamic menu for each user using the actual backend API
-  const isCurrentUserSuperuser =
-    props.isSuperAdmin ?? (session?.user as any)?.is_superuser === true;
+  const isCurrentUserSuperuser = (session?.user as any)?.is_superuser === true;
   const isCurrentUserApplicationAdmin =
     (session?.user as any)?.application_admin === true;
   const isCurrentUserAnyAdmin =
@@ -115,6 +123,16 @@ export function UsersList(props: UsersListProps): JSX.Element {
     user: ExtendedUserObject
   ): CommonMenuItem<ExtendedUserObject>[] => {
     const menuItems: CommonMenuItem<ExtendedUserObject>[] = [];
+
+    console.log("=== MENU DEBUG ===");
+    console.log("User:", user.email);
+    console.log("isCurrentUserAnyAdmin:", isCurrentUserAnyAdmin);
+
+    if (!isCurrentUserAnyAdmin) {
+      console.log("User is not admin, returning empty menu");
+
+      return menuItems; // No actions for non-admin users
+    }
 
     // Both superusers and application admins can perform these actions
     menuItems.push({
@@ -152,63 +170,36 @@ export function UsersList(props: UsersListProps): JSX.Element {
       },
     });
 
-    menuItems.push({
-      label: "Unlock Account",
-      onClick: async () => {
-        if (
-          window.confirm(
-            `Are you sure you want to unlock the account for ${user.email}?`
-          )
-        ) {
-          try {
-            const { userActionsService } = await import(
-              "../../lib/services/userActionsService"
-            );
-            const result = await userActionsService.unlockUserAccount(user);
+    // Only show unlock option if user is actually locked
+    const isUserLocked = user.locked_until &&
+      typeof user.locked_until === 'string' &&
+      new Date(user.locked_until) > new Date();
 
-            handleActionExecuted(
-              "unlock-account",
-              result.success,
-              result.message
-            );
-          } catch (error) {
-            handleActionExecuted(
-              "unlock-account",
-              false,
-              `Failed to unlock account: ${error instanceof Error ? error.message : "Unknown error"}`
-            );
-          }
-        }
-      },
-    });
-
-    // Superuser-only actions
-    if (isCurrentUserSuperuser) {
+    if (isUserLocked) {
       menuItems.push({
-        label: "Revoke MFA Devices",
+        label: "Unlock Account",
         onClick: async () => {
           if (
             window.confirm(
-              `Are you sure you want to revoke all MFA devices for ${user.email}? This will require them to set up MFA again.`
+              `Are you sure you want to unlock the account for ${user.email}?`
             )
           ) {
             try {
               const { userActionsService } = await import(
                 "../../lib/services/userActionsService"
               );
-              const result =
-                await userActionsService.revokeUserMfaDevices(user);
+              const result = await userActionsService.unlockUserAccount(user);
 
               handleActionExecuted(
-                "revoke-mfa-devices",
+                "unlock-account",
                 result.success,
                 result.message
               );
             } catch (error) {
               handleActionExecuted(
-                "revoke-mfa-devices",
+                "unlock-account",
                 false,
-                `Failed to revoke MFA devices: ${error instanceof Error ? error.message : "Unknown error"}`
+                `Failed to unlock account: ${error instanceof Error ? error.message : "Unknown error"}`
               );
             }
           }
@@ -216,16 +207,89 @@ export function UsersList(props: UsersListProps): JSX.Element {
       });
     }
 
+
+    menuItems.push({
+      label: "Edit Roles",
+      onClick: () => {
+        setSelectedUser(user);
+        setIsRolesModalOpen(true);
+      },
+    });
+    // Add this after the "Unlock Account" menu item and before the closing bracket
+    menuItems.push({
+      label: "Delete User",
+      onClick: async () => {
+        if (
+          window.confirm(
+            `Are you sure you want to permanently delete ${user.email}? This action cannot be undone.`
+          )
+        ) {
+          try {
+            const result = await deleteUser(parseInt(user.id));
+
+            handleActionExecuted(
+              "delete-user",
+              result.success,
+              result.message
+            );
+          } catch (error) {
+            handleActionExecuted(
+              "delete-user",
+              false,
+              `Failed to delete user: ${error instanceof Error ? error.message : "Unknown error"}`
+            );
+          }
+        }
+      },
+    });
+
+    // Superuser-only actions
+    // if (isCurrentUserSuperuser) {
+    //   menuItems.push({
+    //     label: "Revoke MFA Devices",
+    //     onClick: async () => {
+    //       if (
+    //         window.confirm(
+    //           `Are you sure you want to revoke all MFA devices for ${user.email}? This will require them to set up MFA again.`
+    //         )
+    //       ) {
+    //         try {
+    //           const { userActionsService } = await import(
+    //             "../../lib/services/userActionsService"
+    //           );
+    //           const result =
+    //             await userActionsService.revokeUserMfaDevices(user);
+
+    //           handleActionExecuted(
+    //             "revoke-mfa-devices",
+    //             result.success,
+    //             result.message
+    //           );
+    //         } catch (error) {
+    //           handleActionExecuted(
+    //             "revoke-mfa-devices",
+    //             false,
+    //             `Failed to revoke MFA devices: ${error instanceof Error ? error.message : "Unknown error"}`
+    //           );
+    //         }
+    //       }
+    //     },
+    //   });
+    // }
+    console.log("Menu items created:", menuItems.length);
+    console.log("Menu items:", menuItems.map(item => item.label));
     return menuItems;
   };
 
-  // Memoize per-user menus to stabilize menu options
-  const rowMenus: Record<string, CommonMenuItem<ExtendedUserObject>[]> =
-    useMemo(() => {
-      const menus: Record<string, CommonMenuItem<ExtendedUserObject>[]> = {};
-      for (const u of displayUsers) menus[u.id] = generateUserMenu(u);
-      return menus;
-    }, [displayUsers, isCurrentUserAnyAdmin, props.isVisible]);
+
+  // Memoize per-user menus to avoid intermittent menu disappearance on re-renders
+  const rowMenus = useMemo(() => {
+    const menus: Record<string, CommonMenuItem<ExtendedUserObject>[]> = {};
+    for (const u of displayUsers) {
+      menus[u.id] = generateUserMenu(u);
+    }
+    return menus;
+  }, [displayUsers, isCurrentUserAnyAdmin, props.isVisible]);
 
   // State to store combined users (RBAC + Native Auth API)
   const [combinedUsers, setCombinedUsers] = useState<ExtendedUserObject[]>([]);
@@ -442,6 +506,17 @@ export function UsersList(props: UsersListProps): JSX.Element {
           <AddEditUserRoles
             user={selectedUser}
             onClose={handleRolesModalClose}
+            onSuccess={() => {
+              const refreshUsers = async () => {
+                try {
+                  const users = await fetchCombinedUsers([]);
+                  setCombinedUsers(users);
+                } catch (error) {
+                  console.error("Failed to refresh users:", error);
+                }
+              };
+              void refreshUsers();
+            }}
           />
         </CommonModal>
       )}
@@ -474,3 +549,5 @@ export function UsersList(props: UsersListProps): JSX.Element {
     </div>
   );
 }
+
+

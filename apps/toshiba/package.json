@@ -10,6 +10,8 @@
     "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\toshiba\\Dockerfile\" -t toshiba:latest \".\""
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.810.0",
+    "@aws-sdk/s3-request-presigner": "^3.810.0",
     "@repo/lib": "*",
     "@repo/ui": "*",
     "@types/qrcode": "^1.5.5",
@@ -21,6 +23,9 @@
     "qrcode": "^1.5.4",
     "react": "^18",
     "react-dom": "^18",
+    "react-icons": "^5.5.0",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.2.1",
     "uuid": "^11.1.0",
     "zod": "^3.22.4"
   },
@@ -40,3 +45,4 @@
     "typescript": "^5.3.3"
   }
 }
+
