@@ -1,14 +1,24 @@
 name: Deploy to Production (EKS)
 
 on:
-  push:
-    branches: [ develop, main ]
+  # Don't auto-deploy on merge to develop because main Elevaite does a lot of pushes there
+  # push:
+  #   branches: [ develop, main ]
+
+  # Manual trigger only, but always from   
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Git ref to build from (branch, tag, or SHA)"
+        required: false
+        default: "testing"
 
 permissions:
   contents: read
 
 concurrency:
-  group: prod-deploy-${{ github.sha }}
+  # using run ID because can be run multiple times against same git commit
+  group: prod-deploy-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -25,9 +35,12 @@ jobs:
       retr_topgun_tag: ${{ steps.build_retrievers.outputs.retr_topgun_tag }}
     env:
       ECR_REGISTRY: ${{ secrets.TGCS_ECR_REGISTRY }}
-      TAG: prod-${{ github.sha }}
+      # using run ID because can be run multiple times against same git commit
+      TAG: prod-${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
 
       - uses: docker/setup-buildx-action@v3
 
