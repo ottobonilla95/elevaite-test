@@ -284,36 +284,35 @@ async def run(request: Request):
                 # await reset_logs(user_id)
 
 
-            # if os.getenv("VIDEO_FEATURE") == "ON":
-            # if os.getenv("VIDEO_RETRIEVER_URL"):
-            video_response = ""
-            try:
-                async for chunk in toshiba_video_agent.execute3(
-                        query=query,
-                        qid=data.get("qid"),
-                        session_id=data.get("sid"),
-                        chat_history=chat_history,
-                        user_id=user_id,
-                        agent_flow_id=uuid.uuid4(),
-                ):
-                    # last_word = full_response.split()[-1]
-                    if chunk:
-                        if isinstance(chunk, dict):
-                            await update_status(user_id, chunk[user_id])
-                            await asyncio.sleep(0.1)
-                            continue
+            if os.getenv("VIDEO_FEATURE") == "ON":
+                video_response = ""
+                try:
+                    async for chunk in toshiba_video_agent.execute3(
+                            query=query,
+                            qid=data.get("qid"),
+                            session_id=data.get("sid"),
+                            chat_history=chat_history,
+                            user_id=user_id,
+                            agent_flow_id=uuid.uuid4(),
+                    ):
+                        # last_word = full_response.split()[-1]
+                        if chunk:
+                            if isinstance(chunk, dict):
+                                await update_status(user_id, chunk[user_id])
+                                await asyncio.sleep(0.1)
+                                continue
 
-                    video_response += chunk
-                    # yield f"{chunk if isinstance(chunk, str) else ''}"
+                        video_response += chunk
+                        # yield f"{chunk if isinstance(chunk, str) else ''}"
 
-                full_response += video_response
-                print("Original Video Response: ", video_response)
-                if video_response:
-                    yield await parse_video_details(video_response)
-                elif video_response == "{}":
-                    yield ""
-            except Exception as e:
-                print(f"Error in video agent: {e}")
+                    full_response += video_response
+                    print("Original Video Response: ", video_response)
+                    if video_response:
+                        yield await parse_video_details(video_response)
+                    elif video_response == "{}":
+                        yield ""
+                except Exception as e:
+                    print(f"Error in video agent: {e}")
 
 
         except Exception as e:
