@@ -1,10 +1,10 @@
 "use client";
 
-import { logout } from "../lib/actions";
+import { clientLogout } from "../lib/clientLogout";
 
 export function LogoutButton() {
   const handleLogout = async () => {
-    await logout();
+    await clientLogout();
   };
 
   return (

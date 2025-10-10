@@ -10,7 +10,9 @@ pytestmark = [pytest.mark.integration, pytest.mark.mfa, pytest.mark.admin]
 class TestMfaAdminEndpoints:
     """Integration tests for MFA device management admin endpoints."""
 
-    @pytest.fixture
+    import pytest_asyncio
+
+    @pytest_asyncio.fixture
     async def admin_user(self, test_session):
         """Create an admin user for testing."""
         admin_email = "admin@example.com"
@@ -39,7 +41,7 @@ class TestMfaAdminEndpoints:
             "password": admin_password,
         }
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def regular_user(self, test_session):
         """Create a regular user for testing."""
         user_email = "user@example.com"
@@ -77,7 +79,7 @@ class TestMfaAdminEndpoints:
             "email": admin_user["email"],
             "is_superuser": True,
         }
-        access_token = create_access_token(token_data)
+        access_token = create_access_token(token_data.get("sub"), tenant_id="default")
 
         return {
             "Authorization": f"Bearer {access_token}",
@@ -92,7 +94,7 @@ class TestMfaAdminEndpoints:
             "email": regular_user["email"],
             "is_superuser": False,
         }
-        access_token = create_access_token(token_data)
+        access_token = create_access_token(token_data.get("sub"), tenant_id="default")
 
         return {
             "Authorization": f"Bearer {access_token}",

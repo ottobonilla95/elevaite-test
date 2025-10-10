@@ -111,6 +111,24 @@ export default function ResetPassword(): JSX.Element {
       const result = await resetPassword(newPassword);
 
       if (result.success) {
+        if (typeof window !== 'undefined') {
+          // Clear localStorage
+          localStorage.clear();
+
+          // Clear sessionStorage
+          sessionStorage.clear();
+
+          // Clear any cached data
+          if ('caches' in window) {
+            caches.keys().then((names) => {
+              names.forEach(name => {
+                caches.delete(name);
+              });
+            });
+          }
+        }
+
+        // Now logout
         await logout();
       } else {
         const errorMessage =

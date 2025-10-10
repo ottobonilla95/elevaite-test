@@ -6,6 +6,7 @@ import os
 import openai
 import dotenv
 import re
+import google.generativeai as genai
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
     dotenv.load_dotenv(".env")
@@ -202,3 +203,84 @@ def source_extraction(sources):
 #                 source_dict[filename] = [page]
 #
 #     return list(source_links)
+
+def convert_openai_to_gemini_schema(openai_params):
+    """Convert OpenAI function parameters to Gemini schema format"""
+    if not openai_params or "properties" not in openai_params:
+        return {}
+
+    gemini_schema = {
+        "type": genai.protos.Type.OBJECT,
+        "properties": {}
+    }
+
+    # Convert properties
+    for prop_name, prop_def in openai_params["properties"].items():
+        gemini_prop = {}
+
+        # Map types
+        if prop_def["type"] == "string":
+            gemini_prop["type"] = genai.protos.Type.STRING
+        elif prop_def["type"] == "integer":
+            gemini_prop["type"] = genai.protos.Type.INTEGER
+        elif prop_def["type"] == "number":
+            gemini_prop["type"] = genai.protos.Type.NUMBER
+        elif prop_def["type"] == "boolean":
+            gemini_prop["type"] = genai.protos.Type.BOOLEAN
+        elif prop_def["type"] == "array":
+            gemini_prop["type"] = genai.protos.Type.ARRAY
+            if "items" in prop_def:
+                gemini_prop["items"] = {"type": genai.protos.Type.STRING}  # Default to string
+        else:
+            gemini_prop["type"] = genai.protos.Type.STRING
+
+        if "description" in prop_def:
+            gemini_prop["description"] = prop_def["description"]
+
+        gemini_schema["properties"][prop_name] = gemini_prop
+
+    # Add required fields
+    if "required" in openai_params:
+        gemini_schema["required"] = openai_params["required"]
+
+    return gemini_schema
+
+def gemini_function_schema(func):
+    """
+    Decorator that generates a Gemini function schema and attaches it to the function.
+    """
+    def python_function_to_gemini_schema(func) -> Dict[str, Any]:
+        """Converts a function into a Gemini JSON schema."""
+        signature = inspect.signature(func)
+        type_hints = get_type_hints(func)
+
+        schema = {
+            "name": func.__name__,
+            "description": func.__doc__ or f"Function {func.__name__}",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+
+        for param_name, param in signature.parameters.items():
+            param_type = type_hints.get(param_name, Any)
+            openai_type, is_optional, items_type = python_type_to_openai_type(param_type)
+
+            prop = {
+                "type": openai_type,
+                "description": f"{param_name} parameter"
+            }
+            if openai_type == "array":
+                prop["items"] = {"type": items_type}
+
+            schema["parameters"]["properties"][param_name] = prop
+
+            if not is_optional and param.default is inspect.Parameter.empty:
+                schema["parameters"]["required"].append(param_name)
+
+        return schema
+
+    func.gemini_schema = python_function_to_gemini_schema(func)
+    return func

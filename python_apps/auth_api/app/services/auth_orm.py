@@ -562,6 +562,7 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
         verification_token=verification_token,
         is_password_temporary=is_password_temporary,
         application_admin=user_data.application_admin,
+        is_manager=user_data.is_manager,
     )
     session.add(new_user)
     await session.commit()
@@ -694,6 +695,19 @@ async def create_user_session(
         )
         session.add(new_session)
         await session.commit()
+
+        try:
+            # Populate Redis fast-path keys
+            from db_core.middleware import get_current_tenant_id
+            from app.core.redis import mark_session_in_redis, add_session_to_user_set
+
+            tenant = get_current_tenant_id()
+            if tenant:
+                ttl_seconds = settings.REFRESH_TOKEN_EXPIRE_MINUTES * 60
+                await mark_session_in_redis(tenant, refresh_token, ttl_seconds)
+                await add_session_to_user_set(tenant, user_id, refresh_token)
+        except Exception:
+            pass
     except Exception as e:
         print(f"Error storing session in create_user_session: {e}")
         try:
@@ -756,6 +770,21 @@ async def verify_refresh_token(
 
 async def invalidate_session(session: AsyncSession, refresh_token: str) -> bool:
     """Invalidate a user session."""
+    # Best-effort Redis cleanup first
+    try:
+        from db_core.middleware import get_current_tenant_id
+        from app.core.redis import remove_session
+
+        # We also need the user_id to cleanup the set membership; fetch it cheaply
+        result = await session.execute(
+            select(Session).where(Session.refresh_token == refresh_token)
+        )
+        sess_obj = result.scalars().first()
+        tenant = get_current_tenant_id() or "default"
+        await remove_session(tenant, getattr(sess_obj, "user_id", None), refresh_token)
+    except Exception:
+        pass
+
     stmt = (
         update(Session)
         .where(Session.refresh_token == refresh_token)
@@ -769,6 +798,16 @@ async def invalidate_session(session: AsyncSession, refresh_token: str) -> bool:
 
 async def invalidate_all_sessions(session: AsyncSession, user_id: int) -> bool:
     """Invalidate all sessions for a user."""
+    # Best-effort Redis cleanup first
+    try:
+        from db_core.middleware import get_current_tenant_id
+        from app.core.redis import remove_all_user_sessions
+
+        tenant = get_current_tenant_id() or "default"
+        await remove_all_user_sessions(tenant, user_id)
+    except Exception:
+        pass
+
     try:
         stmt = update(Session).where(Session.user_id == user_id).values(is_active=False)
         await session.execute(stmt)

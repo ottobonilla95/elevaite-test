@@ -63,6 +63,7 @@ class UserActionsService {
         new_password: newPassword,
         is_one_time_password: isOneTimePassword,
       };
+      // console.log("Sending password reset request:", resetData);
 
       const response = await this.makeAuthenticatedRequest(
         "/admin/reset-password",
@@ -219,17 +220,29 @@ class UserActionsService {
   }
 
   // Generate a secure random password
+  // Generate a secure random password that ALWAYS meets backend validation
   generateSecurePassword(length: number = 12): string {
-    const charset =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-    let password = "";
+    // Ensure we have at least one of each required type
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const numbers = "0123456789";
+    const specialChars = "!@#$%^&*(),.?\":{}|<>";
 
-    for (let i = 0; i < length; i++) {
-      const randomIndex = Math.floor(Math.random() * charset.length);
-      password += charset[randomIndex];
+    // Start with at least one of each required type
+    let password = "";
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += specialChars[Math.floor(Math.random() * specialChars.length)];
+
+    // Fill the rest randomly from all characters
+    const allChars = uppercase + lowercase + numbers + specialChars;
+    for (let i = password.length; i < length; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
     }
 
-    return password;
+    // Shuffle the password to randomize position of required characters
+    return password.split('').sort(() => Math.random() - 0.5).join('');
   }
 }
 

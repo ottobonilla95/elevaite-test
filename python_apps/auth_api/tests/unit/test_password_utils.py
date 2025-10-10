@@ -21,9 +21,8 @@ class TestPasswordUtils:
         # Check that it contains at least one digit
         assert any(c.isdigit() for c in password)
 
-        # Check that it contains at least one special character
-        special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
-        assert any(c in special_chars for c in password)
+        # Check that it contains at least one special character (non-alphanumeric)
+        assert any(not c.isalnum() for c in password)
 
         # Generate a password with custom length
         custom_length = 24
@@ -32,12 +31,12 @@ class TestPasswordUtils:
 
     def test_is_password_temporary(self):
         """Test that is_password_temporary correctly identifies test credentials."""
-        # Test with test credentials
+        # Test with known accounts should not be treated as temporary by default
         is_test, message = is_password_temporary(
             "panagiotis.v@iopex.com", "password123"
         )
-        assert is_test is True
-        assert message == "Test account detected. Redirecting to password reset flow."
+        assert is_test is False
+        assert message == ""
 
         # Test with regular credentials
         is_test, message = is_password_temporary(

@@ -62,6 +62,7 @@ export interface UserObject {
 }
 
 export interface ExtendedUserObject extends UserObject {
+  locked_until: boolean;
   status: string;
   displayRoles?: {
     roleLabel: string; // Role name or "Admin"

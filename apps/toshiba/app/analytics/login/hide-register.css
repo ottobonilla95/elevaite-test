@@ -1,0 +1,3 @@
+.login-form-main-container > div:last-child {
+  display: none !important;
+}

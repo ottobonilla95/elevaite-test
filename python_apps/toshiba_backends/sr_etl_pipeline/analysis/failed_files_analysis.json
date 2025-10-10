@@ -1,0 +1,67 @@
+{
+  "total_failed_files": 104,
+  "error_type_breakdown": {
+    "EMPTY_FILE_ERROR": 1,
+    "CSV_FORMAT_ERROR": 101,
+    "SCHEMA_LENGTH_ERROR": 2
+  },
+  "field_mismatches": {
+    "Expected 29, got 32": 15,
+    "Expected 29, got 61": 2,
+    "Expected 29, got 30": 25,
+    "Expected 29, got 31": 18,
+    "Expected 29, got 43": 6,
+    "Expected 29, got 36": 6,
+    "Expected 29, got 35": 5,
+    "Expected 29, got 44": 1,
+    "Expected 29, got 42": 2,
+    "Expected 29, got 39": 4,
+    "Expected 29, got 37": 3,
+    "Expected 29, got 51": 2,
+    "Expected 29, got 33": 4,
+    "Expected 29, got 38": 3,
+    "Expected 29, got 40": 2,
+    "Expected 29, got 57": 1,
+    "Expected 29, got 49": 2
+  },
+  "filename_patterns": {
+    "part-files": 102,
+    "data-uuid-files": 1,
+    "simple-names": 1
+  },
+  "retry_distribution": {
+    "1": 104
+  },
+  "sample_errors_by_type": {
+    "EMPTY_FILE_ERROR": [
+      {
+        "filename": "smoke.csv",
+        "error": "No columns to parse from file"
+      }
+    ],
+    "CSV_FORMAT_ERROR": [
+      {
+        "filename": "data_0aaee635-cbba-4efe-b456-06900a8784bf_3e99165b-57c5-41d8-b3d2-7ec506ec5b27.csv",
+        "error": "Error tokenizing data. C error: Expected 29 fields in line 3660, saw 32\n"
+      },
+      {
+        "filename": "part-00000-tid-5557105479667681605-c0f03afa-04cb-4c5b-86c3-632095c6f36b-8-1-c000.csv",
+        "error": "Error tokenizing data. C error: Expected 29 fields in line 658, saw 32\n"
+      },
+      {
+        "filename": "part-00000-tid-7310107748052234848-45e68189-af8b-41d3-980c-62b436af1f7f-4-1-c000.csv",
+        "error": "Error tokenizing data. C error: Expected 29 fields in line 657, saw 32\n"
+      }
+    ],
+    "SCHEMA_LENGTH_ERROR": [
+      {
+        "filename": "part-00000-tid-6141084139951731983-abca7579-8e58-4df8-b173-6cd1be544af8-79-1-c000.csv",
+        "error": "value too long for type character varying(100)"
+      },
+      {
+        "filename": "part-00000-tid-7544114582651030886-c55c98fe-3f33-471b-971f-43d25a04bbda-207-1-c000.csv",
+        "error": "value too long for type character varying(100)"
+      }
+    ]
+  }
+}

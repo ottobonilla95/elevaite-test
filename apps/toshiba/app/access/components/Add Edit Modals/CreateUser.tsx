@@ -4,7 +4,7 @@ import {
   ElevaiteIcons,
 } from "@repo/ui/components";
 import { useState, useEffect } from "react";
-import { createUser } from "../../../lib/services/userService";
+import { createUser, reactivateUser } from "../../../lib/services/userService";
 import { AddEditBaseDialog } from "./AddEditBaseDialog";
 import "./AddEditUser.scss";
 
@@ -49,7 +49,8 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
   const [userPassword, setUserPassword] = useState(generateClientPassword());
   const [isOneTimePassword, setIsOneTimePassword] = useState(true);
   const [isApplicationAdmin, setIsApplicationAdmin] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // Hide password by default
+  const [isManager, setIsManager] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -122,33 +123,59 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
     setIsSubmitting(true);
     setApiError("");
 
-    // Log the form data for debugging
-
     try {
-      // Call the API to create a user
-
       const result = await createUser({
         firstName: userFirstName,
-        lastName: userLastName || "", // Make last name optional
+        lastName: userLastName || "",
         email: userEmail,
         password: userPassword,
         isOneTimePassword,
         isApplicationAdmin,
+        isManager,
       });
 
       if (result.success) {
-        // User created successfully
-
         props.onSuccess(userEmail, result.message);
       } else {
-        // Error creating user
+        // Check if this is a deleted user error
+        if (result.error?.type === 'user_deleted') {
+          const shouldReactivate = window.confirm(
+            `This user was previously deleted and cannot be recreated.\n\n` +
+            `Would you like to reactivate this user account instead?`
+          );
 
+          if (shouldReactivate && result.error.user_id) {
+            await handleReactivateUser(result.error.user_id);
+          } else {
+            setApiError(result.message);
+          }
+        } else {
+          setApiError(result.message);
+        }
+      }
+    } catch (error) {
+      console.error("Exception while creating user:", error);
+      setApiError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleReactivateUser(userId: number): Promise<void> {
+    try {
+      setIsSubmitting(true);
+      setApiError("");
+
+      const result = await reactivateUser(userId);
+
+      if (result.success) {
+        props.onSuccess(userEmail, "User reactivated successfully!");
+      } else {
         setApiError(result.message);
       }
     } catch (error) {
-      // eslint-disable-next-line no-console -- Needed
-      console.error("Exception while creating user:", error);
-      setApiError("An unexpected error occurred. Please try again.");
+      console.error("Error reactivating user:", error);
+      setApiError("Failed to reactivate user. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -256,6 +283,12 @@ export function CreateUser(props: CreateUserProps): JSX.Element {
           defaultTrue={isApplicationAdmin}
           onChange={setIsApplicationAdmin}
           info="Make the user an application admin?"
+        />
+        <CommonCheckbox
+          label="Manager"
+          defaultTrue={isManager}
+          onChange={setIsManager}
+          info="Make the user a manager (dashboard access only)?"
         />
 
         {apiError ? <div className="api-error-message">{apiError}</div> : null}

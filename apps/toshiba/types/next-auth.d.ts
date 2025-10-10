@@ -11,6 +11,7 @@ declare module "next-auth" {
       needsPasswordReset?: boolean;
       is_superuser?: boolean;
       application_admin?: boolean;
+      is_manager?: boolean
       mfa_enabled?: boolean;
       sms_mfa_enabled?: boolean;
       phone_verified?: boolean;
@@ -34,6 +35,7 @@ declare module "next-auth" {
     needsPasswordReset?: boolean | null;
     is_superuser?: boolean | null;
     application_admin?: boolean | null;
+    is_manager?: boolean | null;
     mfa_enabled?: boolean | null;
     sms_mfa_enabled?: boolean | null;
     phone_verified?: boolean | null;
@@ -56,22 +58,23 @@ declare module "next-auth/jwt" {
     needsPasswordReset?: boolean | null;
     is_superuser?: boolean | null;
     application_admin?: boolean | null;
+    is_manager?: boolean | null;
     mfa_enabled?: boolean | null;
     sms_mfa_enabled?: boolean | null;
     phone_verified?: boolean | null;
     phone_number?: string | null;
     email_mfa_enabled?: boolean | null;
     grace_period?:
-      | {
-          in_grace_period: boolean;
-          days_remaining: number;
-          grace_period_days: number;
-          expires_at?: string;
-          auto_enable_at?: string;
-          auto_enable_method: string;
-          error?: string;
-        }
-      | null
-      | Record<string, unknown>;
+    | {
+      in_grace_period: boolean;
+      days_remaining: number;
+      grace_period_days: number;
+      expires_at?: string;
+      auto_enable_at?: string;
+      auto_enable_method: string;
+      error?: string;
+    }
+    | null
+    | Record<string, unknown>;
   }
 }

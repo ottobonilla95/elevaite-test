@@ -82,8 +82,12 @@ export function extractSourcesFromText(text: string): SourceReference[] | undefi
   while ((awsLinkMatch = awsLinkPattern.exec(textAfterAnswerTag)) !== null) {
     if (awsLinkMatch.length >= 2) {
       const awsLink = awsLinkMatch[1].trim();
+      console.log("In console awsLink:", awsLink);
       // Store the aws_link to be used later when matching with filenames
-      awsLinkMap.set(awsLink, awsLink);
+      if (awsLink.startsWith("None")) {awsLinkMap.set(awsLink, "None");}
+      else {
+        awsLinkMap.set(awsLink, awsLink);
+      }
     }
   }
 
@@ -94,7 +98,11 @@ export function extractSourcesFromText(text: string): SourceReference[] | undefi
     if (awsIdMatch.length >= 2) {
       const awsId = awsIdMatch[1].trim();
       // Store the aws_id to be used later
-      awsLinkMap.set(awsId, awsId);
+      console.log("In console awsId:", awsId);
+      if (awsId.startsWith("None")) {awsLinkMap.set(awsId, "None");}
+      else {
+        awsLinkMap.set(awsId, awsId);
+      }
     }
   }
 
@@ -111,10 +119,12 @@ if (firstEntry) {
 //   const sourceObjects: SourceReference[] = [{ filename: "Source", pages: "page" , awsLink: key.toString() }];
 //   console.log("sourceObjects:", sourceObjects);
 //   sources.push(...sourceObjects);
-  for (const [key] of awsLinkMap.entries()) {
-  const sourceObject: SourceReference = { filename: "Source", pages: "", awsLink: key.toString() };
-  sources.push(sourceObject);
-}
+
+
+//   for (const [key] of awsLinkMap.entries()) {
+//   const sourceObject: SourceReference = { filename: "Source", pages: "", awsLink: key.toString() };
+//   sources.push(sourceObject);
+// }
 
   // Look for direct aws_id pattern in the format: "6800 Parts Manual (3) page 91 [aws_id: 6800 Parts Manual (3)_page_91]"
   const directAwsIdPattern = /(.*?)\s+page\s+(\d+)\s+\[aws_id:\s+(.*?)\]/g;

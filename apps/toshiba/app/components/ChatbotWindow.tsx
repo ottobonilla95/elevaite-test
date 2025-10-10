@@ -89,7 +89,7 @@ export function ChatbotWindow(props: ChatbotWindowProps): JSX.Element {
             {!chatContext.isChatLoading ? null : 
                 <div className="chatbot-window-loader">
                     <LoadingBar/>
-                    <span>{chatContext.chatLoadingMessage ? chatContext.chatLoadingMessage : "\u200B"}</span>
+                    <span>{chatContext.agentStatus ? chatContext.agentStatus : "Thinking..."}</span>
                 </div>
             }
 

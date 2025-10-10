@@ -1,0 +1,118 @@
+# Service Requests API
+
+A FastAPI application for managing service request data, built on top of a PostgreSQL database.
+
+## Features
+
+- **Data Import**: Upload Excel files containing service request data
+- **CRUD Operations**: Create, read, update, and delete service requests
+- **Search Functionality**: Full-text search across service request data
+- **Data Export**: Export service request data as CSV or Excel
+- **Statistics**: Get statistics and metrics about service requests
+- **Pagination**: All list endpoints support pagination
+- **Filtering**: Filter service requests by various criteria
+
+## Prerequisites
+
+- Python 3.8 or higher
+- PostgreSQL database
+- pip (Python package manager)
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd service-requests-api
+```
+
+2. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Set up environment variables:
+```bash
+# Linux/macOS
+export DB_HOST=localhost
+export DB_NAME=toshiba
+export DB_USER=postgres
+export DB_PASSWORD=your_password
+export DB_PORT=5432
+
+# Windows
+set DB_HOST=localhost
+set DB_NAME=toshiba
+set DB_USER=postgres
+set DB_PASSWORD=your_password
+set DB_PORT=5432
+```
+
+## Running the API
+
+```bash
+uvicorn main:app --reload
+```
+
+The API will be available at http://localhost:8000.
+
+- Interactive API documentation: http://localhost:8000/docs
+- Alternative API documentation: http://localhost:8000/redoc
+
+## API Endpoints
+
+### Service Requests
+
+- `GET /service-requests`: Get paginated service requests with optional filtering
+- `GET /service-requests/{sr_id}`: Get a single service request by ID
+- `POST /service-requests`: Create a new service request
+- `PUT /service-requests/{sr_id}`: Update an existing service request
+- `DELETE /service-requests/{sr_id}`: Delete a service request
+
+### Data Import/Export
+
+- `POST /upload`: Upload and import Excel file
+- `GET /export`: Export service requests data as CSV or Excel
+
+### Reporting
+
+- `GET /stats`: Get database statistics and summary information
+- `GET /metrics`: Get service metrics for reporting
+- `POST /search`: Full-text search across service requests
+
+### Administration
+
+- `POST /admin/init-db`: Initialize or reset the database (admin only)
+- `GET /`: Root endpoint for API health check
+
+## Usage Examples
+
+### Upload Excel File
+```bash
+curl -X POST "http://localhost:8000/upload" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@path/to/your/data.xlsx" \
+  -F "recreate_table=true"
+```
+
+### Search Service Requests
+```bash
+curl -X POST "http://localhost:8000/search?page=1&page_size=50" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "printer error"}'
+```
+
+### Get Statistics
+```bash
+curl -X GET "http://localhost:8000/stats"
+```
+
+## License
+
+[MIT License](LICENSE)

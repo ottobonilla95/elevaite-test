@@ -18,9 +18,21 @@ import { headers } from "next/headers";
 import type { AuthResult, ExtendedAuthFormData } from "@repo/ui";
 import { extractErrorCode, mapErrorCodeToAuthResult } from "@repo/ui";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-const FRONTEND_URL =
-  process.env.NEXT_PUBLIC_FRONTEND_URL ?? "http://localhost:3002";
+// Example: NEXT_PUBLIC_FRONTEND_URL=https://tgcs.iopex.ai/
+// Example: NEXT_PUBLIC_AUTH_API_URL=https://tgcs.iopex.ai/auth-api
+const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL ?? "http://localhost:3002";
+
+function getBaseOrigin(): string {
+  try {
+    const headersList = headers();
+    const protocol = headersList.get("x-forwarded-proto") || "http";
+    const host = headersList.get("host");
+    if (host) return `${protocol}://${host}`;
+  } catch {
+    // Fail silently
+  }
+  return FRONTEND_URL;
+}
 
 export async function authenticate(
   _prevState: string | undefined,
@@ -68,7 +80,7 @@ export async function authenticate(
   }
 }
 
-export async function logout(): Promise<void> {
+export async function logout(): Promise<Response | void> {
   try {
     const session = await auth();
     const accessToken = session?.authToken ?? session?.user?.accessToken;
@@ -104,13 +116,18 @@ export async function logout(): Promise<void> {
     // Continue with NextAuth signOut even if preparation fails
   }
 
-  await signOut({ redirectTo: "/login" });
+  return await signOut({ redirectTo: "/login" });
 }
 
 export async function changeUserPassword(
   currentPassword: string,
   newPassword: string
-): Promise<{ success: boolean; message: string }> {
+): Promise<{
+  success: boolean;
+  message: string;
+  requireLogout?: boolean;
+  needsPasswordReset?: boolean;  
+}> {
   try {
     const session = await auth();
     const accessToken = session?.authToken;
@@ -156,9 +173,13 @@ export async function changeUserPassword(
     }
 
     const data = await response.json();
+    const requireLogout = data.require_logout === true;
+    
     return {
       success: true,
       message: data.message || "Password changed successfully.",
+      needsPasswordReset: false,
+      requireLogout: requireLogout
     };
   } catch (error) {
     console.error("Error changing user password:", error);
@@ -216,7 +237,7 @@ export async function fetchChatbotResponse(
   chatbotV: ChatbotV,
   chatbotGenAi: ChatBotGenAI
 ): Promise<ChatMessageResponse> {
-  const url = `${BACKEND_URL ?? ""}run`;
+  const url = new URL("/api/chatbot", getBaseOrigin());
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -240,9 +261,9 @@ export async function fetchSessionSummary(
   userId: string,
   sessionId: string
 ): Promise<SessionSummaryObject> {
-  const url = new URL(
-    `${BACKEND_URL ?? ""}summarization?uid=${userId}&sid=${sessionId}`
-  );
+  const url = new URL("/api/summarization", getBaseOrigin());
+  url.searchParams.set("uid", userId);
+  url.searchParams.set("sid", sessionId);
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch");
   const data: unknown = await response.json();
@@ -376,7 +397,8 @@ export async function resetPassword(newPassword: string): Promise<{
 export async function fetchPastSessions(
   userId: string
 ): Promise<SessionObject[]> {
-  const url = new URL(`${BACKEND_URL ?? ""}pastSessions?uid=${userId}`);
+  const url = new URL("/api/past-sessions", getBaseOrigin());
+  url.searchParams.set("uid", userId);
   console.log(userId);
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch");
@@ -387,7 +409,7 @@ export async function fetchPastSessions(
 }
 
 export async function batchEvaluation(formData: FormData): Promise<any> {
-  const url = new URL(`${BACKEND_URL ?? ""}batchEvaluation`);
+  const url = new URL("/api/batch-evaluation", getBaseOrigin());
   const response = await fetch(url, {
     method: "POST",
     // headers: {
@@ -403,7 +425,7 @@ export async function addSRNumberToSession(
   sessionId: string,
   srNumber: string
 ) {
-  const url = new URL(`${BACKEND_URL ?? ""}addSRNumber`);
+  const url = new URL("/api/add-sr-number", getBaseOrigin());
   const response = await fetch(url, {
     method: "POST",
     headers: {

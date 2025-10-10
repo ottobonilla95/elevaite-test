@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.security import HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from db_core.middleware import add_tenant_middleware
@@ -8,6 +8,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from fastapi_logger import ElevaiteLogger
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 
 from app.routers import auth
 from app.routers import user
@@ -76,7 +79,20 @@ app = FastAPI(
     lifespan=lifespan,
     root_path="/auth-api"
 )
-
+# @app.exception_handler(RequestValidationError)
+# async def validation_exception_handler(request: Request, exc: RequestValidationError):
+#     """Handle validation errors and log them properly"""
+#     logger.error(f"❌ Validation error on {request.method} {request.url.path}")
+#     logger.error(f"❌ Errors: {exc.errors()}")
+#     logger.error(f"❌ Body: {exc.body}")
+    
+#     return JSONResponse(
+#         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+#         content={
+#             "detail": jsonable_encoder(exc.errors()),
+#             "body": str(exc.body) if exc.body else None
+#         },
+#     )
 excluded_paths = {
     r"^/api/health$": {"default_tenant": "default"},
     r"^/docs.*": {"default_tenant": "default"},

@@ -43,7 +43,6 @@
 
 
     & .chatbot-window-message-list {
-        min-height: 100%;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
@@ -58,7 +57,9 @@
 
         & > span {
             align-self: center;
-            color: var(--ev-colors-text);
+            color: var(--ev-colors-secondaryText);
+            font-size: 0.85em;
+            font-style: italic;
         }
     }
 
