@@ -59,9 +59,9 @@ jobs:
           IMAGE="${ECR_REGISTRY}/elevaite-toshiba-ui"
           docker build \
             --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
-            --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs-preprod.iopex.ai/auth-api \
-            --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs-preprod.iopex.ai/api/core/ \
-            --build-arg NEXT_PUBLIC_API_URL=https://tgcs-preprod.iopex.ai \
+            --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs.iopex.ai/auth-api \
+            --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs.iopex.ai/api/core/ \
+            --build-arg NEXT_PUBLIC_API_URL=https://tgcs.iopex.ai \
             --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
             --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
             -f apps/toshiba/Dockerfile \
