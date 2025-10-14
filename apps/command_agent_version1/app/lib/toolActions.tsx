@@ -24,6 +24,7 @@ export async function fetchAllToolsNew(
 	isActive?: boolean,
 	isAvailable?: boolean
 ): Promise<Tool[]> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/`);
 
 	// Add query parameters
@@ -46,6 +47,7 @@ export async function fetchAllToolsNew(
 
 // Fetch available tools only
 export async function fetchAvailableTools(): Promise<Tool[]> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/available`);
 
 	const response = await fetch(url);
@@ -60,6 +62,7 @@ export async function fetchAvailableTools(): Promise<Tool[]> {
 
 // Get specific tool by ID
 export async function fetchToolById(toolId: string): Promise<Tool> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/${toolId}`);
 
 	const response = await fetch(url);
@@ -75,6 +78,7 @@ export async function fetchToolById(toolId: string): Promise<Tool> {
 
 // Update tool
 export async function updateTool(toolId: string, update: Partial<Tool>): Promise<Tool> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/${toolId}`);
 
 	const response = await fetch(url, {
@@ -97,6 +101,7 @@ export async function updateTool(toolId: string, update: Partial<Tool>): Promise
 
 // Delete tool
 export async function deleteTool(toolId: string): Promise<void> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/${toolId}`);
 
 	const response = await fetch(url, {
@@ -116,6 +121,7 @@ export async function fetchToolCategories(
 	skip = 0,
 	limit = 100
 ): Promise<ToolCategory[]> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/categories`);
 	url.searchParams.set("skip", skip.toString());
 	url.searchParams.set("limit", limit.toString());
@@ -131,6 +137,7 @@ export async function fetchToolCategories(
 }
 
 export async function fetchToolCategoryById(categoryId: string): Promise<ToolCategory> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/categories/${categoryId}`);
 
 	const response = await fetch(url);
@@ -145,6 +152,7 @@ export async function fetchToolCategoryById(categoryId: string): Promise<ToolCat
 }
 
 export async function createToolCategory(category: ToolCategoryCreate): Promise<ToolCategory> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/categories`);
 
 	const response = await fetch(url, {
@@ -169,6 +177,7 @@ export async function updateToolCategory(
 	categoryId: string,
 	update: ToolCategoryUpdate
 ): Promise<ToolCategory> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/categories/${categoryId}`);
 
 	const response = await fetch(url, {
@@ -190,6 +199,7 @@ export async function updateToolCategory(
 }
 
 export async function deleteToolCategory(categoryId: string): Promise<void> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/categories/${categoryId}`);
 
 	const response = await fetch(url, {
@@ -210,6 +220,7 @@ export async function fetchMCPServers(
 	limit = 100,
 	status?: string
 ): Promise<MCPServer[]> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/mcp-servers`);
 	url.searchParams.set("skip", skip.toString());
 	url.searchParams.set("limit", limit.toString());
@@ -226,6 +237,7 @@ export async function fetchMCPServers(
 }
 
 export async function fetchActiveMCPServers(): Promise<MCPServer[]> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/mcp-servers/active`);
 
 	const response = await fetch(url);
@@ -239,6 +251,7 @@ export async function fetchActiveMCPServers(): Promise<MCPServer[]> {
 }
 
 export async function fetchMCPServerById(serverId: string): Promise<MCPServer> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/mcp-servers/${serverId}`);
 
 	const response = await fetch(url);
@@ -253,6 +266,7 @@ export async function fetchMCPServerById(serverId: string): Promise<MCPServer> {
 }
 
 export async function createMCPServer(server: MCPServerCreate): Promise<MCPServer> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/mcp-servers`);
 
 	const response = await fetch(url, {
@@ -277,6 +291,7 @@ export async function updateMCPServer(
 	serverId: string,
 	update: MCPServerUpdate
 ): Promise<MCPServer> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/mcp-servers/${serverId}`);
 
 	const response = await fetch(url, {
@@ -298,6 +313,7 @@ export async function updateMCPServer(
 }
 
 export async function deleteMCPServer(serverId: string): Promise<void> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/mcp-servers/${serverId}`);
 
 	const response = await fetch(url, {
@@ -314,6 +330,7 @@ export async function deleteMCPServer(serverId: string): Promise<void> {
 
 // MCP Server Health Management
 export async function updateMCPServerHealth(serverId: string, isHealthy: boolean): Promise<{ message: string; status: string }> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/mcp-servers/${serverId}/health`);
 
 	const response = await fetch(url, {
@@ -343,6 +360,7 @@ export async function executeTool(
 	toolId: string,
 	executionRequest: ToolExecutionRequest
 ): Promise<ToolExecutionResponse> {
+	if (!BACKEND_URL) throw new Error("Undefined Url");
 	const url = new URL(`${BACKEND_URL}api/tools/${toolId}/execute`);
 
 	const response = await fetch(url, {

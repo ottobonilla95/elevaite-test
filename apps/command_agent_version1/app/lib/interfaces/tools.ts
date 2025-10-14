@@ -1,12 +1,12 @@
 export interface Tool {
-  id: number;
-  tool_id: string;
+  id: number|string;
+  // tool_id: string;
 
   name: string;
   display_name?: string;
   description: string;
   version: string;
-  tool_type: "local" | "remote" | "mcp";
+  tool_type: ToolType;
   execution_type: string;
 
   parameters_schema: Record<string, unknown>;
@@ -15,10 +15,7 @@ export interface Tool {
   module_path?: string;
   function_name?: string;
   remote_name?: string;
-  requires_auth: boolean;
-  timeout_seconds: number;
-  retry_count: number;
-  rate_limit_per_minute?: number;
+  auth_required: boolean;
 
   category_id?: string;
   mcp_server_id?: string;
@@ -33,13 +30,34 @@ export interface Tool {
   last_used?: string;
 
   usage_count: number;
-  success_count: number;
-  error_count: number;
   average_execution_time_ms?: number;
 
   category?: ToolCategory;
   mcp_server?: MCPServer;
+
+  api_endpoint?: string;
+  http_method?: string;
+  headers?: Record<string, string>;
+  documentation?: string;
+  examples?: Record<string, unknown>[];
 }
+
+
+export interface ToolNodeData {
+  id: string;
+  type: ToolType;
+  name: string;
+  description?: string;
+  tool: Tool;
+  tags?: string[];
+  // config?: Record<string, unknown>;
+  onAction?: (id: string, action: string, nodeData?: ToolNodeData) => void;
+  onDelete: (id: string) => void;
+  onConfigure: (id: string) => void;
+}
+
+
+export type ToolType = "local" | "remote" | "mcp";
 
 export interface ToolCategory {
   id: number;

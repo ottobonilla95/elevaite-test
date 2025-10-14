@@ -1,23 +1,10 @@
-import {
-  Router,
-  Globe,
-  Database,
-  Link2,
-  Wrench,
-  Zap,
-  Search,
-  Code,
-  FileText,
-  Calculator,
-  Mail,
-  Layers,
-} from "lucide-react";
-import { type AgentType } from "../../lib/interfaces";
 import { ElevaiteIcons } from "@repo/ui/components";
+import { Calculator, Code, Database, FileText, Globe, Layers, Link2, Mail, Router, Search, Wrench, Zap } from "lucide-react";
+import { type AgentType } from "../../lib/interfaces";
 
 // Get the appropriate icon based on agent type
-export function getAgentIcon(_type: AgentType): JSX.Element {
-  switch (_type) {
+export function getAgentIcon(type?: AgentType|null): JSX.Element {
+  switch (type) {
     case "router":
       return <Router size={20} className="text-blue-600" />;
     case "web_search":
@@ -59,7 +46,8 @@ export function getToolIcon(toolName: string): JSX.Element {
     return <Mail size={16} className="text-orange-500" />;
   }
   // Default icon for unknown tools
-  return <Zap size={16} className="text-orange-500" />;
+  // return <Zap size={16} className="text-orange-500" />;
+  return <ElevaiteIcons.SVGPuzzlePiece size={16} className="text-orange-500" />;
 }
 
 // Clean subtitle text

@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
+import { ToastContainer } from "react-toastify";
 import AgentConfigForm from "./components/AgentConfigForm";
-import { WorkflowsProvider } from "./ui/contexts/WorkflowsContext";
-import { AgentsProvider } from "./ui/contexts/AgentsContext";
 import "./page.scss";
+import { AgentsProvider } from "./ui/contexts/AgentsContext";
+import { WorkflowsProvider } from "./ui/contexts/WorkflowsContext";
 
 export default function CommandAgent(): JSX.Element {
   return (
@@ -17,6 +17,10 @@ export default function CommandAgent(): JSX.Element {
           position: 'relative',
           paddingTop: '52px' // Adjust based on your navbar height
         }}>
+          <ToastContainer
+            position="bottom-right"
+            autoClose={4000}
+          />
           <AgentConfigForm />
         </main>
       </WorkflowsProvider>

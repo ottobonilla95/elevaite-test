@@ -1,15 +1,19 @@
-import { CommonButton, CommonDialog, CommonModal, ElevaiteIcons } from "@repo/ui/components";
+import { CommonButton, CommonModal, ElevaiteIcons } from "@repo/ui/components";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { type Tool } from "../../../lib/interfaces";
+import { type AgentResponse, type Tool } from "../../../lib/interfaces";
 import { useTools } from "../../../ui/contexts/ToolsContext";
-import "./ToolsTabViewOnly.scss";
 import { getToolIcon } from "../iconUtils";
+import "./ToolsTabViewOnly.scss";
 
 
 
 interface ToolsTabViewOnlyProps {
-
+    onDragStart: (
+        event: React.DragEvent<HTMLElement>,
+        agent?: AgentResponse,
+        tool?: unknown,
+    ) => void;
 }
 
 export function ToolsTabViewOnly(props: ToolsTabViewOnlyProps): JSX.Element {
@@ -19,10 +23,6 @@ export function ToolsTabViewOnly(props: ToolsTabViewOnlyProps): JSX.Element {
     const [titleToDisplay, setTitleToDisplay] = useState<string|undefined>();
     const [descriptionToDisplay, setDescriptionToDisplay] = useState<string|undefined>();
 
-
-    useEffect(() => {
-        console.log("Tools!", tools);
-    }, [tools]);
 
     useEffect(() => {
         setDisplayTools(
@@ -56,10 +56,18 @@ export function ToolsTabViewOnly(props: ToolsTabViewOnlyProps): JSX.Element {
         setDescriptionToDisplay(undefined);
     }
 
+    function handleDragStart(event: React.DragEvent<HTMLButtonElement>, tool: Tool): void {
+        props.onDragStart(event, undefined, tool);
+    }
+
+    function handleCreateTool() {
+        console.log("Creating tool!");
+    }
+
 
 
     return (
-        <div className="tools-tab-view-only-container">
+        <div className="tools-tab-container">
 
             <div className="tools-title">Tools</div>
             
@@ -79,9 +87,9 @@ export function ToolsTabViewOnly(props: ToolsTabViewOnlyProps): JSX.Element {
                 </CommonButton>
             </div>
 
-            <div className="tools-info">
+            {/* <div className="tools-info">
                 To attach a tool to an agent, select the agent from the canvas and click on the edit icon at its tools section.
-            </div>
+            </div> */}
 
             <div className="tools-list-container">
                 {isLoading ? 
@@ -97,6 +105,8 @@ export function ToolsTabViewOnly(props: ToolsTabViewOnlyProps): JSX.Element {
                             onClick={() => { handleToolClick(tool); }}
                             className="tool-button"
                             type="button"
+                            draggable
+                            onDragStart={event => { handleDragStart(event, tool); }}
                         >
                             <div className="tool-button-content">
                                 <div className="tool-button-icon">
@@ -114,6 +124,12 @@ export function ToolsTabViewOnly(props: ToolsTabViewOnlyProps): JSX.Element {
                     </>
                 }
             
+            </div>
+
+            <div className="create-tool-button-container">
+                <CommonButton className="create-tool-button" onClick={handleCreateTool}>
+                    Create new Tool
+                </CommonButton>
             </div>
 
 

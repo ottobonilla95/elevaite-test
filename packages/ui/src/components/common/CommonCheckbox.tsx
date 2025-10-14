@@ -12,13 +12,14 @@ export interface CommonCheckboxProps {
     errorMessage?: string;
     defaultTrue?: boolean;
 	checked?: boolean;
+    disabled?: boolean;
     onChange?: (value: boolean, field?: string) => void;
 }
 
 
 
 export function CommonCheckbox(props: CommonCheckboxProps): JSX.Element {
-    const [isChecked, setIsChecked] = useState(!!props.defaultTrue);
+    const [isChecked, setIsChecked] = useState(Boolean(props.defaultTrue));
 
 
     function handleChange(event: React.FormEvent<HTMLInputElement>): void {
@@ -35,6 +36,7 @@ export function CommonCheckbox(props: CommonCheckboxProps): JSX.Element {
                     checked={checkedValue}
                     onChange={handleChange}
                     type="checkbox"
+                    disabled={props.disabled}
                 />
                 <div className={["checkbox-icon", checkedValue ? "shown" : ""].filter(Boolean).join(" ")}>
                     <ElevaiteIcons.SVGCheckmark/>

@@ -16,6 +16,7 @@ export interface CommonInputProps {
   tooltip?: string;
   disabled?: boolean;
   noDisabledTooltip?: boolean;
+  emptyValueWhenDisabled?: string;
   initialValue?: string;
   controlledValue?: string; // Use this to control the value externally
   className?: string;
@@ -100,7 +101,7 @@ export function CommonInput(props: CommonInputProps): JSX.Element {
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={props.placeholder}
-        value={value}
+        value={props.emptyValueWhenDisabled && !value && props.disabled ? props.emptyValueWhenDisabled : value}
         disabled={props.disabled}
         title={
           props.tooltip ??

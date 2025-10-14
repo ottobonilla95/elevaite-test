@@ -50,13 +50,13 @@ html, body, #__next {
   }
   
   .react-flow__edge-path {
-    stroke: #3b82f6;
+    stroke: var(--ev-colors-highlight) !important;
     stroke-width: 2;
     fill: none;
   }
   
   .react-flow__connection-path {
-    stroke: #3b82f6;
+    stroke: var(--ev-colors-highlight) !important;
     stroke-width: 2;
     stroke-dasharray: 5;
     fill: none;

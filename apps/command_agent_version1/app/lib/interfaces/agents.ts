@@ -1,8 +1,6 @@
-import {
-  type Edge as ReactFlowEdge,
-  type Node as ReactFlowNode,
-} from "react-flow-renderer";
-import { type ChatCompletionToolParam, type AgentFunction } from "./common";
+import { type Edge as ReactFlowEdge, type Node as ReactFlowNode, } from "react-flow-renderer";
+import { type AgentFunction, type ChatCompletionToolParam } from "./common";
+import { type ToolNodeData } from "./tools";
 
 // Define agent types as const object for better type safety and autocomplete
 export const AGENT_TYPE = {
@@ -206,4 +204,4 @@ export interface CustomEdgeData {
 }
 
 export type Edge = ReactFlowEdge<CustomEdgeData>;
-export type Node = ReactFlowNode<AgentNodeData>;
+export type Node = ReactFlowNode<AgentNodeData|ToolNodeData>;

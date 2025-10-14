@@ -21,14 +21,14 @@ interface ToolsProviderProps {
   children: ReactNode;
 }
 
-export const ToolsProvider: React.FC<ToolsProviderProps> = ({ children }) => {
+export function ToolsProvider({ children }: ToolsProviderProps): JSX.Element {
   const [tools, setTools] = useState<Tool[]>([]);
   const [categories, setCategories] = useState<ToolCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
 
-  const loadTools = async () => {
+  async function loadTools(): Promise<void> {
     try {
       setIsLoading(true);
       setError(null);
@@ -49,7 +49,7 @@ export const ToolsProvider: React.FC<ToolsProviderProps> = ({ children }) => {
     }
   };
 
-  const refetchTools = async () => {
+  async function refetchTools(): Promise<void> {
     await loadTools();
   };
 
@@ -65,7 +65,7 @@ export const ToolsProvider: React.FC<ToolsProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Load both legacy and new tools on mount
-    loadTools();
+    void loadTools();
   }, []);
 
   const value: ToolsContextType = {

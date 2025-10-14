@@ -24,7 +24,7 @@ function CustomEdge({
     data
 }: CustomEdgeProps): JSX.Element {
     // Create a curved path between source and target
-    const edgePath = `M ${sourceX} ${sourceY} C ${sourceX} ${sourceY + 50} ${targetX} ${targetY - 50} ${targetX} ${targetY}`;
+    const edgePath = `M ${sourceX.toString()} ${sourceY.toString()} C ${sourceX.toString()} ${(sourceY + 50).toString()} ${targetX.toString()} ${(targetY - 50).toString()} ${targetX.toString()} ${targetY.toString()}`;
 
     // Calculate the center point of the edge for label positioning
     const centerX = (sourceX + targetX) / 2;

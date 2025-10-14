@@ -122,7 +122,7 @@ export const LightTheme: ColorScheme = {
   tertiary: "#E75F3333",
   highlight: "#e75f33",
   text: "#212124",
-  secondaryText: "#212124",
+  secondaryText: "#59595A",
   tertiaryText: "#212124",
   icon: "#64748B",
   hoverColor: "#f5f5f5",

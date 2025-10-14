@@ -199,11 +199,11 @@
 
 .react-flow__edge-path {
   stroke-width: 2;
-  stroke: $accent-primary !important; //#3b82f6;
+  stroke: var(--ev-colors-highlight) !important;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: $accent-primary !important; //#2563eb;
+  stroke: var(--ev-colors-highlight) !important;
   stroke-width: 3;
 }
 
@@ -218,7 +218,7 @@
 }
 
 .react-flow__edge-path, .react-flow__connection-path {
-  stroke: $accent-primary !important; //#3b82f6;
+  stroke: var(--ev-colors-highlight) !important;
   stroke-width: 2;
 }
 
@@ -424,3 +424,12 @@ main {
   min-height: 100vh;
   overflow-y: auto;
 }
+
+
+
+.Toastify__toast-container {
+  .Toastify__toast {
+    min-width: 600px;
+  }
+}
+

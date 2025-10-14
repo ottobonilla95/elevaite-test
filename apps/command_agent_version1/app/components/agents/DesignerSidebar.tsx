@@ -13,7 +13,7 @@ import {
   X
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { isValidAgentType } from "../../lib/discriminators";
+// import { isValidAgentType } from "../../lib/discriminators";
 import {
   type AgentResponse,
   type AgentType,
@@ -25,6 +25,7 @@ import TabHeader, { type Tab } from "../TabHeader";
 import { ToolsTabViewOnly } from "./config/ToolsTabViewOnly";
 import "./DesignerSidebar.scss";
 import WorkflowsTab from "./WorkflowsTab";
+import { getAgentIcon } from "./iconUtils";
 
 // SidebarItem component for draggable items
 interface SidebarItemProps {
@@ -68,7 +69,8 @@ function SidebarItem({
 interface DesignerSidebarProps {
   handleDragStart: (
     event: React.DragEvent<HTMLElement>,
-    agent: AgentResponse
+    agent?: AgentResponse,
+    tool?: unknown,
   ) => void;
   handleCreateNewWorkflow: () => void;
   handleLoadWorkflow: (workflow: SavedWorkflow) => void;
@@ -112,35 +114,20 @@ function DesignerSidebar({
     setContextSearchQuery(searchQuery);
   }, [searchQuery, setContextSearchQuery]);
 
+
   // Filter agents based on search query and agent types
-  const filteredAgents = contextFilteredAgents.filter(
-    (agent): agent is AgentResponse & { agent_type: AgentType } =>
-      isValidAgentType(agent.agent_type) &&
-      ["router", "web_search", "api", "data", "toshiba"].includes(
-        agent.agent_type
-      )
-  );
+  // const filteredAgents = contextFilteredAgents.filter(
+  //   (agent): agent is AgentResponse & { agent_type: AgentType } =>
+  //     isValidAgentType(agent.agent_type) &&
+  //     ["router", "web_search", "api", "data", "toshiba"].includes(
+  //       agent.agent_type
+  //     )
+  // );
+  const filteredAgents = contextFilteredAgents;
+
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Get agent icon based on type
-  const getAgentIcon = (type: AgentType): JSX.Element => {
-    switch (type) {
-      case "router":
-        return <RouterAgentIcon />;
-      case "web_search":
-        return <Globe size={20} className="text-brand-primary" />;
-      case "api":
-        // return <Link2 size={20} className="text-brand-primary" />;
-        return <ElevaiteIcons.SVGRobot/>
-      case "data":
-        return <Database size={20} className="text-brand-primary" />;
-      case "troubleshooting":
-        return <Wrench size={20} className="text-brand-primary" />;
-      default:
-        return <Router size={20} className="text-brand-primary" />;
-    }
-  };
 
   return (
     <div
@@ -256,7 +243,7 @@ function DesignerSidebar({
       )}
 
       {/* Tools View */}
-      {activeTab === "tools" && <ToolsTabViewOnly />}
+      {activeTab === "tools" && <ToolsTabViewOnly onDragStart={handleDragStart} /> }
 
       {/* Workflows Content */}
       {activeTab === "workflows" && (

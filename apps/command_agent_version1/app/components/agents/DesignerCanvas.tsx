@@ -16,10 +16,12 @@ import { type Edge, type Node } from "../../lib/interfaces";
 import CustomEdge from "./CustomEdge";
 import AgentNode from "./AgentNode";
 import "./DesignerCanvas.scss";
+import { ToolNode } from "./ToolNode";
 
 // Define node and edge types
 const nodeTypes = {
 	agent: AgentNode,
+	tool: ToolNode,
 };
 
 const edgeTypes = {
@@ -94,11 +96,11 @@ function DesignerCanvas({
 	// Default edge options
 	const defaultEdgeOptions = {
 		animated: true,
-		style: { stroke: '#3b82f6', strokeWidth: 2 },
+		style: { stroke: '#FF681F', strokeWidth: 2 },
 		type: 'custom', // Use custom edge type by default
 		markerEnd: {
 			type: MarkerType.ArrowClosed,
-			color: '#3b82f6',
+			color: '#FF681F',
 			width: 20,
 			height: 20,
 		},
@@ -192,13 +194,13 @@ function DesignerCanvas({
 			// Create new connection with the action type
 			const newEdge = {
 				...params,
-				id: `e-${params.source}-${params.target}-${Date.now()}`,
+				id: `e-${params.source??"null"}-${params.target??"null"}-${Date.now().toString()}`,
 				type: 'custom', // Use custom edge
 				animated: true,
-				style: { stroke: '#3b82f6', strokeWidth: 2 },
+				style: { stroke: 'var(--ev-colors-highlight)', strokeWidth: 2 },
 				markerEnd: {
 					type: MarkerType.ArrowClosed,
-					color: '#3b82f6',
+					color: '#FF681F',
 					width: 20,
 					height: 20,
 				},
@@ -216,10 +218,8 @@ function DesignerCanvas({
 	// Handle clicking on a node
 	const onNodeClick = useCallback(
 		(event: React.MouseEvent, node: Node) => {
-			event.stopPropagation(); // Prevent event bubbling
-			if (onNodeSelect) {
-				onNodeSelect(node);
-			}
+			event.stopPropagation();
+			onNodeSelect(node);
 		},
 		[onNodeSelect]
 	);

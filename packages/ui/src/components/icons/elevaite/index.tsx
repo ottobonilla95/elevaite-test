@@ -50,6 +50,7 @@ import SVGSelectionArrow from "./svgSelectionArrow";
 import SVGUpload from "./svgUpload";
 import SVGQuestionMark from "./svgQuestionMark";
 import SVGRobot from "./svgRobot";
+import SVGPuzzlePiece from "./svgPuzzlePiece";
 
 
 export const ElevaiteIcons = {
@@ -105,4 +106,5 @@ export const ElevaiteIcons = {
     SVGUpload,
     SVGQuestionMark,
     SVGRobot,
+    SVGPuzzlePiece,
 };

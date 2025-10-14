@@ -1,29 +1,31 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ReactFlowProvider, type ReactFlowInstance } from "react-flow-renderer";
+import { toast } from "react-toastify";
 // eslint-disable-next-line import/named -- Seems to be a problem with eslint
 import { v4 as uuidv4 } from "uuid";
 import { getWorkflowDeploymentDetails } from "../lib/actions";
-import { isAgentResponse } from "../lib/discriminators";
-import { type AgentConfigData, type AgentCreate, type AgentFunction, type AgentNodeData, type AgentResponse, type AgentUpdate,
+import { isAgentResponse, isTool } from "../lib/discriminators";
+import {
+  type ToolNodeData, type AgentConfigData, type AgentCreate, type AgentFunction, type AgentNodeData, type AgentResponse, type AgentUpdate,
   type ChatCompletionToolParam, type Edge, type Node, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowDeployment, type WorkflowResponse,
 } from "../lib/interfaces";
 import { mapActionTypeToConnectionType, mapConnectionTypeToActionType } from "../lib/interfaces/workflows";
 import { useAgents } from "../ui/contexts/AgentsContext";
 import { usePrompts } from "../ui/contexts/PromptsContext.tsx";
 import { useWorkflows } from "../ui/contexts/WorkflowsContext";
+import "./AgentConfigForm.scss";
 import AgentConfigModal from "./agents/AgentConfigModal";
 import ChatInterface from "./agents/ChatInterface";
 import ChatSidebar from "./agents/ChatSidebar";
 import ConfigPanel, { type ConfigPanelHandle } from "./agents/ConfigPanel";
 import DesignerCanvas from "./agents/DesignerCanvas";
 import DesignerSidebar from "./agents/DesignerSidebar";
+import HeaderBottom from "./agents/HeaderBottom.tsx";
 import VectorizerBottomDrawer, { type PipelineStep, type VectorizationStepData } from "./agents/VectorizerBottomDrawer";
 import VectorizerConfigPanel from "./agents/VectorizerConfigPanel";
-// Import styles
-import "./AgentConfigForm.scss";
-import HeaderBottom from "./agents/HeaderBottom.tsx";
 import AgentTestingPanel from "./AgentTestingPanel.tsx";
+import { ToolsConfigPanel } from "./agents/config/ToolsConfigPanel.tsx";
 
 
 
@@ -131,12 +133,20 @@ function AgentConfigForm(): JSX.Element {
   const [activeTab, setActiveTab] = useState("actions");
   const [showTestingSidebar, setShowTestingSidebar] = useState(false);
   const [currentTestingWorkflowId, setCurrentTestingWorkflowId] = useState<string | undefined>(undefined);
+  const [isToolEditing, setIsToolEditing] = useState(false);
 
   // Vectorizer drawer state
   const [showVectorizerDrawer, setShowVectorizerDrawer] = useState(false);
   const [vectorizerAgentName, setVectorizerAgentName] = useState("");
   const [vectorizerAgentId, setVectorizerAgentId] = useState("");
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
+
+
+  useEffect(() => {
+    console.log("Selected Node:", selectedNode);
+  }, [showConfigPanel]);
+
+
 
 
   // Pipeline progress listener function using polling
@@ -674,6 +684,10 @@ function AgentConfigForm(): JSX.Element {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    setIsToolEditing(false);
+  }, [selectedNode]);
+
   // Workflow state management functions
   const getCurrentWorkflowState = useCallback(() => {
     return JSON.stringify({
@@ -773,6 +787,14 @@ function AgentConfigForm(): JSX.Element {
     },
     [selectedNode]
   );
+  
+  
+  const handleToolAction = useCallback((nodeId: string, action: string, nodeData?: ToolNodeData) => {
+    switch (action) {
+      case "editTool": console.log("Edit Tool Action"); setIsToolEditing(true); break;
+    }
+    // console.log("Tool action!");
+  }, []);
 
   const handleNodeAction = useCallback(
     (nodeId: string, action: string, nodeData?: AgentNodeData) => {
@@ -812,6 +834,8 @@ function AgentConfigForm(): JSX.Element {
 
       // Ensure the node is selected and config panel is shown
       setSelectedNode(targetNode);
+      console.log("targetnode:", targetNode);
+      // if (targetNode.type !== "agent") return;
       setShowConfigPanel(true);
 
       // Ensure the sidebar is open
@@ -853,95 +877,141 @@ function AgentConfigForm(): JSX.Element {
       event.preventDefault();
 
       if (!reactFlowWrapper.current || !reactFlowInstanceRef.current) {
-        console.error("React Flow wrapper or instance not ready");
+        toast.error("React Flow wrapper or instance not ready");
         return;
       }
 
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-      const agentDataJson = event.dataTransfer.getData("application/reactflow");
+      const agentDataJson = event.dataTransfer.getData("dragData/agent");
+      const toolDataJson = event.dataTransfer.getData("dragData/tool");
 
-      if (!agentDataJson) {
-        console.error("No data received during drop");
+      if (!agentDataJson && !toolDataJson) {
+        toast.error("No data received during drop");
         return;
       }
 
-      try {
-        const agentData = JSON.parse(agentDataJson) as unknown;
-        if (!agentData || !isAgentResponse(agentData)) {
-          throw new Error("Invalid agent data");
-        }
 
-        // Get drop position in react-flow coordinates
-        const position = reactFlowInstanceRef.current.project({
-          x: event.clientX - reactFlowBounds.left,
-          y: event.clientY - reactFlowBounds.top,
-        });
+      if (agentDataJson) {
+        try {
+          const agentData = JSON.parse(agentDataJson) as unknown;
+          if (!agentData || !isAgentResponse(agentData)) {
+            throw new Error("Invalid agent data");
+          }
 
-        // Create a new node with a unique ID
-        const nodeId = uuidv4();
-        const newNode = {
-          id: nodeId,
-          type: "agent",
-          position,
-          data: {
-            id: agentData.agent_id,
-            shortId: agentData.id.toString(),
-            type: agentData.agent_type ?? "custom",
-            name: agentData.name,
-            prompt: "", // Initialize with empty prompt
-            tools: agentData.functions, // ChatCompletionToolParam array
-            tags: [agentData.agent_type ?? "custom"], // Initialize tags with the type
-            onAction: handleNodeAction,
-            onDelete: handleDeleteNode,
-            onConfigure: () => {
-              handleNodeSelect({
-                id: nodeId,
-                type: "agent",
-                position,
-                data: {
-                  id: agentData.agent_id,
-                  shortId: agentData.id.toString(),
-                  type: agentData.agent_type ?? "custom",
-                  name: agentData.name,
-                  prompt: agentData.system_prompt.prompt || "",
-                  tools: agentData.functions, // ChatCompletionToolParam array
-                  tags: [agentData.agent_type ?? "custom"],
-                  onAction: handleNodeAction,
-                  onDelete: handleDeleteNode,
-                  // eslint-disable-next-line @typescript-eslint/no-empty-function -- Will be overwritten
-                  onConfigure: () => {}, // This will be overwritten
-                  agent: agentData,
-                  config: {
-                    model: agentData.system_prompt.ai_model_name,
-                    agentName: agentData.name,
-                    deploymentType: "",
-                    modelProvider: agentData.system_prompt.ai_model_provider,
-                    outputFormat: "",
-                    selectedTools: agentData.functions,
+          // Get drop position in react-flow coordinates
+          const position = reactFlowInstanceRef.current.project({
+            x: event.clientX - reactFlowBounds.left,
+            y: event.clientY - reactFlowBounds.top,
+          });
+
+          // Create a new node with a unique ID
+          const nodeId = uuidv4();
+          const newNode = {
+            id: nodeId,
+            type: "agent",
+            position,
+            data: {
+              id: agentData.agent_id,
+              shortId: agentData.id.toString(),
+              type: agentData.agent_type ?? "custom",
+              name: agentData.name,
+              prompt: "", // Initialize with empty prompt
+              tools: agentData.functions, // ChatCompletionToolParam array
+              tags: [agentData.agent_type ?? "custom"], // Initialize tags with the type
+              onAction: handleNodeAction,
+              onDelete: handleDeleteNode,
+              onConfigure: () => {
+                handleNodeSelect({
+                  id: nodeId,
+                  type: "agent",
+                  position,
+                  data: {
+                    id: agentData.agent_id,
+                    shortId: agentData.id.toString(),
+                    type: agentData.agent_type ?? "custom",
+                    name: agentData.name,
+                    prompt: agentData.system_prompt.prompt || "",
+                    tools: agentData.functions, // ChatCompletionToolParam array
+                    tags: [agentData.agent_type ?? "custom"],
+                    onAction: handleNodeAction,
+                    onDelete: handleDeleteNode,
+                    // eslint-disable-next-line @typescript-eslint/no-empty-function -- Will be overwritten
+                    onConfigure: () => {}, // This will be overwritten
+                    agent: agentData,
+                    config: {
+                      model: agentData.system_prompt.ai_model_name,
+                      agentName: agentData.name,
+                      deploymentType: "",
+                      modelProvider: agentData.system_prompt.ai_model_provider,
+                      outputFormat: "",
+                      selectedTools: agentData.functions,
+                    },
                   },
-                },
-              });
+                });
+              },
+              agent: agentData,
+              config: {
+                model: agentData.system_prompt.ai_model_name,
+                agentName: agentData.name,
+                deploymentType: "",
+                modelProvider: agentData.system_prompt.ai_model_provider,
+                outputFormat: "",
+                selectedTools: agentData.functions,
+              },
             },
-            agent: agentData,
-            config: {
-              model: agentData.system_prompt.ai_model_name,
-              agentName: agentData.name,
-              deploymentType: "",
-              modelProvider: agentData.system_prompt.ai_model_provider,
-              outputFormat: "",
-              selectedTools: agentData.functions,
-            },
-          },
-        };
+          };
 
-        setNodes((prevNodes) => [...prevNodes, newNode]);
+          setNodes((prevNodes) => [...prevNodes, newNode]);
 
-        // Set the newly created node as selected after a small delay
-        setTimeout(() => {
-          handleNodeSelect(newNode);
-        }, 50);
-      } catch (error) {
-        console.error("Error creating node:", error);
+          // Set the newly created node as selected after a small delay
+          setTimeout(() => {
+            handleNodeSelect(newNode);
+          }, 50);
+        } catch (error) {
+          toast.error("Error creating agent node");
+          // console.error("Error creating agent node:", error);
+        }
+      } else if (toolDataJson) {
+
+        
+        try {
+          const toolData = JSON.parse(toolDataJson) as unknown;
+          console.log("toolData:", toolData);
+          if (!toolData || !isTool(toolData)) throw new Error("Invalid tool data");
+
+        
+          const position = reactFlowInstanceRef.current.project({
+            x: event.clientX - reactFlowBounds.left,
+            y: event.clientY - reactFlowBounds.top,
+          });
+
+
+          const newToolNode = {
+            id: uuidv4(),
+            type: "tool",
+            position,
+            data: {
+              id: toolData.id.toString(),
+              type: toolData.tool_type,
+              name: toolData.display_name ?? toolData.name,
+              description: toolData.description,
+              tool: toolData,
+              tags: toolData.tags,
+              onAction: handleToolAction,
+              onDelete: handleDeleteNode,
+              onConfigure: () => { console.log("Tool", toolData); },
+            }
+          }
+
+          setNodes((prevNodes) => [...prevNodes, newToolNode]);
+        
+        } catch(error) {
+          if (error instanceof Error) {
+            toast.error(error.message);
+          } else {
+            toast.error("Error creating tool node");
+          }
+        }
       }
     },
     [handleDeleteNode]
@@ -955,35 +1025,31 @@ function AgentConfigForm(): JSX.Element {
 
   // Handle drag start for agent types
   const handleDragStart = useCallback(
-    (event: React.DragEvent<HTMLButtonElement>, agent: AgentResponse) => {
-      // Ensure the agent has all required properties
-      const dragData = agent;
+    (event: React.DragEvent<HTMLButtonElement>, agent?: AgentResponse, tool?: unknown) => {
+      console.log("Dragging", agent ? "agent" : tool ? "tool" : "unknown");
 
-      // Set the data transfer
-      event.dataTransfer.setData(
-        "application/reactflow",
-        JSON.stringify(dragData)
-      );
-      event.dataTransfer.effectAllowed = "move";
+      if (agent) {
+        event.dataTransfer.setData("dragData/agent",JSON.stringify(agent));
+        event.dataTransfer.effectAllowed = "move";
+      } else if (tool) {
+        event.dataTransfer.setData("dragData/tool",JSON.stringify(tool));
+        event.dataTransfer.effectAllowed = "move";
+      }
 
       // Add visual feedback for dragging
-      if (event.currentTarget.classList) {
-        const element = event.currentTarget;
-        element.classList.add("dragging");
-        setTimeout(() => {
-          if (element) {
-            element.classList.remove("dragging");
-          }
-        }, 100);
-      }
-    },
-    []
+      const elementClassList = event.currentTarget.classList;
+      elementClassList.add("dragging");
+      setTimeout(() => {
+        elementClassList.remove("dragging");
+      }, 100);
+    }, []
   );
 
   // Handle node selection
   const handleNodeSelect = useCallback(
     (node: Node | null) => {
       setSelectedNode(node);
+      // setShowConfigPanel(node !== null && node.type === "agent");
       setShowConfigPanel(node !== null);
 
       // Clear vectorizer step selection when regular agent is selected
@@ -1334,6 +1400,7 @@ function AgentConfigForm(): JSX.Element {
     setLastSavedState("");
     setDeploymentStatus({ isDeployed: false });
     setDeploymentResult(null);
+    setIsToolEditing(false);
   }
 
   // Create a new workflow
@@ -1883,43 +1950,51 @@ function AgentConfigForm(): JSX.Element {
 
                 {/* Configuration Panel - shown when a node is selected OR vectorizer step is selected */}
                 {showConfigPanel && selectedNode && !selectedVectorizerStep ? (
-                  <div
-                    className={`config-panel-container${!sidebarRightOpen ? " shrinked" : ""}${isEditingPrompt ? " editing" : ""}`}
-                  >
-                    <ConfigPanel
-                      ref={panelRef}
-                      agent={selectedNode.data}
-                      agentConfig={selectedNode.data.config}
-                      agentName={selectedNode.data.name}
-                      agentType={selectedNode.data.type}
-                      description={selectedNode.data.description ?? ""}
-                      onEditPrompt={handleOpenPromptModal}
-                      onSave={handleSaveAgentConfig}
-                      onClose={() => {
-                        setShowConfigPanel(false);
-                      }}
-                      onNameChange={(newName) => {
-                        handleAgentNameChange(selectedNode.id, newName);
-                      }}
-                      toggleSidebar={() => {
-                        setSidebarRightOpen(!sidebarRightOpen);
-                      }}
-                      sidebarOpen={sidebarRightOpen}
-                      currentFunctions={selectedNode.data.tools ?? []}
-                      onFunctionsChange={(functions) => {
-                        // Update the node's tools when functions change
-                        setNodes((toSetNodes) =>
-                          toSetNodes.map((node) =>
-                            node.id === selectedNode.id
-                              ? {
-                                  ...node,
-                                  data: { ...node.data, tools: functions },
-                                }
-                              : node
-                          )
-                        );
-                      }}
-                    />
+                  <div className={`config-panel-container${!sidebarRightOpen ? " shrinked" : ""}${isEditingPrompt ? " editing" : ""}`} >
+                    {selectedNode.type === "agent" ? 
+                      <ConfigPanel
+                        ref={panelRef}
+                        agent={selectedNode.data as AgentNodeData}
+                        agentConfig={(selectedNode.data as AgentNodeData).config}
+                        agentName={selectedNode.data.name}
+                        agentType={(selectedNode.data as AgentNodeData).type}
+                        description={selectedNode.data.description ?? ""}
+                        onEditPrompt={handleOpenPromptModal}
+                        onSave={handleSaveAgentConfig}
+                        onClose={() => {
+                          setShowConfigPanel(false);
+                        }}
+                        onNameChange={(newName) => {
+                          handleAgentNameChange(selectedNode.id, newName);
+                        }}
+                        toggleSidebar={() => {
+                          setSidebarRightOpen(!sidebarRightOpen);
+                        }}
+                        sidebarOpen={sidebarRightOpen}
+                        currentFunctions={(selectedNode.data as AgentNodeData).tools ?? []}
+                        onFunctionsChange={(functions) => {
+                          // Update the node's tools when functions change
+                          setNodes((toSetNodes) =>
+                            toSetNodes.map((node) =>
+                              node.id === selectedNode.id
+                                ? {
+                                    ...node,
+                                    data: { ...node.data, tools: functions },
+                                  }
+                                : node
+                            )
+                          );
+                        }}
+                      />
+                    :
+                      <ToolsConfigPanel
+                        toolNode={(selectedNode.data as ToolNodeData)}
+                        isToolEditing={isToolEditing}
+                        onToolEdit={(intent) => { setIsToolEditing(intent) } }
+                        isSidebarOpen={sidebarRightOpen}
+                        toggleSidebar={() => { setSidebarRightOpen(!sidebarRightOpen); } }
+                      />
+                    }
                   </div>
                 ) : selectedVectorizerStep ? (
                   <div
@@ -1944,7 +2019,7 @@ function AgentConfigForm(): JSX.Element {
               </div>
 
               {/* Agent Configuration Modal */}
-              {selectedNode ? (
+              {selectedNode && selectedNode.type === "agent" ? (
                 <AgentConfigModal
                   isOpen={isPromptModalOpen}
                   nodeData={{

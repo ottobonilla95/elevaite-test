@@ -1,6 +1,6 @@
 
 
-.tools-tab-view-only-container {
+.tools-tab-container {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -89,6 +89,8 @@
         &:hover {
             transition: background-color 0.05s ease-in-out;
             background-color: rgb(245 245 245);
+            transform: translateX(0.25rem);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1)        
         }
 
         &-content {
@@ -102,6 +104,10 @@
             width: 1rem;
             height: 1rem;
             flex-shrink: 0;
+
+            & > svg {
+                color: #3B9BCE;
+            }
         }
 
         &-text {
@@ -124,6 +130,24 @@
             word-break: break-word;
             font-size: 0.75rem;
             color: #4b5563;
+        }
+    }
+
+
+    .create-tool-button-container {
+        position: sticky;
+        bottom: 1rem;
+        left: 1rem; right: 1rem;
+        display: flex;
+
+        .create-tool-button {
+            flex-grow: 1;
+            justify-content: center;
+            border: 1px solid var(--ev-colors-highlight);
+            background-color: var(--ev-colors-background);
+            color: var(--ev-colors-highlight);
+            font-size: 14px;
+            font-weight: 500;
         }
     }
 
