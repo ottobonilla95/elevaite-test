@@ -8,6 +8,7 @@ interface CommonFormLabelsProps {
     info?: string;
     required?: boolean;
     errorMessage?: string;
+    rightSideItem?: React.ReactNode;
     className?: string;
     children?: React.ReactNode;
 }
@@ -29,6 +30,7 @@ export function CommonFormLabels(props: CommonFormLabelsProps): JSX.Element {
                     <div className="info" title={props.info}><ElevaiteIcons.SVGInfo/></div>
                 }
                 <div className="error-message">{props.errorMessage ? props.errorMessage : undefined}</div>
+                {props.rightSideItem ? props.rightSideItem : undefined}
             </div>
             {props.children}
         </div>

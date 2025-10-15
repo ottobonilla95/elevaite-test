@@ -139,6 +139,7 @@ export interface WorkflowCreateRequest {
   version?: string;
   configuration: {
     agents: {
+      node_type: "agent" | "tool";
       agent_type: string;
       agent_id?: string;
       position?: { x: number; y: number };

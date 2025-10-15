@@ -1,11 +1,18 @@
+import { type AgentNodeData } from "../interfaces/agents";
+import { type ToolNodeData } from "../interfaces/tools";
 import type {
+  SavedWorkflow,
+  WorkflowDeployment,
   WorkflowDeployResponse,
   WorkflowExecutionResponse,
   WorkflowResponse,
-  SavedWorkflow,
-  WorkflowDeployment,
 } from "../interfaces/workflows";
 import { isObject } from "./common";
+
+
+export function isAgentNodeData(data: AgentNodeData | ToolNodeData): data is AgentNodeData {
+  return typeof data === "object" && "agent" in data;
+}
 
 export function isWorkflowDeployResponse(
   data: unknown

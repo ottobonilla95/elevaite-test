@@ -181,13 +181,7 @@ function HeaderBottom({
   };
 
   // Handle edit workflow save
-  const handleEditSave = (
-    name: string,
-    description: string,
-    tags: string[]
-  ): void => {
-    console.log(onEditWorkflow ? "Found onEditWorkflow" : "Not there");
-    console.log("Name:", name, "Desc", description, "Tags", tags);
+  const handleEditSave = (name: string, description: string, tags: string[] ): void => {
     if (onEditWorkflow) {
       onEditWorkflow(name, description, tags);
     }

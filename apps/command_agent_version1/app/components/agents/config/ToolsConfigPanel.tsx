@@ -1,22 +1,12 @@
-import { CommonButton, CommonCheckbox, CommonInput } from "@repo/ui/components";
+import { CommonButton, CommonCheckbox, CommonFormLabels, CommonInput, ElevaiteIcons, SimpleTextarea } from "@repo/ui/components";
 import { ChevronsLeft, ChevronsRight, PenLine } from "lucide-react";
-import { useEffect, useState } from "react";
-import { type ToolNodeData } from "../../../lib/interfaces";
+import { useEffect, useMemo, useState } from "react";
+import { type ToolParametersSchema, type ToolNodeData } from "../../../lib/interfaces";
 import { getToolIcon } from "../iconUtils";
 import "./ToolsConfigPanel.scss";
 
 
 
-type JSONScalarType = "integer" | "number" | "string";
-interface ParameterValueType {
-    type: JSONScalarType;
-    description?: string;
-    value?: number | string;
-    error?: string;
-    isEdited?: boolean;
-    isUsingResponse?: boolean;
-}
-interface ParametersSchema { properties: Record<string, ParameterValueType>; required?: string[]; }
 
 
 interface ToolsConfigPanelProps {
@@ -29,32 +19,37 @@ interface ToolsConfigPanelProps {
 
 
 export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): JSX.Element {
-    const [parameters, setParameters] = useState<ParametersSchema>();
+    const [parameters, setParameters] = useState<ToolParametersSchema>();
     const [requiredSet, setRequiredSet] = useState<Set<string>>(new Set());
     const [name, setName] = useState(toolNode.name);
     const [description, setDescription] = useState(toolNode.description ?? "");
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(toolNode.description && toolNode.description.length > 200);
+    const isSaveAvailable = useMemo(() => canSave(), [name, parameters, requiredSet]);
 
 
     useEffect(() => {
         console.log("Passed Tool:", toolNode);
         resetValues();
     }, [toolNode]);
-
+    
 
 
     function resetValues(): void {
         setParameters(cloneParameters(toolNode.tool.parameters_schema));
-        setRequiredSet(new Set((toolNode.tool.parameters_schema as unknown as ParametersSchema).required ?? []));
+        setRequiredSet(new Set((toolNode.tool.parameters_schema as unknown as ToolParametersSchema).required ?? []));
+        setName(toolNode.name);
+        setDescription(toolNode.description ?? "");
+        setIsDescriptionExpanded(toolNode.description && toolNode.description.length > 200);
     }
 
 
-    function cloneParameters(schema: unknown): ParametersSchema {
+    function cloneParameters(schema: unknown): ToolParametersSchema {
         try {
             const parsed = JSON.parse(JSON.stringify(schema ?? { properties: {}, required: [] })) as unknown;
             if (!parsed || typeof parsed !== "object" || !("properties" in parsed)) {
                 return { properties: {}, required: [] };
             }
-            return parsed as ParametersSchema;
+            return parsed as ToolParametersSchema;
         } catch {
             return { properties: {}, required: [] };
         }
@@ -126,6 +121,34 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
     }
 
 
+    function canSave(): boolean {
+        if (!name.trim()) return false;
+        if (!parameters?.properties) return true;
+
+        for (const [key, param] of Object.entries(parameters.properties)) {
+            const error = validateParameter(
+                param.type,
+                String(param.value ?? ""),
+                requiredSet.has(key),
+                Boolean(param.isUsingResponse)
+            );
+            if (error) return false;
+        }
+
+        return true;
+    };
+
+
+    
+    function getSchemaString(schema: Record<string, unknown>, key: string): string | undefined {
+        if (!Object.prototype.hasOwnProperty.call(schema, key)) return undefined;
+        const v = schema[key];
+        return typeof v === "string" ? v : undefined;
+    };
+
+
+
+
     function handleEdit(): void {
         props.onToolEdit(true);
     }
@@ -137,8 +160,37 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
 
     function handleEditSave(): void {
         props.onToolEdit(false);
-        console.log("Saving");
+        const combinedParameters: ToolParametersSchema = {
+            ...(parameters ?? { properties: {}, required: [] }),
+            name,
+            ...(description.trim() ? { description } : {})
+        };
+        console.log("Saving:", getToolConfigFromParameters(combinedParameters));
     }
+
+
+    function getToolConfigFromParameters(_parameters?: ToolParametersSchema): Record<string, unknown> {
+        const result: Record<string, unknown> = { param_mapping: {} as Record<string, unknown> };
+        if (!_parameters) return result;
+
+        if ("name" in _parameters) result.tool_name = _parameters.name;
+        if ("description" in _parameters) result.tool_description = _parameters.description;
+
+        const paramMapping: Record<string, unknown> = {};
+        const parameterProperties = _parameters.properties;
+        for (const [key, value] of Object.entries(parameterProperties)) {
+            if (value.isUsingResponse) {
+                const v = value.value;
+                paramMapping[key] = v !== undefined && String(v).trim() !== "" ? `response.${String(v)}` : undefined;
+            } else {
+                paramMapping[key] = value.value;
+            }
+        }
+
+        result.param_mapping = paramMapping;
+        return result;
+    }
+
 
 
     return (
@@ -159,14 +211,22 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                 </div>
 
                 <div className="header-labels-container">
-                    <span className="header-labels-title">{toolNode.name}</span>
-                    <span className="header-labels-description" title={toolNode.description}>{toolNode.description}</span>
+                    <span className="header-labels-title">
+                        {getSchemaString(toolNode.tool.parameters_schema, "tool_name") ?? toolNode.name}
+                    </span>
+                    <span
+                        className="header-labels-description"
+                        title={getSchemaString(toolNode.tool.parameters_schema, "tool_description") ?? toolNode.description}
+                    >
+                        {getSchemaString(toolNode.tool.parameters_schema, "tool_description") ?? toolNode.description}
+                    </span>
                 </div>
 
                 <div className="header-controls-container">
                     <CommonButton
                         onClick={handleEdit}
                         noBackground
+                        disabled={props.isToolEditing}
                     >
                         <PenLine size={20} />
                     </CommonButton>
@@ -180,28 +240,60 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
             <div className="tools-details-container">
                 <div className="tools-details-scroller">
 
-                    {!parameters || !Object.keys(parameters.properties).length ?
+                    <div className="tools-details-content">
 
-                        "No parameters"
-                        // TODO: Beautify this
-                    :
-                        <div className="tools-details-content">
+                        <div className={["name-and-description-container", props.isToolEditing ? "expanded" : undefined].filter(Boolean).join(" ")}>
+                            <CommonInput
+                                controlledValue={name}
+                                onChange={setName}
+                                label="Tool Name"
+                                placeholder="Name (Required)"
+                                required
+                                disabled={!props.isToolEditing}
+                            />
 
-                            {/* TODO: name and description */}
+                            <CommonFormLabels
+                                label="Tool Description"
+                                rightSideItem={
+                                    <CommonButton onClick={() => { setIsDescriptionExpanded(!isDescriptionExpanded); }} noBackground>
+                                        <ElevaiteIcons.SVGZoom type={isDescriptionExpanded ? "out" : "in" } />
+                                    </CommonButton>
+                                }
+                            >
+                                <SimpleTextarea
+                                    value={description}
+                                    onChange={setDescription}
+                                    useCommonStyling
+                                    wrapperClassName={["tool-description", isDescriptionExpanded ? "expanded" : undefined].filter(Boolean).join(" ")}
+                                    disabled={!props.isToolEditing}
+                                />
+                            </CommonFormLabels>
+                        </div>
 
-                            {Object.entries(parameters.properties).map(([key, parameter]) => {
+                        {!parameters || !Object.keys(parameters.properties).length ?
+
+                            <div className={["no-parameters", props.isToolEditing ? "short" : undefined].filter(Boolean).join(" ")}>
+                                No parameters found
+                            </div>
+
+                        :
+
+                            Object.entries(parameters.properties).map(([key, parameter]) => {
                                 return (
                                     <div className="parameter-input-container" key={key}>
                                         <CommonInput
                                             field={key}
-                                            label={parameter.description ?? key}
+                                            label={parameter.title ?? (parameter.description ?? key)}
                                             required={requiredSet.has(key)}
                                             errorMessage={parameter.isEdited ? parameter.error : undefined}
                                             placeholder={
                                                 parameter.isUsingResponse ? "response_parameter_name"
                                                 : parameter.type === "integer" ? "e.g., 12345"
                                                 : parameter.type === "number" ? "e.g., 123.45"
-                                                : "Static text"
+                                                : "e.g., Static text"
+                                            }
+                                            info={
+                                                `Expected input type:\n${parameter.isUsingResponse ? "string (response variable reference)" : parameter.type}`
                                             }
                                             onChange={(value, field) => { handleParameterChange(field ?? key, value); }}
                                             controlledValue={ parameter.value !== undefined ? String(parameter.value) : "" }
@@ -209,19 +301,11 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                                             emptyValueWhenDisabled="No parameter value defined"
                                         />
                                         <div className={["parameter-input-details", props.isToolEditing ? "editing" : ""].filter(Boolean).join(" ")}>
-                                            <div className="parameter-type"
-                                                title={parameter.isUsingResponse && parameter.type !== "string" ? "Ignore the parameter type if you're using a response reference." : undefined}>
-                                                <span className="type-label">Type: </span>
-                                                <span className={["type-value", parameter.isUsingResponse && parameter.type !== "string" ? "crossed" : undefined].filter(Boolean).join(" ")}>
-                                                    {parameter.type}
-                                                </span>
-                                            </div>
                                             <div className="result-checkbox"
-                                                title="Using agent response allows you to utilize references to expected results from the response of a previous agent or tool.">
-                                                <span className="checkbox-label">
-                                                    Use response?
-                                                </span>
+                                                title={`Link to connected tool's or agent's response.\nUse a response reference to utilize its value.\nE.g., If you expect agent_id.response.parameter_name\nYou can use "parameter_name" as the value when you use the link.`}>
+                                                <ElevaiteIcons.SVGConnect/>
                                                 <CommonCheckbox
+                                                    checked={parameter.isUsingResponse}
                                                     onChange={(value) => { handleResponseUsageChange(key, value) }}
                                                     disabled={!props.isToolEditing}
                                                 />
@@ -229,10 +313,10 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                                         </div>
                                     </div>
                                 );
-                            })}
+                            })
+                        }
 
-                        </div>
-                    }
+                    </div>
 
                 </div>
 
@@ -242,7 +326,7 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                         <CommonButton onClick={handleEditCancel} className="tool-button cancel">
                             Cancel
                         </CommonButton>
-                        <CommonButton onClick={handleEditSave} className="tool-button">
+                        <CommonButton onClick={handleEditSave} className="tool-button" disabled={!isSaveAvailable}>
                             Save
                         </CommonButton>
                     </div>

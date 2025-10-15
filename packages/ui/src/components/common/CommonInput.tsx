@@ -30,18 +30,13 @@ export function CommonInput(props: CommonInputProps): JSX.Element {
   const [requiredWarning, setRequiredWarning] = useState("");
 
   useEffect(() => {
-    if (props.controlledValue === undefined || props.controlledValue === value)
-      return;
+    if (props.controlledValue === undefined || props.controlledValue === value) return;
     setValue(props.controlledValue);
   }, [props.controlledValue]);
 
   useEffect(() => {
-    if (value.length > 0) {
-      setHasBeenChanged(true);
-      if (requiredWarning) setRequiredWarning("");
-    }
-    if (props.onChange) props.onChange(value, props.field);
-  }, [value]);
+    if (value.length > 0 && requiredWarning) setRequiredWarning("");
+  }, [value, requiredWarning]);
 
   function handleBlur(): void {
     if (hasBeenChanged && props.required && !value) {
@@ -50,7 +45,10 @@ export function CommonInput(props: CommonInputProps): JSX.Element {
   }
 
   function handleChange(event: React.FormEvent<HTMLInputElement>): void {
-    setValue(event.currentTarget.value);
+    const next = event.currentTarget.value;
+    setValue(next);
+    if (!hasBeenChanged && next.length > 0) setHasBeenChanged(true);
+    if (props.onChange) props.onChange(next, props.field);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {

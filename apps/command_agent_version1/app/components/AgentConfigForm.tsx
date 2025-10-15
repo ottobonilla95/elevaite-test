@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 // eslint-disable-next-line import/named -- Seems to be a problem with eslint
 import { v4 as uuidv4 } from "uuid";
 import { getWorkflowDeploymentDetails } from "../lib/actions";
-import { isAgentResponse, isTool } from "../lib/discriminators";
+import { isAgentNodeData, isAgentResponse, isTool } from "../lib/discriminators";
 import {
   type ToolNodeData, type AgentConfigData, type AgentCreate, type AgentFunction, type AgentNodeData, type AgentResponse, type AgentUpdate,
   type ChatCompletionToolParam, type Edge, type Node, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowDeployment, type WorkflowResponse,
@@ -140,12 +140,6 @@ function AgentConfigForm(): JSX.Element {
   const [vectorizerAgentName, setVectorizerAgentName] = useState("");
   const [vectorizerAgentId, setVectorizerAgentId] = useState("");
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
-
-
-  useEffect(() => {
-    console.log("Selected Node:", selectedNode);
-  }, [showConfigPanel]);
-
 
 
 
@@ -674,6 +668,10 @@ function AgentConfigForm(): JSX.Element {
     reactFlowInstanceRef.current = instance;
   };
 
+  useEffect(() => {
+    console.log("Current Workflow:", currentWorkflowData);
+  }, [currentWorkflowData]);
+
 
   // Initialize client-side only data after mount
   useEffect(() => {
@@ -685,7 +683,7 @@ function AgentConfigForm(): JSX.Element {
   }, []);
 
   useEffect(() => {
-    setIsToolEditing(false);
+    setIsToolEditing(selectedNode?.type === "tool");
   }, [selectedNode]);
 
   // Workflow state management functions
@@ -1196,11 +1194,83 @@ function AgentConfigForm(): JSX.Element {
     [selectedNode, setNodes]
   );
 
+
+
+  function buildWorkflowPayload(name?: string, description?: string): WorkflowCreateRequest {
+    const nodeById = new Map(nodes.map((node) => [node.id, node]));
+
+    const agents = nodes.map((node) => {
+      const data = node.data;
+
+      if (isAgentNodeData(data)) {
+        return {
+          node_type: "agent" as const,
+          agent_id: data.agent.agent_id,
+          agent_type: data.agent.agent_type as string,
+          prompt: data.prompt,
+          tools: data.tools,
+          tags: data.tags,
+          position: node.position,
+        };
+      }
+
+      const tool = data.tool;
+      return {
+        node_type: "tool" as const,
+        agent_id: tool.tool_id,
+        agent_type: tool.tool_type,
+        position: node.position,
+        tags: data.tags,
+        config: getToolConfigFromParameters(tool.parameters_schema),
+      };
+    });
+
+    const connections = edges.map((edge) => {
+        const source = nodeById.get(edge.source)?.data;
+        const target = nodeById.get(edge.target)?.data;
+
+        if (!source || !target) return null;
+
+        const sourceId = isAgentNodeData(source) ? source.agent.agent_id : source.tool.tool_id;
+        const targetId = isAgentNodeData(target) ? target.agent.agent_id : target.tool.tool_id;
+
+        if (!sourceId || !targetId) {
+          console.log(`Missing agent ID for connection: ${edge.source} -> ${edge.target}`);
+          return null;
+        }
+
+        return {
+          source_agent_id: sourceId,
+          target_agent_id: targetId,
+          connection_type: mapActionTypeToConnectionType(edge.data?.actionType ?? "Action"),
+        };
+      }).filter((connection): connection is NonNullable<typeof connection> => connection !== null);
+
+    return {
+      name: name ?? workflowName,
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- This is starting to get annoying.
+      description: description === undefined ? workflowDescription : description,
+      tags: workflowTags,
+      configuration: {
+        agents,
+        connections,
+      },
+    };
+  };
+
+
+  function getToolConfigFromParameters(parameters: Record<string, unknown>): Record<string, unknown> {
+    return {};
+  }
+
+
+
+
   // Deploy workflow
-  const handleDeployWorkflow = async (nameOverride?: string) => {
+  const handleDeployWorkflow = async (nameOverride?: string): Promise<void> => {
     // Check for nodes
-    if (nodes.length === 0) {
-      alert("Please add at least one agent to your workflow before deploying.");
+    if (nodes.length === 0) {      
+      toast.error("Please add at least one agent to your workflow before deploying.");
       return;
     }
 
@@ -1211,45 +1281,7 @@ function AgentConfigForm(): JSX.Element {
       let workflowData = currentWorkflowData;
 
       const finalWorkflowName = nameOverride ?? workflowName;
-      const workflowPayload: WorkflowCreateRequest = {
-        name: finalWorkflowName,
-        description: workflowDescription,
-        tags: workflowTags,
-        configuration: {
-          agents: nodes.map((node) => ({
-            agent_id: node.data.agent.agent_id,
-            agent_type: node.data.agent.agent_type as string,
-            prompt: node.data.prompt,
-            tools: node.data.tools,
-            tags: node.data.tags,
-            position: node.position,
-          })),
-          connections: edges
-            .map((edge) => {
-              const sourceNode = nodes.find((node) => node.id === edge.source);
-              const targetNode = nodes.find((node) => node.id === edge.target);
-
-              if (
-                !sourceNode?.data.agent.agent_id ||
-                !targetNode?.data.agent.agent_id
-              ) {
-                console.warn(
-                  `Missing agent ID for connection: ${edge.source} -> ${edge.target}`
-                );
-                return null;
-              }
-
-              return {
-                source_agent_id: sourceNode.data.agent.agent_id,
-                target_agent_id: targetNode.data.agent.agent_id,
-                connection_type: mapActionTypeToConnectionType(
-                  edge.data?.actionType ?? "Action"
-                ),
-              };
-            })
-            .filter((conn): conn is NonNullable<typeof conn> => conn !== null),
-        },
-      };
+      const workflowPayload = buildWorkflowPayload(finalWorkflowName);
 
       if (!workflowData) {
         // Create new workflow
@@ -1297,61 +1329,18 @@ function AgentConfigForm(): JSX.Element {
         inferenceUrl,
       });
     } catch (error) {
-      alert(`Error: ${(error as Error).message}`);
+      toast.error(`Error: ${(error as Error).message}`);
       setIsLoading(false);
     }
   };
   // Save workflow
-  const handleSaveWorkflow = async (
-    _workflowName?: string,
-    _description?: string
-  ) => {
+  const handleSaveWorkflow = async (_workflowName?: string, _description?: string): Promise<void> => {
     if (nodes.length === 0) {
-      alert("Please add at least one agent to your workflow before saving.");
+      toast.warn("Please add at least one agent to your workflow before saving.");
       return;
     }
 
-    const workflow: WorkflowCreateRequest = {
-      // workflowId: workflowIdRef.current,
-      name: _workflowName ?? workflowName,
-      description: _description ?? "",
-      tags: workflowTags,
-      configuration: {
-        agents: nodes.map((node) => ({
-          agent_id: node.data.agent.agent_id,
-          agent_type: node.data.agent.agent_type as string,
-          prompt: node.data.prompt, // Include prompt in saved workflow
-          tools: node.data.tools, // Include tools in saved workflow
-          tags: node.data.tags, // Include tags in saved workflow
-          position: node.position,
-        })),
-
-        connections: edges
-          .map((edge) => {
-            const sourceNode = nodes.find((node) => node.id === edge.source);
-            const targetNode = nodes.find((node) => node.id === edge.target);
-
-            if (
-              !sourceNode?.data.agent.agent_id ||
-              !targetNode?.data.agent.agent_id
-            ) {
-              console.warn(
-                `Missing agent ID for connection: ${edge.source} -> ${edge.target}`
-              );
-              return null;
-            }
-
-            return {
-              source_agent_id: sourceNode.data.agent.agent_id,
-              target_agent_id: targetNode.data.agent.agent_id,
-              connection_type: mapActionTypeToConnectionType(
-                edge.data?.actionType ?? "Action"
-              ),
-            };
-          })
-          .filter((conn): conn is NonNullable<typeof conn> => conn !== null),
-      },
-    };
+    const workflow = buildWorkflowPayload(_workflowName, _description);    
 
     try {
       let workflowData: WorkflowResponse;
@@ -1381,8 +1370,7 @@ function AgentConfigForm(): JSX.Element {
 
       updateLastSavedState();
     } catch (error) {
-      console.error("Error saving workflow:", error);
-      alert(`Error saving workflow: ${(error as Error).message}`);
+      toast.error(`Error saving workflow: ${(error as Error).message}`);
     }
   };
 
@@ -1404,7 +1392,7 @@ function AgentConfigForm(): JSX.Element {
   }
 
   // Create a new workflow
-  const handleCreateNewWorkflow = () => {
+  const handleCreateNewWorkflow = (): void => {
     workflowIdRef.current = uuidv4();
     setWorkflowName("My Agent Workflow");
     setWorkflowDescription("");
@@ -1488,15 +1476,17 @@ function AgentConfigForm(): JSX.Element {
     setDeploymentResult(null);
   }, []);
 
+
+
   // Memoized tools array to prevent re-renders
   const memoizedTools = useMemo(() => {
-    return nodes.flatMap((node) => node.data.tools ?? []);
+    return nodes.flatMap((node) => (isAgentNodeData(node.data) ? node.data.tools ?? [] : []));
   }, [nodes]);
 
   // Create a new empty agent on the canvas
   function handleCreateNewAgent(): void {
     if (!reactFlowWrapper.current || !reactFlowInstanceRef.current) {
-      console.error("React Flow wrapper or instance not ready");
+      toast.error("React Flow wrapper or instance not ready");
       return;
     }
 
@@ -1990,7 +1980,7 @@ function AgentConfigForm(): JSX.Element {
                       <ToolsConfigPanel
                         toolNode={(selectedNode.data as ToolNodeData)}
                         isToolEditing={isToolEditing}
-                        onToolEdit={(intent) => { setIsToolEditing(intent) } }
+                        onToolEdit={(intent) => { console.log("Request to edit?", intent); setIsToolEditing(intent) } }
                         isSidebarOpen={sidebarRightOpen}
                         toggleSidebar={() => { setSidebarRightOpen(!sidebarRightOpen); } }
                       />

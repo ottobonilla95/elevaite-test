@@ -1,5 +1,5 @@
 import { CommonButton } from "@repo/ui/components";
-import { GripHorizontal, PenLine, Trash2 } from "lucide-react";
+import { GripHorizontal, Trash2 } from "lucide-react";
 import { Handle, Position } from "react-flow-renderer";
 import { type ToolNodeData } from "../../lib/interfaces";
 import { getToolIcon } from "./iconUtils";
@@ -14,7 +14,7 @@ interface ToolNodeProps {
 }
 
 export function ToolNode({ id, data, selected }: ToolNodeProps): JSX.Element {
-    const { type: _type, name, tool, onDelete, onAction } = data;
+    const { type: _type, name, tool, onDelete } = data;
 
 
     function handleDelete(event: React.MouseEvent): void {
@@ -22,13 +22,13 @@ export function ToolNode({ id, data, selected }: ToolNodeProps): JSX.Element {
         onDelete(id);
     }
 
-    function handleEdit(): void {
-        handleAction("editTool");
-    }
+    // function handleEdit(): void {
+    //     handleAction("editTool");
+    // }
     
-    function handleAction(action: string): void {
-        if (onAction) onAction(id, action, data);
-    }
+    // function handleAction(action: string): void {
+    //     if (onAction) onAction(id, action, data);
+    // }
 
 
 
@@ -45,12 +45,12 @@ export function ToolNode({ id, data, selected }: ToolNodeProps): JSX.Element {
                         <div className="top-label-container">
                             <div className="label-name">{name}</div>
                             <div className="buttons-container">
-                                <CommonButton
+                                {/* <CommonButton
                                     onClick={handleEdit}
                                     noBackground
                                 >
                                     <PenLine size={16} />
-                                </CommonButton>
+                                </CommonButton> */}
                                 <CommonButton
                                     onClick={handleDelete}
                                     noBackground

@@ -7,6 +7,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    gap: 1rem;
     padding: 1rem;
     overflow: hidden;
 
@@ -57,13 +58,19 @@
                 font-size: 14px;
                 color: var(--ev-colors-secondaryText);
                 overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
+                // text-overflow: ellipsis;
+                // white-space: nowrap;
+                display: -webkit-box;
+                -webkit-line-clamp: 3;
+                line-clamp: 3;
+                -webkit-box-orient: vertical;
             }
         }
 
         .header-controls-container {
             flex-shrink: 0;
+            align-self: flex-start;
+            margin-top: 0.75rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -77,7 +84,6 @@
 
 
     .tools-details-container {
-        margin-top: 1rem;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
@@ -90,59 +96,97 @@
             flex-grow: 1;
             margin-right: -1rem;
             padding-right: 0.5rem;
-            padding-left: 1px;
             overflow-y: auto;
             @include scrollbar();
             scrollbar-gutter: stable;
+        }
+
+        .no-parameters {
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            color: var(--ev-colors-secondaryText);
+
+            &.short {
+                height: 80px;
+                align-items: flex-end;
+            }
         }
 
         .tools-details-content {
             display: flex;
             flex-direction: column;
             gap: 1rem;
+            padding: 1px;
             min-height: 0;
 
+
+            .name-and-description-container {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1px;
+                overflow: hidden;
+                max-height: 0;
+                transition: max-height 200ms ease;
+
+                &.expanded {
+                    max-height: 500px;
+                }
+            }
+
+            .common-form-labels-container {
+                .common-button {
+                    & > svg {
+                        height: 14px;
+                        width: 14px;
+                    }
+                }
+            }
+
+            .tool-description {
+                &.expanded {
+                    & > textarea {
+                        height: 300px;
+                    }
+                }
+            }
 
 
             .parameter-input-container {
                 display: flex;
-                flex-direction: column;
+                // flex-direction: column;
                 gap: 0.1rem;
                 min-height: 0;
 
+                .common-input-container {
+                    flex-grow: 1;
+                }
+
+                .info > svg {
+                    color: #007BFF;
+                }
+
                 .parameter-input-details {
+                    flex-shrink: 0;
                     display: flex;
+                    flex-direction: column;
                     justify-content: space-between;
                     gap: 1rem;
-                    padding: 0 0.5rem;
-                    max-height: 0;
-                    transition: max-height 200ms ease;
+                    padding: 0.5rem 0;
+                    max-width: 0;
+                    transition: max-width 200ms ease;
                     overflow: hidden;
 
                     &.editing {
-                        max-height: 30px;
-                    }
-
-                    .parameter-type {
-                        display: flex;
-                        align-items: center;
-                        gap: 0.5rem;
-
-                        .type-label {
-                            font-size: 12px;
-                            color: var(--ev-colors-secondaryText);
-                            user-select: none;
-                        }
-                        .type-value {
-                            user-select: none;
-                            &.crossed {
-                                text-decoration: line-through;
-                            }
-                        }
+                        max-width: 30px;
                     }
 
                     .result-checkbox {
                         display: flex;
+                        flex-direction: column;
                         align-items: center;
                         gap: 0.5rem;
 
