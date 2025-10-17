@@ -6,18 +6,20 @@ import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
 import { getWorkflowDeploymentDetails } from "../lib/actions";
 import { isAgentNodeData, isAgentResponse, isTool } from "../lib/discriminators";
-import {
-  type ToolNodeData, type AgentConfigData, type AgentCreate, type AgentFunction, type AgentNodeData, type AgentResponse, type AgentUpdate,
-  type ChatCompletionToolParam, type Edge, type Node, type WorkflowAgent, type WorkflowCreateRequest, type WorkflowDeployment, type WorkflowResponse,
+import { type ToolParametersSchema,type AgentConfigData, type AgentCreate, type AgentFunction, type AgentNodeData, type AgentResponse,
+  type AgentUpdate, type ChatCompletionToolParam, type Edge, type Node, type ToolNodeData,
+  type WorkflowAgent, type WorkflowCreateRequest, type WorkflowDeployment, type WorkflowResponse,
 } from "../lib/interfaces";
 import { mapActionTypeToConnectionType, mapConnectionTypeToActionType } from "../lib/interfaces/workflows";
 import { useAgents } from "../ui/contexts/AgentsContext";
 import { usePrompts } from "../ui/contexts/PromptsContext.tsx";
+import { useTools } from "../ui/contexts/ToolsContext.tsx";
 import { useWorkflows } from "../ui/contexts/WorkflowsContext";
 import "./AgentConfigForm.scss";
 import AgentConfigModal from "./agents/AgentConfigModal";
 import ChatInterface from "./agents/ChatInterface";
 import ChatSidebar from "./agents/ChatSidebar";
+import { ToolsConfigPanel } from "./agents/config/ToolsConfigPanel.tsx";
 import ConfigPanel, { type ConfigPanelHandle } from "./agents/ConfigPanel";
 import DesignerCanvas from "./agents/DesignerCanvas";
 import DesignerSidebar from "./agents/DesignerSidebar";
@@ -25,7 +27,6 @@ import HeaderBottom from "./agents/HeaderBottom.tsx";
 import VectorizerBottomDrawer, { type PipelineStep, type VectorizationStepData } from "./agents/VectorizerBottomDrawer";
 import VectorizerConfigPanel from "./agents/VectorizerConfigPanel";
 import AgentTestingPanel from "./AgentTestingPanel.tsx";
-import { ToolsConfigPanel } from "./agents/config/ToolsConfigPanel.tsx";
 
 
 
@@ -107,6 +108,7 @@ function AgentConfigForm(): JSX.Element {
 
   // Use agents context
   const { createAgentAndRefresh, updateAgentAndRefresh, sidebarRightOpen, setSidebarRightOpen } = useAgents();
+  const toolsContext = useTools();
   const { isEditingPrompt } = usePrompts();
 
   // Use refs for values that need to be stable across renders
@@ -163,13 +165,13 @@ function AgentConfigForm(): JSX.Element {
         status: "pending" | "running" | "completed" | "error"
       ): void => {
         if ("updateVectorizerStepStatus" in window && typeof window.updateVectorizerStepStatus === "function") {
-          console.log(` Updating step ${stepType} to ${status}`);
+          // console.log(` Updating step ${stepType} to ${status}`);
           window.updateVectorizerStepStatus(stepType, status);
         }
       };
 
       const cleanup = (): void => {
-        console.log("🧹 Cleaning up pipeline polling");
+        // console.log("🧹 Cleaning up pipeline polling");
         isPolling = false;
         if ("currentPollingTimeout" in window && window.currentPollingTimeout && (typeof window.currentPollingTimeout === "string"
           || typeof window.currentPollingTimeout === "number")
@@ -184,7 +186,7 @@ function AgentConfigForm(): JSX.Element {
 
       const pollProgress = async () => {
         if (!isPolling || pollCount >= maxPolls) {
-          console.log(" Stopping pipeline polling - max polls reached");
+          // console.log(" Stopping pipeline polling - max polls reached");
           cleanup();
           setIsPipelineRunning(false);
           return;
@@ -206,12 +208,12 @@ function AgentConfigForm(): JSX.Element {
             currentProgressData = progressData;
 
             // Debug logging (reduce frequency)
-            if (pollCount % 5 === 0) {
-              console.log("🔍 Backend Response:", progressData);
-              console.log("🔍 Status:", progressData.status);
-              console.log("🔍 Current step:", progressData.current_step);
-              console.log("🔍 Total steps:", progressData.total_steps);
-            }
+            // if (pollCount % 5 === 0) {
+            //   console.log("🔍 Backend Response:", progressData);
+            //   console.log("🔍 Status:", progressData.status);
+            //   console.log("🔍 Current step:", progressData.current_step);
+            //   console.log("🔍 Total steps:", progressData.total_steps);
+            // }
 
             // Map backend step names to frontend step types
             const stepMapping: Record<string, string> = {
@@ -232,7 +234,7 @@ function AgentConfigForm(): JSX.Element {
                 progressData.completed_steps.length >= 5);
 
             if (isCompleted) {
-              console.log("🎉 Pipeline completed! Stopping polling...");
+              // console.log("🎉 Pipeline completed! Stopping polling...");
 
               Object.keys(stepMapping).forEach((backendStepName) => {
                 updateStepStatus(stepMapping[backendStepName], "completed");
@@ -247,7 +249,7 @@ function AgentConfigForm(): JSX.Element {
                 (window as any).pipelineCompletionHandler();
               }
 
-              console.log("🎉 All pipeline steps completed successfully!");
+              // console.log("🎉 All pipeline steps completed successfully!");
               return;
             }
 
@@ -255,9 +257,7 @@ function AgentConfigForm(): JSX.Element {
               progressData.status === "failed" ||
               progressData.status === "error"
             ) {
-              console.error(
-                `❌ Pipeline failed: ${progressData.message || "Unknown error"}`
-              );
+              toast.error(`❌ Pipeline failed: ${progressData.message || "Unknown error"}`);
 
               if (
                 progressData.current_stage &&
@@ -315,19 +315,19 @@ function AgentConfigForm(): JSX.Element {
               lastCurrentStage = progressData.current_stage;
             }
           } else {
-            console.warn(` Status check failed: ${response.status}`);
+            toast.warn(` Status check failed: ${response.status.toString()}`);
 
             if (response.status === 404) {
-              console.log(" Pipeline not found (404) - assuming completion");
+              // console.log(" Pipeline not found (404) - assuming completion");
               cleanup();
               setIsPipelineRunning(false);
               return;
             }
           }
         } catch (error) {
-          console.error("Error polling pipeline status:", error);
+          toast.error("Error polling pipeline status:", error);
           if (pollCount > 50) {
-            console.log(" Too many errors, stopping polling");
+            // console.log(" Too many errors, stopping polling");
             cleanup();
             setIsPipelineRunning(false);
             return;
@@ -343,10 +343,7 @@ function AgentConfigForm(): JSX.Element {
             pollInterval = 2000; // 2 seconds for later stages
           }
 
-          (window as any).currentPollingTimeout = setTimeout(
-            pollProgress,
-            pollInterval
-          );
+          (window as any).currentPollingTimeout = setTimeout(pollProgress, pollInterval);
         }
       };
 
@@ -422,7 +419,7 @@ function AgentConfigForm(): JSX.Element {
   );
   const handleVectorizerWorkflowSaved = useCallback(
     (newWorkflowId: string) => {
-      console.log("🎉 Vectorizer workflow saved with ID:", newWorkflowId);
+      // console.log("🎉 Vectorizer workflow saved with ID:", newWorkflowId);
 
       // Set the workflow ID for the testing panel
       setCurrentTestingWorkflowId(newWorkflowId);
@@ -449,15 +446,13 @@ function AgentConfigForm(): JSX.Element {
   const handleVectorizerRunAllSteps = useCallback(async () => {
     setIsPipelineRunning(true);
     try {
-      console.log("Running all vectorizer steps for agent:", vectorizerAgentId);
+      // console.log("Running all vectorizer steps for agent:", vectorizerAgentId);
 
       // Get current pipeline steps
       const currentPipeline = vectorizerPipelines[vectorizerAgentId] ?? [];
 
       if (currentPipeline.length === 0) {
-        console.error(
-          "No pipeline steps configured. Please add steps before running."
-        );
+        toast.error("No pipeline steps configured. Please add steps before running.");
         setIsPipelineRunning(false);
         return;
       }
@@ -474,7 +469,7 @@ function AgentConfigForm(): JSX.Element {
 
       for (const loadStep of loadSteps) {
         const stepConfig = vectorizerStepConfigs[loadStep.id];
-        const uploadedFileIds = stepConfig?.uploaded_file_ids as
+        const uploadedFileIds = stepConfig.uploaded_file_ids as
           | string[]
           | undefined;
         if (uploadedFileIds && uploadedFileIds.length > 0) {
@@ -482,35 +477,31 @@ function AgentConfigForm(): JSX.Element {
         }
       }
 
-      console.log("Found uploaded files:", allFileIds);
+      // console.log("Found uploaded files:", allFileIds);
 
       // Check if any load step uses S3
       const s3LoadSteps = loadSteps.filter((step) => {
         const stepConfig = vectorizerStepConfigs[step.id];
-        return stepConfig?.provider === "s3";
+        return stepConfig.provider === "s3";
       });
 
       if (s3LoadSteps.length > 0 && allFileIds.length > 0) {
-        console.log(
-          "S3 load steps detected. Files should already be uploaded directly to S3."
-        );
+        // console.log("S3 load steps detected. Files should already be uploaded directly to S3.");
 
         const s3StepConfig = vectorizerStepConfigs[s3LoadSteps[0].id];
         const bucketName = s3StepConfig?.bucket_name as string;
 
         if (!bucketName) {
-          console.error(
-            "S3 bucket name is required for S3 pipeline. Please configure the bucket name in the load step."
-          );
+          toast.error("S3 bucket name is required for S3 pipeline. Please configure the bucket name in the load step.");
           setIsPipelineRunning(false);
           return;
         }
 
-        console.log(`Using S3 bucket: ${bucketName} for pipeline execution`);
+        // console.log(`Using S3 bucket: ${bucketName} for pipeline execution`);
       }
 
-      console.log("Executing pipeline with steps:", steps);
-      console.log("Step configurations:", vectorizerStepConfigs);
+      // console.log("Executing pipeline with steps:", steps);
+      // console.log("Step configurations:", vectorizerStepConfigs);
 
       // Create the request payload
       const requestPayload = {
@@ -520,10 +511,7 @@ function AgentConfigForm(): JSX.Element {
         pipeline_name: `${vectorizerAgentName}-pipeline`,
       };
 
-      console.log(
-        "Full request payload:",
-        JSON.stringify(requestPayload, null, 2)
-      );
+      // console.log("Full request payload:", JSON.stringify(requestPayload, null, 2));
 
       // Import the action dynamically to avoid server-side issues
       const { executeVectorizationPipeline } = await import(
@@ -531,16 +519,14 @@ function AgentConfigForm(): JSX.Element {
       );
 
       // Generate pipeline ID on frontend to establish connection early
-      const pipelineId = `frontend-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const pipelineId = `frontend-${Date.now().toString()}-${Math.random().toString(36).substr(2, 9)}`;
       const backendUrl = (
         process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000"
       ).replace("127.0.0.1", "localhost");
 
       // Create a completion handler that will stop the running state
-      const completionHandler = () => {
-        console.log(
-          "🎉 Pipeline execution completed - stopping UI loading state"
-        );
+      const completionHandler = (): void => {
+        // console.log("🎉 Pipeline execution completed - stopping UI loading state");
         setIsPipelineRunning(false);
       };
 
@@ -557,15 +543,13 @@ function AgentConfigForm(): JSX.Element {
       };
 
       const result = await executeVectorizationPipeline(requestWithId);
-      console.log("Pipeline execution started:", result);
+      // console.log("Pipeline execution started:", result);
 
       // Set a backup timeout to stop the loading state (10 minutes max)
       setTimeout(() => {
-        console.log(
-          "⏰ Checking if pipeline is still running after 10 minutes..."
-        );
+        // console.log("⏰ Checking if pipeline is still running after 10 minutes...");
         if (isPipelineRunning) {
-          console.log("⏰ Pipeline timeout reached - stopping loading state");
+          // console.log("⏰ Pipeline timeout reached - stopping loading state");
           setIsPipelineRunning(false);
         }
       }, 600000); // 10 minutes
@@ -688,25 +672,39 @@ function AgentConfigForm(): JSX.Element {
 
   // Workflow state management functions
   const getCurrentWorkflowState = useCallback(() => {
-    return JSON.stringify({
+    const payload = {
       name: workflowName,
       description: workflowDescription,
       tags: workflowTags,
-      nodes: nodes.map((node) => ({
-        id: node.id,
-        position: node.position,
-        data: {
-          agent: node.data.agent,
-          prompt: node.data.prompt,
-          tools: node.data.tools,
-          tags: node.data.tags,
-        },
-      })),
+      nodes: nodes.map((node) =>
+        isAgentNodeData(node.data)
+          ? {
+              id: node.id,
+              position: node.position,
+              type: "agent" as const,
+              data: {
+                agent: node.data.agent,
+                prompt: node.data.prompt,
+                tools: node.data.tools,
+                tags: node.data.tags,
+              },
+            }
+          : {
+              id: node.id,
+              position: node.position,
+              type: "tool" as const,
+              data: {
+                tool: node.data.tool,
+                tags: node.data.tags,
+              },
+            }
+      ),
       edges: edges.map((edge) => ({
         source: edge.source,
         target: edge.target,
       })),
-    });
+    };
+    return JSON.stringify(payload);
   }, [workflowName, workflowDescription, workflowTags, nodes, edges]);
 
   const updateLastSavedState = useCallback(() => {
@@ -787,9 +785,9 @@ function AgentConfigForm(): JSX.Element {
   );
   
   
-  const handleToolAction = useCallback((nodeId: string, action: string, nodeData?: ToolNodeData) => {
+  const handleToolAction = useCallback((nodeId: string, action: string, _nodeData?: ToolNodeData) => {
     switch (action) {
-      case "editTool": console.log("Edit Tool Action"); setIsToolEditing(true); break;
+      case "editTool": setIsToolEditing(true); break;
     }
     // console.log("Tool action!");
   }, []);
@@ -832,7 +830,7 @@ function AgentConfigForm(): JSX.Element {
 
       // Ensure the node is selected and config panel is shown
       setSelectedNode(targetNode);
-      console.log("targetnode:", targetNode);
+      // console.log("targetnode:", targetNode);
       // if (targetNode.type !== "agent") return;
       setShowConfigPanel(true);
 
@@ -974,7 +972,7 @@ function AgentConfigForm(): JSX.Element {
         
         try {
           const toolData = JSON.parse(toolDataJson) as unknown;
-          console.log("toolData:", toolData);
+          // console.log("toolData:", toolData);
           if (!toolData || !isTool(toolData)) throw new Error("Invalid tool data");
 
         
@@ -1024,7 +1022,7 @@ function AgentConfigForm(): JSX.Element {
   // Handle drag start for agent types
   const handleDragStart = useCallback(
     (event: React.DragEvent<HTMLButtonElement>, agent?: AgentResponse, tool?: unknown) => {
-      console.log("Dragging", agent ? "agent" : tool ? "tool" : "unknown");
+      // console.log("Dragging", agent ? "agent" : tool ? "tool" : "unknown");
 
       if (agent) {
         event.dataTransfer.setData("dragData/agent",JSON.stringify(agent));
@@ -1258,10 +1256,6 @@ function AgentConfigForm(): JSX.Element {
     };
   };
 
-
-  function getToolConfigFromParameters(parameters: Record<string, unknown>): Record<string, unknown> {
-    return {};
-  }
 
 
 
@@ -1600,54 +1594,75 @@ function AgentConfigForm(): JSX.Element {
 
       // Convert workflow agents to nodes
       const loadedNodes: Node[] = [];
-      if (workflowDetails.workflow_agents) {
-        workflowDetails.workflow_agents.forEach(
-          (workflowAgent: WorkflowAgent) => {
-            const agent = workflowAgent.agent;
-            const nodeId = workflowAgent.node_id || workflowAgent.agent_id;
+      workflowDetails.workflow_agents.forEach((workflowAgent: WorkflowAgent) => {
+        const agent = workflowAgent.agent;
+        const nodeId = workflowAgent.node_id || workflowAgent.agent_id;
 
-            const newNode: Node = {
+        const newNode: Node = {
+          id: nodeId,
+          type: workflowAgent.agent.agent_type === "tool" ? "tool" : "agent",
+          position: {
+            x: workflowAgent.position_x ?? 100,
+            y: workflowAgent.position_y ?? 100,
+          },
+          data: 
+            agent.agent_type === "tool" ? 
+            {
               id: nodeId,
-              type: "agent",
-              position: {
-                x: workflowAgent.position_x ?? 100,
-                y: workflowAgent.position_y ?? 100,
+              type: "local",
+              name: agent.name,
+              // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- ...stupid coalescing
+              description: agent.description === undefined || agent.description === null ? undefined : agent.description,
+              config: {
+                tool_name: workflowAgent.agent_config?.tool_name && typeof workflowAgent.agent_config.tool_name === "string" ? workflowAgent.agent_config.tool_name : undefined,
+                tool_description: workflowAgent.agent_config?.tool_description && typeof workflowAgent.agent_config.tool_description === "string" ? workflowAgent.agent_config.tool_description : undefined,
+                param_mapping: workflowAgent.agent_config?.param_mapping && typeof workflowAgent.agent_config.param_mapping === "object" ? workflowAgent.agent_config.param_mapping as Record<string, unknown> : undefined,
+                static_params: workflowAgent.agent_config?.static_params && typeof workflowAgent.agent_config.static_params === "object" ? workflowAgent.agent_config?.static_params as Record<string, unknown> : undefined,
               },
-              data: {
-                id: nodeId,
-                shortId: agent.deployment_code ?? agent.agent_id,
-                type: agent.agent_type ?? "custom",
-                name: agent.name,
-                prompt: agent.system_prompt.prompt || "",
-                tools: agent.functions ?? [], // Keep as ChatCompletionToolParam array
-                tags: [agent.agent_type ?? "custom"],
-                config: {
-                  model: agent.system_prompt.ai_model_name,
-                  agentName: agent.name,
-                  deploymentType: "",
-                  modelProvider: agent.system_prompt.ai_model_provider,
-                  outputFormat: "",
-                  selectedTools: agent.functions,
-                },
-                onAction: handleNodeAction,
-                onDelete: handleDeleteNode,
-                onConfigure: () => {
-                  handleNodeSelect(newNode);
-                },
-                agent,
+              onAction: handleToolAction,
+              onDelete: handleDeleteNode,
+              onConfigure: () => { handleNodeSelect(newNode); },
+              tool: toolsContext.getToolById(agent.agent_id),
+            }
+            :
+            {
+              id: nodeId,
+              shortId: agent.deployment_code ?? agent.agent_id,
+              type: agent.agent_type ?? "custom",
+              name: agent.name,
+              prompt: agent.system_prompt.prompt || "",
+              tools: agent.functions, // Keep as ChatCompletionToolParam array
+              tags: [agent.agent_type ?? "custom"],
+              config: {
+                model: agent.system_prompt.ai_model_name,
+                agentName: agent.name,
+                deploymentType: "",
+                modelProvider: agent.system_prompt.ai_model_provider,
+                outputFormat: "",
+                selectedTools: agent.functions,
               },
-            };
+              onAction: handleNodeAction,
+              onDelete: handleDeleteNode,
+              onConfigure: () => { handleNodeSelect(newNode); },
+              agent,
+            },
+        };
 
-            loadedNodes.push(newNode);
-          }
-        );
-      }
+        loadedNodes.push(newNode);
+      });
+
+      // if (workflowDetails.configuration.steps) {
+      //   workflowDetails.configuration.steps.forEach(workflowStep => {
+      //     const tool = toolsContext.getToolById(workflowStep.step_id);
+
+      //   });
+      // }
 
       // Convert workflow connections to edges
       const loadedEdges: Edge[] = [];
       if (workflowDetails.workflow_connections.length > 0) {
         workflowDetails.workflow_connections.forEach(
-          (connection, index: number) => {
+          (connection, index) => {
             const newEdge: Edge = {
               id: `edge-${index.toString()}`,
               source: connection.source_agent_id,
@@ -1732,14 +1747,9 @@ function AgentConfigForm(): JSX.Element {
   };
 
   // Helper function to update an existing agent in the database
-  const handleUpdateExistingAgentInDB = async (
-    configData: AgentConfigData,
-    tools: ChatCompletionToolParam[],
-    agentName: string
-  ): Promise<void> => {
-    if (!selectedNode?.data.agent?.agent_id) {
-      throw new Error("No agent ID found for update");
-    }
+  const handleUpdateExistingAgentInDB = async (configData: AgentConfigData, tools: ChatCompletionToolParam[], agentName: string ): Promise<void> => {
+    if (!selectedNode?.data || !isAgentNodeData(selectedNode.data)) return;
+    if (!selectedNode.data.agent.agent_id) {throw new Error("No agent ID found for update"); }
 
     // Convert output format to valid response_type
     const getValidResponseType = (
@@ -1748,20 +1758,13 @@ function AgentConfigForm(): JSX.Element {
       if (!outputFormat) return "json";
       const format = outputFormat.toLowerCase();
       switch (format) {
-        case "json":
-          return "json";
-        case "yaml":
-          return "yaml";
-        case "markdown":
-          return "markdown";
-        case "html":
-          return "HTML";
-        case "none":
-          return "None";
-        case "text":
-          return "None";
-        default:
-          return "json";
+        case "json": return "json";
+        case "yaml": return "yaml";
+        case "markdown": return "markdown";
+        case "html": return "HTML";
+        case "none": return "None";
+        case "text": return "None";
+        default: return "json";
       }
     };
 
@@ -1802,14 +1805,12 @@ function AgentConfigForm(): JSX.Element {
   };
 
   // Handle saving the agent configuration with tools
-  const handleSaveAgentConfig = async (configData: AgentConfigData) => {
-    if (!selectedNode) return;
-
-    // Saving agent configuration
+  const handleSaveAgentConfig = async (configData: AgentConfigData): Promise<void> => {
+    if (!selectedNode || !isAgentNodeData(selectedNode.data)) return;
 
     try {
       // If tools are provided in the configuration data, update them
-      const tools = configData.selectedTools || selectedNode.data.tools || [];
+      const tools = selectedNode.data.tools ?? [];
 
       // The name might have been updated through the inline editor
       const agentName = configData.agentName || selectedNode.data.name;
@@ -1824,30 +1825,87 @@ function AgentConfigForm(): JSX.Element {
 
       // Update the node data with the new configuration
       setNodes((prevNodes) =>
-        prevNodes.map((node) =>
-          node.id === selectedNode.id
-            ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  name: agentName, // Use the potentially updated name
-                  tools, // Update tools from configuration
-                  config: configData, // Store configuration in the node data
-                },
-              }
-            : node
-        )
+        prevNodes.map((node) => {
+          if (node.id !== selectedNode.id) return node;
+          if (!isAgentNodeData(node.data)) return node;
+          return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    name: agentName, // Use the potentially updated name
+                    tools, // Update tools from configuration
+                    config: configData, // Store configuration in the node data
+                  },
+                }
+        })
       );
 
       // Show confirmation
-      alert(`Configuration saved for ${agentName}`);
+      toast.info(`Configuration saved for ${agentName}`);
     } catch (error) {
-      console.error("Error saving agent configuration:", error);
-      alert(
-        `Error saving configuration: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      toast.error(`Error saving configuration: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
+
+  function handleSaveToolConfig(parameters: ToolParametersSchema): void {
+    const activeNode = selectedNode;
+    if (!activeNode || isAgentNodeData(activeNode.data)) return;
+
+    console.log("Node:", activeNode);
+    console.log("Parameters:", parameters.properties);
+    console.log("Saving stuff:", getToolConfigFromParameters(parameters));
+    
+    setNodes((previousNodes) => previousNodes.map((node) => {
+        if (node.id !== activeNode.id) return node;
+        if (isAgentNodeData(node.data)) return node;
+        
+  
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            name: parameters.name ?? node.data.name,
+            description: parameters.description ?? node.data.description,
+            tool: {
+              ...node.data.tool,
+              parameters_schema: {
+                ...node.data.tool.parameters_schema,
+                properties: parameters.properties,
+                tool_name: parameters.name ?? undefined,
+                tool_description: parameters.description ?? undefined,
+              },
+              param_mapping: getToolConfigFromParameters(parameters),
+            },
+          },
+        };
+      })
+    );
+  }
+
+
+  
+  function getToolConfigFromParameters(parameters?: ToolParametersSchema): Record<string, unknown> {
+    const mapping: Record<string, unknown> = {};
+    if (!parameters) return mapping;
+
+    if (parameters.defaultName !== undefined) mapping.tool_name = parameters.defaultName;
+    if (parameters.name) mapping.step_label = parameters.name;
+    if (parameters.description) mapping.step_description = parameters.description;
+
+    const properties = parameters.properties;
+    for (const [key, value] of Object.entries(properties)) {
+      if (value.isUsingResponse) {
+        const v = value.value;
+        mapping[key] = v !== undefined && String(v).trim() !== "" ? `response.${String(v)}` : undefined;
+      } else {
+        mapping[key] = value.value;
+      }
+    }
+    console.log("Mapping:", mapping);
+    return mapping;
+  }
+
+
 
   // If not yet mounted, return a loading placeholder
   if (!mounted) {
@@ -1951,15 +2009,9 @@ function AgentConfigForm(): JSX.Element {
                         description={selectedNode.data.description ?? ""}
                         onEditPrompt={handleOpenPromptModal}
                         onSave={handleSaveAgentConfig}
-                        onClose={() => {
-                          setShowConfigPanel(false);
-                        }}
-                        onNameChange={(newName) => {
-                          handleAgentNameChange(selectedNode.id, newName);
-                        }}
-                        toggleSidebar={() => {
-                          setSidebarRightOpen(!sidebarRightOpen);
-                        }}
+                        onClose={() => { setShowConfigPanel(false); }}
+                        onNameChange={(newName) => { handleAgentNameChange(selectedNode.id, newName); }}
+                        toggleSidebar={() => { setSidebarRightOpen(!sidebarRightOpen); }}
                         sidebarOpen={sidebarRightOpen}
                         currentFunctions={(selectedNode.data as AgentNodeData).tools ?? []}
                         onFunctionsChange={(functions) => {
@@ -1980,9 +2032,10 @@ function AgentConfigForm(): JSX.Element {
                       <ToolsConfigPanel
                         toolNode={(selectedNode.data as ToolNodeData)}
                         isToolEditing={isToolEditing}
-                        onToolEdit={(intent) => { console.log("Request to edit?", intent); setIsToolEditing(intent) } }
+                        onToolEdit={(intent) => { setIsToolEditing(intent) } }
                         isSidebarOpen={sidebarRightOpen}
                         toggleSidebar={() => { setSidebarRightOpen(!sidebarRightOpen); } }
+                        onSave={handleSaveToolConfig}
                       />
                     }
                   </div>
@@ -2009,7 +2062,7 @@ function AgentConfigForm(): JSX.Element {
               </div>
 
               {/* Agent Configuration Modal */}
-              {selectedNode && selectedNode.type === "agent" ? (
+              {selectedNode && isAgentNodeData(selectedNode.data) ? (
                 <AgentConfigModal
                   isOpen={isPromptModalOpen}
                   nodeData={{

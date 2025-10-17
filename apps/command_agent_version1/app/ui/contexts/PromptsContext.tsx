@@ -115,6 +115,7 @@ export function PromptsProvider({ children }: PromptsProviderProps): JSX.Element
     setIsLoading(true);
     setError(null);
     try {
+      console.log(promptData);
       const newPrompt = await createPrompt(promptData);
       // Refresh prompts to include the new one
       await refreshPrompts();

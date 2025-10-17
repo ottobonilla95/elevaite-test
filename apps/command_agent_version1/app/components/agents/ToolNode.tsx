@@ -31,7 +31,6 @@ export function ToolNode({ id, data, selected }: ToolNodeProps): JSX.Element {
     // }
 
 
-
     return (
         <div className="tool-node-container">
             <div className={["tool-node", selected ? "selected" : undefined].filter(Boolean).join(" ")}>
@@ -39,7 +38,7 @@ export function ToolNode({ id, data, selected }: ToolNodeProps): JSX.Element {
 
                 <div className="main-details-container">
                     <div className="icon-container">
-                        {getToolIcon(tool.name)}
+                        {tool ? getToolIcon(tool.name) : undefined}
                     </div>
                     <div className="labels-container">
                         <div className="top-label-container">
@@ -59,11 +58,13 @@ export function ToolNode({ id, data, selected }: ToolNodeProps): JSX.Element {
                                 </CommonButton>
                             </div>
                         </div>
-                        <div className="label-description" title={tool.description}>{tool.description}</div>
+                        <div className="label-description" title={tool?.description}>
+                            {tool?.description}
+                        </div>
                     </div>
                 </div>
 
-                {!tool.tags || tool.tags.length === 0 ? undefined :
+                {!tool?.tags || tool.tags.length === 0 ? undefined :
                     <div className="tool-tags-container">
                         {tool.tags.map(tag =>
                             <div key={tag} className="tool-tag">{tag}</div>

@@ -15,7 +15,7 @@ export const AGENT_TYPE = {
 } as const;
 
 // Extract the union type from the const object
-export type AgentType = (typeof AGENT_TYPE)[keyof typeof AGENT_TYPE];
+export type AgentType = (typeof AGENT_TYPE)[keyof typeof AGENT_TYPE] | "tool"; // Tool is an override for now.
 
 export interface PromptResponse {
   prompt_label: string;

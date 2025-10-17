@@ -1,15 +1,11 @@
 "use client";
-
-import React, { useState } from "react";
-import {
-    Trash2,
-    FileText,
-    RefreshCw
-} from "lucide-react";
+import { FileText, RefreshCw, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "react-toastify";
+import { type SavedWorkflow } from "../../lib/interfaces";
 import { useWorkflows } from "../../ui/contexts/WorkflowsContext";
-import { type SavedWorkflow } from "../../lib/interfaces"
-
 import "./WorkflowsTab.scss";
+
 
 // Transform function moved to WorkflowsContext
 
@@ -18,17 +14,9 @@ interface WorkflowsTabProps {
     onLoadWorkflow: (workflow: SavedWorkflow) => void;
 }
 
-function WorkflowsTab({
-    onCreateNewWorkflow,
-    onLoadWorkflow
-}: WorkflowsTabProps): JSX.Element {
+function WorkflowsTab({ onCreateNewWorkflow, onLoadWorkflow }: WorkflowsTabProps): JSX.Element {
     // Use workflows context
-    const {
-        workflows: allWorkflows,
-        isLoading,
-        deleteWorkflowAndRefresh,
-        getWorkflowDetails
-    } = useWorkflows();
+    const { workflows: allWorkflows, isLoading, deleteWorkflowAndRefresh, getWorkflowDetails } = useWorkflows();
 
     // State for template toggle
     const [showMyTemplates, setShowMyTemplates] = useState(true);
@@ -40,7 +28,7 @@ function WorkflowsTab({
 
     // No longer need local loading function - handled by context
 
-    const formatDate = (dateString: string) => {
+    const formatDate = (dateString: string): string => {
         const date = new Date(dateString);
         return date.toLocaleDateString("en-US", {
             month: "short",
@@ -49,11 +37,6 @@ function WorkflowsTab({
         });
     }
 
-    /*For testing*/
-    /* useEffect(() => {
-      setWorkflows(mockupWorkflows);
-    }, []); */
-    /*For testing*/
 
     const handleDeleteWorkflow = async (workflowId: string): Promise<void> => {
         if (!window.confirm("Are you sure you want to delete this workflow?")) {
@@ -62,13 +45,11 @@ function WorkflowsTab({
 
         try {
             await deleteWorkflowAndRefresh(workflowId);
-            // TODO: Replace with proper toast notification
-            window.alert("Workflow deleted successfully.");
+            toast.info("Workflow deleted successfully.");
         } catch (deleteError) {
             // eslint-disable-next-line no-console -- Error logging is acceptable
             console.error('Error deleting workflow:', deleteError);
-            // TODO: Replace with proper toast notification
-            window.alert("Failed to delete workflow. Please try again.");
+            toast.error("Failed to delete workflow. Please try again.");
         }
     };
 
@@ -85,8 +66,7 @@ function WorkflowsTab({
         } catch (loadError) {
             // eslint-disable-next-line no-console -- Error logging is acceptable
             console.error('Error loading workflow:', loadError);
-            // TODO: Replace with proper toast notification
-            window.alert("Failed to load workflow. Please try again.");
+            toast.warn("Failed to load workflow. Please try again.");
         }
     };
 
@@ -164,7 +144,7 @@ function WorkflowsTab({
                                     {workflow.name}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button>
+                                    <button type="button">
                                         <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <g opacity="0.8">
                                                 <path d="M13.9999 14.5H8.66652M1.6665 14.8333L5.36602 13.4104C5.60264 13.3194 5.72096 13.2739 5.83165 13.2145C5.92997 13.1617 6.0237 13.1008 6.11186 13.0324C6.21112 12.9554 6.30075 12.8657 6.48002 12.6865L13.9999 5.16665C14.7362 4.43027 14.7362 3.23636 13.9999 2.49998C13.2635 1.7636 12.0696 1.7636 11.3332 2.49998L3.81336 10.0198C3.63409 10.1991 3.54445 10.2887 3.46743 10.388C3.39902 10.4761 3.3381 10.5698 3.28533 10.6682C3.22591 10.7789 3.1804 10.8972 3.08939 11.1338L1.6665 14.8333ZM1.6665 14.8333L3.03858 11.266C3.13677 11.0107 3.18586 10.883 3.27006 10.8246C3.34365 10.7735 3.43471 10.7542 3.5227 10.771C3.62339 10.7902 3.72009 10.8869 3.91349 11.0803L5.41955 12.5863C5.61295 12.7797 5.70965 12.8764 5.72888 12.9771C5.74568 13.0651 5.72636 13.1562 5.67527 13.2298C5.6168 13.314 5.48916 13.3631 5.23388 13.4613L1.6665 14.8333Z" stroke="#212124" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -186,12 +166,10 @@ function WorkflowsTab({
                                 </div>
                             </div>
 
-                            {workflow.created_at && workflow.is_active && (
-                                <div className="flex items-center justify-between gap-2 my-2">
+                            {workflow.created_at && workflow.is_active ? <div className="flex items-center justify-between gap-2 my-2">
                                     <div className="text-[#31C493] rounded-lg py-1 px-2" style={{ fontSize: '10px', border: '1px solid #31C493' }}>Active</div>
                                     <div className="italic opacity-50 text-xs"><strong>Updated</strong>: {formatDate(workflow.created_at)}</div>
-                                </div>
-                            )}
+                                </div> : null}
 
                             <div className="my-2 text-xs">
                                 {workflow.description}

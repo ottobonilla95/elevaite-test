@@ -67,11 +67,7 @@ function SidebarItem({
 }
 
 interface DesignerSidebarProps {
-  handleDragStart: (
-    event: React.DragEvent<HTMLElement>,
-    agent?: AgentResponse,
-    tool?: unknown,
-  ) => void;
+  handleDragStart: ( event: React.DragEvent<HTMLElement>, agent?: AgentResponse, tool?: unknown, ) => void;
   handleCreateNewWorkflow: () => void;
   handleLoadWorkflow: (workflow: SavedWorkflow) => void;
   handleCreateNewAgent: () => void;
@@ -80,15 +76,8 @@ interface DesignerSidebarProps {
   setActiveTab: (tab: string) => void;
 }
 
-function DesignerSidebar({
-  handleDragStart,
-  handleCreateNewWorkflow,
-  handleLoadWorkflow,
-  handleCreateNewAgent,
-  isLoading: _isLoading,
-  activeTab,
-  setActiveTab,
-}: DesignerSidebarProps): JSX.Element {
+function DesignerSidebar({ handleDragStart, handleCreateNewWorkflow, handleLoadWorkflow, handleCreateNewAgent,
+  isLoading: _isLoading, activeTab, setActiveTab, }: DesignerSidebarProps): JSX.Element {
   // State for search and modal
   const [searchQuery, setSearchQuery] = useState("");
   const [showAllAgentsModal, setShowAllAgentsModal] = useState(false);

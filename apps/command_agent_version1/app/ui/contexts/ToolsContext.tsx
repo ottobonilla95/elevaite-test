@@ -12,6 +12,7 @@ interface ToolsContextType {
   refetchTools: () => Promise<void>;
   // Utility functions
   getToolsByCategory: (categoryId?: string) => Tool[];
+  getToolById: (toolId: string) => Tool|undefined;
   getAvailableTools: () => Tool[];
 }
 
@@ -42,7 +43,6 @@ export function ToolsProvider({ children }: ToolsProviderProps): JSX.Element {
       setTools(toolsResponse);
       setCategories(categoriesResponse);
     } catch (err) {
-      console.error("Failed to fetch new tools:", err);
       setError("Failed to load new tools from API");
     } finally {
       setIsLoading(false);
@@ -54,14 +54,18 @@ export function ToolsProvider({ children }: ToolsProviderProps): JSX.Element {
   };
 
   // Utility functions
-  const getToolsByCategory = (categoryId?: string): Tool[] => {
+  function getToolsByCategory(categoryId?: string): Tool[] {
     if (!categoryId) return tools;
     return tools.filter(tool => tool.category_id === categoryId);
   };
 
-  const getAvailableTools = (): Tool[] => {
+  function getAvailableTools(): Tool[] {
     return tools.filter(tool => tool.is_active && tool.is_available);
   };
+
+  function getToolById(toolId: string): Tool|undefined {
+    return tools.find(tool => tool.tool_id === toolId);
+  }
 
   useEffect(() => {
     // Load both legacy and new tools on mount
@@ -75,6 +79,7 @@ export function ToolsProvider({ children }: ToolsProviderProps): JSX.Element {
     error,
     refetchTools,
     getToolsByCategory,
+    getToolById,
     getAvailableTools,
   };
 
@@ -85,7 +90,7 @@ export function ToolsProvider({ children }: ToolsProviderProps): JSX.Element {
   );
 };
 
-export const useTools = (): ToolsContextType => {
+export function useTools(): ToolsContextType {
   const context = useContext(ToolsContext);
   if (context === undefined) {
     throw new Error('useTools must be used within a ToolsProvider');

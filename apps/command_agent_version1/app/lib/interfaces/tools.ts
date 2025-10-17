@@ -12,6 +12,7 @@ export interface ToolParameterValueType {
     isUsingResponse?: boolean;
 }
 export interface ToolParametersSchema {
+  defaultName?: string;
   name?: string;
   description?: string;
   properties: Record<string, ToolParameterValueType>;
@@ -31,8 +32,9 @@ export interface Tool {
   tool_type: ToolType;
   execution_type: string;
 
-  parameters_schema: Record<string, unknown>;
+  parameters_schema: ToolParametersSchema;
   return_schema?: Record<string, unknown>;
+  param_mapping?: Record<string, unknown>;
 
   module_path?: string;
   function_name?: string;
@@ -72,7 +74,12 @@ export interface ToolNodeData {
   description?: string;
   tool: Tool;
   tags?: string[];
-  // config?: Record<string, unknown>;
+  config?: {
+    tool_name?: string;
+    tool_description?: string;
+    param_mapping?: Record<string, unknown>;
+    static_params?: Record<string, unknown>;
+  };
   onAction?: (id: string, action: string, nodeData?: ToolNodeData) => void;
   onDelete: (id: string) => void;
   onConfigure: (id: string) => void;

@@ -76,6 +76,7 @@ export function WorkflowsProvider({
 
 	const [expandChat, setExpandChat] = useState(false);
 
+
 	// Fetch workflows function
 	const refreshWorkflows = useCallback(async () => {
 		setIsLoading(true);
@@ -97,6 +98,7 @@ export function WorkflowsProvider({
 
 	// Create workflow and refresh
 	const createWorkflowAndRefresh = useCallback(async (workflowData: WorkflowCreateRequest): Promise<WorkflowResponse> => {
+		console.log("Workflow Data (Create):", workflowData);
 		try {
 			const newWorkflow = await createWorkflow(workflowData);
 			// Optimistically update the local state
@@ -127,6 +129,7 @@ export function WorkflowsProvider({
 
 	// Update workflow and refresh
 	const updateWorkflowAndRefresh = useCallback(async (workflowId: string, workflowData: WorkflowCreateRequest): Promise<WorkflowResponse> => {
+		console.log("Workflow Data (Update):", workflowData);
 		try {
 			const updatedWorkflow = await updateWorkflow(workflowId, workflowData);
 			// Optimistically update the local state

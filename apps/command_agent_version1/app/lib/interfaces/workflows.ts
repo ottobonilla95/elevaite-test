@@ -117,7 +117,38 @@ export interface WorkflowResponse {
   name: string;
   description?: string;
   version: string;
-  configuration: Record<string, unknown>;
+  configuration: {
+    agents: {
+      node_type: "Agent" | "Tool";
+      agent_type: string;
+      agent_id?: string;
+      position?: { x: number; y: number };
+      config?: Record<string, unknown>;
+    }[];
+    steps?: {
+      step_id: string;
+      step_type: string; // "tool_execution"
+      name: string;
+      position?: { x: number; y: number };
+      input_mapping?: Record<string, string>;
+      dependencies?: string[];
+      config: {
+        tool_name?: string;
+        tool_description?: string;
+        param_mapping: Record<string, unknown>;
+        static_params: Record<string, unknown>;
+      };
+    }[];
+    connections: {
+      source_agent_id: string;
+      target_agent_id: string;
+      connection_type?: string;
+      conditions?: Record<string, unknown>;
+      priority?: number;
+      source_handle?: string;
+      target_handle?: string;
+    }[];
+  };
   created_by?: string;
   is_active: boolean;
   is_editable: boolean;
@@ -144,6 +175,20 @@ export interface WorkflowCreateRequest {
       agent_id?: string;
       position?: { x: number; y: number };
       config?: Record<string, unknown>;
+    }[];
+    steps?: {
+      step_id: string;
+      step_type: string; // "tool_execution"
+      name: string;
+      position?: { x: number; y: number };
+      input_mapping?: Record<string, string>;
+      dependencies?: string[];
+      config: {
+        tool_name?: string;
+        tool_description?: string;
+        param_mapping: Record<string, unknown>;
+        static_params: Record<string, unknown>;
+      };
     }[];
     connections: {
       source_agent_id: string;

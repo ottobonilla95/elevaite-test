@@ -15,6 +15,7 @@ interface ToolsConfigPanelProps {
     toggleSidebar: () => void;
     isToolEditing: boolean;
     onToolEdit: (intent: boolean) => void;
+    onSave: (parameters: ToolParametersSchema) => void;
 }
 
 
@@ -35,8 +36,8 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
 
 
     function resetValues(): void {
-        setParameters(cloneParameters(toolNode.tool.parameters_schema));
-        setRequiredSet(new Set((toolNode.tool.parameters_schema as unknown as ToolParametersSchema).required ?? []));
+        setParameters(cloneParameters(toolNode.tool?.parameters_schema));
+        setRequiredSet(new Set((toolNode.tool?.parameters_schema as unknown as ToolParametersSchema).required ?? []));
         setName(toolNode.name);
         setDescription(toolNode.description ?? "");
         setIsDescriptionExpanded(toolNode.description && toolNode.description.length > 200);
@@ -140,13 +141,6 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
 
 
     
-    function getSchemaString(schema: Record<string, unknown>, key: string): string | undefined {
-        if (!Object.prototype.hasOwnProperty.call(schema, key)) return undefined;
-        const v = schema[key];
-        return typeof v === "string" ? v : undefined;
-    };
-
-
 
 
     function handleEdit(): void {
@@ -160,35 +154,29 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
 
     function handleEditSave(): void {
         props.onToolEdit(false);
+
+        const base = parameters ?? { properties: {}, required: [] };
+        const sanitizedProperties: ToolParametersSchema["properties"] = Object.keys(base.properties).reduce((acc, key) => {
+            const p = base.properties[key];
+            acc[key] = {
+            type: p.type,
+            ...(p.title ? { title: p.title } : {}),
+            ...(p.description ? { description: p.description } : {}),
+            ...(p.value !== undefined ? { value: p.value } : {}),
+            ...(p.isUsingResponse ? { isUsingResponse: true } : {}),
+            };
+            return acc;
+        }, {});
+
         const combinedParameters: ToolParametersSchema = {
-            ...(parameters ?? { properties: {}, required: [] }),
+            ...base,
+            properties: sanitizedProperties,
+            defaultName: toolNode.tool.name,
             name,
-            ...(description.trim() ? { description } : {})
+            ...(description.trim() ? { description } : {}),
         };
-        console.log("Saving:", getToolConfigFromParameters(combinedParameters));
-    }
 
-
-    function getToolConfigFromParameters(_parameters?: ToolParametersSchema): Record<string, unknown> {
-        const result: Record<string, unknown> = { param_mapping: {} as Record<string, unknown> };
-        if (!_parameters) return result;
-
-        if ("name" in _parameters) result.tool_name = _parameters.name;
-        if ("description" in _parameters) result.tool_description = _parameters.description;
-
-        const paramMapping: Record<string, unknown> = {};
-        const parameterProperties = _parameters.properties;
-        for (const [key, value] of Object.entries(parameterProperties)) {
-            if (value.isUsingResponse) {
-                const v = value.value;
-                paramMapping[key] = v !== undefined && String(v).trim() !== "" ? `response.${String(v)}` : undefined;
-            } else {
-                paramMapping[key] = value.value;
-            }
-        }
-
-        result.param_mapping = paramMapping;
-        return result;
+        props.onSave(combinedParameters);
     }
 
 
@@ -212,13 +200,13 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
 
                 <div className="header-labels-container">
                     <span className="header-labels-title">
-                        {getSchemaString(toolNode.tool.parameters_schema, "tool_name") ?? toolNode.name}
+                        {toolNode.name}
                     </span>
                     <span
                         className="header-labels-description"
-                        title={getSchemaString(toolNode.tool.parameters_schema, "tool_description") ?? toolNode.description}
+                        title={toolNode.description}
                     >
-                        {getSchemaString(toolNode.tool.parameters_schema, "tool_description") ?? toolNode.description}
+                        {toolNode.description}
                     </span>
                 </div>
 
@@ -292,9 +280,7 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                                                 : parameter.type === "number" ? "e.g., 123.45"
                                                 : "e.g., Static text"
                                             }
-                                            info={
-                                                `Expected input type:\n${parameter.isUsingResponse ? "string (response variable reference)" : parameter.type}`
-                                            }
+                                            info={`Expected input type:\n${parameter.isUsingResponse ? "string (response variable reference)" : parameter.type}`}
                                             onChange={(value, field) => { handleParameterChange(field ?? key, value); }}
                                             controlledValue={ parameter.value !== undefined ? String(parameter.value) : "" }
                                             disabled={!props.isToolEditing}
@@ -305,7 +291,7 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                                                 title={`Link to connected tool's or agent's response.\nUse a response reference to utilize its value.\nE.g., If you expect agent_id.response.parameter_name\nYou can use "parameter_name" as the value when you use the link.`}>
                                                 <ElevaiteIcons.SVGConnect/>
                                                 <CommonCheckbox
-                                                    checked={parameter.isUsingResponse}
+                                                    checked={Boolean(parameter.isUsingResponse)}
                                                     onChange={(value) => { handleResponseUsageChange(key, value) }}
                                                     disabled={!props.isToolEditing}
                                                 />
