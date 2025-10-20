@@ -49,6 +49,7 @@ function PostDeploymentSuccessDialog({
 
     return (
         <CommonDialog
+            className="deployment-success-dialog"
             title="Deployment Successful!"
             onConfirm={handleContinue}
             onCancel={onClose}

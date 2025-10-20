@@ -238,6 +238,12 @@
     }
 }
 
+.deployment-success-dialog {
+    .common-button:not(.submit) {
+        color: var(--ev-colors-highlight);
+    }
+}
+
 // Responsive design
 @media (max-width: 640px) {
     .post-deployment-dialog-content {

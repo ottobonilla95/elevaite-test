@@ -12,9 +12,9 @@ export interface ToolParameterValueType {
     isUsingResponse?: boolean;
 }
 export interface ToolParametersSchema {
-  defaultName?: string;
-  name?: string;
-  description?: string;
+  tool_defaultName?: string;
+  tool_name?: string;
+  tool_description?: string;
   properties: Record<string, ToolParameterValueType>;
   required?: string[];
 }

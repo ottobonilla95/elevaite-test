@@ -171,9 +171,9 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
         const combinedParameters: ToolParametersSchema = {
             ...base,
             properties: sanitizedProperties,
-            defaultName: toolNode.tool.name,
-            name,
-            ...(description.trim() ? { description } : {}),
+            tool_defaultName: toolNode.tool.name,
+            tool_name: name,
+            tool_description: description.trim(),
         };
 
         props.onSave(combinedParameters);

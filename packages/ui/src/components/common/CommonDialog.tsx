@@ -6,6 +6,7 @@ import { CommonModal } from "./CommonModal";
 
 
 interface CommonDialogProps {
+    className?: string;
     title: string;
     onConfirm: () => void;
     onCancel?: () => void;
@@ -32,7 +33,7 @@ export function CommonDialog(props: CommonDialogProps): JSX.Element {
     return (
         <div className="common-dialog-container">
             <CommonModal onClose={handleCancel}>
-                <div className="common-dialog-contents">
+                <div className={["common-dialog-contents", props.className].filter(Boolean).join(" ")}>
                     
                     <div className="dialog-header">
                         <div className="dialog-title">

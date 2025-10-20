@@ -1200,6 +1200,7 @@ function AgentConfigForm(): JSX.Element {
     const agents = nodes.map((node) => {
       const data = node.data;
 
+      console.log("Is agent?", isAgentNodeData(data), data);
       if (isAgentNodeData(data)) {
         return {
           node_type: "agent" as const,
@@ -1276,6 +1277,9 @@ function AgentConfigForm(): JSX.Element {
 
       const finalWorkflowName = nameOverride ?? workflowName;
       const workflowPayload = buildWorkflowPayload(finalWorkflowName);
+      console.log("Workflow payload", workflowPayload, "unsaved changes?", hasUnsavedChanges);
+      setIsLoading(false);
+      return;
 
       if (!workflowData) {
         // Create new workflow
@@ -1286,10 +1290,7 @@ function AgentConfigForm(): JSX.Element {
         updateLastSavedState();
       } else if (hasUnsavedChanges) {
         // Update existing workflow
-        workflowData = await updateWorkflowAndRefresh(
-          workflowData.workflow_id,
-          workflowPayload
-        );
+        workflowData = await updateWorkflowAndRefresh(workflowData.workflow_id, workflowPayload);
         setCurrentWorkflowData(workflowData);
         updateLastSavedState();
       }
@@ -1864,15 +1865,15 @@ function AgentConfigForm(): JSX.Element {
           ...node,
           data: {
             ...node.data,
-            name: parameters.name ?? node.data.name,
-            description: parameters.description ?? node.data.description,
+            name: parameters.tool_name ?? node.data.name,
+            description: parameters.tool_description ?? node.data.description,
             tool: {
               ...node.data.tool,
               parameters_schema: {
                 ...node.data.tool.parameters_schema,
                 properties: parameters.properties,
-                tool_name: parameters.name ?? undefined,
-                tool_description: parameters.description ?? undefined,
+                tool_name: parameters.tool_name ?? undefined,
+                tool_description: parameters.tool_description ?? undefined,
               },
               param_mapping: getToolConfigFromParameters(parameters),
             },
@@ -1880,17 +1881,19 @@ function AgentConfigForm(): JSX.Element {
         };
       })
     );
+    setHasUnsavedChanges(true);
   }
 
 
   
   function getToolConfigFromParameters(parameters?: ToolParametersSchema): Record<string, unknown> {
+    console.log("Parameters", parameters);
     const mapping: Record<string, unknown> = {};
     if (!parameters) return mapping;
 
-    if (parameters.defaultName !== undefined) mapping.tool_name = parameters.defaultName;
-    if (parameters.name) mapping.step_label = parameters.name;
-    if (parameters.description) mapping.step_description = parameters.description;
+    if (parameters.tool_defaultName !== undefined) mapping.tool_defaultName = parameters.tool_defaultName;
+    if (parameters.tool_name) mapping.step_label = parameters.tool_name;
+    if (parameters.tool_description) mapping.step_description = parameters.tool_description;
 
     const properties = parameters.properties;
     for (const [key, value] of Object.entries(properties)) {
