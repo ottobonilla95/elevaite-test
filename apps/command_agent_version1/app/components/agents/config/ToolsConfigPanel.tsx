@@ -36,11 +36,15 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
 
 
     function resetValues(): void {
-        setParameters(cloneParameters(toolNode.tool?.parameters_schema));
-        setRequiredSet(new Set((toolNode.tool?.parameters_schema as unknown as ToolParametersSchema).required ?? []));
-        setName(toolNode.name);
-        setDescription(toolNode.description ?? "");
-        setIsDescriptionExpanded(toolNode.description && toolNode.description.length > 200);
+        const base = cloneParameters(toolNode.tool.parameters_schema);
+        const merged = applyConfigOverrides(base, (toolNode as unknown as { config?: Record<string, unknown> }).config);
+        setParameters(merged);
+
+        setRequiredSet(new Set((toolNode.tool.parameters_schema as unknown as ToolParametersSchema).required ?? []));
+        setName(toolNode.config?.tool_name ?? toolNode.name);
+        const mergedDescription = toolNode.config?.tool_description ?? toolNode.description ?? "";
+        setDescription(mergedDescription);
+        setIsDescriptionExpanded(mergedDescription.length > 200);
     }
 
 
@@ -56,6 +60,42 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
         }
     }
 
+    function applyConfigOverrides(base: ToolParametersSchema, nodeConfig?: Record<string, unknown>): ToolParametersSchema {
+        function isPlainObject(v: unknown): v is Record<string, unknown> { return v !== null && typeof v === "object" && !Array.isArray(v) };
+        if (!isPlainObject(nodeConfig) || Object.keys(nodeConfig).length === 0) return base;
+
+        const merged = JSON.parse(JSON.stringify(base)) as ToolParametersSchema;
+
+        if (typeof nodeConfig.tool_name === "string") merged.tool_name = nodeConfig.tool_name;
+        if (typeof nodeConfig.tool_description === "string") merged.tool_description = nodeConfig.tool_description;
+        if (typeof nodeConfig.tool_defaultName === "string") merged.tool_defaultName = nodeConfig.tool_defaultName;
+
+        const parameterMapping = nodeConfig.param_mapping;
+        if (parameterMapping && typeof parameterMapping === "object" && !Array.isArray(parameterMapping)) {
+            const entries = Object.entries(parameterMapping as Record<string, unknown>);
+            if (entries.length > 0) {
+                for (const [key, mapped] of entries) {
+                    const prop = merged.properties[key];
+
+                    if (typeof mapped === "string" && mapped.startsWith("response.")) {
+                        merged.properties[key] = {
+                            ...prop,
+                            value: mapped.slice("response.".length),
+                            isUsingResponse: true,
+                        };
+                    } else {
+                        merged.properties[key] = {
+                            ...prop,
+                            value: typeof mapped === "number" || typeof mapped === "string" ? mapped : String(mapped),
+                            isUsingResponse: false,
+                        };
+                    }
+                }
+            }
+        }
+
+        return merged;
+    }
 
     function handleParameterChange(key: string, value: string): void {
         setParameters((prev) => {
@@ -175,6 +215,7 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
             tool_name: name,
             tool_description: description.trim(),
         };
+        console.log("Combined Parameters:", combinedParameters);
 
         props.onSave(combinedParameters);
     }
@@ -195,18 +236,18 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
             <div className="tools-header">
 
                 <div className="header-icon-container">
-                    {getToolIcon(toolNode.name)}
+                    {getToolIcon(toolNode.config?.tool_name ?? toolNode.name)}
                 </div>
 
                 <div className="header-labels-container">
                     <span className="header-labels-title">
-                        {toolNode.name}
+                        {toolNode.config?.tool_name ?? toolNode.name}
                     </span>
                     <span
                         className="header-labels-description"
-                        title={toolNode.description}
+                        title={toolNode.config?.tool_description ?? toolNode.description ?? ""}
                     >
-                        {toolNode.description}
+                        {toolNode.config?.tool_description ?? toolNode.description ?? ""}
                     </span>
                 </div>
 

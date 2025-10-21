@@ -4,6 +4,7 @@ import { Handle, Position } from "react-flow-renderer";
 import { type ToolNodeData } from "../../lib/interfaces";
 import { getToolIcon } from "./iconUtils";
 import "./ToolNode.scss";
+import { useEffect } from "react";
 
 
 
@@ -15,6 +16,10 @@ interface ToolNodeProps {
 
 export function ToolNode({ id, data, selected }: ToolNodeProps): JSX.Element {
     const { type: _type, name, tool, onDelete } = data;
+
+    useEffect(() => {
+        console.log("Data", data);
+    }, [data]);
 
 
     function handleDelete(event: React.MouseEvent): void {
@@ -38,11 +43,11 @@ export function ToolNode({ id, data, selected }: ToolNodeProps): JSX.Element {
 
                 <div className="main-details-container">
                     <div className="icon-container">
-                        {tool ? getToolIcon(tool.name) : undefined}
+                        {getToolIcon(data.config?.tool_name ?? tool.name)}
                     </div>
                     <div className="labels-container">
                         <div className="top-label-container">
-                            <div className="label-name">{name}</div>
+                            <div className="label-name">{data.config?.tool_name ?? name}</div>
                             <div className="buttons-container">
                                 {/* <CommonButton
                                     onClick={handleEdit}
@@ -58,13 +63,13 @@ export function ToolNode({ id, data, selected }: ToolNodeProps): JSX.Element {
                                 </CommonButton>
                             </div>
                         </div>
-                        <div className="label-description" title={tool?.description}>
-                            {tool?.description}
+                        <div className="label-description" title={data.config?.tool_description ?? tool.description}>
+                            {data.config?.tool_description ?? tool.description}
                         </div>
                     </div>
                 </div>
 
-                {!tool?.tags || tool.tags.length === 0 ? undefined :
+                {!tool.tags || tool.tags.length === 0 ? undefined :
                     <div className="tool-tags-container">
                         {tool.tags.map(tag =>
                             <div key={tag} className="tool-tag">{tag}</div>

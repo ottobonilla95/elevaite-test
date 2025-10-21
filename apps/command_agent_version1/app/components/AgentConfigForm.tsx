@@ -1220,7 +1220,7 @@ function AgentConfigForm(): JSX.Element {
         agent_type: tool.tool_type,
         position: node.position,
         tags: data.tags,
-        config: getToolConfigFromParameters(tool.parameters_schema),
+        config: getToolConfigFromParameters(tool.parameters_schema, tool.name),
       };
     });
 
@@ -1278,8 +1278,6 @@ function AgentConfigForm(): JSX.Element {
       const finalWorkflowName = nameOverride ?? workflowName;
       const workflowPayload = buildWorkflowPayload(finalWorkflowName);
       console.log("Workflow payload", workflowPayload, "unsaved changes?", hasUnsavedChanges);
-      setIsLoading(false);
-      return;
 
       if (!workflowData) {
         // Create new workflow
@@ -1596,6 +1594,7 @@ function AgentConfigForm(): JSX.Element {
       // Convert workflow agents to nodes
       const loadedNodes: Node[] = [];
       workflowDetails.workflow_agents.forEach((workflowAgent: WorkflowAgent) => {
+        console.log("Workflow agent:", workflowAgent);
         const agent = workflowAgent.agent;
         const nodeId = workflowAgent.node_id || workflowAgent.agent_id;
 
@@ -1615,8 +1614,9 @@ function AgentConfigForm(): JSX.Element {
               // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- ...stupid coalescing
               description: agent.description === undefined || agent.description === null ? undefined : agent.description,
               config: {
-                tool_name: workflowAgent.agent_config?.tool_name && typeof workflowAgent.agent_config.tool_name === "string" ? workflowAgent.agent_config.tool_name : undefined,
-                tool_description: workflowAgent.agent_config?.tool_description && typeof workflowAgent.agent_config.tool_description === "string" ? workflowAgent.agent_config.tool_description : undefined,
+                tool_defaultName: workflowAgent.agent_config?.tool_name && typeof workflowAgent.agent_config.tool_name === "string" ? workflowAgent.agent_config.tool_name : "unknown_tool",
+                tool_name: workflowAgent.agent_config?.step_label && typeof workflowAgent.agent_config.step_label === "string" ? workflowAgent.agent_config.step_label : undefined,
+                tool_description: workflowAgent.agent_config?.step_description && typeof workflowAgent.agent_config.step_description === "string" ? workflowAgent.agent_config.step_description : undefined,
                 param_mapping: workflowAgent.agent_config?.param_mapping && typeof workflowAgent.agent_config.param_mapping === "object" ? workflowAgent.agent_config.param_mapping as Record<string, unknown> : undefined,
                 static_params: workflowAgent.agent_config?.static_params && typeof workflowAgent.agent_config.static_params === "object" ? workflowAgent.agent_config?.static_params as Record<string, unknown> : undefined,
               },
@@ -1886,24 +1886,26 @@ function AgentConfigForm(): JSX.Element {
 
 
   
-  function getToolConfigFromParameters(parameters?: ToolParametersSchema): Record<string, unknown> {
+  function getToolConfigFromParameters(parameters?: ToolParametersSchema, toolName?: string): Record<string, unknown> {
     console.log("Parameters", parameters);
     const mapping: Record<string, unknown> = {};
     if (!parameters) return mapping;
 
-    if (parameters.tool_defaultName !== undefined) mapping.tool_defaultName = parameters.tool_defaultName;
+    mapping.tool_name = parameters.tool_defaultName ?? toolName;
     if (parameters.tool_name) mapping.step_label = parameters.tool_name;
     if (parameters.tool_description) mapping.step_description = parameters.tool_description;
 
-    const properties = parameters.properties;
-    for (const [key, value] of Object.entries(properties)) {
+    const paramMapping: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(parameters.properties)) {
       if (value.isUsingResponse) {
         const v = value.value;
-        mapping[key] = v !== undefined && String(v).trim() !== "" ? `response.${String(v)}` : undefined;
+        paramMapping[key] = v !== undefined && String(v).trim() !== "" ? `response.${String(v)}` : undefined;
       } else {
-        mapping[key] = value.value;
+        paramMapping[key] = value.value;
       }
     }
+    mapping.param_mapping = paramMapping;
+
     console.log("Mapping:", mapping);
     return mapping;
   }

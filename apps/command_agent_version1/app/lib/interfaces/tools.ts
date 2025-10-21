@@ -75,6 +75,7 @@ export interface ToolNodeData {
   tool: Tool;
   tags?: string[];
   config?: {
+    tool_defaultName?: string;
     tool_name?: string;
     tool_description?: string;
     param_mapping?: Record<string, unknown>;
