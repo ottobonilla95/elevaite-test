@@ -53,6 +53,7 @@ class TextGenerationService:
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
+        response_format: Optional[Dict[str, Any]] = None,
     ) -> TextGenerationResponse:
         provider = self.factory.get_provider(config["type"])
 
@@ -70,6 +71,7 @@ class TextGenerationService:
                 tools=tools,
                 tool_choice=tool_choice,
                 messages=messages,
+                response_format=response_format,
             )
         except Exception as e:
             error_msg = f"Error in text generation for provider {config['type']}: {str(e)}"
@@ -88,6 +90,7 @@ class TextGenerationService:
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
+        response_format: Optional[Dict[str, Any]] = None,
     ):
         """Yield streaming events from the provider. Events are dicts like:
         {"type": "delta", "text": "..."} and a final {"type": "final", "response": {...}}.
@@ -107,6 +110,7 @@ class TextGenerationService:
                 tools=tools,
                 tool_choice=tool_choice,
                 messages=messages,
+                response_format=response_format,
             )
         except Exception as e:
             error_msg = f"Error in text generation streaming for provider {config['type']}: {str(e)}"

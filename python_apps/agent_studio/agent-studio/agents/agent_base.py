@@ -196,14 +196,9 @@ class Agent(BaseModel):
         api_calls_count = 0
 
         if enable_analytics:
-            try:
-                from services.analytics_service import analytics_service as analytics
-                from db.database import get_db
-
-                analytics_service = analytics
-                db = next(get_db())
-            except ImportError:
-                enable_analytics = False
+            # Analytics now handled by SDK ExecutionsService
+            # TODO: Integrate with SDK analytics
+            enable_analytics = False
 
         # Start analytics tracking if enabled
         execution_context = None
@@ -452,14 +447,9 @@ class Agent(BaseModel):
         api_calls_count = 0
 
         if enable_analytics:
-            try:
-                from services.analytics_service import analytics_service as analytics
-                from db.database import get_db
-
-                analytics_service = analytics
-                db = next(get_db())
-            except ImportError:
-                enable_analytics = False
+            # Analytics now handled by SDK ExecutionsService
+            # TODO: Integrate with SDK analytics
+            enable_analytics = False
 
         # Start analytics tracking if enabled
         execution_context = None

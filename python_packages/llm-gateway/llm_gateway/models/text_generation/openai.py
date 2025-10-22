@@ -25,6 +25,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
+        response_format: Optional[Dict[str, Any]] = None,
     ) -> TextGenerationResponse:
         model_name = model_name or "gpt-4o"
         temperature = temperature or 0.5
@@ -61,6 +62,13 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                         api_params["tools"] = tools
                         if tool_choice:
                             api_params["tool_choice"] = tool_choice
+
+                    # Add response_format if provided (for JSON mode, structured outputs, etc.)
+                    if response_format:
+                        api_params["response_format"] = response_format
+                        logging.info(f"🔧 Using response_format: {response_format}")
+                    else:
+                        logging.info("⚠️  No response_format provided")
 
                     response = self.client.chat.completions.create(**api_params)
                     latency = time.time() - start_time
@@ -139,6 +147,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
+        response_format: Optional[Dict[str, Any]] = None,
     ) -> Iterable[Dict[str, Any]]:
         model_name = model_name or "gpt-4o"
         temperature = temperature or 0.5
@@ -171,26 +180,66 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                         if tool_choice:
                             api_params["tool_choice"] = tool_choice
 
+                    # Add response_format if provided (for JSON mode, structured outputs, etc.)
+                    if response_format:
+                        api_params["response_format"] = response_format
+
                     full_text = ""
+                    tool_calls_collected = []
+                    finish_reason = None
                     start_time = time.time()
                     stream = self.client.chat.completions.create(**api_params)
+
                     for chunk in stream:
                         try:
                             ch = chunk.choices[0]
                         except Exception:
                             continue
+
                         delta = getattr(ch, "delta", None)
+
+                        # Handle content streaming
                         if delta and getattr(delta, "content", None):
                             text = delta.content
                             full_text += text
                             yield {"type": "delta", "text": text}
-                        # You may also handle tool_calls deltas here if needed
+
+                        # Handle tool calls deltas (collected incrementally)
+                        if delta and getattr(delta, "tool_calls", None):
+                            for i, tool_call_delta in enumerate(delta.tool_calls):
+                                # Extend tool_calls list if needed
+                                while len(tool_calls_collected) <= i:
+                                    tool_calls_collected.append(
+                                        {"id": "", "type": "function", "function": {"name": "", "arguments": ""}}
+                                    )
+
+                                # Update tool call data incrementally
+                                if tool_call_delta.id:
+                                    tool_calls_collected[i]["id"] = tool_call_delta.id
+                                if tool_call_delta.function:
+                                    if tool_call_delta.function.name:
+                                        tool_calls_collected[i]["function"]["name"] = tool_call_delta.function.name
+                                    if tool_call_delta.function.arguments:
+                                        # Concatenate arguments (they come in chunks)
+                                        tool_calls_collected[i]["function"]["arguments"] += tool_call_delta.function.arguments
+
+                        # Check for finish reason
                         if getattr(ch, "finish_reason", None):
+                            finish_reason = ch.finish_reason
                             break
+
                     latency = time.time() - start_time
                     # Usage not available during streaming in standard SDK; set -1
                     response = TextGenerationResponse(text=full_text.strip(), tokens_in=-1, tokens_out=-1, latency=latency)
-                    yield {"type": "final", "response": response.model_dump()}
+
+                    # Include tool calls in final response if present
+                    final_data = {"type": "final", "response": response.model_dump()}
+                    if tool_calls_collected:
+                        final_data["tool_calls"] = tool_calls_collected
+                    if finish_reason:
+                        final_data["finish_reason"] = finish_reason
+
+                    yield final_data
                     return
                 else:
                     # Legacy completions streaming could be added similarly if needed

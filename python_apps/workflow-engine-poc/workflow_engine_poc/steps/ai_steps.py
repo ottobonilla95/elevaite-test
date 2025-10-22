@@ -1029,7 +1029,7 @@ async def agent_execution_step(
                     except Exception:
                         pass
         except Exception as _se:
-            logger.debug(f"Streaming emission failed, falling back to non-streaming: {_se}")
+            logger.debug(f"Streaming emission failed, falling back to non-streaming: {_se}, {_se.__traceback__}")
             result = await agent.execute(query, context=input_data)
     else:
         result = await agent.execute(query, context=input_data)

@@ -21,30 +21,18 @@ router = APIRouter(prefix="/api/pipeline", tags=["pipeline"])
 class PipelineStepConfig(BaseModel):
     """Configuration for a single pipeline step"""
 
-    step_type: str = Field(
-        ..., description="Type of step (load, parse, chunk, embed, store)"
-    )
-    config: Dict[str, Any] = Field(
-        default_factory=dict, description="Step-specific configuration"
-    )
+    step_type: str = Field(..., description="Type of step (load, parse, chunk, embed, store)")
+    config: Dict[str, Any] = Field(default_factory=dict, description="Step-specific configuration")
 
 
 class PipelineExecutionRequest(BaseModel):
     """Request model for pipeline execution"""
 
-    steps: List[PipelineStepConfig] = Field(
-        ..., description="List of pipeline steps in order"
-    )
+    steps: List[PipelineStepConfig] = Field(..., description="List of pipeline steps in order")
     file_id: Optional[str] = Field(None, description="ID of uploaded file to process")
-    file_ids: Optional[List[str]] = Field(
-        None, description="List of file IDs for multi-file support"
-    )
-    pipeline_name: Optional[str] = Field(
-        "default", description="Name for this pipeline execution"
-    )
-    pipeline_id: Optional[str] = Field(
-        None, description="Optional pipeline ID from frontend"
-    )
+    file_ids: Optional[List[str]] = Field(None, description="List of file IDs for multi-file support")
+    pipeline_name: Optional[str] = Field("default", description="Name for this pipeline execution")
+    pipeline_id: Optional[str] = Field(None, description="Optional pipeline ID from frontend")
 
 
 class PipelineExecutionResponse(BaseModel):
@@ -139,6 +127,10 @@ class PipelineProgressTracker:
                 except asyncio.QueueFull:
                     logger.warning(f"Queue full for pipeline {pipeline_id}")
 
+    def pipeline_exists(self, pipeline_id: str) -> bool:
+        """Check if a pipeline is registered"""
+        return pipeline_id in self.progress_data
+
 
 # Global progress tracker
 progress_tracker = PipelineProgressTracker()
@@ -166,9 +158,7 @@ async def execute_pipeline(
     """
     logger.info(f"🚀 Pipeline execution request received: {request.pipeline_name}")
     logger.info(f"📋 Steps: {[step.step_type for step in request.steps]}")
-    logger.info(
-        f"📁 File IDs: {request.file_ids or [request.file_id] if request.file_id else []}"
-    )
+    logger.info(f"📁 File IDs: {request.file_ids or [request.file_id] if request.file_id else []}")
 
     try:
         # Use provided pipeline_id or generate a new one
@@ -186,9 +176,7 @@ async def execute_pipeline(
             file_ids = [request.file_id]
 
         if not file_ids:
-            raise HTTPException(
-                status_code=400, detail="No files provided for processing"
-            )
+            raise HTTPException(status_code=400, detail="No files provided for processing")
 
         # Start progress tracking
         progress_tracker.start_pipeline(pipeline_id, len(request.steps))
@@ -213,14 +201,10 @@ async def execute_pipeline(
         raise
     except Exception as e:
         logger.error(f"Failed to start pipeline: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail=f"Failed to start pipeline: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to start pipeline: {str(e)}")
 
 
-async def run_pipeline_background(
-    pipeline_id: str, steps_config: List[Dict[str, Any]], file_ids: List[str]
-):
+async def run_pipeline_background(pipeline_id: str, steps_config: List[Dict[str, Any]], file_ids: List[str]):
     """
     Run pipeline execution in the background.
 
@@ -252,9 +236,7 @@ async def run_pipeline_background(
 
     except Exception as e:
         logger.error(f"Background pipeline execution failed: {str(e)}", exc_info=True)
-        progress_tracker.complete_pipeline(
-            pipeline_id, "failed", f"Pipeline execution failed: {str(e)}"
-        )
+        progress_tracker.complete_pipeline(pipeline_id, "failed", f"Pipeline execution failed: {str(e)}")
 
 
 @router.get("/progress/{pipeline_id}")
@@ -267,7 +249,13 @@ async def stream_pipeline_progress(pipeline_id: str):
 
     Returns:
         SSE stream of progress updates
+
+    Raises:
+        HTTPException: If pipeline_id does not exist
     """
+    # Validate that the pipeline exists
+    if not progress_tracker.pipeline_exists(pipeline_id):
+        raise HTTPException(status_code=404, detail=f"Pipeline {pipeline_id} not found")
 
     async def event_stream():
         queue = asyncio.Queue(maxsize=100)

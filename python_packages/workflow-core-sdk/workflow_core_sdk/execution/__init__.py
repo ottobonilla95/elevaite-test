@@ -1,9 +1,9 @@
-from .engine import WorkflowEngine
-from .context import ExecutionContext
-from .step_registry import StepRegistryProtocol
+from .engine_impl import WorkflowEngine
+from .context_impl import ExecutionContext
+from .registry_impl import StepRegistry
 
 __all__ = [
     "WorkflowEngine",
     "ExecutionContext",
-    "StepRegistryProtocol",
+    "StepRegistry",
 ]

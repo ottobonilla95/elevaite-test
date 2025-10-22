@@ -1,19 +1,18 @@
 """
 SQLModel database models for the Workflow Engine
 
-This package contains all database model definitions using SQLModel,
-which provides both SQLAlchemy ORM functionality and Pydantic validation.
+This package now re-exports all models from workflow-core-sdk.
+The PoC no longer defines its own models - it uses the SDK models.
 """
 
-from .base import BaseModel
-from .workflows import (
+# Re-export everything from the SDK
+from workflow_core_sdk.db.models import (
+    BaseModel,
     Workflow,
     WorkflowBase,
     WorkflowCreate,
     WorkflowRead,
     WorkflowUpdate,
-)
-from .executions import (
     ExecutionStatus,
     StepStatus,
     WorkflowExecution,
@@ -24,34 +23,24 @@ from .executions import (
     StepExecutionBase,
     StepExecutionRead,
     StepExecutionUpdate,
-)
-from .step_registry import (
     StepType,
     StepTypeBase,
     StepTypeCreate,
     StepTypeRead,
     StepTypeUpdate,
-)
-from .agents import (
     Agent,
     AgentBase,
     AgentCreate,
     AgentRead,
     AgentUpdate,
     AgentToolBinding,
-)
-from .messages import AgentMessage
-from .prompts import (
+    AgentMessage,
     Prompt,
     PromptCreate,
     PromptRead,
     PromptUpdate,
-)
-from .analytics import (
     AgentExecutionMetrics,
     WorkflowMetrics,
-)
-from .tools import (
     Tool,
     ToolBase,
     ToolCreate,
@@ -67,8 +56,6 @@ from .tools import (
     MCPServerCreate,
     MCPServerUpdate,
     MCPServerRead,
-)
-from .approvals import (
     ApprovalRequest,
     ApprovalRequestBase,
     ApprovalRequestRead,

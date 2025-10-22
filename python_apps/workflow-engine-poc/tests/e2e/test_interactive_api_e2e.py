@@ -12,7 +12,7 @@ API_BASE_URL = "http://localhost:8006"
 async def check_api_health():
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{API_BASE_URL}/health")
+            resp = await client.get(f"{API_BASE_URL}/api/health")
             return resp.status_code == 200
     except Exception:
         return False
@@ -20,21 +20,21 @@ async def check_api_health():
 
 async def create_workflow(config: dict) -> str:
     async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(f"{API_BASE_URL}/workflows/", json=config, follow_redirects=True)
+        resp = await client.post(f"{API_BASE_URL}/api/workflows/", json=config, follow_redirects=True)
         resp.raise_for_status()
         return resp.json()["id"]
 
 
 async def execute_workflow(workflow_id: str, body: dict) -> str:
     async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(f"{API_BASE_URL}/workflows/{workflow_id}/execute/local", json=body, follow_redirects=True)
+        resp = await client.post(f"{API_BASE_URL}/api/workflows/{workflow_id}/execute/local", json=body, follow_redirects=True)
         resp.raise_for_status()
         return resp.json()["id"]
 
 
 async def get_status(execution_id: str) -> dict:
     async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(f"{API_BASE_URL}/executions/{execution_id}")
+        resp = await client.get(f"{API_BASE_URL}/api/executions/{execution_id}")
         resp.raise_for_status()
         return resp.json()
 
@@ -42,7 +42,7 @@ async def get_status(execution_id: str) -> dict:
 async def post_message(execution_id: str, step_id: str, role: str, content: str, metadata: dict | None = None) -> dict:
     async with httpx.AsyncClient(timeout=15.0) as client:
         resp = await client.post(
-            f"{API_BASE_URL}/executions/{execution_id}/steps/{step_id}/messages",
+            f"{API_BASE_URL}/api/executions/{execution_id}/steps/{step_id}/messages",
             json={"role": role, "content": content, "metadata": metadata or {}},
         )
         resp.raise_for_status()
@@ -51,7 +51,7 @@ async def post_message(execution_id: str, step_id: str, role: str, content: str,
 
 async def list_messages(execution_id: str, step_id: str) -> list[dict]:
     async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(f"{API_BASE_URL}/executions/{execution_id}/steps/{step_id}/messages", follow_redirects=True)
+        resp = await client.get(f"{API_BASE_URL}/api/executions/{execution_id}/steps/{step_id}/messages", follow_redirects=True)
         resp.raise_for_status()
         return resp.json()
 

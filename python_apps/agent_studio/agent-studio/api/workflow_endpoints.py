@@ -1,1183 +1,718 @@
-import uuid
-import json
-import asyncio
-import time
+"""
+Workflow endpoints for Agent Studio.
+
+✅ FULLY MIGRATED TO SDK with adapter layer for backwards compatibility.
+All endpoints use workflow-core-sdk with WorkflowAdapter for format conversion.
+
+Note: This is a simplified version focusing on core CRUD and execution.
+Legacy features (deployments, agents/connections model) are deprecated.
+"""
+
 from typing import List, Optional, Dict, Any
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    status,
-    BackgroundTasks,
-    UploadFile,
-    File,
-    Form,
-)
+from uuid import UUID
+import uuid
+import asyncio
+import logging
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, status, Request
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 
+from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
+
+# SDK imports
+from workflow_core_sdk import WorkflowsService, ExecutionsService
+
+# Adapter imports
+from adapters import WorkflowAdapter, ExecutionAdapter, RequestAdapter, ResponseAdapter
+
+# Database
 from db.database import get_db
-from db import crud, schemas, models
-from agents.command_agent import CommandAgent
-from agents.agent_base import Agent
+from db import schemas
 
-# from agents import agent_schemas  # Commented out - Redis dependent
-from services.workflow_execution_context import WorkflowExecutionContext
-from services.workflow_execution_handlers import (
-    execute_deterministic_workflow,
-    execute_hybrid_workflow,
-    execute_workflow_background,
-)
-from services.workflow_execution_utils import (
-    is_deterministic_workflow,
-    is_hybrid_workflow,
-)
-from services.workflow_agent_builders import (
-    build_dynamic_agent_store,
-    build_single_agent_from_workflow,
-    build_toshiba_agent_from_workflow,
-    build_command_agent_from_workflow,
-)
-from schemas.deterministic_workflow import (
-    WorkflowExecutionRequest as DetWorkflowExecutionRequest,
-)
-from datetime import datetime
-import json
-import time
+# In-memory stub store of deployed workflow IDs (non-persistent)
+DEPLOYED_WORKFLOW_IDS: set[str] = set()
 
-# from utils import agent_schema
-from typing import List
 
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 
-# Global variable to store active workflow deployments
-ACTIVE_WORKFLOWS = {}
 
-
-async def process_file_through_vectorizer(
-    file_path: str,
-    file_name: str,
-    workflow_config: Dict[str, Any],
-    execution_context: Dict[str, Any],
-) -> Dict[str, Any]:
-    """
-    Process an uploaded file through the vectorization pipeline.
-
-    This function runs the file through the tokenizer steps:
-    1. File reading with enhanced parsing
-    2. Text chunking with intelligent segmentation
-    3. Embedding generation
-    4. Vector storage in Qdrant
-
-    Returns processing results and metadata.
-    """
-    import logging
-
-    logger = logging.getLogger(__name__)
-
-    try:
-        # Import tokenizer steps
-        from services.tokenizer_steps_registry import tokenizer_steps_registry
-
-        # Get workflow steps to find vectorizer configuration
-        steps = workflow_config.get("steps", [])
-        vectorizer_steps = [
-            step
-            for step in steps
-            if step.get("step_type")
-            in [
-                "file_reader",
-                "text_chunking",
-                "embedding_generation",
-                "vector_storage",
-            ]
-        ]
-
-        if not vectorizer_steps:
-            return {"status": "error", "error": "No vectorizer steps found in workflow"}
-
-        logger.info(f"🔄 Processing {file_name} through {len(vectorizer_steps)} vectorizer steps")
-
-        # Initialize processing context
-        processing_data = {
-            "file_path": file_path,
-            "file_name": file_name,
-            "execution_context": execution_context,
-        }
-
-        # Step 1: File reading
-        file_reader_impl = tokenizer_steps_registry.get_step_implementation("file_reader")
-        if file_reader_impl:
-            logger.info("📖 Running file reader step...")
-            file_reader_config = {
-                "step_id": "file_upload_reader",
-                "step_name": "File Upload Reader",
-                "config": {
-                    "file_path": file_path,
-                    "enhanced_parsing": True,
-                    "extract_metadata": True,
-                },
-            }
-            file_result = await file_reader_impl(file_reader_config, processing_data, execution_context)
-            processing_data.update(file_result)
-            logger.info(f"✅ File reading completed: {len(file_result.get('content', ''))} characters")
-
-        # Step 2: Text chunking
-        text_chunking_impl = tokenizer_steps_registry.get_step_implementation("text_chunking")
-        if text_chunking_impl:
-            logger.info("✂️ Running text chunking step...")
-            chunking_config = {
-                "step_id": "file_upload_chunking",
-                "step_name": "File Upload Chunking",
-                "config": {
-                    "chunk_size": 1000,
-                    "chunk_overlap": 200,
-                    "chunking_strategy": "intelligent",
-                    "preserve_structure": True,
-                },
-            }
-            chunk_result = await text_chunking_impl(chunking_config, processing_data, execution_context)
-            processing_data.update(chunk_result)
-            chunks = chunk_result.get("chunks", [])
-            logger.info(f"✅ Text chunking completed: {len(chunks)} chunks created")
-
-        # Step 3: Embedding generation
-        embedding_impl = tokenizer_steps_registry.get_step_implementation("embedding_generation")
-        if embedding_impl:
-            logger.info("🧠 Running embedding generation step...")
-            embedding_config = {
-                "step_id": "file_upload_embeddings",
-                "step_name": "File Upload Embeddings",
-                "config": {
-                    "embedding_model": "text-embedding-3-small",
-                    "batch_size": 50,
-                },
-            }
-            embedding_result = await embedding_impl(embedding_config, processing_data, execution_context)
-            processing_data.update(embedding_result)
-            embeddings = embedding_result.get("embeddings", [])
-            logger.info(f"✅ Embedding generation completed: {len(embeddings)} embeddings created")
-
-        # Step 4: Vector storage
-        vector_storage_impl = tokenizer_steps_registry.get_step_implementation("vector_storage")
-        if vector_storage_impl:
-            logger.info("💾 Running vector storage step...")
-            # Use session-specific collection name
-            collection_name = f"uploaded_docs_{execution_context.get('session_id', 'default')}"
-            storage_config = {
-                "step_id": "file_upload_storage",
-                "step_name": "File Upload Storage",
-                "config": {
-                    "collection_name": collection_name,
-                    "vector_size": 1536,  # text-embedding-3-small dimension
-                    "create_collection": True,
-                },
-            }
-            storage_result = await vector_storage_impl(storage_config, processing_data, execution_context)
-            processing_data.update(storage_result)
-            logger.info(f"✅ Vector storage completed: stored in collection '{collection_name}'")
-
-        # Return processing summary
-        return {
-            "status": "success",
-            "file_name": file_name,
-            "collection_name": collection_name,
-            "chunks_count": len(chunks),
-            "embeddings_count": len(embeddings),
-            "processing_time": processing_data.get("processing_time"),
-            "metadata": processing_data.get("metadata", {}),
-            "message": f"Successfully processed '{file_name}' into {len(chunks)} chunks and stored in collection '{collection_name}'",
-        }
-
-    except Exception as e:
-        logger.error(f"❌ File vectorization failed: {e}")
-        return {"status": "error", "error": str(e), "file_name": file_name}
-
-
-@router.post("/", response_model=schemas.WorkflowResponse)
+@router.post("/")
 def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_db)):
-    """Create a new workflow with agents and connections"""
-    try:
-        # Check if workflow with same name and version already exists
-        existing = crud.workflows.get_workflow_by_name(db, workflow.name, workflow.version)
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Workflow '{workflow.name}' version '{workflow.version}' already exists",
-            )
+    """
+    Create a new workflow.
 
-        # Create the workflow
-        db_workflow = crud.create_workflow(db, workflow)
+    ✅ MIGRATED TO SDK with adapter layer for backwards compatibility.
+    """
+    # Adapt request from AS to SDK format
+    sdk_workflow_data = RequestAdapter.adapt_workflow_create_request(workflow.model_dump())
 
-        # Process agents from configuration
-        agents_config = workflow.configuration.get("agents", [])
-        for agent_config in agents_config:
-            agent_type = agent_config.get("agent_type", "")
+    # Create workflow via SDK
+    sdk_workflow = WorkflowsService.create_workflow(db, sdk_workflow_data)
 
-            # Find the agent by type/name
-            if agent_type == "ToshibaAgent":
-                agent = crud.get_agent_by_name(db, "ToshibaAgent")
-            elif agent_type == "CommandAgent":
-                agent = crud.get_agent_by_name(db, "CommandAgent")
-            elif agent_type == "WebAgent":
-                agent = crud.get_agent_by_name(db, "WebAgent")
-            elif agent_type == "DataAgent":
-                agent = crud.get_agent_by_name(db, "DataAgent")
-            elif agent_type == "APIAgent":
-                agent = crud.get_agent_by_name(db, "APIAgent")
-            else:
-                # Try to find by agent_id if provided
-                agent_id = agent_config.get("agent_id")
-                if agent_id:
-                    try:
-                        agent = crud.get_agent(db, uuid.UUID(agent_id))
-                    except (ValueError, TypeError):
-                        agent = None
-                else:
-                    agent = None
+    # Adapt response to Agent Studio format (pass db for agent data lookup)
+    as_response = ResponseAdapter.adapt_workflow_response(sdk_workflow, db)
 
-            if agent:
-                # Create workflow_agent entry
-                position = agent_config.get("position", {})
-                workflow_agent_data = schemas.WorkflowAgentCreate(
-                    workflow_id=db_workflow.workflow_id,
-                    agent_id=agent.agent_id,
-                    position_x=position.get("x", 0),
-                    position_y=position.get("y", 0),
-                    node_id=agent_config.get("agent_id", str(agent.agent_id)),
-                    agent_config=agent_config.get("config", {}),
-                )
-                crud.create_workflow_agent(db, workflow_agent_data)
-
-        # Process connections from configuration
-        connections_config = workflow.configuration.get("connections", [])
-        for connection_config in connections_config:
-            source_agent_id = connection_config.get("source_agent_id")
-            target_agent_id = connection_config.get("target_agent_id")
-
-            if source_agent_id and target_agent_id:
-                try:
-                    connection_data = schemas.WorkflowConnectionCreate(
-                        workflow_id=db_workflow.workflow_id,
-                        source_agent_id=uuid.UUID(source_agent_id),
-                        target_agent_id=uuid.UUID(target_agent_id),
-                        connection_type=connection_config.get("connection_type", "default"),
-                        conditions=connection_config.get("conditions"),
-                        priority=connection_config.get("priority", 0),
-                        source_handle=connection_config.get("source_handle"),
-                        target_handle=connection_config.get("target_handle"),
-                    )
-                    crud.create_workflow_connection(db, connection_data)
-                except (ValueError, TypeError) as e:
-                    # Skip invalid connections
-                    continue
-
-        # Return the workflow with populated relationships
-        return get_workflow(db_workflow.workflow_id, db)
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating workflow: {str(e)}",
-        )
+    return as_response
 
 
-@router.get("/", response_model=List[schemas.WorkflowResponse])
+@router.get("/")
 def list_workflows(
     skip: int = 0,
     limit: int = 100,
-    is_active: Optional[bool] = None,
-    is_deployed: Optional[bool] = None,
     db: Session = Depends(get_db),
 ):
-    """List all workflows with optional filters"""
-    workflows = crud.get_workflows(db, skip=skip, limit=limit, is_active=is_active, is_deployed=is_deployed)
-    return workflows
+    """
+    List all workflows.
+
+    ✅ MIGRATED TO SDK with adapter layer for backwards compatibility.
+    """
+    # Get workflows from SDK
+    sdk_workflows = WorkflowsService.list_workflows_entities(db, offset=skip, limit=limit)
+
+    # Adapt response to Agent Studio format (pass db for agent data lookup)
+    as_response = [ResponseAdapter.adapt_workflow_response(wf, db) for wf in sdk_workflows]
+
+    return as_response
 
 
-@router.get("/{workflow_id}", response_model=schemas.WorkflowResponse)
+@router.get("/{workflow_id}")
 def get_workflow(workflow_id: uuid.UUID, db: Session = Depends(get_db)):
-    """Get a specific workflow by ID with all related data"""
-    workflow = crud.get_workflow(db, workflow_id)
-    if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+    """
+    Get a specific workflow by ID.
 
-    # Load related data
-    workflow_agents = crud.get_workflow_agents(db, workflow_id)
-    workflow_connections = crud.get_workflow_connections(db, workflow_id)
+    ✅ MIGRATED TO SDK with adapter layer for backwards compatibility.
+    """
+    # Get workflow from SDK
+    sdk_workflow = WorkflowsService.get_workflow_entity(db, str(workflow_id))
 
-    # Convert to response format with relationships
-    workflow_dict = {
-        **workflow.__dict__,
-        "workflow_agents": workflow_agents,
-        "workflow_connections": workflow_connections,
-        "workflow_deployments": [],  # Add deployments if needed
-    }
+    if not sdk_workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
-    return workflow_dict
+    # Adapt response to Agent Studio format (pass db for agent data lookup)
+    as_response = ResponseAdapter.adapt_workflow_response(sdk_workflow, db)
+
+    return as_response
 
 
-@router.put("/{workflow_id}", response_model=schemas.WorkflowResponse)
+@router.put("/{workflow_id}")
 def update_workflow(
     workflow_id: uuid.UUID,
     workflow_update: schemas.WorkflowUpdate,
     db: Session = Depends(get_db),
 ):
-    """Update a workflow"""
-    workflow = crud.update_workflow(db, workflow_id, workflow_update)
-    if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
-    return workflow
+    """
+    Update a workflow.
+
+    ✅ MIGRATED TO SDK with adapter layer for backwards compatibility.
+    """
+    # Get existing workflow
+    sdk_workflow = WorkflowsService.get_workflow_entity(db, str(workflow_id))
+
+    if not sdk_workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Build update data from the workflow_update
+    update_data = workflow_update.model_dump(exclude_unset=True)
+
+    # Convert Agent Studio update payload to SDK format (especially configuration)
+    sdk_update = RequestAdapter.adapt_workflow_update_request(update_data)
+
+    # Start from existing configuration and merge in the updated configuration
+    existing_config = sdk_workflow.configuration.copy() if sdk_workflow.configuration else {}
+    if "configuration" in sdk_update:
+        # Shallow merge is sufficient because steps/connections replace whole arrays
+        existing_config.update(sdk_update["configuration"])  # replaces steps if provided
+
+    # Build payload expected by DatabaseService.save_workflow (must nest under "configuration")
+    save_payload: Dict[str, Any] = {
+        "configuration": existing_config,
+    }
+
+    # Apply top-level fields if provided
+    if "name" in update_data:
+        save_payload["name"] = update_data["name"]
+    if "description" in update_data:
+        save_payload["description"] = update_data["description"]
+    if "version" in update_data:
+        save_payload["version"] = update_data["version"]
+    if "tags" in update_data:
+        save_payload["tags"] = update_data["tags"]
+
+    # Save updated workflow (save_workflow handles updates)
+    from workflow_core_sdk.db.service import DatabaseService
+
+    db_service = DatabaseService()
+    db_service.save_workflow(db, str(workflow_id), save_payload)
+
+    # Get updated workflow
+    updated_workflow = WorkflowsService.get_workflow_entity(db, str(workflow_id))
+
+    # Adapt response to Agent Studio format (pass db for agent data lookup)
+    as_response = ResponseAdapter.adapt_workflow_response(updated_workflow, db)
+
+    return as_response
 
 
 @router.delete("/{workflow_id}")
 def delete_workflow(workflow_id: uuid.UUID, db: Session = Depends(get_db)):
-    """Delete a workflow"""
-    success = crud.delete_workflow(db, workflow_id)
+    """
+    Delete a workflow.
+
+    ✅ MIGRATED TO SDK with adapter layer for backwards compatibility.
+    """
+    # Delete workflow via SDK
+    success = WorkflowsService.delete_workflow(db, str(workflow_id))
+
     if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
-    return {"message": "Workflow deleted successfully"}
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    return {"message": "Workflow deleted successfully", "workflow_id": str(workflow_id)}
 
 
-@router.post("/{workflow_id}/agents", response_model=schemas.WorkflowAgentResponse)
-def add_agent_to_workflow(
+@router.post("/{workflow_id}/execute")
+async def execute_workflow(
     workflow_id: uuid.UUID,
-    workflow_agent: schemas.WorkflowAgentCreate,
+    execution_request: Dict[str, Any],
+    background_tasks: BackgroundTasks,
+    request: Request,
     db: Session = Depends(get_db),
 ):
-    """Add an agent to a workflow"""
-    # Verify workflow exists
-    workflow = crud.get_workflow(db, workflow_id)
-    if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+    """
+    Execute a workflow synchronously (with timeout).
 
-    # Verify agent exists
-    agent = crud.get_agent(db, workflow_agent.agent_id)
-    if not agent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+    ✅ MIGRATED TO SDK - Uses SDK's WorkflowEngine for execution.
 
-    # Set workflow_id
-    workflow_agent.workflow_id = workflow_id
+    Note: This is a simplified synchronous execution. For streaming, use /{workflow_id}/stream
+    """
+    from workflow_core_sdk.execution.context_impl import ExecutionContext
 
-    try:
-        db_workflow_agent = crud.create_workflow_agent(db, workflow_agent)
-        return db_workflow_agent
-    except Exception as e:
+    # Check if execution engine is available
+    if not hasattr(request.app.state, "workflow_engine"):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error adding agent to workflow: {str(e)}",
+            status_code=503, detail="Workflow execution engine not initialized. Please restart the application."
         )
 
+    workflow_engine = request.app.state.workflow_engine
 
-@router.post("/{workflow_id}/connections", response_model=schemas.WorkflowConnectionResponse)
-def add_connection_to_workflow(
-    workflow_id: uuid.UUID,
-    connection: schemas.WorkflowConnectionCreate,
-    db: Session = Depends(get_db),
-):
-    """Add a connection between agents in a workflow"""
-    # Verify workflow exists
-    workflow = crud.get_workflow(db, workflow_id)
-    if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+    # Get workflow from SDK
+    sdk_workflow = WorkflowsService.get_workflow_entity(db, str(workflow_id))
 
-    # Set workflow_id
-    connection.workflow_id = workflow_id
+    if not sdk_workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
-    try:
-        db_connection = crud.create_workflow_connection(db, connection)
-        return db_connection
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error adding connection to workflow: {str(e)}",
-        )
+    # Create execution context
+    execution_id = str(uuid.uuid4())
 
+    # Build workflow config with workflow_id for execution context
+    workflow_config_for_execution = sdk_workflow.configuration.copy() if sdk_workflow.configuration else {}
+    workflow_config_for_execution["workflow_id"] = str(workflow_id)
+    workflow_config_for_execution["name"] = sdk_workflow.name
 
-@router.post("/{workflow_id}/deploy", response_model=schemas.WorkflowDeploymentResponse)
-def deploy_workflow(
-    workflow_id: uuid.UUID,
-    deployment_request: schemas.WorkflowDeploymentRequest,
-    db: Session = Depends(get_db),
-):
-    """Deploy a workflow"""
-    # Verify workflow exists
-    workflow = crud.get_workflow(db, workflow_id)
-    if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+    # Build user context
+    from workflow_core_sdk.execution.context_impl import UserContext
 
-    # Create deployment data with workflow_id
-    deployment_data = schemas.WorkflowDeploymentCreate(
-        workflow_id=workflow_id,
-        environment=deployment_request.environment,
-        deployment_name=deployment_request.deployment_name,
-        deployed_by=deployment_request.deployed_by,
-        runtime_config=deployment_request.runtime_config,
+    user_context = UserContext(
+        user_id=execution_request.get("user_id"),
+        session_id=execution_request.get("session_id"),
+    )
+
+    # Create execution context
+    execution_context = ExecutionContext(
+        workflow_config=workflow_config_for_execution,
+        user_context=user_context,
+        execution_id=execution_id,
+        workflow_engine=workflow_engine,
     )
 
     try:
-        # Create deployment record
-        db_deployment = crud.create_workflow_deployment(db, deployment_data)
+        # Execute workflow synchronously
+        await workflow_engine.execute_workflow(execution_context)
 
-        # Update workflow's is_deployed flag and deployed_at timestamp
-        workflow_update = schemas.WorkflowUpdate(is_deployed=True, deployed_at=db_deployment.deployed_at)
-        crud.update_workflow(db, workflow_id, workflow_update)
+        # Convert step results to serializable format
+        step_results = {}
+        for step_id, result in execution_context.step_results.items():
+            step_results[step_id] = {
+                "step_id": result.step_id,
+                "status": result.status.value,
+                "output_data": result.output_data,
+                "error_message": result.error_message,
+                "execution_time_ms": result.execution_time_ms,
+            }
 
-        # Build and store the CommandAgent for this deployment
-        command_agent = build_command_agent_from_workflow(db, workflow)
-        ACTIVE_WORKFLOWS[deployment_request.deployment_name] = {
-            "command_agent": command_agent,
-            "deployment": db_deployment,
-            "workflow": workflow,
-        }
-
-        return db_deployment
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error deploying workflow: {str(e)}",
-        )
-
-
-@router.get("/deployments/active", response_model=List[schemas.WorkflowDeploymentResponse])
-def list_active_deployments(db: Session = Depends(get_db)):
-    """List all active workflow deployments"""
-    deployments = crud.workflows.get_active_workflow_deployments(db)
-    return deployments
-
-
-@router.post("/deployments/{deployment_name}/stop")
-def stop_workflow_deployment(deployment_name: str, db: Session = Depends(get_db)):
-    """Stop/undeploy a workflow deployment by name"""
-    try:
-        # Find the deployment by name (try development first, then production)
-        deployment = crud.workflows.get_workflow_deployment_by_name(db, deployment_name, "development")
-        if not deployment:
-            deployment = crud.workflows.get_workflow_deployment_by_name(db, deployment_name, "production")
-
-        if not deployment:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Deployment '{deployment_name}' not found in development or production environment",
-            )
-
-        # Update deployment status to inactive
-        deployment_update = schemas.WorkflowDeploymentUpdate(status="inactive")
-        updated_deployment = crud.update_workflow_deployment(db, deployment.deployment_id, deployment_update)
-
-        if not updated_deployment:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to update deployment '{deployment_name}'",
-            )
-
-        # Check if there are any other active deployments for this workflow
-        active_deployments = crud.workflows.get_active_workflow_deployments(db, deployment.workflow_id)
-        if not active_deployments:
-            # No more active deployments, update workflow's is_deployed flag
-            workflow_update = schemas.WorkflowUpdate(is_deployed=False)
-            crud.update_workflow(db, deployment.workflow_id, workflow_update)
-
-        # Remove from active workflows memory
-        if deployment_name in ACTIVE_WORKFLOWS:
-            del ACTIVE_WORKFLOWS[deployment_name]
-
+        # Return response
         return {
-            "message": f"Deployment '{deployment_name}' stopped successfully",
-            "deployment_id": str(updated_deployment.deployment_id),
-            "status": updated_deployment.status,
-            "stopped_at": (updated_deployment.stopped_at.isoformat() if updated_deployment.stopped_at else None),
+            "execution_id": execution_id,
+            "status": execution_context.status.value
+            if hasattr(execution_context.status, "value")
+            else str(execution_context.status),
+            "step_results": step_results,
+            "step_io_data": execution_context.step_io_data,
+            "global_variables": execution_context.global_variables,
+            "execution_summary": execution_context.get_execution_summary(),
         }
-
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error stopping deployment: {str(e)}",
-        )
+        raise HTTPException(status_code=500, detail=f"Workflow execution failed: {str(e)}")
 
 
-# @router.delete("/deployments/{deployment_name}")
-# def delete_workflow_deployment_by_name(
-#     deployment_name: str, db: Session = Depends(get_db)
-# ):
-#     """Completely delete a workflow deployment by name"""
-#     try:
-#         # Find the deployment by name (try development first, then production)
-#         deployment = crud.get_workflow_deployment_by_name(
-#             db, deployment_name, "development"
-#         )
-#         if not deployment:
-#             deployment = crud.get_workflow_deployment_by_name(
-#                 db, deployment_name, "production"
-#             )
-
-#         if not deployment:
-#             raise HTTPException(
-#                 status_code=status.HTTP_404_NOT_FOUND,
-#                 detail=f"Deployment '{deployment_name}' not found in development or production environment",
-#             )
-
-#         deployment_id = deployment.deployment_id
-#         workflow_id = deployment.workflow_id
-
-#         # Remove from active workflows memory first
-#         if deployment_name in ACTIVE_WORKFLOWS:
-#             del ACTIVE_WORKFLOWS[deployment_name]
-#             print(f"Removed '{deployment_name}' from active workflows")
-
-#         # Delete from database
-#         success = crud.delete_workflow_deployment(db, deployment_id)
-#         if not success:
-#             raise HTTPException(
-#                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#                 detail=f"Failed to delete deployment '{deployment_name}'",
-#             )
-
-#         # Check if there are any other active deployments for this workflow
-#         active_deployments = crud.workflows.get_active_workflow_deployments(
-#             db, workflow_id
-#         )
-#         if not active_deployments:
-#             # No more active deployments, update workflow's is_deployed flag
-#             workflow_update = schemas.WorkflowUpdate(is_deployed=False)
-#             crud.update_workflow(db, workflow_id, workflow_update)
-
-#         return {
-#             "message": f"Deployment '{deployment_name}' deleted successfully",
-#             "deployment_id": str(deployment_id),
-#         }
-
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail=f"Error deleting deployment: {str(e)}",
-#         )
-
-
-@router.post("/{workflow_id}/execute", response_model=schemas.WorkflowExecutionResponse)
-def execute_workflow(
+@router.post("/{workflow_id}/execute/async", status_code=status.HTTP_202_ACCEPTED)
+async def execute_workflow_async(
     workflow_id: uuid.UUID,
-    execution_request: schemas.WorkflowExecutionRequest,
+    execution_request: Dict[str, Any],
+    background_tasks: BackgroundTasks,
+    request: Request,
     db: Session = Depends(get_db),
 ):
-    """Execute a workflow by workflow ID (supports single-agent, multi-agent, and deterministic workflows)"""
-    # Verify workflow exists
-    workflow = crud.get_workflow(db, workflow_id)
-    if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
+    """
+    Execute a workflow asynchronously in the background.
 
-    try:
-        # Check if this is a pure deterministic workflow
-        if is_deterministic_workflow(workflow.configuration):
-            import asyncio
+    ✅ MIGRATED TO SDK - Uses SDK's WorkflowEngine for async execution.
 
-            return asyncio.run(execute_deterministic_workflow(workflow, execution_request, db))
+    Returns immediately with execution_id. Use GET /api/executions/{execution_id} to check status.
+    """
+    from workflow_core_sdk.execution.context_impl import ExecutionContext
 
-        # Check if this is a hybrid workflow with conditional execution
-        if is_hybrid_workflow(workflow.configuration):
-            return execute_hybrid_workflow(workflow, execution_request, db)
-
-        # Determine if this is a single-agent or multi-agent workflow
-        agents = workflow.configuration.get("agents", [])
-        is_single_agent = len(agents) == 1
-
-        if is_single_agent:
-            # Single-agent workflow - execute agent directly with its own prompt
-            agent_config = agents[0]
-            agent_type = agent_config.get("agent_type", "CommandAgent")
-
-            if agent_type == "ToshibaAgent":
-                # Build ToshibaAgent directly
-                agent = build_toshiba_agent_from_workflow(db, workflow, agent_config)
-            else:
-                # Build other single agents directly
-                agent = build_single_agent_from_workflow(db, workflow, agent_config)
-
-            # Build dynamic agent store for inter-agent communication
-            dynamic_agent_store = build_dynamic_agent_store(db, workflow)
-
-            # Add timeout to agent execution using concurrent.futures (thread-safe)
-            import concurrent.futures
-
-            # Execute with timeout using ThreadPoolExecutor
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                # Submit the agent execution to the thread pool
-                future = executor.submit(
-                    agent.execute,
-                    query=execution_request.query,
-                    chat_history=execution_request.chat_history,
-                    enable_analytics=False,  # Disable analytics to avoid potential issues
-                    dynamic_agent_store=dynamic_agent_store,  # Pass dynamic agent store
-                )
-
-                try:
-                    # Wait for result with 90 second timeout
-                    result = future.result(timeout=90)
-                except concurrent.futures.TimeoutError:
-                    # Cancel the future
-                    future.cancel()
-                    raise HTTPException(
-                        status_code=504,
-                        detail="Agent execution timed out after 90 seconds",
-                    )
-                except Exception as e:
-                    raise
-        else:
-            # Multi-agent workflow - use CommandAgent for orchestration
-            command_agent = build_command_agent_from_workflow(db, workflow)
-
-            # Build dynamic agent store for inter-agent communication
-            dynamic_agent_store = build_dynamic_agent_store(db, workflow)
-
-            # Add timeout to CommandAgent execution using concurrent.futures (thread-safe)
-            import concurrent.futures
-
-            # Execute with timeout using ThreadPoolExecutor
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                # Submit the CommandAgent execution to the thread pool
-                if execution_request.chat_history:
-                    future = executor.submit(
-                        command_agent.execute_stream,
-                        query=execution_request.query,
-                        chat_history=execution_request.chat_history,
-                        session_id=execution_request.session_id,
-                        user_id=execution_request.user_id,
-                        enable_analytics=False,  # No analytics in non-streaming execute endpoint
-                        dynamic_agent_store=dynamic_agent_store,
-                    )
-                else:
-                    # Use provided session_id or generate one
-                    session_id = execution_request.session_id or f"workflow_{workflow_id}_{int(time.time())}"
-                    user_id = execution_request.user_id or "workflow_user"
-                    future = executor.submit(
-                        command_agent.execute,
-                        query=execution_request.query,
-                        enable_analytics=True,  # Enable analytics to track executions
-                        session_id=session_id,
-                        user_id=user_id,
-                        dynamic_agent_store=dynamic_agent_store,  # Pass dynamic agent store
-                    )
-
-                try:
-                    # Wait for result with 90 second timeout
-                    result = future.result(timeout=90)
-                except concurrent.futures.TimeoutError:
-                    # Cancel the future
-                    future.cancel()
-                    raise HTTPException(
-                        status_code=504,
-                        detail="CommandAgent execution timed out after 90 seconds",
-                    )
-                except Exception as e:
-                    raise
-
-        # Ensure response is in JSON format expected by frontend
-        import json
-
-        def safe_json_serialize(obj):
-            """Safely serialize object to JSON, handling generators and other non-serializable types"""
-            try:
-                if isinstance(obj, str):
-                    return json.dumps({"content": obj})
-                elif isinstance(obj, (dict, list, int, float, bool)) or obj is None:
-                    return json.dumps(obj)
-                elif hasattr(obj, "__iter__") and not isinstance(obj, str):
-                    # Handle generators and other iterables
-                    return json.dumps({"content": str(list(obj))})
-                else:
-                    return json.dumps({"content": str(obj)})
-            except (TypeError, ValueError) as e:
-                # Fallback for any remaining serialization issues
-                return json.dumps({"content": str(obj), "serialization_error": str(e)})
-
-        formatted_response = safe_json_serialize(result)
-
-        return schemas.WorkflowExecutionResponse(
-            status="success",
-            response=formatted_response,
-            workflow_id=str(workflow_id),
-            deployment_id="",  # Empty string instead of None
-            timestamp=datetime.now().isoformat(),
-        )
-
-    except Exception as e:
-        print(str(e))
+    # Check if execution engine is available
+    if not hasattr(request.app.state, "workflow_engine"):
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error executing workflow: {str(e)}",
+            status_code=503, detail="Workflow execution engine not initialized. Please restart the application."
         )
+
+    workflow_engine = request.app.state.workflow_engine
+
+    # Get workflow from SDK
+    sdk_workflow = WorkflowsService.get_workflow_entity(db, str(workflow_id))
+
+    if not sdk_workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Create execution context
+    execution_id = str(uuid.uuid4())
+
+    # Build workflow config with workflow_id for execution context
+    workflow_config_for_execution = sdk_workflow.configuration.copy() if sdk_workflow.configuration else {}
+    workflow_config_for_execution["workflow_id"] = str(workflow_id)
+    workflow_config_for_execution["name"] = sdk_workflow.name
+
+    # Build user context
+    from workflow_core_sdk.execution.context_impl import UserContext
+
+    user_context = UserContext(
+        user_id=execution_request.get("user_id"),
+        session_id=execution_request.get("session_id"),
+    )
+
+    # Create execution context
+    execution_context = ExecutionContext(
+        workflow_config=workflow_config_for_execution,
+        user_context=user_context,
+        execution_id=execution_id,
+        workflow_engine=workflow_engine,
+    )
+
+    # Execute workflow in background
+    async def run_workflow():
+        try:
+            await workflow_engine.execute_workflow(execution_context)
+        except Exception as e:
+            execution_context.fail_execution(str(e))
+
+    # Start execution as background task
+    asyncio.create_task(run_workflow())
+
+    # Return immediately with execution_id
+    return {
+        "execution_id": execution_id,
+        "status": "queued",
+        "message": "Workflow execution started in background",
+    }
 
 
 @router.post("/{workflow_id}/stream")
 async def execute_workflow_stream(
     workflow_id: uuid.UUID,
     execution_request: schemas.WorkflowStreamExecutionRequest,
-    db: Session = Depends(get_db),
-):
-    """Execute a workflow with streaming responses by workflow ID (supports both single and multi-agent workflows)
-    Now directly instrumented to persist analytics to the database during streaming.
-    """
-    # Verify workflow exists
-    workflow = crud.get_workflow(db, workflow_id)
-    if not workflow:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
-
-    # Check if this is a pure deterministic workflow before starting the stream
-    if is_deterministic_workflow(workflow.configuration):
-        raise HTTPException(
-            status_code=400,
-            detail="Deterministic workflows do not support streaming execution. Use the regular execute endpoint instead.",
-        )
-
-    # Import analytics inside the function to keep edit scope localized
-    from services.analytics_service import analytics_service, WorkflowStep
-
-    # Create an execution record and initialize trace for streaming
-    execution_id = analytics_service.create_execution(
-        execution_type="workflow",
-        workflow_id=str(workflow_id),
-        session_id=execution_request.session_id,
-        user_id=execution_request.user_id,
-        query=execution_request.query,
-        estimated_duration=60,
-    )
-    analytics_service.init_workflow_trace(execution_id, str(workflow_id), total_steps=1)
-    analytics_service.update_execution(
-        execution_id,
-        status="running",
-        current_step="Starting streaming execution",
-        progress=0.05,
-        db=db,
-    )
-    # Snapshot workflow configuration now to avoid accessing ORM instance after session closes
-    try:
-        workflow_config = (
-            json.loads(json.dumps(workflow.configuration))
-            if isinstance(workflow.configuration, dict)
-            else workflow.configuration
-        )
-    except Exception:
-        # Fallback shallow copy
-        workflow_config = dict(workflow.configuration) if hasattr(workflow, "configuration") else {}
-
-    async def stream_generator():
-        """Generate streaming response chunks with analytics persistence"""
-        from db.database import SessionLocal
-
-        db2 = SessionLocal()
-        try:
-            # Send initial status, include execution_id for client-side polling
-            yield f"data: {json.dumps({'status': 'started', 'workflow_id': str(workflow_id), 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
-
-            # Check if this is a hybrid workflow with conditional execution
-            if is_hybrid_workflow(workflow_config):
-                msg = "Hybrid workflow streaming not yet implemented. Use the regular execute endpoint."
-                analytics_service.update_execution(
-                    execution_id,
-                    current_step="Hybrid routing not implemented",
-                    error=msg,
-                    status="failed",
-                    db=db2,
-                )
-                yield f"data: {json.dumps({'status': 'error', 'message': msg, 'workflow_id': str(workflow_id), 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
-                return
-
-            # Determine if this is a single-agent or multi-agent workflow
-            agents = workflow_config.get("agents", [])
-            is_single_agent = len(agents) == 1
-
-            if is_single_agent:
-                # Single-agent workflow - execute agent directly with its own prompt
-                agent_config = agents[0]
-                agent_type = agent_config.get("agent_type", "CommandAgent")
-
-                # Re-acquire a fresh workflow bound to the new session
-                fresh_workflow = crud.get_workflow(db2, workflow_id)
-                if agent_type == "ToshibaAgent":
-                    agent = build_toshiba_agent_from_workflow(db2, fresh_workflow, agent_config)
-                else:
-                    agent = build_single_agent_from_workflow(db2, fresh_workflow, agent_config)
-
-                # Create and persist a step representing the streaming agent execution
-                step_id = f"stream_agent_{execution_id}"
-                agent_step = WorkflowStep(
-                    step_id=step_id,
-                    step_type="agent_execution",
-                    agent_name=getattr(agent, "name", agent_type),
-                    status="pending",
-                    input_data={
-                        "query": execution_request.query,
-                        "streaming": True,
-                    },
-                    step_metadata={"streaming": True},
-                )
-                analytics_service.add_workflow_step(execution_id, agent_step, db=db2)
-                analytics_service.add_execution_path(execution_id, getattr(agent, "name", agent_type))
-                analytics_service.update_workflow_step(execution_id, step_id, status="running", db=db2)
-                analytics_service.update_execution(
-                    execution_id,
-                    current_step=f"Streaming from {getattr(agent, 'name', agent_type)}",
-                    progress=0.2,
-                    db=db2,
-                )
-
-                chunk_count = 0
-                if hasattr(agent, "execute_stream") and callable(getattr(agent, "execute_stream")):
-                    for chunk in agent.execute_stream(execution_request.query, execution_request.chat_history):
-                        if chunk:
-                            chunk_count += 1
-                            if chunk_count % 5 == 0:
-                                analytics_service.update_execution(
-                                    execution_id,
-                                    current_step=f"Streaming ({chunk_count} chunks)",
-                                    db=db2,
-                                )
-                            yield f"data: {json.dumps({'type': chunk.type, 'data': chunk.message, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
-                            await asyncio.sleep(0.01)
-                    # Mark step completed with summary only (avoid storing full content)
-                    analytics_service.update_workflow_step(
-                        execution_id,
-                        step_id,
-                        status="completed",
-                        output_data={"chunks": chunk_count},
-                        db=db2,
-                    )
-                else:
-                    # Fallback to regular execution
-                    session_id = execution_request.session_id or f"workflow_{workflow_id}_{int(time.time())}"
-                    user_id = execution_request.user_id or "workflow_user"
-                    result = agent.execute(
-                        query=execution_request.query,
-                        chat_history=execution_request.chat_history,
-                        session_id=session_id,
-                        user_id=user_id,
-                        enable_analytics=False,
-                    )
-                    analytics_service.update_workflow_step(
-                        execution_id,
-                        step_id,
-                        status="completed",
-                        output_data={"result": str(result)},
-                        db=db2,
-                    )
-                    yield f"data: {json.dumps({'type': 'content', 'data': result, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
-
-            else:
-                # Multi-agent workflow - use CommandAgent for orchestration
-                fresh_workflow = crud.get_workflow(db2, workflow_id)
-                command_agent = build_command_agent_from_workflow(db2, fresh_workflow)
-                dynamic_agent_store = build_dynamic_agent_store(db2, fresh_workflow)
-
-                # Create orchestrator step
-                step_id = f"orchestrator_stream_{execution_id}"
-                orchestrator_step = WorkflowStep(
-                    step_id=step_id,
-                    step_type="agent_execution",
-                    agent_name="CommandAgent",
-                    status="pending",
-                    input_data={"query": execution_request.query, "streaming": True},
-                    step_metadata={"orchestrator": True, "streaming": True},
-                )
-                analytics_service.add_workflow_step(execution_id, orchestrator_step, db=db2)
-                analytics_service.add_execution_path(execution_id, "CommandAgent")
-                analytics_service.update_workflow_step(execution_id, step_id, status="running", db=db2)
-                analytics_service.update_execution(
-                    execution_id,
-                    current_step="Orchestrating workflow (streaming)",
-                    progress=0.3,
-                    db=db2,
-                )
-
-                chunk_count = 0
-                # Always use streaming execution for better UX
-                for chunk in command_agent.execute_stream(
-                    query=execution_request.query,
-                    chat_history=execution_request.chat_history or [],
-                    session_id=execution_request.session_id,
-                    user_id=execution_request.user_id,
-                    enable_analytics=True,
-                    execution_id=execution_id,
-                    dynamic_agent_store=dynamic_agent_store,
-                ):
-                    if chunk:
-                        chunk_count += 1
-                        if chunk_count % 5 == 0:
-                            analytics_service.update_execution(
-                                execution_id,
-                                current_step=f"Streaming ({chunk_count} chunks)",
-                                db=db2,
-                            )
-                        # Extract type and message from AgentStreamChunk to match single-agent format
-                        chunk_type = chunk.type if hasattr(chunk, "type") else "content"
-                        chunk_message = chunk.message if hasattr(chunk, "message") else str(chunk)
-
-                        yield f"data: {json.dumps({'type': chunk_type, 'data': chunk_message, 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
-                        await asyncio.sleep(0.01)
-
-            # Send completion status and finalize execution
-            analytics_service.update_execution(
-                execution_id,
-                status="completed",
-                current_step="Completed",
-                progress=1.0,
-                db=db2,
-            )
-            yield f"data: {json.dumps({'status': 'completed', 'workflow_id': str(workflow_id), 'execution_id': execution_id, 'timestamp': datetime.now().isoformat()})}\n\n"
-
-        except Exception as e:
-            # Persist error, mark step and execution failed
-            try:
-                # Best-effort: mark any known step_id as failed if present in local scope
-                if "step_id" in locals():
-                    analytics_service.update_workflow_step(
-                        execution_id,
-                        step_id,
-                        status="failed",
-                        error=str(e),
-                        db=db2,
-                    )
-                analytics_service.update_execution(
-                    execution_id,
-                    status="failed",
-                    error=str(e),
-                    current_step="Error during streaming",
-                    db=db2,
-                )
-            except Exception:
-                pass
-
-            # Send error as final chunk
-            error_chunk = {
-                "status": "error",
-                "error": str(e),
-                "workflow_id": str(workflow_id),
-                "execution_id": execution_id,
-                "timestamp": datetime.now().isoformat(),
-            }
-            yield f"data: {json.dumps(error_chunk)}\n\n"
-        finally:
-            try:
-                db2.close()
-            except Exception:
-                pass
-
-    return StreamingResponse(
-        stream_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
-
-
-@router.post("/{workflow_id}/execute/async", status_code=status.HTTP_202_ACCEPTED)
-async def execute_workflow_async(
-    workflow_id: uuid.UUID,
+    request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    # Support both JSON body (backward compatibility) and form data (with file uploads)
-    query: Optional[str] = Form(None),
-    chat_history: Optional[str] = Form(None),  # JSON string
-    runtime_overrides: Optional[str] = Form(None),  # JSON string
-    session_id: Optional[str] = Form(None),
-    user_id: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None),
-    # Also support JSON body for backward compatibility
-    execution_request: Optional[schemas.WorkflowExecutionRequest] = None,
 ):
     """
-    Execute a workflow asynchronously with detailed tracing.
-    Returns immediately with execution_id for status polling and tracing.
+    Execute a workflow with streaming response.
+
+    ✅ MIGRATED TO SDK - Uses SDK's WorkflowEngine with streaming support.
     """
-    from services.analytics_service import analytics_service, AsyncExecutionResponse
-    from datetime import datetime, timedelta
-    import logging
+    from workflow_core_sdk.execution.context_impl import ExecutionContext
+    from workflow_core_sdk.execution.streaming import stream_manager, create_sse_stream, get_sse_headers, create_status_event
 
-    logger = logging.getLogger(__name__)
-    logger.info(f"🚀 Starting async workflow execution for {workflow_id}")
-
-    try:
-        # Handle both form data (with file) and JSON body (backward compatibility)
-        if execution_request is None:
-            # Build execution request from form data
-            parsed_chat_history = None
-            if chat_history:
-                try:
-                    parsed_chat_history = json.loads(chat_history)
-                except json.JSONDecodeError:
-                    logger.warning(f"Invalid chat_history JSON: {chat_history}")
-
-            parsed_runtime_overrides = None
-            if runtime_overrides:
-                try:
-                    parsed_runtime_overrides = json.loads(runtime_overrides)
-                except json.JSONDecodeError:
-                    logger.warning(f"Invalid runtime_overrides JSON: {runtime_overrides}")
-
-            execution_request = schemas.WorkflowExecutionRequest(
-                query=query or "",
-                chat_history=parsed_chat_history,
-                runtime_overrides=parsed_runtime_overrides,
-                session_id=session_id,
-                user_id=user_id,
-            )
-
-        # Get workflow to check if it's hybrid with vectorizer steps
-        workflow = crud.get_workflow(db=db, workflow_id=workflow_id)
-        if not workflow:
-            raise HTTPException(status_code=404, detail="Workflow not found")
-
-        # Check if this is a hybrid workflow with vectorizer capabilities
-        is_hybrid = is_hybrid_workflow(workflow.configuration)
-        has_vectorizer_steps = False
-        file_processing_result = None
-
-        # Check for vectorizer steps in workflow configuration (for both hybrid and deterministic workflows)
-        steps = workflow.configuration.get("steps", [])
-        vectorizer_step_types = [
-            "file_reader",
-            "text_chunking",
-            "embedding_generation",
-            "vector_storage",
-        ]
-        has_vectorizer_steps = any(
-            step.get("step_type") in vectorizer_step_types
-            or step.get("config", {}).get("tokenizer_step") in vectorizer_step_types
-            for step in steps
+    # Check if execution engine is available
+    if not hasattr(request.app.state, "workflow_engine"):
+        raise HTTPException(
+            status_code=503, detail="Workflow execution engine not initialized. Please restart the application."
         )
 
-        logger.info(
-            f"Workflow analysis - Hybrid: {is_hybrid}, Has vectorizer: {has_vectorizer_steps}, File provided: {file is not None}"
-        )
+    workflow_engine = request.app.state.workflow_engine
 
-        # Process file if provided and workflow supports it
-        temp_file_path = None
-        if file and has_vectorizer_steps:
-            logger.info(f"🔄 Preparing uploaded file for workflow: {file.filename}")
+    # Get workflow from SDK
+    sdk_workflow = WorkflowsService.get_workflow_entity(db, str(workflow_id))
 
-            # Save uploaded file temporarily for workflow to process
-            import tempfile
-            import os
+    if not sdk_workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
-            try:
-                # Create temporary file
-                temp_dir = tempfile.mkdtemp()
-                temp_file_path = os.path.join(temp_dir, file.filename or "uploaded_file")
+    # Create execution context
+    execution_id = str(uuid.uuid4())
 
-                # Save uploaded file
-                content = await file.read()
-                with open(temp_file_path, "wb") as f:
-                    f.write(content)
+    # Build workflow config with workflow_id for execution context
+    workflow_config_for_execution = sdk_workflow.configuration.copy() if sdk_workflow.configuration else {}
+    workflow_config_for_execution["workflow_id"] = str(workflow_id)
+    workflow_config_for_execution["name"] = sdk_workflow.name
 
-                logger.info(f"📁 Saved file for workflow processing: {temp_file_path}")
+    # Enable streaming for all agent steps in the workflow
+    # AND fetch agent configuration from database if config is empty
+    if "steps" in workflow_config_for_execution:
+        for step in workflow_config_for_execution["steps"]:
+            if step.get("step_type") == "agent_execution":
+                if "config" not in step:
+                    step["config"] = {}
 
-                # Add file context to chat history
-                file_context = {
-                    "role": "system",
-                    "content": f"A file named '{file.filename}' has been uploaded and will be processed by the workflow.",
-                }
+                # Check if this is an agent reference (has agent_id but empty/minimal config)
+                agent_id = step.get("step_id")
+                step_config = step["config"]
 
-                if execution_request.chat_history is None:
-                    execution_request.chat_history = []
-                execution_request.chat_history.insert(0, file_context)
+                # If config is missing critical fields, fetch from database
+                if not step_config.get("system_prompt") or not step_config.get("model"):
+                    logger.info(f"Fetching agent configuration from database for agent: {agent_id}")
 
-                file_processing_result = {
-                    "status": "uploaded",
-                    "file_path": temp_file_path,
-                    "file_name": file.filename,
-                }
+                    try:
+                        # Fetch agent from database using SDK service
+                        from workflow_core_sdk import AgentsService, PromptsService
 
-            except Exception as file_error:
-                logger.error(f"❌ File upload failed: {file_error}")
-                file_processing_result = {"status": "error", "error": str(file_error)}
+                        sdk_agent = AgentsService.get_agent(db, agent_id)
+                        if sdk_agent:
+                            logger.info(f"Found agent in database: {sdk_agent.name}")
 
-        elif file and not has_vectorizer_steps:
-            logger.warning("🚨 File uploaded but workflow does not contain vectorizer steps - file will be ignored")
+                            # Fetch system prompt
+                            system_prompt = PromptsService.get_prompt(db, str(sdk_agent.system_prompt_id))
+                            if system_prompt:
+                                logger.info(f"Found system prompt: {system_prompt.prompt_label}")
 
-        elif not file and has_vectorizer_steps:
-            logger.info("ℹ️ Workflow has vectorizer capabilities but no file was uploaded")
+                                # Merge agent configuration into step config
+                                step_config["system_prompt"] = system_prompt.prompt
+                                step_config["model"] = system_prompt.ai_model_name or "gpt-4o-mini"
 
-        # Store file processing result in runtime overrides for the workflow
-        if file_processing_result:
-            if execution_request.runtime_overrides is None:
-                execution_request.runtime_overrides = {}
-            execution_request.runtime_overrides["file_processing_result"] = file_processing_result
+                                # Extract temperature from hyper_parameters
+                                if system_prompt.hyper_parameters and "temperature" in system_prompt.hyper_parameters:
+                                    try:
+                                        temp_value = system_prompt.hyper_parameters["temperature"]
+                                        step_config["temperature"] = (
+                                            float(temp_value) if isinstance(temp_value, (str, int, float)) else 0.7
+                                        )
+                                    except (ValueError, TypeError):
+                                        step_config["temperature"] = 0.7
+                                else:
+                                    step_config["temperature"] = 0.7
 
-        # If we have an uploaded file and vectorizer steps, modify workflow config directly
-        if temp_file_path and has_vectorizer_steps:
-            logger.info(f"🔧 Injecting uploaded file path into workflow step configurations")
+                                # Extract AS-specific fields from provider_config
+                                provider_config = sdk_agent.provider_config or {}
+                                step_config["response_type"] = provider_config.get("response_type", "json")
+                                step_config["routing_options"] = provider_config.get("routing_options", {})
+                                step_config["max_retries"] = provider_config.get("max_retries", 3)
 
-            # Directly modify the workflow configuration to use uploaded file
-            # This ensures the file_reader step gets the file_path in its config
-            modified_steps = []
-            for step in workflow.configuration.get("steps", []):
-                if step.get("step_type") == "file_reader":
-                    # Create a modified step with the uploaded file path
-                    modified_step = step.copy()
-                    if "config" not in modified_step:
-                        modified_step["config"] = {}
+                                # Fetch agent's tool bindings and convert to functions format
+                                tool_bindings = AgentsService.list_agent_tools(db, agent_id)
+                                functions = []
 
-                    modified_step["config"]["file_path"] = temp_file_path
-                    modified_step["config"]["file_name"] = file.filename or "uploaded_file"
-                    modified_steps.append(modified_step)
-                    logger.info(f"✅ Injected file path into file_reader step config: {temp_file_path}")
-                else:
-                    modified_steps.append(step)
+                                for binding in tool_bindings:
+                                    if binding.is_active:
+                                        # Fetch the actual tool to get its name and schema
+                                        from workflow_core_sdk.services.tools_service import ToolsService
+                                        from workflow_core_sdk.tools.registry import tool_registry
 
-            # Store the modified workflow configuration in runtime overrides
-            # so the workflow execution can use it instead of the original
-            if execution_request.runtime_overrides is None:
-                execution_request.runtime_overrides = {}
+                                        tool_name = None
+                                        tool_description = ""
+                                        tool_parameters = {}
 
-            modified_workflow_config = workflow.configuration.copy()
-            modified_workflow_config["steps"] = modified_steps
-            execution_request.runtime_overrides["modified_workflow_config"] = modified_workflow_config
+                                        # Try to get tool from database first
+                                        try:
+                                            db_tool = ToolsService.get_db_tool_by_id(db, str(binding.tool_id))
+                                            if db_tool:
+                                                tool_name = db_tool.name
+                                                tool_description = db_tool.description or ""
+                                                if db_tool.parameters_schema:
+                                                    tool_parameters = db_tool.parameters_schema
+                                        except Exception:
+                                            pass
 
-            # Also store cleanup info
-            execution_request.runtime_overrides["uploaded_file"] = {
-                "file_path": temp_file_path,
-                "file_name": file.filename or "uploaded_file",
-                "temp_cleanup_required": True,
+                                        # If not found in DB, try getting from unified registry
+                                        if not tool_name:
+                                            try:
+                                                unified_tools = tool_registry.get_unified_tools(db)
+                                                for unified_tool in unified_tools:
+                                                    if unified_tool.db_id and str(unified_tool.db_id) == str(binding.tool_id):
+                                                        tool_name = unified_tool.name
+                                                        tool_description = unified_tool.description or ""
+                                                        if unified_tool.parameters_schema:
+                                                            tool_parameters = unified_tool.parameters_schema
+                                                        break
+                                            except Exception:
+                                                pass
+
+                                        # Fallback to tool_id if we couldn't find the tool
+                                        if not tool_name:
+                                            tool_name = str(binding.tool_id)
+
+                                        # Convert tool binding to ChatCompletionToolParam format
+                                        functions.append(
+                                            {
+                                                "type": "function",
+                                                "function": {
+                                                    "name": tool_name,
+                                                    "description": tool_description,
+                                                    "parameters": binding.override_parameters or tool_parameters,
+                                                },
+                                            }
+                                        )
+
+                                # Merge with existing functions (e.g., agent tools from RequestAdapter)
+                                existing_functions = step_config.get("functions", [])
+                                if existing_functions:
+                                    # Add DB tools to existing functions (agent tools take precedence)
+                                    step_config["functions"] = existing_functions + functions
+                                else:
+                                    step_config["functions"] = functions
+                                logger.info(
+                                    f"Merged agent config: model={step_config['model']}, functions={len(step_config['functions'])}"
+                                )
+                            else:
+                                logger.warning(f"System prompt not found for agent {agent_id}")
+                        else:
+                            logger.warning(f"Agent not found in database: {agent_id}")
+
+                    except Exception as e:
+                        logger.error(f"Error fetching agent configuration: {e}", exc_info=True)
+                        # Continue execution - step will fail with proper error message
+
+                # ALWAYS disable interactive mode for workflow-based agent execution
+                # (agents should execute immediately, not wait for user input)
+                step["config"]["interactive"] = False
+
+                # Enable streaming for this agent step
+                step["config"]["stream"] = True
+                logger.info(f"Enabled streaming for agent step: {step.get('step_id')}")
+
+    # Build user context
+    from workflow_core_sdk.execution.context_impl import UserContext
+
+    user_context = UserContext(
+        user_id=execution_request.user_id,
+        session_id=execution_request.session_id,
+    )
+
+    # Create execution context
+    execution_context = ExecutionContext(
+        workflow_config=workflow_config_for_execution,
+        user_context=user_context,
+        execution_id=execution_id,
+        workflow_engine=workflow_engine,
+    )
+
+    # Pass query and chat_history to the execution context as trigger data
+    # This allows agent steps to access the initial user input
+    if execution_request.query:
+        trigger_data = {
+            "current_message": execution_request.query,
+            "messages": [{"role": "user", "content": execution_request.query}],
+        }
+
+        # Add chat history if provided
+        if execution_request.chat_history:
+            trigger_data["messages"] = execution_request.chat_history + [{"role": "user", "content": execution_request.query}]
+            trigger_data["chat_history"] = execution_request.chat_history
+
+        # Store trigger data in step_io_data for agent steps to access
+        execution_context.step_io_data["trigger"] = trigger_data
+        logger.info(f"Added trigger data with query: {execution_request.query[:50]}...")
+
+    # Create a queue for streaming
+    queue = asyncio.Queue(maxsize=1000)
+
+    async def event_generator():
+        try:
+            logger.info(f"Starting event generator for execution: {execution_id}")
+            # Add this connection to the stream manager
+            stream_manager.add_execution_stream(execution_id, queue)
+            logger.info(f"Added execution stream to manager")
+
+            # Start workflow execution in background
+            async def run_workflow():
+                try:
+                    logger.info(f"Starting workflow execution in background")
+                    await workflow_engine.execute_workflow(execution_context)
+                    logger.info(f"Workflow execution completed")
+                except Exception as e:
+                    logger.error(f"Workflow execution failed: {e}", exc_info=True)
+                    execution_context.fail_execution(str(e))
+
+            # Start execution as background task
+            asyncio.create_task(run_workflow())
+            logger.info(f"Background task created")
+
+            # Stream events from the queue, converting SDK format to Agent Studio format
+            from adapters.streaming_adapter import StreamingAdapter
+
+            # Get SDK stream
+            logger.info(f"Creating SDK event stream")
+            sdk_event_stream = create_sse_stream(queue, heartbeat_interval=30, max_events=5000)
+
+            # Convert SDK stream to Agent Studio format and yield
+            logger.info(f"Starting to adapt and yield events")
+            async for agent_studio_event in StreamingAdapter.adapt_stream(
+                sdk_event_stream, execution_id=execution_id, workflow_id=str(workflow_id)
+            ):
+                yield agent_studio_event
+
+        except asyncio.CancelledError:
+            logger.info("Event generator cancelled")
+            pass
+        except Exception as e:
+            logger.error(f"Event generator error: {e}", exc_info=True)
+            # Send error event in Agent Studio format
+            import json
+
+            error_chunk = {"type": "error", "message": f"Error: {str(e)}\n"}
+            yield f"data: {json.dumps(error_chunk)}\n\n"
+        finally:
+            # Clean up the connection
+            stream_manager.remove_execution_stream(execution_id, queue)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=get_sse_headers())
+
+
+# Deprecated endpoints (kept for backwards compatibility but return not implemented)
+
+
+@router.post("/{workflow_id}/agents")
+def add_agent_to_workflow(workflow_id: uuid.UUID):
+    """
+    DEPRECATED: Agent/connection model is deprecated in SDK.
+    Returns success to keep frontend working.
+    """
+    return {
+        "message": "Agent/connection model is deprecated. Use workflow configuration with steps instead.",
+        "workflow_id": str(workflow_id),
+    }
+
+
+@router.post("/{workflow_id}/connections")
+def add_connection_to_workflow(workflow_id: uuid.UUID):
+    """
+    DEPRECATED: Agent/connection model is deprecated in SDK.
+    Returns success to keep frontend working.
+    """
+    return {
+        "message": "Agent/connection model is deprecated. Use workflow configuration with steps instead.",
+        "workflow_id": str(workflow_id),
+    }
+
+
+@router.post("/{workflow_id}/deploy", response_model=schemas.WorkflowDeploymentResponse)
+def deploy_workflow(
+    workflow_id: uuid.UUID,
+    deployment: schemas.WorkflowDeploymentRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    STUB IMPLEMENTATION: Return a WorkflowDeployment-shaped object so the frontend
+    can proceed. No persistent deployment is created.
+    """
+    # Fetch the workflow and adapt to Agent Studio response for embedding
+    sdk_workflow = WorkflowsService.get_workflow_entity(db, str(workflow_id))
+    if not sdk_workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    as_workflow = ResponseAdapter.adapt_workflow_response(sdk_workflow, db)
+
+    now = datetime.now(timezone.utc)
+    deployment_id = uuid.uuid4()
+
+    # Build a stub deployment object matching the frontend's expected shape
+    payload: Dict[str, Any] = {
+        "workflow_id": str(workflow_id),
+        "environment": deployment.environment or "production",
+        "deployment_name": deployment.deployment_name,
+        "deployed_by": deployment.deployed_by,
+        "runtime_config": deployment.runtime_config,
+        "id": 0,
+        "deployment_id": str(deployment_id),
+        "status": "active",
+        "deployed_at": now,
+        "stopped_at": None,
+        "last_executed": None,
+        "execution_count": 0,
+        "error_count": 0,
+        "last_error": None,
+        # Embed the full workflow response; Pydantic will coerce down to WorkflowInDB
+        # in the response model as needed
+        "workflow": as_workflow,
+    }
+
+    # Track as deployed in this process (stubbed, non-persistent)
+    DEPLOYED_WORKFLOW_IDS.add(str(workflow_id))
+    return payload
+
+
+@router.get("/deployments/active", response_model=List[schemas.WorkflowDeploymentResponse])
+def list_active_deployments(db: Session = Depends(get_db)):
+    """
+    STUB IMPLEMENTATION: Return synthesized active deployments for workflows that
+    were "deployed" via the stub endpoint in this process lifetime.
+    Non-persistent; used only for UI convenience.
+    """
+    if not DEPLOYED_WORKFLOW_IDS:
+        return []
+
+    # Fetch workflows and synthesize deployment objects for those in the stub set
+    sdk_workflows = WorkflowsService.list_workflows_entities(db, offset=0, limit=1000)
+    deployments: list[Dict[str, Any]] = []
+
+    for wf in sdk_workflows:
+        as_workflow = ResponseAdapter.adapt_workflow_response(wf, db)
+        wf_id = as_workflow.get("workflow_id")
+        if not wf_id or wf_id not in DEPLOYED_WORKFLOW_IDS:
+            continue
+
+        # Deterministic deployment_id for stability across calls (per process)
+        dep_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, f"deploy-{wf_id}")
+        deployed_at = as_workflow.get("deployed_at") or datetime.now(timezone.utc)
+
+        deployments.append(
+            {
+                "workflow_id": wf_id,
+                "environment": "production",
+                "deployment_name": f"default-{wf_id[:8]}",
+                "deployed_by": None,
+                "runtime_config": None,
+                "id": 0,
+                "deployment_id": str(dep_uuid),
+                "status": "active",
+                "deployed_at": deployed_at,
+                "stopped_at": None,
+                "last_executed": None,
+                "execution_count": 0,
+                "error_count": 0,
+                "last_error": None,
+                "workflow": as_workflow,
             }
-
-            logger.info(f"✅ Modified workflow configuration to use uploaded file")
-        # Create execution record
-        logger.info("📝 Creating execution record...")
-        execution_id = analytics_service.create_execution(
-            execution_type="workflow",
-            workflow_id=str(workflow_id),
-            session_id=execution_request.session_id,
-            user_id=execution_request.user_id,
-            query=execution_request.query,
-            estimated_duration=30,  # Rough estimate for workflows (longer than agents)
         )
-        logger.info(f"✅ Created execution record: {execution_id}")
 
-        # Queue the background task
-        logger.info("🔄 Queuing background task...")
-        background_tasks.add_task(
-            execute_workflow_background,
-            execution_id=execution_id,
-            workflow_id=workflow_id,
-            execution_request=execution_request,
-        )
-        logger.info("✅ Background task queued successfully")
+    return deployments
 
-        logger.info(f"🎯 Creating response object for execution {execution_id}")
-        response_obj = AsyncExecutionResponse(
-            execution_id=execution_id,
-            status="accepted",
-            type="workflow",
-            estimated_completion_time=datetime.now() + timedelta(seconds=30),
-            status_url=f"/api/executions/{execution_id}/status",
-            timestamp=datetime.now(),
-        )
-        logger.info(f"✅ Response object created: {response_obj}")
-        logger.info("🚀 About to return response...")
-        return response_obj
-    except Exception as e:
-        logger.error(f"❌ Error in async workflow execution: {e}")
-        raise
+
+@router.post("/deployments/{deployment_name}/stop")
+def stop_workflow_deployment(deployment_name: str):
+    """
+    DEPRECATED: Deployment model is deprecated in SDK.
+    Returns success to keep frontend working.
+    """
+    # Return success instead of error to keep frontend working
+    return {"message": "Deployment model is deprecated. No action taken.", "deployment_name": deployment_name}

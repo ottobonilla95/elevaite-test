@@ -17,7 +17,7 @@ from db.database import Base, engine, get_db
 from api import (
     prompt_router,
     agent_router,
-    demo_router,
+    # demo_router,
     analytics_router,
     tools_router,
     file_router,
@@ -25,7 +25,10 @@ from api import (
 from api.workflow_endpoints import router as workflow_router
 from api.execution_endpoints import router as execution_router
 from api.pipeline_endpoints import router as pipeline_router
-from db import crud
+from api.step_endpoints import router as step_router
+
+# Use SDK services instead of old crud module
+from workflow_core_sdk.services.tools_service import ToolsService
 
 # Temporarily comment out workflow service to test
 # from services.workflow_service import workflow_service
@@ -117,21 +120,43 @@ async def lifespan(app_instance: fastapi.FastAPI):  # noqa: ARG001
     Base.metadata.create_all(bind=engine)
     # Note: Database initialization moved to /admin/initialize endpoint
 
-    # Initialize tool registry
-    from services.tool_registry import tool_registry
+    # Sync local tools to database so they get IDs
+    from workflow_core_sdk.tools.registry import tool_registry
 
     try:
-        # Get a database session for initialization
+        # Get a database session for syncing
         db_gen = get_db()
         db = next(db_gen)
         try:
-            tool_registry.initialize(db)
-            logging.info("Tool registry initialized successfully")
+            sync_result = tool_registry.sync_local_to_db(db)
+            logging.info(f"✅ Synced local tools to database: {sync_result}")
         finally:
             db.close()
     except Exception as e:
-        logging.error(f"Failed to initialize tool registry: {e}")
-        raise
+        logging.error(f"Failed to sync local tools to database: {e}")
+        # Continue startup even if sync fails
+
+    # Note: Old agent-studio tool_registry removed - using SDK's tool_registry instead
+    # The SDK tool_registry is used by tool_endpoints.py and agent_endpoints.py
+
+    # Initialize workflow execution engine
+    from workflow_core_sdk.execution.registry_impl import StepRegistry
+    from workflow_core_sdk.execution.engine_impl import WorkflowEngine
+
+    try:
+        step_registry = StepRegistry()
+        await step_registry.register_builtin_steps()
+        workflow_engine = WorkflowEngine(step_registry)
+
+        # Store in app state for use by endpoints
+        app_instance.state.step_registry = step_registry
+        app_instance.state.workflow_engine = workflow_engine
+
+        logging.info("✅ Workflow execution engine initialized successfully")
+    except Exception as e:
+        logging.error(f"Failed to initialize workflow execution engine: {e}")
+        # Don't raise - allow app to start even if execution engine fails
+        # Execution endpoints will return 503 if engine is not available
 
     # Agent execution step is now registered automatically in workflow_execution_context initialization
     # Start background tasks (MCP health monitoring, etc.)
@@ -187,13 +212,14 @@ app.add_middleware(
 
 app.include_router(prompt_router)
 app.include_router(agent_router)
-app.include_router(demo_router)
+# app.include_router(demo_router)  # Commented out - not imported
 app.include_router(analytics_router)
 app.include_router(workflow_router)
 app.include_router(execution_router)
 app.include_router(tools_router)
 app.include_router(file_router)
 app.include_router(pipeline_router)
+app.include_router(step_router)
 
 
 @app.get("/")
@@ -220,16 +246,12 @@ def get_deployment_codes(db: Session = fastapi.Depends(get_db)):
     """
     Get a mapping of deployment codes to agent names.
     This endpoint is used by the frontend to display available agents.
+
+    STUBBED: Old deployment_code field doesn't exist in SDK schema.
     """
-    available_agents = crud.get_available_agents_for_deployment(db)
-
-    code_map = {}
-    for agent in available_agents:
-        deployment_code = getattr(agent, "deployment_code", None)
-        if deployment_code is not None and str(deployment_code).strip() != "":
-            code_map[str(deployment_code)] = str(agent.name)
-
-    return code_map
+    # TODO: Implement using SDK's AgentsService if deployment codes are needed
+    # For now, return empty dict to keep frontend working
+    return {}
 
 
 @app.post("/admin/initialize")
@@ -266,8 +288,9 @@ async def initialize_system(db: Session = Depends(get_db)):
             categories = init_tool_categories(db)
             init_tools(db, categories)
 
-            total_categories = crud.get_tool_categories(db)
-            total_tools = crud.get_tools(db)
+            # Use SDK services instead of old crud
+            total_categories = ToolsService.list_categories(db)
+            total_tools = ToolsService.list_db_tools(db)
             tools_message = f"Initialized {len(total_categories)} categories and {len(total_tools)} tools"
 
             results["tools"] = {
@@ -290,9 +313,7 @@ async def initialize_system(db: Session = Depends(get_db)):
         print("🤖 Step 3: Initializing agents...")
         if prompts_success:
             try:
-                agents_success, agents_message, agents_details = (
-                    service.initialize_agents()
-                )
+                agents_success, agents_message, agents_details = service.initialize_agents()
                 results["agents"] = {
                     "success": agents_success,
                     "message": agents_message,
@@ -315,9 +336,7 @@ async def initialize_system(db: Session = Depends(get_db)):
                 print(f"❌ Agents: {agents_error}")
                 overall_success = False
         else:
-            skip_message = (
-                "Skipped agent initialization due to prompt initialization failure"
-            )
+            skip_message = "Skipped agent initialization due to prompt initialization failure"
             results["agents"] = {
                 "success": False,
                 "message": skip_message,

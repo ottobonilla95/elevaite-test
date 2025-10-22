@@ -220,7 +220,7 @@ async def dbos_execute_workflow_durable(
                     try:
                         from ..db.service import DatabaseService
                         from ..db.database import get_db_session
-                        from ..db.models.executions import ExecutionStatus as DBExecStatus
+                        from ..db.models import ExecutionStatus as DBExecStatus
 
                         _dbs = DatabaseService()
                         _sess0 = get_db_session()

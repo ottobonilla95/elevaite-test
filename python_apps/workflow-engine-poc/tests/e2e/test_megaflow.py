@@ -32,6 +32,9 @@ def _http(
     files: Any | None = None,
     data: Any | None = None,
 ) -> httpx.Response:
+    # Add /api prefix if not already present
+    if not path.startswith("/api/"):
+        path = "/api" + path
     url = BASE_URL + path
     with httpx.Client(timeout=30.0) as client:
         return client.request(method, url, json=json_body, files=files, data=data)

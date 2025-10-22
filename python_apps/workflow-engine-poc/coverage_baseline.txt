@@ -1,0 +1,14 @@
+✅ Connected to PostgreSQL: postgresql://elevaite:elevaite@localhost:5433/agent_studio
+✅ Connected to PostgreSQL: postgresql://elevaite:elevaite@localhost:5433/workflow_engine
+✅ ElevAIte Logger configured successfully
+Overriding of current TracerProvider is not allowed
+Overriding of current TracerProvider is not allowed
+Attempting to instrument while already instrumented
+DBOS pre-init skipped: DBOS Error 3: Error initializing DBOS Transact: Username must be specified in the connection URL
+Overriding of current TracerProvider is not allowed
+INFO:workflow_engine_poc.main:✅ DBOS initialized for sqlite:///:memory: (app=workflow-engine-poc)
+ERROR: usage: pytest [options] [file_or_dir] [file_or_dir] [...]
+pytest: error: unrecognized arguments: --cov=workflow_engine_poc --cov-report=term --cov-report=html
+  inifile: /home/john/work/elevaite/python_apps/workflow-engine-poc/pytest.ini
+  rootdir: /home/john/work/elevaite/python_apps/workflow-engine-poc
+

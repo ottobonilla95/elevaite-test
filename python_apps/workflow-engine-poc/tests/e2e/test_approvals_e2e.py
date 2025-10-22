@@ -29,6 +29,9 @@ POLL_INTERVAL = float(os.environ.get("SMOKE_POLL_INTERVAL", "2"))
 
 
 def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
+    # Add /api prefix if not already present
+    if not path.startswith("/api/"):
+        path = "/api" + path
     url = BASE_URL + path
     with httpx.Client(timeout=TIMEOUT) as client:
         return client.request(method, url, json=json_body)

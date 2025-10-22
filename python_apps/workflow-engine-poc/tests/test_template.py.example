@@ -1,0 +1,343 @@
+"""
+Test Template - Copy this file to create new tests
+
+This template provides examples of common test patterns.
+Copy this file and rename it to test_<feature>.py
+"""
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlmodel import Session
+
+
+# ============================================================================
+# Unit Tests - Fast, isolated, no external dependencies
+# ============================================================================
+
+@pytest.mark.unit
+def test_simple_function():
+    """
+    Test a simple function with no dependencies.
+    
+    Unit tests should:
+    - Run in milliseconds
+    - Not require database, Redis, or external services
+    - Test a single unit of functionality
+    """
+    # Arrange
+    input_value = 5
+    expected_output = 10
+    
+    # Act
+    result = input_value * 2
+    
+    # Assert
+    assert result == expected_output
+
+
+@pytest.mark.unit
+def test_with_mock():
+    """Test using a mock to isolate dependencies."""
+    from unittest.mock import Mock
+    
+    # Arrange
+    mock_service = Mock()
+    mock_service.get_data.return_value = {"key": "value"}
+    
+    # Act
+    result = mock_service.get_data()
+    
+    # Assert
+    assert result["key"] == "value"
+    mock_service.get_data.assert_called_once()
+
+
+# ============================================================================
+# Integration Tests - Database, Redis, or other services
+# ============================================================================
+
+@pytest.mark.integration
+def test_database_operation(session: Session):
+    """
+    Test database operations using the session fixture.
+    
+    Integration tests should:
+    - Use real database (in-memory SQLite for tests)
+    - Test interactions between components
+    - Clean up after themselves (automatic with fixtures)
+    """
+    # Arrange
+    from workflow_engine_poc.db.models import Workflow
+    
+    workflow = Workflow(
+        workflow_id="test-001",
+        name="Test Workflow",
+        description="A test workflow",
+        execution_pattern="sequential",
+        steps=[],
+    )
+    
+    # Act
+    session.add(workflow)
+    session.commit()
+    session.refresh(workflow)
+    
+    # Assert
+    assert workflow.id is not None
+    assert workflow.name == "Test Workflow"
+
+
+@pytest.mark.integration
+def test_api_endpoint(test_client: TestClient):
+    """
+    Test API endpoint using the test_client fixture.
+    
+    API tests should:
+    - Test HTTP status codes
+    - Validate response structure
+    - Test error cases
+    """
+    # Act
+    response = test_client.get("/health")
+    
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert "status" in data
+    assert data["status"] == "healthy"
+
+
+@pytest.mark.integration
+def test_create_resource(test_client: TestClient, sample_workflow_data):
+    """Test creating a resource via API."""
+    # Act
+    response = test_client.post("/workflows/", json=sample_workflow_data)
+    
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == sample_workflow_data["name"]
+    assert "workflow_id" in data
+
+
+# ============================================================================
+# Error Handling Tests
+# ============================================================================
+
+@pytest.mark.integration
+def test_invalid_input(test_client: TestClient):
+    """Test API returns proper error for invalid input."""
+    # Arrange
+    invalid_data = {"name": ""}  # Missing required fields
+    
+    # Act
+    response = test_client.post("/workflows/", json=invalid_data)
+    
+    # Assert
+    assert response.status_code == 422  # Validation error
+
+
+@pytest.mark.integration
+def test_resource_not_found(test_client: TestClient):
+    """Test API returns 404 for non-existent resource."""
+    # Act
+    response = test_client.get("/workflows/non-existent-id")
+    
+    # Assert
+    assert response.status_code == 404
+
+
+@pytest.mark.unit
+def test_exception_handling():
+    """Test that exceptions are properly handled."""
+    # Arrange
+    def risky_function():
+        raise ValueError("Something went wrong")
+    
+    # Act & Assert
+    with pytest.raises(ValueError, match="Something went wrong"):
+        risky_function()
+
+
+# ============================================================================
+# Async Tests
+# ============================================================================
+
+@pytest.mark.asyncio
+@pytest.mark.unit
+async def test_async_function():
+    """Test an async function."""
+    # Arrange
+    async def async_add(a, b):
+        return a + b
+    
+    # Act
+    result = await async_add(2, 3)
+    
+    # Assert
+    assert result == 5
+
+
+# ============================================================================
+# Parametrized Tests - Test multiple inputs
+# ============================================================================
+
+@pytest.mark.unit
+@pytest.mark.parametrize("input_value,expected", [
+    (1, 2),
+    (5, 10),
+    (10, 20),
+    (0, 0),
+])
+def test_multiply_by_two(input_value, expected):
+    """Test multiply by two with multiple inputs."""
+    result = input_value * 2
+    assert result == expected
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("status_code,expected_status", [
+    (200, "success"),
+    (404, "not_found"),
+    (500, "error"),
+])
+def test_status_mapping(status_code, expected_status):
+    """Test status code mapping."""
+    # Your mapping logic here
+    pass
+
+
+# ============================================================================
+# Fixture Usage Examples
+# ============================================================================
+
+@pytest.mark.integration
+def test_with_sample_data(sample_workflow_data):
+    """Test using sample data fixture."""
+    assert sample_workflow_data["name"] == "Test Workflow"
+    assert len(sample_workflow_data["steps"]) == 2
+
+
+@pytest.mark.integration
+def test_with_mock_openai(mock_openai_client):
+    """Test with mocked OpenAI client."""
+    # OpenAI calls are automatically mocked
+    # No real API calls will be made
+    pass
+
+
+@pytest.mark.integration
+def test_with_clean_database(clean_database):
+    """Test with a clean database."""
+    # Database is clean before and after this test
+    pass
+
+
+# ============================================================================
+# E2E Tests - Require running server
+# ============================================================================
+
+@pytest.mark.e2e
+def test_full_workflow_execution():
+    """
+    Test complete workflow execution end-to-end.
+    
+    E2E tests should:
+    - Test complete user flows
+    - Use real server (not TestClient)
+    - Test integration of all components
+    
+    Note: Requires server running at http://127.0.0.1:8006
+    """
+    import httpx
+    
+    # Arrange
+    base_url = "http://127.0.0.1:8006"
+    workflow_data = {
+        "workflow_id": "e2e-test-001",
+        "name": "E2E Test Workflow",
+        "execution_pattern": "sequential",
+        "steps": [],
+    }
+    
+    # Act - Create workflow
+    with httpx.Client(base_url=base_url) as client:
+        response = client.post("/workflows/", json=workflow_data)
+        assert response.status_code == 200
+        
+        workflow_id = response.json()["workflow_id"]
+        
+        # Act - Execute workflow
+        exec_response = client.post(
+            f"/workflows/{workflow_id}/execute",
+            json={"trigger": {"type": "manual"}},
+        )
+        assert exec_response.status_code == 200
+
+
+# ============================================================================
+# Slow Tests - May take >5 seconds
+# ============================================================================
+
+@pytest.mark.slow
+@pytest.mark.integration
+def test_long_running_operation():
+    """
+    Test operation that takes significant time.
+    
+    Mark as 'slow' so it can be skipped in quick test runs.
+    """
+    import time
+    
+    # Simulate long operation
+    time.sleep(2)
+    
+    assert True
+
+
+# ============================================================================
+# Skip/XFail Examples
+# ============================================================================
+
+@pytest.mark.skip(reason="Feature not implemented yet")
+def test_future_feature():
+    """Test for a feature that doesn't exist yet."""
+    pass
+
+
+@pytest.mark.skipif(
+    not pytest.config.getoption("--run-slow"),
+    reason="Only run with --run-slow flag"
+)
+def test_conditional_skip():
+    """Test that only runs with specific flag."""
+    pass
+
+
+@pytest.mark.xfail(reason="Known bug - fix in progress")
+def test_known_bug():
+    """Test that is expected to fail."""
+    assert False  # This won't fail the test suite
+
+
+# ============================================================================
+# Custom Fixtures Example
+# ============================================================================
+
+@pytest.fixture
+def custom_test_data():
+    """Create custom test data for specific tests."""
+    data = {
+        "key": "value",
+        "items": [1, 2, 3],
+    }
+    yield data
+    # Cleanup code here (if needed)
+
+
+@pytest.mark.unit
+def test_with_custom_fixture(custom_test_data):
+    """Test using custom fixture."""
+    assert custom_test_data["key"] == "value"
+    assert len(custom_test_data["items"]) == 3
+

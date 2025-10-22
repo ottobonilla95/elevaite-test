@@ -47,9 +47,7 @@ async def test_monitoring_system():
     print(f"\n🚨 Testing Error Recording:")
 
     monitoring.record_error("test_component", "test_error", "This is a test error")
-    monitoring.record_error(
-        "workflow_engine", "validation_error", "Invalid configuration"
-    )
+    monitoring.record_error("workflow_engine", "validation_error", "Invalid configuration")
 
     print(f"   Recorded errors in metrics")
 
@@ -113,20 +111,14 @@ async def test_workflow_tracing():
     final_metric_count = len(monitoring.metrics_data)
 
     print(f"\n📋 After execution:")
-    print(
-        f"   Traces: {final_trace_count} (+{final_trace_count - initial_trace_count})"
-    )
-    print(
-        f"   Metrics: {final_metric_count} (+{final_metric_count - initial_metric_count})"
-    )
+    print(f"   Traces: {final_trace_count} (+{final_trace_count - initial_trace_count})")
+    print(f"   Metrics: {final_metric_count} (+{final_metric_count - initial_metric_count})")
 
     # Analyze traces
     if monitoring.traces:
         print(f"\n🔍 Trace Analysis:")
         for trace in monitoring.traces[-3:]:  # Show last 3 traces
-            print(
-                f"   {trace.operation_name}: {trace.duration_ms:.2f}ms ({trace.status})"
-            )
+            print(f"   {trace.operation_name}: {trace.duration_ms:.2f}ms ({trace.status})")
             if trace.tags:
                 print(f"     Tags: {trace.tags}")
 
@@ -175,7 +167,7 @@ async def test_step_tracing():
     print(f"📋 Testing {len(step_tests)} step types:")
 
     for i, test in enumerate(step_tests):
-        print(f"\n   Step {i+1}: {test['step_type']}")
+        print(f"\n   Step {i + 1}: {test['step_type']}")
 
         initial_traces = len(monitoring.traces)
 
@@ -208,7 +200,7 @@ async def test_monitoring_api_endpoints():
     # Initialize app state
     from workflow_engine_poc.step_registry import StepRegistry
     from workflow_engine_poc.workflow_engine import WorkflowEngine
-    from workflow_engine_poc.database import get_database
+    from workflow_engine_poc.db.database import get_database
 
     database = await get_database()
     step_registry = StepRegistry()

@@ -29,6 +29,9 @@ TIMEOUT = 30.0
 
 def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
     """Make HTTP request to the API"""
+    # Add /api prefix if not already present
+    if not path.startswith("/api/"):
+        path = "/api" + path
     url = BASE_URL + path
     with httpx.Client(timeout=TIMEOUT) as client:
         return client.request(method, url, json=json_body)

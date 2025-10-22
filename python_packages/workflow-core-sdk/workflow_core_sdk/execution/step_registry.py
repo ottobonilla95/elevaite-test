@@ -1,3 +1,9 @@
+"""
+Step Registry - Protocol and Implementation
+
+Exports both the protocol interface and the concrete implementation.
+"""
+
 from typing import Any, Dict, Protocol, runtime_checkable
 
 
@@ -22,3 +28,9 @@ class StepRegistryProtocol(Protocol):
 
     async def register_builtin_steps(self) -> None:  # pragma: no cover - interface
         ...
+
+
+# Import and re-export the concrete implementation
+from .step_registry_impl import StepRegistry, StepExecutionError
+
+__all__ = ["StepRegistryProtocol", "StepRegistry", "StepExecutionError"]

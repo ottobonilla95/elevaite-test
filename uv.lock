@@ -21,6 +21,7 @@ members = [
     "ingestion-demo",
     "llm-gateway",
     "rbac-lib",
+    "rbac-sdk",
     "salesforce-csm-api",
     "servicenow-connector",
     "worker",
@@ -107,6 +108,7 @@ dependencies = [
     { name = "simple-salesforce" },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
+    { name = "workflow-core-sdk" },
 ]
 
 [package.optional-dependencies]
@@ -151,6 +153,7 @@ requires-dist = [
     { name = "simple-salesforce", specifier = ">=1.12.6" },
     { name = "sqlalchemy", specifier = ">=2.0.30" },
     { name = "uvicorn", specifier = ">=0.34.2" },
+    { name = "workflow-core-sdk", editable = "python_packages/workflow-core-sdk" },
 ]
 provides-extras = ["dev"]
 
@@ -908,36 +911,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/52/39/069100b84d7418bc3
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/e8/64c37fadfc2816a7701fa8a6ed8d87327c7d54eacfbfb6edab14a2f2be75/cloudpickle-3.1.1-py3-none-any.whl", hash = "sha256:c8c5a44295039331ee9dad40ba100a9c7297b6f988e50e87ccdf3765a668350e", size = 20992, upload-time = "2025-01-14T17:02:02.417Z" },
 ]
-
-[[package]]
-name = "cohere"
-version = "5.18.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "fastavro" },
-    { name = "httpx" },
-    { name = "httpx-sse" },
-    { name = "pydantic" },
-    { name = "pydantic-core" },
-    { name = "requests" },
-    { name = "tokenizers" },
-    { name = "types-requests" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0d/f5/4682a965449826044c853c82796805f8d3e9214471e2f120db3063116584/cohere-5.18.0.tar.gz", hash = "sha256:93a7753458a45cd30c796300182d22bb1889eadc510727e1de3d8342cb2bc0bf", size = 164340, upload-time = "2025-09-12T14:17:16.776Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/23/9b/3dc80542e60c711d57777b836a64345dda28f826c14fd64d9123278fcbfe/cohere-5.18.0-py3-none-any.whl", hash = "sha256:885e7be360206418db39425faa60dbcd7f38e39e7f84b824ee68442e6a436e93", size = 295384, upload-time = "2025-09-12T14:17:15.421Z" },
-]
-
-[[package]]
-name = "colbert"
-version = "0.40"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "icalendar" },
-    { name = "pytz" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/13/bc/31b4500d5af3e897d90be7fef3e2249b2acf23e77f1b178a443810cf6a4c/Colbert-0.40.tar.gz", hash = "sha256:4bccdb254c6bb06373fae65273e9741d252e4921755d5fa2c7a0e79783779759", size = 78536, upload-time = "2024-03-27T08:39:52.866Z" }
 
 [[package]]
 name = "colorama"
@@ -1840,20 +1813,6 @@ wheels = [
 ]
 
 [[package]]
-name = "fastavro"
-version = "1.12.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cc/ec/762dcf213e5b97ea1733b27d5a2798599a1fa51565b70a93690246029f84/fastavro-1.12.0.tar.gz", hash = "sha256:a67a87be149825d74006b57e52be068dfa24f3bfc6382543ec92cd72327fe152", size = 1025604, upload-time = "2025-07-31T15:16:42.933Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/51/6bd93f2c9f3bb98f84ee0ddb436eb46a308ec53e884d606b70ca9d6b132d/fastavro-1.12.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:56f78d1d527bea4833945c3a8c716969ebd133c5762e2e34f64c795bd5a10b3e", size = 962215, upload-time = "2025-07-31T15:16:58.173Z" },
-    { url = "https://files.pythonhosted.org/packages/32/37/3e2e429cefe03d1fa98cc4c4edae1d133dc895db64dabe84c17b4dc0921c/fastavro-1.12.0-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a7ce0d117642bb4265ef6e1619ec2d93e942a98f60636e3c0fbf1eb438c49026", size = 3412716, upload-time = "2025-07-31T15:17:00.301Z" },
-    { url = "https://files.pythonhosted.org/packages/33/28/eb37d9738ea3649bdcab1b6d4fd0facf9c36261623ea368554734d5d6821/fastavro-1.12.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:52e9d9648aad4cca5751bcbe2d3f98e85afb0ec6c6565707f4e2f647ba83ba85", size = 3439283, upload-time = "2025-07-31T15:17:02.505Z" },
-    { url = "https://files.pythonhosted.org/packages/57/6f/7aba4efbf73fd80ca20aa1db560936c222dd1b4e5cadbf9304361b9065e3/fastavro-1.12.0-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:6183875381ec1cf85a1891bf46696fd1ec2ad732980e7bccc1e52e9904e7664d", size = 3354728, upload-time = "2025-07-31T15:17:04.705Z" },
-    { url = "https://files.pythonhosted.org/packages/bf/2d/b0d8539f4622ebf5355b7898ac7930b1ff638de85b6c3acdd0718e05d09e/fastavro-1.12.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:5ad00a2b94d3c8bf9239acf92d56e3e457e1d188687a8d80f31e858ccf91a6d6", size = 3442598, upload-time = "2025-07-31T15:17:06.986Z" },
-    { url = "https://files.pythonhosted.org/packages/fe/33/882154b17e0fd468f1a5ae8cc903805531e1fcb699140315366c5f8ec20d/fastavro-1.12.0-cp311-cp311-win_amd64.whl", hash = "sha256:6c4d1c276ff1410f3830648bb43312894ad65709ca0cb54361e28954387a46ac", size = 451836, upload-time = "2025-07-31T15:17:08.219Z" },
-]
-
-[[package]]
 name = "fastjsonschema"
 version = "2.21.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2539,19 +2498,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/02/e7/94f8232d4a74cc99514c13a9f995811485a6903d48e5d952771ef6322e30/hyperframe-6.1.0.tar.gz", hash = "sha256:f630908a00854a7adeabd6382b43923a4c4cd4b821fcb527e6ab9e15382a3b08", size = 26566, upload-time = "2025-01-22T21:41:49.302Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/48/30/47d0bf6072f7252e6521f3447ccfa40b421b6824517f82854703d0f5a98b/hyperframe-6.1.0-py3-none-any.whl", hash = "sha256:b03380493a519fce58ea5af42e4a42317bf9bd425596f7a0835ffce80f1a42e5", size = 13007, upload-time = "2025-01-22T21:41:47.295Z" },
-]
-
-[[package]]
-name = "icalendar"
-version = "6.3.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "python-dateutil" },
-    { name = "tzdata" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/08/13/e5899c916dcf1343ea65823eb7278d3e1a1d679f383f6409380594b5f322/icalendar-6.3.1.tar.gz", hash = "sha256:a697ce7b678072941e519f2745704fc29d78ef92a2dc53d9108ba6a04aeba466", size = 177169, upload-time = "2025-05-20T07:42:50.683Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/25/b5fc00e85d2dfaf5c806ac8b5f1de072fa11630c5b15b4ae5bbc228abd51/icalendar-6.3.1-py3-none-any.whl", hash = "sha256:7ea1d1b212df685353f74cdc6ec9646bf42fa557d1746ea645ce8779fdfbecdd", size = 242349, upload-time = "2025-05-20T07:42:48.589Z" },
 ]
 
 [[package]]
@@ -5422,6 +5368,21 @@ requires-dist = [
 ]
 
 [[package]]
+name = "rbac-sdk"
+version = "0.1.0"
+source = { editable = "python_packages/rbac-sdk" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.25.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+]
+
+[[package]]
 name = "redis"
 version = "5.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -6441,18 +6402,6 @@ wheels = [
 ]
 
 [[package]]
-name = "types-requests"
-version = "2.32.4.20250913"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "urllib3" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/36/27/489922f4505975b11de2b5ad07b4fe1dca0bca9be81a703f26c5f3acfce5/types_requests-2.32.4.20250913.tar.gz", hash = "sha256:abd6d4f9ce3a9383f269775a9835a4c24e5cd6b9f647d64f88aa4613c33def5d", size = 23113, upload-time = "2025-09-13T02:40:02.309Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2a/20/9a227ea57c1285986c4cf78400d0a91615d25b24e257fd9e2969606bdfae/types_requests-2.32.4.20250913-py3-none-any.whl", hash = "sha256:78c9c1fffebbe0fa487a418e0fa5252017e9c60d1a2da394077f1780f655d7e1", size = 20658, upload-time = "2025-09-13T02:40:01.115Z" },
-]
-
-[[package]]
 name = "typing-extensions"
 version = "4.13.2"
 source = { registry = "https://pypi.org/simple" }
@@ -6788,17 +6737,54 @@ name = "workflow-core-sdk"
 version = "0.1.0"
 source = { editable = "python_packages/workflow-core-sdk" }
 dependencies = [
-    { name = "cohere" },
-    { name = "colbert" },
+    { name = "aiohttp" },
+    { name = "asyncpg" },
+    { name = "croniter" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "openai" },
+    { name = "pydantic" },
+    { name = "python-multipart" },
+    { name = "requests" },
+    { name = "sqlalchemy" },
+    { name = "sqlmodel" },
     { name = "typing-extensions" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+workspace = [
+    { name = "db-core" },
+    { name = "elevaite-ingestion" },
+    { name = "elevaite-logger" },
+    { name = "llm-gateway" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "cohere", specifier = ">=5.18.0" },
-    { name = "colbert", specifier = ">=0.40" },
+    { name = "aiohttp", specifier = ">=3.9.1" },
+    { name = "asyncpg", specifier = ">=0.29.0" },
+    { name = "croniter", specifier = ">=3.0.4" },
+    { name = "db-core", marker = "extra == 'workspace'", editable = "python_packages/db-core" },
+    { name = "elevaite-ingestion", marker = "extra == 'workspace'", editable = "python_packages/elevaite_ingestion" },
+    { name = "elevaite-logger", marker = "extra == 'workspace'", editable = "python_packages/fastapi-logger" },
+    { name = "fastapi", specifier = ">=0.104.1" },
+    { name = "httpx", specifier = ">=0.25.0" },
+    { name = "llm-gateway", marker = "extra == 'workspace'", editable = "python_packages/llm-gateway" },
+    { name = "openai", specifier = ">=1.0.0" },
+    { name = "pydantic", specifier = ">=2.5.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
+    { name = "python-multipart", specifier = ">=0.0.6" },
+    { name = "requests", specifier = ">=2.31.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.0" },
+    { name = "sqlmodel", specifier = ">=0.0.24" },
     { name = "typing-extensions", specifier = ">=4.9.0" },
 ]
+provides-extras = ["workspace", "dev"]
 
 [[package]]
 name = "workflow-engine-poc"
@@ -6835,6 +6821,7 @@ dev = [
     { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
 ]
 
 [package.dev-dependencies]
@@ -6842,6 +6829,7 @@ dev = [
     { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
 ]
 
 [package.metadata]
@@ -6867,6 +6855,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
     { name = "pytest-asyncio", specifier = ">=0.26.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },
     { name = "sqlalchemy", specifier = ">=2.0.0" },
     { name = "sqlmodel", specifier = ">=0.0.24" },
@@ -6880,6 +6869,7 @@ dev = [
     { name = "httpx", specifier = ">=0.25.2" },
     { name = "pytest", specifier = ">=7.4.3" },
     { name = "pytest-asyncio", specifier = ">=0.21.1" },
+    { name = "pytest-cov", specifier = ">=4.1.0" },
 ]
 
 [[package]]

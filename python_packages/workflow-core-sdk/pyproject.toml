@@ -11,10 +11,36 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Elevaite" }]
 maintainers = [{ name = "Elevaite" }]
-dependencies = ["cohere>=5.18.0", "colbert>=0.40", "typing-extensions>=4.9.0"]
+dependencies = [
+    "fastapi>=0.104.1",
+    "pydantic>=2.5.0",
+    "sqlmodel>=0.0.24",
+    "sqlalchemy>=2.0.0",
+    "asyncpg>=0.29.0",
+    "aiohttp>=3.9.1",
+    "httpx>=0.25.0",
+    "python-multipart>=0.0.6",
+    "croniter>=3.0.4",
+    "openai>=1.0.0",
+    "requests>=2.31.0",
+    "typing-extensions>=4.9.0",
+]
+
+[project.optional-dependencies]
+workspace = ["llm-gateway", "elevaite-ingestion", "elevaite-logger", "db-core"]
+dev = ["pytest>=7.4.3", "pytest-asyncio>=0.21.1"]
+
+[tool.uv.sources]
+llm-gateway = { workspace = true }
+elevaite-ingestion = { workspace = true }
+db-core = { workspace = true }
+elevaite-logger = { workspace = true }
 
 [tool.hatch.version]
 path = "workflow_core_sdk/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["workflow_core_sdk"]
+
+[tool.hatch.metadata]
+allow-direct-references = true

@@ -122,8 +122,10 @@ class WorkflowConnectionInDB(WorkflowConnectionBase):
 
 
 class WorkflowConnectionResponse(WorkflowConnectionInDB):
-    source_agent: AgentResponse
-    target_agent: AgentResponse
+    # source_agent: AgentResponse
+    # target_agent: AgentResponse
+    source_agent_id: uuid.UUID
+    target_agent_id: uuid.UUID
 
 
 class WorkflowDeploymentBase(BaseModel):

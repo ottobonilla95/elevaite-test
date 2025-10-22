@@ -2,6 +2,8 @@
 
 A clean, agnostic workflow execution engine that supports conditional, sequential, and parallel execution patterns without the baggage of existing systems.
 
+[![Tests](https://github.com/iopexses/elevaite/actions/workflows/test-workflow-engine-poc.yml/badge.svg)](https://github.com/iopexses/elevaite/actions/workflows/test-workflow-engine-poc.yml)
+
 ## Features
 
 - **Agnostic Execution**: Doesn't care about workflow structure - executes the right function at the right step
@@ -158,6 +160,45 @@ export AWS_DEFAULT_REGION="us-east-1"
 
 If no providers are configured, the system gracefully falls back to simulation mode.
 
+## Testing
+
+The PoC has comprehensive test coverage with unit, integration, and E2E tests.
+
+### Run Tests
+
+```bash
+# Run all tests (except E2E)
+pytest tests/ -m "not e2e" --ignore=tests/e2e/
+
+# Run with coverage
+pytest tests/ -m "not e2e" --ignore=tests/e2e/ --cov=workflow_engine_poc --cov-report=html
+
+# Run specific test categories
+pytest tests/ -m unit          # Unit tests only
+pytest tests/ -m integration   # Integration tests only
+```
+
+### E2E Tests
+
+E2E tests require a running server:
+
+```bash
+# Terminal 1: Start server
+python -m uvicorn workflow_engine_poc.main:app --host 127.0.0.1 --port 8006
+
+# Terminal 2: Run E2E tests
+pytest tests/e2e/ -v
+```
+
+### CI/CD
+
+Tests run automatically on:
+- Pull requests to `main` or `testing` branches
+- Pushes to `main` or `testing` branches
+- Changes to `python_apps/workflow-engine-poc/**` or `packages/workflow-core-sdk/**`
+
+See [TESTING.md](TESTING.md) for detailed testing guide.
+
 ## Development
 
 This is a proof of concept for a unified workflow execution engine. It demonstrates:
@@ -169,3 +210,5 @@ This is a proof of concept for a unified workflow execution engine. It demonstra
 - Database-backed configuration
 
 The goal is to replace complex workflow systems with a simple, extensible engine that focuses on core functionality.
+
+See [PROJECT_STATUS.md](PROJECT_STATUS.md) for current implementation status and next steps.

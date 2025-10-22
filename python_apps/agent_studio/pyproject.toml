@@ -4,15 +4,20 @@ version = "0.1.0"
 description = "Agent Studio"
 requires-python = ">=3.11"
 dependencies = [
-    "bs4>=0.0.2",
+    # Core SDK - provides workflow engine, tools, database models
+    "workflow-core-sdk",
+    # FastAPI and web
     "fastapi>=0.111.0",
+    "uvicorn>=0.34.2",
+    "python-multipart",
+    # Legacy dependencies (to be phased out)
+    "bs4>=0.0.2",
     "httpx>=0.27.0",
     "markdownify>=1.1.0",
     "openai>=1.77.0",
     "pydantic>=2.7.1",
     "python-dotenv>=1.0.1",
     "requests>=2.31.0",
-    "uvicorn>=0.34.2",
     "sqlalchemy>=2.0.30",
     "psycopg2-binary>=2.9.9",
     "alembic>=1.13.1",
@@ -33,7 +38,6 @@ dependencies = [
     "boto3>=1.34.0",
     "opentelemetry-instrumentation-fastapi>=0.57b0",
     "opentelemetry-instrumentation-sqlalchemy>=0.57b0",
-    "python-multipart",
 ]
 
 [project.optional-dependencies]
@@ -42,3 +46,4 @@ dev = ["pytest>=7.0.0", "pytest-asyncio>=0.21.0", "pytest-cov>=4.1.0"]
 [tool.uv.sources]
 elevaite-logger = { workspace = true }
 elevaite-ingestion = { workspace = true }
+workflow-core-sdk = { workspace = true }

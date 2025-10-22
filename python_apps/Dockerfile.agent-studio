@@ -22,6 +22,8 @@ COPY pyproject.toml uv.lock ./
 # Copy workspace package dependencies used by agent-studio
 COPY python_packages/fastapi-logger ./python_packages/fastapi-logger
 COPY python_packages/elevaite_ingestion ./python_packages/elevaite_ingestion
+COPY python_packages/workflow-core-sdk ./python_packages/workflow-core-sdk
+COPY python_packages/llm-gateway ./python_packages/llm-gateway
 
 # Copy agent-studio project files
 COPY python_apps/agent_studio ./python_apps/agent_studio
@@ -45,8 +47,10 @@ FROM python:3.11.11-slim-bullseye AS runtime
 
 # Copy only the app sources needed at runtime (dependencies are in /opt/venv)
 COPY --from=builder /elevaite/python_apps/agent_studio /elevaite/python_apps/agent_studio
-COPY --from=builder /elevaite/python_packages/fastapi-logger elevaite/python_packages/fastapi-logger
-COPY --from=builder /elevaite/python_packages/elevaite_ingestion elevaite/python_packages/elevaite_ingestion
+COPY --from=builder /elevaite/python_packages/fastapi-logger /elevaite/python_packages/fastapi-logger
+COPY --from=builder /elevaite/python_packages/elevaite_ingestion /elevaite/python_packages/elevaite_ingestion
+COPY --from=builder /elevaite/python_packages/workflow-core-sdk /elevaite/python_packages/workflow-core-sdk
+COPY --from=builder /elevaite/python_packages/llm-gateway /elevaite/python_packages/llm-gateway
 # Copy the virtual environment to runtime
 COPY --from=builder /opt/venv /opt/venv
 

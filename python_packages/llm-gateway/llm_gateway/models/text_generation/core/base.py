@@ -18,6 +18,7 @@ class BaseTextGenerationProvider(ABC):
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
+        response_format: Optional[Dict[str, Any]] = None,
     ) -> TextGenerationResponse:
         """
         Abstract method to generate text based on a given prompt and configuration.
@@ -53,6 +54,7 @@ class BaseTextGenerationProvider(ABC):
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
+        response_format: Optional[Dict[str, Any]] = None,
     ) -> Iterable[Dict[str, Any]]:
         """Optional streaming interface. Default raises NotImplementedError.
         Yields dict events: {"type": "delta", "text": str} ... and a final

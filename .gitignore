@@ -17,6 +17,8 @@ build
 # misc
 .DS_Store
 *.pem
+*.bak
+*.py.bak
 
 # debug
 npm-debug.log*
@@ -74,3 +76,4 @@ python_packages/elevaite_ingestion/stage/vectorstore_stage/stage_5_status.json
 python_packages/elevaite_ingestion/config/logs/pipeline.log
 
 uploads
+logs

@@ -1,4 +1,3 @@
-
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Literal, Any
@@ -8,19 +7,10 @@ from pydantic import BaseModel, ConfigDict
 
 from .prompts import PromptResponse
 
+
 class AgentBase(BaseModel):
     name: str
-    agent_type: Optional[
-        Literal[
-            "router",
-            "web_search",
-            "data",
-            "troubleshooting",
-            "api",
-            "weather",
-            "toshiba",
-        ]
-    ] = None
+    agent_type: Optional[Literal["router", "web_search", "data", "troubleshooting", "api", "weather", "toshiba", "tool"]] = None
     description: Optional[str] = None
     parent_agent_id: Optional[uuid.UUID] = None
     system_prompt_id: uuid.UUID
@@ -42,14 +32,18 @@ class AgentBase(BaseModel):
     available_for_deployment: bool = True
     deployment_code: Optional[str] = None
 
+
 class AgentFunctionInner(BaseModel):
     name: str
+
 
 class AgentFunction(BaseModel):
     function: AgentFunctionInner
 
+
 class AgentCreate(AgentBase):
     functions: List[AgentFunction]
+
 
 class AgentUpdate(BaseModel):
     name: Optional[str] = None
@@ -86,6 +80,7 @@ class AgentUpdate(BaseModel):
     available_for_deployment: Optional[bool] = None
     deployment_code: Optional[str] = None
 
+
 class AgentInDB(AgentBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -94,6 +89,7 @@ class AgentInDB(AgentBase):
     session_id: Optional[str] = None
     last_active: Optional[datetime] = None
     functions: List[ChatCompletionToolParam]
+
 
 class AgentResponse(AgentInDB):
     system_prompt: PromptResponse
