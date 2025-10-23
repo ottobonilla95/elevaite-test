@@ -9,6 +9,7 @@ import { isAgentNodeData, isAgentResponse, isTool } from "../lib/discriminators"
 import { type ToolParametersSchema,type AgentConfigData, type AgentCreate, type AgentFunction, type AgentNodeData, type AgentResponse,
   type AgentUpdate, type ChatCompletionToolParam, type Edge, type Node, type ToolNodeData,
   type WorkflowAgent, type WorkflowCreateRequest, type WorkflowDeployment, type WorkflowResponse,
+  Tool,
 } from "../lib/interfaces";
 import { mapActionTypeToConnectionType, mapConnectionTypeToActionType } from "../lib/interfaces/workflows";
 import { useAgents } from "../ui/contexts/AgentsContext";
@@ -1470,6 +1471,45 @@ function AgentConfigForm(): JSX.Element {
   }, []);
 
 
+  function getErrorTool(): Tool {
+    const now = new Date().toISOString();
+    // Using Date.now() for a unique-looking ID, fulfilling the 'error_' prefix request
+    const uniqueId = `error_${Date.now().toString()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    const errorSchema: ToolParametersSchema = {
+        tool_name: "ErrorParameters",
+        tool_description: "This tool accepts no parameters as it represents an error state.",
+        properties: {}, // Minimum required property for ToolParametersSchema
+        required: []
+    };
+
+    const errorTool: Tool = {
+        // Error-specific fields
+        id: uniqueId,
+        tool_id: `internal-error-${uuidv4()}`,
+        name: "Internal Error Handler",
+        description: "This tool is an internal placeholder signaling that the requested tool could not be loaded, found, or is unavailable.",
+        version: "0.0.1",
+        tool_type: "local",
+        execution_type: "internal",
+
+        // Required structural fields
+        parameters_schema: errorSchema,
+        auth_required: false,
+
+        // Status fields indicating unavailability
+        is_active: false,
+        is_available: false,
+
+        // Date/Usage fields
+        created_at: now,
+        updated_at: now,
+        usage_count: 0,
+    };
+
+    return errorTool;
+}
+
 
   // Memoized tools array to prevent re-renders
   const memoizedTools = useMemo(() => {
@@ -1623,7 +1663,7 @@ function AgentConfigForm(): JSX.Element {
               onAction: handleToolAction,
               onDelete: handleDeleteNode,
               onConfigure: () => { handleNodeSelect(newNode); },
-              tool: toolsContext.getToolById(agent.agent_id),
+              tool: toolsContext.getToolById(agent.agent_id) ?? getErrorTool(),
             }
             :
             {
@@ -1701,8 +1741,7 @@ function AgentConfigForm(): JSX.Element {
       // Check deployment status for the loaded workflow
       void checkDeploymentStatus();
     } catch (error) {
-      console.error("Error loading workflow:", error);
-      alert("Error loading workflow. Please try again.");
+      toast.error("Error loading workflow. Please try again.");
     }
   }
 
