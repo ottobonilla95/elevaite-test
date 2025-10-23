@@ -16,14 +16,14 @@ import {
   Loader2,
   Check,
 } from "lucide-react";
-import WorkflowSaveModal from "./WorkflowSaveModal";
-import PostDeploymentSuccessDialog from "./PostDeploymentSuccessDialog";
-import { PipelineExecutionLogs } from "./config/PipelineExecutionLogs";
 import type {
   WorkflowDeployment,
   WorkflowResponse,
 } from "../../lib/interfaces/workflows";
 import type { ChatCompletionToolParam } from "../../lib/interfaces/common";
+import WorkflowSaveModal from "./WorkflowSaveModal";
+import PostDeploymentSuccessDialog from "./PostDeploymentSuccessDialog";
+import { PipelineExecutionLogs } from "./config/PipelineExecutionLogs";
 import "./VectorizerBottomDrawer.scss";
 
 // Custom toast implementation
@@ -486,36 +486,34 @@ function LinearPipelineStep({
           </div>
         </div>
 
-        {canDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(step.id);
-            }}
-            className="delete-button"
-            type="button"
-            aria-label={`Delete ${step.name} step`}
-            style={{
-              position: "absolute",
-              top: "-8px",
-              right: "-8px",
-              backgroundColor: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "50%",
-              width: "20px",
-              height: "20px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              color: "#6b7280",
-              fontSize: "12px",
-              zIndex: 10,
-            }}
-          >
-            <X size={12} />
-          </button>
-        )}
+        {canDelete ? <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(step.id);
+          }}
+          className="delete-button"
+          type="button"
+          aria-label={`Delete ${step.name} step`}
+          style={{
+            position: "absolute",
+            top: "-8px",
+            right: "-8px",
+            backgroundColor: "white",
+            border: "1px solid #e5e7eb",
+            borderRadius: "50%",
+            width: "20px",
+            height: "20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: "#6b7280",
+            fontSize: "12px",
+            zIndex: 10,
+          }}
+        >
+          <X size={12} />
+        </button> : null}
       </div>
     </div>
   );
@@ -593,69 +591,67 @@ function AddStepButton({
           <Plus size={16} />
         </button>
 
-        {showDropdown && (
-          <div
-            className="step-dropdown"
-            style={{
-              maxHeight: "300px",
-              overflowY: "auto",
-              zIndex: 1000,
-              position: "absolute",
-              top: "100%",
-              left: "50%",
-              transform: "translateX(-50%)",
-              marginTop: "0.5rem",
-              backgroundColor: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-              minWidth: "200px",
-            }}
-          >
-            {availableStepTypes.map((stepType) => (
-              <button
-                key={stepType}
-                className="step-option"
-                onClick={() => handleAddStep(stepType)}
-                type="button"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  width: "100%",
-                  padding: "12px",
-                  border: "none",
-                  backgroundColor: "transparent",
-                  cursor: "pointer",
-                }}
+        {showDropdown ? <div
+          className="step-dropdown"
+          style={{
+            maxHeight: "300px",
+            overflowY: "auto",
+            zIndex: 1000,
+            position: "absolute",
+            top: "100%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            marginTop: "0.5rem",
+            backgroundColor: "white",
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+            minWidth: "200px",
+          }}
+        >
+          {availableStepTypes.map((stepType) => (
+            <button
+              key={stepType}
+              className="step-option"
+              onClick={() => { handleAddStep(stepType); }}
+              type="button"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                width: "100%",
+                padding: "12px",
+                border: "none",
+                backgroundColor: "transparent",
+                cursor: "pointer",
+              }}
+            >
+              <span
+                className="step-option-icon"
+                style={{ marginRight: "12px" }}
               >
+                {getStepIcon(stepType)}
+              </span>
+              <div className="step-option-info">
                 <span
-                  className="step-option-icon"
-                  style={{ marginRight: "12px" }}
+                  className="step-option-name"
+                  style={{ display: "block", fontWeight: "500" }}
                 >
-                  {getStepIcon(stepType)}
+                  {getStepName(stepType)}
                 </span>
-                <div className="step-option-info">
-                  <span
-                    className="step-option-name"
-                    style={{ display: "block", fontWeight: "500" }}
-                  >
-                    {getStepName(stepType)}
-                  </span>
-                  <span
-                    className="step-option-description"
-                    style={{
-                      display: "block",
-                      fontSize: "12px",
-                      color: "#6b7280",
-                    }}
-                  >
-                    {getStepDescription(stepType)}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+                <span
+                  className="step-option-description"
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    color: "#6b7280",
+                  }}
+                >
+                  {getStepDescription(stepType)}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div> : null}
       </div>
     </div>
   );
@@ -797,7 +793,7 @@ export default function VectorizerBottomDrawer({
 
       // Use the external onRunAllSteps if provided (connects to real backend)
       if (onRunAllSteps) {
-        await onRunAllSteps();
+        onRunAllSteps();
         return;
       }
 
@@ -805,6 +801,7 @@ export default function VectorizerBottomDrawer({
       const currentPipeline = pipeline;
 
       // Execute each step with a delay to show progress
+      // eslint-disable-next-line @typescript-eslint/prefer-for-of -- ??
       for (let i = 0; i < currentPipeline.length; i++) {
         const currentStep = currentPipeline[i];
 
@@ -819,17 +816,17 @@ export default function VectorizerBottomDrawer({
 
         // Simulate step execution time (1.5-3 seconds per step)
         const executionTime = 1500 + Math.random() * 1500;
-        await new Promise((resolve) => setTimeout(resolve, executionTime));
+        await new Promise((resolve) => { setTimeout(resolve, executionTime) });
 
         // Set current step to completed
         setPipeline((prev) =>
           prev.map((step) =>
             step.id === currentStep.id
               ? {
-                  ...step,
-                  status: "completed" as const,
-                  completedAt: new Date(),
-                }
+                ...step,
+                status: "completed" as const,
+                completedAt: new Date(),
+              }
               : step
           )
         );
@@ -867,11 +864,11 @@ export default function VectorizerBottomDrawer({
         prev.map((step) =>
           step.type === stepType
             ? {
-                ...step,
-                status,
-                completedAt:
-                  status === "completed" ? new Date() : step.completedAt,
-              }
+              ...step,
+              status,
+              completedAt:
+                status === "completed" ? new Date() : step.completedAt,
+            }
             : step
         )
       );
@@ -941,9 +938,9 @@ export default function VectorizerBottomDrawer({
           const newPipeline = [...prev];
           newPipeline.splice(storeIndex, 0, newStep);
           return newPipeline;
-        } else {
-          return [...prev, newStep];
         }
+        return [...prev, newStep];
+
       });
 
       setSelectedStepId(newStep.id);
@@ -1249,79 +1246,77 @@ export default function VectorizerBottomDrawer({
           </div>
 
           {/* Right side: Pipeline Execution Logs */}
-          {showPipelineLogs && (
+          {showPipelineLogs ? <div
+            className="pipeline-logs-section"
+            style={{
+              flex: "1",
+              width: "50%",
+              borderLeft: "1px solid #e5e7eb",
+              background: "white",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
             <div
-              className="pipeline-logs-section"
+              className="logs-header"
               style={{
-                flex: "1",
-                width: "50%",
-                borderLeft: "1px solid #e5e7eb",
-                background: "white",
+                padding: "16px",
+                borderBottom: "1px solid #e5e7eb",
+                background: "#f8fafc",
                 display: "flex",
-                flexDirection: "column",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              <div
-                className="logs-header"
+              <h4
                 style={{
-                  padding: "16px",
-                  borderBottom: "1px solid #e5e7eb",
-                  background: "#f8fafc",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "#374151",
+                  margin: "0",
                 }}
               >
-                <h4
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: "600",
-                    color: "#374151",
-                    margin: "0",
-                  }}
-                >
-                  Pipeline Execution Logs
-                </h4>
-                <button
-                  onClick={() => setShowPipelineLogs(false)}
-                  style={{
-                    padding: "4px",
-                    background: "transparent",
-                    border: "none",
-                    color: "#6b7280",
-                    cursor: "pointer",
-                    borderRadius: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLElement).style.background = "#f3f4f6";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLElement).style.background = "transparent";
-                  }}
-                  type="button"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <div style={{ flex: "1", overflow: "hidden" }}>
-                <PipelineExecutionLogs
-                  steps={pipeline}
-                  isRunning={isExecutingPipeline || isPipelineRunning}
-                  onComplete={handlePipelineComplete}
-                />
-              </div>
+                Pipeline Execution Logs
+              </h4>
+              <button
+                onClick={() => { setShowPipelineLogs(false); }}
+                style={{
+                  padding: "4px",
+                  background: "transparent",
+                  border: "none",
+                  color: "#6b7280",
+                  cursor: "pointer",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLElement).style.background = "#f3f4f6";
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLElement).style.background = "transparent";
+                }}
+                type="button"
+              >
+                <X size={16} />
+              </button>
             </div>
-          )}
+            <div style={{ flex: "1", overflow: "hidden" }}>
+              <PipelineExecutionLogs
+                steps={pipeline}
+                isRunning={isExecutingPipeline || isPipelineRunning}
+                onComplete={handlePipelineComplete}
+              />
+            </div>
+          </div> : null}
         </div>
       </div>
 
       {/* Save Modal */}
       <WorkflowSaveModal
         isOpen={showSaveModal}
-        onClose={() => setShowSaveModal(false)}
+        onClose={() => { setShowSaveModal(false); }}
         onSave={handleSaveModalSubmit}
         onDeploy={handleSaveModalSubmit}
         initialName={`${agentName} Vectorizer Pipeline`}
@@ -1332,19 +1327,17 @@ export default function VectorizerBottomDrawer({
       />
 
       {/* Success Dialog */}
-      {showSuccessDialog && deploymentResult && (
-        <PostDeploymentSuccessDialog
-          isOpen={showSuccessDialog}
-          onClose={() => {
-            setShowSuccessDialog(false);
-            setDeploymentResult(null);
-          }}
-          deployment={deploymentResult.deployment}
-          workflow={deploymentResult.workflow}
-          inferenceUrl={deploymentResult.inferenceUrl}
-          tools={[]}
-        />
-      )}
+      {showSuccessDialog && deploymentResult ? <PostDeploymentSuccessDialog
+        isOpen={showSuccessDialog}
+        onClose={() => {
+          setShowSuccessDialog(false);
+          setDeploymentResult(null);
+        }}
+        deployment={deploymentResult.deployment}
+        workflow={deploymentResult.workflow}
+        inferenceUrl={deploymentResult.inferenceUrl}
+        tools={[]}
+      /> : null}
     </>
   );
 }

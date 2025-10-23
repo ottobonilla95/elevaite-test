@@ -89,11 +89,43 @@ async def tool_execution_step(
 
     # Build call params from mapping + static
     def extract_from_path(data: Any, path: str) -> Any:
+        """
+        Resolve a dot-path against input_data with a couple of conveniences:
+        - If a segment resolves to a JSON string, parse it and continue traversal
+        - If the current object is a dict that does not contain the requested key,
+          but has a 'response' key that is a JSON string, parse that and retry the
+          lookup against the parsed object. This allows paths like 'response.x'
+          to access fields inside an agent step's textual JSON response without
+          requiring 'response.response.x'.
+        """
+        import json
+
+        def try_parse_json(s: Any) -> Optional[dict]:
+            if isinstance(s, str):
+                s_strip = s.strip()
+                if s_strip.startswith("{") or s_strip.startswith("["):
+                    try:
+                        parsed = json.loads(s_strip)
+                        return parsed if isinstance(parsed, dict) else None
+                    except (json.JSONDecodeError, ValueError):
+                        return None
+            return None
+
         cur = data
         for part in path.split("."):
             if isinstance(cur, dict) and part in cur:
                 cur = cur[part]
+                parsed = try_parse_json(cur)
+                if parsed is not None:
+                    cur = parsed
             else:
+                # Fallback: if current dict has textual JSON under 'response',
+                # parse it and try to find 'part' inside it.
+                if isinstance(cur, dict) and isinstance(cur.get("response"), str):
+                    parsed = try_parse_json(cur.get("response"))
+                    if isinstance(parsed, dict) and part in parsed:
+                        cur = parsed[part]
+                        continue
                 return None
         return cur
 
@@ -102,6 +134,33 @@ async def tool_execution_step(
         val = extract_from_path(input_data, spath)
         if val is not None:
             params[pname] = val
+
+    # Best-effort type coercion based on the tool function signature
+    try:
+        import inspect
+
+        sig = inspect.signature(func)
+        for pname, p in sig.parameters.items():
+            if pname in params and p.annotation in (int, float, bool):
+                v = params[pname]
+                if p.annotation is int:
+                    try:
+                        params[pname] = int(v) if not isinstance(v, int) else v
+                    except Exception:
+                        pass
+                elif p.annotation is float:
+                    try:
+                        params[pname] = float(v) if not isinstance(v, float) else v
+                    except Exception:
+                        pass
+                elif p.annotation is bool:
+                    try:
+                        if isinstance(v, str):
+                            params[pname] = v.strip().lower() in ("true", "1", "yes", "y")
+                    except Exception:
+                        pass
+    except Exception:
+        pass
 
     # Execute tool
     try:

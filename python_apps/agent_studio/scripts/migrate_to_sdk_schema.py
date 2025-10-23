@@ -79,6 +79,7 @@ class SchemaMigrator:
             "workflow_steps_migrated": 0,
             "workflow_connections_migrated": 0,
             "tools_migrated": 0,
+            "agent_tool_bindings_migrated": 0,
             "errors": [],
         }
 
@@ -188,7 +189,7 @@ class SchemaMigrator:
             # Read from old schema
             result = source_session.execute(
                 text("""
-                SELECT 
+                SELECT
                     pid,
                     prompt_label,
                     prompt,
@@ -281,7 +282,7 @@ class SchemaMigrator:
             # Read from old schema
             result = source_session.execute(
                 text("""
-                SELECT 
+                SELECT
                     agent_id,
                     name,
                     description,
@@ -513,10 +514,11 @@ class SchemaMigrator:
 
                     step = {
                         "step_id": node_id,
-                        "step_type": "agent",
+                        "step_type": "agent_execution",
                         "name": f"Agent {agent_id}",
-                        "config": {"agent_id": str(agent_id), **agent_config},
+                        "config": {"agent_id": str(agent_id), **agent_config, "stream": True, "visible_to_user": True},
                         "dependencies": [],  # Will be populated from connections
+                        "input_mapping": {},
                     }
 
                     # Add position if available
@@ -786,6 +788,192 @@ class SchemaMigrator:
             print(f"   ❌ Error migrating tools: {e}")
             self.stats["errors"].append(f"Tools: {e}")
             target_session.rollback()
+
+    def migrate_agent_tool_bindings(self, source_session: Session, target_session: Session) -> bool:
+        """Migrate agent→tool assignments into AgentToolBinding"""
+        print(f"\n🧩 Migrating agent tool bindings...")
+        try:
+            # Build tool name → id map from source tools
+            tools_res = source_session.execute(
+                text(
+                    """
+                    SELECT tool_id, name, remote_name, function_name
+                    FROM tools
+                    """
+                )
+            )
+            tool_rows = tools_res.fetchall()
+            name_to_id = {}
+            alt_to_id = {}
+            for t in tool_rows:
+                tid, name, remote_name, function_name = t[0], t[1], t[2], t[3]
+                if name:
+                    name_to_id[str(name)] = tid
+                if remote_name:
+                    alt_to_id[str(remote_name)] = tid
+                if function_name:
+                    alt_to_id[str(function_name)] = tid
+
+            # Fetch agents with functions (OpenAI-style tool specs)
+            agents_res = source_session.execute(
+                text(
+                    """
+                    SELECT agent_id, functions
+                    FROM agents
+                    """
+                )
+            )
+            agents = agents_res.fetchall()
+            created = 0
+
+            for agent_row in agents:
+                agent_id = agent_row[0]
+                functions = agent_row[1]
+                if not functions:
+                    continue
+
+                funcs = functions
+                if isinstance(funcs, str):
+                    try:
+                        funcs = json.loads(funcs)
+                    except Exception:
+                        continue
+                if not isinstance(funcs, list):
+                    continue
+
+                # Extract function names
+                names: List[str] = []
+                for f in funcs:
+                    fn = None
+                    if isinstance(f, dict):
+                        func_obj = f.get("function") if isinstance(f.get("function"), dict) else None
+                        if func_obj and "name" in func_obj:
+                            fn = func_obj["name"]
+                        elif "name" in f:
+                            fn = f["name"]
+                    elif isinstance(f, str):
+                        fn = f
+                    if fn:
+                        names.append(str(fn))
+
+                # Deduplicate while preserving order
+                names = list(dict.fromkeys(names))
+
+                for fn in names:
+                    # Try resolve by source tool maps first
+                    tool_id = name_to_id.get(fn) or alt_to_id.get(fn)
+
+                    # If not found, try resolve in TARGET DB (case-insensitive by name, or by function_name/remote_name)
+                    if not tool_id:
+                        row = target_session.execute(
+                            text(
+                                """
+                                SELECT id FROM tool
+                                WHERE LOWER(name) = LOWER(:fn)
+                                   OR LOWER(COALESCE(function_name, '')) = LOWER(:fn)
+                                   OR LOWER(COALESCE(remote_name, '')) = LOWER(:fn)
+                                LIMIT 1
+                                """
+                            ),
+                            {"fn": fn},
+                        ).fetchone()
+                        if row:
+                            tool_id = row[0]
+
+                    # If still not found, create a minimal DB tool from the function spec on the agent
+                    if not tool_id:
+                        # Find this function object to extract description/parameters
+                        func_def = None
+                        for f in funcs:
+                            # normalize to dict with function key
+                            if isinstance(f, dict):
+                                if isinstance(f.get("function"), dict) and f.get("function", {}).get("name") == fn:
+                                    func_def = f.get("function")
+                                    break
+                                if f.get("name") == fn:
+                                    func_def = f
+                                    break
+                        description = ""
+                        parameters = {}
+                        if isinstance(func_def, dict):
+                            description = func_def.get("description") or ""
+                            params = func_def.get("parameters")
+                            if isinstance(params, dict):
+                                parameters = params
+                        # Insert tool record
+                        new_tool_id = uuid.uuid4()
+                        target_session.execute(
+                            text(
+                                """
+                                INSERT INTO tool (
+                                    id, name, display_name, description, version, tool_type, execution_type,
+                                    parameters_schema, return_schema, module_path, function_name, mcp_server_id,
+                                    remote_name, api_endpoint, http_method, headers, auth_required, category_id, tags,
+                                    documentation, examples, is_active, is_available, last_used, usage_count, created_at, updated_at
+                                ) VALUES (
+                                    :id, :name, :display_name, :description, '1.0.0', 'local', 'function',
+                                    :parameters_schema, NULL, NULL, :function_name, NULL,
+                                    NULL, NULL, NULL, NULL, FALSE, NULL, NULL,
+                                    NULL, NULL, TRUE, TRUE, NULL, 0, NOW(), NOW()
+                                )
+                                """
+                            ),
+                            {
+                                "id": new_tool_id,
+                                "name": fn,
+                                "display_name": fn,
+                                "description": description,
+                                "parameters_schema": json.dumps(parameters or {"type": "object", "properties": {}}),
+                                "function_name": fn,
+                            },
+                        )
+                        tool_id = new_tool_id
+
+                    # Skip if binding already exists (idempotent)
+                    exists = target_session.execute(
+                        text(
+                            """
+                            SELECT 1 FROM agenttoolbinding
+                            WHERE agent_id = :agent_id AND tool_id = :tool_id
+                            LIMIT 1
+                            """
+                        ),
+                        {"agent_id": agent_id, "tool_id": tool_id},
+                    ).fetchone()
+                    if exists:
+                        continue
+
+                    target_session.execute(
+                        text(
+                            """
+                            INSERT INTO agenttoolbinding (
+                                id, agent_id, tool_id, override_parameters, is_active, organization_id, created_by
+                            ) VALUES (
+                                :id, :agent_id, :tool_id, :override_parameters, :is_active, NULL, NULL
+                            )
+                            """
+                        ),
+                        {
+                            "id": uuid.uuid4(),
+                            "agent_id": agent_id,
+                            "tool_id": tool_id,
+                            "override_parameters": json.dumps({}),
+                            "is_active": True,
+                        },
+                    )
+                    created += 1
+
+            target_session.commit()
+            self.stats["agent_tool_bindings_migrated"] += created
+            print(f"   ✅ Migrated {created} agent tool bindings")
+            return True
+
+        except Exception as e:
+            print(f"   ❌ Error migrating agent tool bindings: {e}")
+            self.stats["errors"].append(f"AgentToolBindings: {e}")
+            target_session.rollback()
+            return False
+
             return False
 
     def validate_migration(self, source_session: Session, target_session: Session) -> bool:
@@ -855,6 +1043,38 @@ class SchemaMigrator:
             source_session = self.connect_source()
             target_session = self.connect_target()
             print(f"   ✅ Connected to both databases")
+
+            # Step 2.5: Ensure local tools are registered in target DB (so bindings can resolve)
+            if not self.dry_run:
+                try:
+                    # Point SDK to the target DB for a SQLModel session
+                    original_db_url = os.environ.get("SQLALCHEMY_DATABASE_URL")
+                    os.environ["SQLALCHEMY_DATABASE_URL"] = self.target_url
+                    # Reload SDK DB to pick up the new URL and get a SQLModel session
+                    from importlib import reload
+                    import workflow_core_sdk.db.database as sdk_db
+
+                    reload(sdk_db)
+                    from workflow_core_sdk.tools.registry import tool_registry
+                    from workflow_core_sdk.db.database import get_db_session
+
+                    sqlmodel_session = get_db_session()
+                    try:
+                        sync_result = tool_registry.sync_local_to_db(sqlmodel_session)
+                        print(
+                            f"   🔧 Synced local tools to target DB: created={sync_result.get('created', 0)}, updated={sync_result.get('updated', 0)}"
+                        )
+                    finally:
+                        try:
+                            sqlmodel_session.close()
+                        except Exception:
+                            pass
+                    # Restore original DB URL if it existed
+                    if original_db_url is not None:
+                        os.environ["SQLALCHEMY_DATABASE_URL"] = original_db_url
+                except Exception as e:
+                    print(f"   ⚠️  Failed to sync local tools to target DB (continuing): {e}")
+
         except Exception as e:
             print(f"   ❌ Failed to connect: {e}")
             return False
@@ -863,8 +1083,9 @@ class SchemaMigrator:
         success = True
         success = success and self.migrate_prompts(source_session, target_session)
         success = success and self.migrate_agents(source_session, target_session)
-        success = success and self.migrate_workflows(source_session, target_session)
         success = success and self.migrate_tools(source_session, target_session)
+        success = success and self.migrate_agent_tool_bindings(source_session, target_session)
+        success = success and self.migrate_workflows(source_session, target_session)
 
         # Step 4: Validate
         if success and not self.dry_run:
@@ -876,10 +1097,11 @@ class SchemaMigrator:
         print("=" * 70)
         print(f"Prompts migrated:              {self.stats['prompts_migrated']}")
         print(f"Agents migrated:               {self.stats['agents_migrated']}")
+        print(f"Tools migrated:                {self.stats['tools_migrated']}")
+        print(f"Agent tool bindings migrated:  {self.stats['agent_tool_bindings_migrated']}")
         print(f"Workflows migrated:            {self.stats['workflows_migrated']}")
         print(f"  - Workflow steps migrated:   {self.stats['workflow_steps_migrated']}")
         print(f"  - Workflow connections:      {self.stats['workflow_connections_migrated']}")
-        print(f"Tools migrated:                {self.stats['tools_migrated']}")
 
         if self.stats["errors"]:
             print(f"\n⚠️  Errors encountered:")
@@ -945,13 +1167,13 @@ def main():
     parser.add_argument(
         "--port",
         type=int,
-        default=5432,
+        default=5433,
         help="PostgreSQL port (default: 5433)",
     )
 
     parser.add_argument(
         "--user",
-        default="elevaite_admin",
+        default="elevaite",
         help="PostgreSQL user (default: elevaite)",
     )
 

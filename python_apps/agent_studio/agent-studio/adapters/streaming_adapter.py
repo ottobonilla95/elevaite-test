@@ -202,15 +202,24 @@ class StreamingAdapter:
                 # Tool execution step
                 if "tool" in output_data:
                     tool_result = output_data.get("result", "")
-                    # Try to format as JSON if possible
+                    # Standalone tool step: emit as primary content instead of tool_response
                     try:
                         if isinstance(tool_result, str):
                             json.loads(tool_result)  # Validate JSON
-                            return [{"type": "tool_response", "message": tool_result + "\n", "source": step_id}]
+                            return [
+                                {"type": "content", "message": "\n\n", "source": step_id},
+                                {"type": "content", "message": tool_result + "\n", "source": step_id},
+                            ]
                         else:
-                            return [{"type": "tool_response", "message": json.dumps(tool_result) + "\n", "source": step_id}]
+                            return [
+                                {"type": "content", "message": "\n\n", "source": step_id},
+                                {"type": "content", "message": json.dumps(tool_result) + "\n", "source": step_id},
+                            ]
                     except (json.JSONDecodeError, TypeError):
-                        return [{"type": "tool_response", "message": str(tool_result) + "\n", "source": step_id}]
+                        return [
+                            {"type": "content", "message": "\n\n", "source": step_id},
+                            {"type": "content", "message": str(tool_result) + "\n", "source": step_id},
+                        ]
 
                 # Agent execution step
                 if "response" in output_data:

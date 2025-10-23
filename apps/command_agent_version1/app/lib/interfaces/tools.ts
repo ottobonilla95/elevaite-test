@@ -3,26 +3,26 @@
 
 export type JSONScalarType = "integer" | "number" | "string";
 export interface ToolParameterValueType {
-    type: JSONScalarType;
-    description?: string;
-    title?: string;
-    value?: number | string;
-    error?: string;
-    isEdited?: boolean;
-    isUsingResponse?: boolean;
+  type: JSONScalarType;
+  description?: string;
+  title?: string;
+  value?: number | string;
+  error?: string;
+  isEdited?: boolean;
+  isUsingResponse?: boolean;
 }
 export interface ToolParametersSchema {
-  tool_defaultName?: string;
-  tool_name?: string;
-  tool_description?: string;
-  properties: Record<string, ToolParameterValueType>;
-  required?: string[];
+  "tool_defaultName"?: string;
+  "tool_name"?: string;
+  "tool_description"?: string;
+  "properties": Record<string, ToolParameterValueType>;
+  "required"?: string[];
 }
 
 
 
 export interface Tool {
-  id: number|string;
+  id: number | string;
   tool_id: string;
 
   name: string;

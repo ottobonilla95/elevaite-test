@@ -12,7 +12,7 @@ interface ToolsContextType {
   refetchTools: () => Promise<void>;
   // Utility functions
   getToolsByCategory: (categoryId?: string) => Tool[];
-  getToolById: (toolId: string) => Tool|undefined;
+  getToolById: (toolId: string) => Tool;
   getAvailableTools: () => Tool[];
 }
 
@@ -63,8 +63,10 @@ export function ToolsProvider({ children }: ToolsProviderProps): JSX.Element {
     return tools.filter(tool => tool.is_active && tool.is_available);
   };
 
-  function getToolById(toolId: string): Tool|undefined {
-    return tools.find(tool => tool.tool_id === toolId);
+  function getToolById(toolId: string): Tool {
+    const tool = tools.find(tool => tool.tool_id === toolId);
+    if (tool === undefined) throw new Error("Tool not found");
+    return tool;
   }
 
   useEffect(() => {

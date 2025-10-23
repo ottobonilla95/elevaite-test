@@ -13,6 +13,15 @@ interface UploadingFile {
   backendFileId?: string; // The actual file ID returned by the backend
 }
 
+interface ApiResultsResponse<T = unknown> { data: { results: T[] } | T };
+const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null;
+function isApiResultsResponse<T = unknown>(v: unknown): v is ApiResultsResponse<T> {
+  if (!isRecord(v) || !("data" in v) || !isRecord(v.data)) return false;
+  const data = v.data;
+  return "results" in data && Array.isArray(data.results);
+}
+
+
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -92,7 +101,6 @@ function UploadModal({
 
       let endpoint: string;
       let formData: FormData;
-      let responseData: unknown;
 
       if (useS3DirectUpload && s3BucketName) {
         // Direct S3 upload
@@ -118,18 +126,25 @@ function UploadModal({
         throw new Error(`Upload failed: ${response.statusText}`);
       }
 
-      responseData = await response.json();
+      const responseData: unknown = await response.json();
+
+      if (!isApiResultsResponse<{ "status": string; "file_id": string }>(responseData)) {
+        throw new Error("Invalid response data");
+      }
 
       let backendFileId: string;
-      if (useS3DirectUpload) {
+      if (useS3DirectUpload && "results" in responseData.data && Array.isArray(responseData.data.results)) {
         // For S3 direct upload, get file_id from the first successful result
-        const successfulResult = responseData?.data?.results?.find(
-          (r: any) => r.status === "success"
+        const successfulResult = responseData.data.results.find(
+          (r: { "status": string; "file_id": string }) => r.status === "success"
         );
-        backendFileId = successfulResult?.file_id;
-      } else {
+        if (!successfulResult) {
+          throw new Error("No successful results found");
+        }
+        backendFileId = successfulResult.file_id;
+      } else if ("file_id" in responseData.data) {
         // For regular upload, get file_id from data
-        backendFileId = responseData?.data?.file_id;
+        backendFileId = responseData.data.file_id;
       }
 
       // Mark file as completed and store the backend file ID
@@ -137,11 +152,11 @@ function UploadModal({
         prevFiles.map((f) =>
           f.id === fileId
             ? {
-                ...f,
-                progress: 100,
-                completed: true,
-                backendFileId: backendFileId,
-              }
+              ...f,
+              progress: 100,
+              completed: true,
+              backendFileId: backendFileId,
+            }
             : f
         )
       );
@@ -344,9 +359,8 @@ function UploadModal({
                           />
                         </div>
                         <div
-                          className={`progress-percentage ${
-                            file.progress === 100 ? "completed" : ""
-                          }`}
+                          className={`progress-percentage ${file.progress === 100 ? "completed" : ""
+                            }`}
                         >
                           {Math.round(file.progress)}%
                         </div>

@@ -5,6 +5,11 @@ import { Upload, X, Play, ChevronDown, ChevronUp } from "lucide-react";
 import {
   type VectorizationStepData,
 } from "../VectorizerBottomDrawer";
+import { ConfigField } from "./ConfigField";
+import { CustomDropdown } from "./CustomDropdown";
+import { LogsPanel } from "./LogsPanel";
+import UploadModal from "../UploadModal";
+import "./VectorizerStepConfig.scss";
 
 // Define VectorizationStepType here if not already defined, or extend it to include "query"
 export type VectorizationStepType =
@@ -14,11 +19,6 @@ export type VectorizationStepType =
   | "embed"
   | "store"
   | "query";
-import { ConfigField } from "./ConfigField";
-import { CustomDropdown } from "./CustomDropdown";
-import { LogsPanel } from "./LogsPanel";
-import UploadModal from "../UploadModal";
-import "./VectorizerStepConfig.scss";
 
 // Dropdown option interface matching pipelines app
 interface DropdownOption {
@@ -452,9 +452,12 @@ export default function VectorizerStepConfig({
   // Sync uploaded files with configuration when files change
   useEffect(() => {
     if (stepData && currentFiles.length > 0) {
-      const backendFileIds = currentFiles
-        .filter((file) => file.backendFileId)
-        .map((file) => file.backendFileId!);
+      const backendFileIds: string[] = [];
+      for (const file of currentFiles) {
+        if (file.backendFileId) {
+          backendFileIds.push(file.backendFileId);
+        }
+      }
       const currentFileIds = config.uploaded_file_ids as string[] | undefined;
 
       // Only update if backend file IDs have changed
@@ -505,6 +508,7 @@ export default function VectorizerStepConfig({
     setIsUploadModalOpen(true);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- YY
   const handleFilesUploaded = (uploadedFiles: any[]): void => {
     // Convert UploadingFile to UploadedFile format
     const convertedFiles: UploadedFile[] = uploadedFiles.map((file) => ({
@@ -523,9 +527,12 @@ export default function VectorizerStepConfig({
     }));
 
     // Update the step configuration with backend file IDs (not local IDs)
-    const backendFileIds = updatedFiles
-      .filter((file) => file.backendFileId) // Only include files with backend IDs
-      .map((file) => file.backendFileId!);
+    const backendFileIds: string[] = [];
+    for (const file of currentFiles) {
+      if (file.backendFileId) {
+        backendFileIds.push(file.backendFileId);
+      }
+    }
     handleConfigChange("uploaded_file_ids", backendFileIds);
   };
 
@@ -537,13 +544,17 @@ export default function VectorizerStepConfig({
     }));
 
     // Update the step configuration with remaining backend file IDs
-    const backendFileIds = updatedFiles
-      .filter((file) => file.backendFileId)
-      .map((file) => file.backendFileId!);
+    const backendFileIds: string[] = [];
+    for (const file of currentFiles) {
+      if (file.backendFileId) {
+        backendFileIds.push(file.backendFileId);
+      }
+    }
     handleConfigChange("uploaded_file_ids", backendFileIds);
   };
 
   // Handle running a step
+  // eslint-disable-next-line @typescript-eslint/require-await -- YY
   const handleRunStep = async (): Promise<void> => {
     if (onRunStep) {
       onRunStep();

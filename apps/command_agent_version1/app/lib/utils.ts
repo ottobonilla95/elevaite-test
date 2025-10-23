@@ -11,7 +11,7 @@ export function toolToOpenAISchema(tool: Tool): ChatCompletionToolParam {
         function: {
             name: tool.name,
             description: tool.description,
-            parameters: tool.parameters_schema
+            parameters: tool.parameters_schema,
         }
     };
 }

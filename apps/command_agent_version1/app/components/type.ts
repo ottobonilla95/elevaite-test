@@ -91,6 +91,7 @@ export const AGENT_STYLES: Record<
     bgClass: "bg-orange-100",
     textClass: "text-orange-600",
   },
+  [AGENT_TYPE.TOOL]: { bgClass: "bg-green-100", textClass: "text-green-600" },
 };
 
 // Available agent types using the const object for type safety

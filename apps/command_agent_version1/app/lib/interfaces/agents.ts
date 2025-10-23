@@ -12,6 +12,8 @@ export const AGENT_TYPE = {
   API: "api",
   TOSHIBA: "toshiba",
   CUSTOM: "custom",
+  TOOL: "tool",
+  VECTORIZER: "vectorizer",
 } as const;
 
 // Extract the union type from the const object
@@ -204,4 +206,4 @@ export interface CustomEdgeData {
 }
 
 export type Edge = ReactFlowEdge<CustomEdgeData>;
-export type Node = ReactFlowNode<AgentNodeData|ToolNodeData>;
+export type Node = ReactFlowNode<AgentNodeData | ToolNodeData>;

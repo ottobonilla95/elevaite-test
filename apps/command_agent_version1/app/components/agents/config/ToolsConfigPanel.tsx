@@ -19,7 +19,7 @@ interface ToolsConfigPanelProps {
 }
 
 
-export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): JSX.Element {
+export function ToolsConfigPanel({ toolNode, ...props }: ToolsConfigPanelProps): JSX.Element {
     const [parameters, setParameters] = useState<ToolParametersSchema>();
     const [requiredSet, setRequiredSet] = useState<Set<string>>(new Set());
     const [name, setName] = useState(toolNode.name);
@@ -32,7 +32,7 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
         console.log("Passed Tool:", toolNode);
         resetValues();
     }, [toolNode]);
-    
+
 
 
     function resetValues(): void {
@@ -77,10 +77,11 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                 for (const [key, mapped] of entries) {
                     const prop = merged.properties[key];
 
-                    if (typeof mapped === "string" && mapped.startsWith("response.")) {
+                    if (typeof mapped === "string" && (mapped.startsWith("response.") || mapped.startsWith("$prev.response."))) {
+                        const sliceFrom = mapped.startsWith("$prev.response.") ? "$prev.response.".length : "response.".length;
                         merged.properties[key] = {
                             ...prop,
-                            value: mapped.slice("response.".length),
+                            value: mapped.slice(sliceFrom),
                             isUsingResponse: true,
                         };
                     } else {
@@ -130,7 +131,8 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                     [key]: {
                         ...field,
                         isUsingResponse: value,
-                        error: validateParameter(field.type, String(field.value), requiredSet.has(key), value) },
+                        error: validateParameter(field.type, String(field.value), requiredSet.has(key), value)
+                    },
                 },
             };
         });
@@ -180,7 +182,7 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
     };
 
 
-    
+
 
 
     function handleEdit(): void {
@@ -199,11 +201,11 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
         const sanitizedProperties: ToolParametersSchema["properties"] = Object.keys(base.properties).reduce((acc, key) => {
             const p = base.properties[key];
             acc[key] = {
-            type: p.type,
-            ...(p.title ? { title: p.title } : {}),
-            ...(p.description ? { description: p.description } : {}),
-            ...(p.value !== undefined ? { value: p.value } : {}),
-            ...(p.isUsingResponse ? { isUsingResponse: true } : {}),
+                type: p.type,
+                ...(p.title ? { title: p.title } : {}),
+                ...(p.description ? { description: p.description } : {}),
+                ...(p.value !== undefined ? { value: p.value } : {}),
+                ...(p.isUsingResponse ? { isUsingResponse: true } : {}),
             };
             return acc;
         }, {});
@@ -260,7 +262,7 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                         <PenLine size={20} />
                     </CommonButton>
 
-                    <div className="header-controls-sidebar-placeholder"/>
+                    <div className="header-controls-sidebar-placeholder" />
 
                 </div>
 
@@ -285,7 +287,7 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                                 label="Tool Description"
                                 rightSideItem={
                                     <CommonButton onClick={() => { setIsDescriptionExpanded(!isDescriptionExpanded); }} noBackground>
-                                        <ElevaiteIcons.SVGZoom type={isDescriptionExpanded ? "out" : "in" } />
+                                        <ElevaiteIcons.SVGZoom type={isDescriptionExpanded ? "out" : "in"} />
                                     </CommonButton>
                                 }
                             >
@@ -305,7 +307,7 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                                 No parameters found
                             </div>
 
-                        :
+                            :
 
                             Object.entries(parameters.properties).map(([key, parameter]) => {
                                 return (
@@ -317,20 +319,20 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                                             errorMessage={parameter.isEdited ? parameter.error : undefined}
                                             placeholder={
                                                 parameter.isUsingResponse ? "response_parameter_name"
-                                                : parameter.type === "integer" ? "e.g., 12345"
-                                                : parameter.type === "number" ? "e.g., 123.45"
-                                                : "e.g., Static text"
+                                                    : parameter.type === "integer" ? "e.g., 12345"
+                                                        : parameter.type === "number" ? "e.g., 123.45"
+                                                            : "e.g., Static text"
                                             }
                                             info={`Expected input type:\n${parameter.isUsingResponse ? "string (response variable reference)" : parameter.type}`}
                                             onChange={(value, field) => { handleParameterChange(field ?? key, value); }}
-                                            controlledValue={ parameter.value !== undefined ? String(parameter.value) : "" }
+                                            controlledValue={parameter.value !== undefined ? String(parameter.value) : ""}
                                             disabled={!props.isToolEditing}
                                             emptyValueWhenDisabled="No parameter value defined"
                                         />
                                         <div className={["parameter-input-details", props.isToolEditing ? "editing" : ""].filter(Boolean).join(" ")}>
                                             <div className="result-checkbox"
                                                 title={`Link to connected tool's or agent's response.\nUse a response reference to utilize its value.\nE.g., If you expect agent_id.response.parameter_name\nYou can use "parameter_name" as the value when you use the link.`}>
-                                                <ElevaiteIcons.SVGConnect/>
+                                                <ElevaiteIcons.SVGConnect />
                                                 <CommonCheckbox
                                                     checked={Boolean(parameter.isUsingResponse)}
                                                     onChange={(value) => { handleResponseUsageChange(key, value) }}
@@ -348,7 +350,7 @@ export function ToolsConfigPanel({toolNode, ...props}: ToolsConfigPanelProps): J
                 </div>
 
                 {!props.isToolEditing ? undefined :
-                 
+
                     <div className="editing-buttons-container">
                         <CommonButton onClick={handleEditCancel} className="tool-button cancel">
                             Cancel

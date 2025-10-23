@@ -6,7 +6,8 @@ import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
 import { getWorkflowDeploymentDetails } from "../lib/actions";
 import { isAgentNodeData, isAgentResponse, isTool } from "../lib/discriminators";
-import { type ToolParametersSchema,type AgentConfigData, type AgentCreate, type AgentFunction, type AgentNodeData, type AgentResponse,
+import {
+  type ToolParametersSchema, type AgentConfigData, type AgentCreate, type AgentFunction, type AgentNodeData, type AgentResponse,
   type AgentUpdate, type ChatCompletionToolParam, type Edge, type Node, type ToolNodeData,
   type WorkflowAgent, type WorkflowCreateRequest, type WorkflowDeployment, type WorkflowResponse,
   Tool,
@@ -62,13 +63,13 @@ function convertConfigToAgentCreate(
 
     const format = outputFormat.toLowerCase();
     switch (format) {
-      case "json":      return "json";
-      case "yaml":      return "yaml";
-      case "markdown":  return "markdown";
-      case "html":      return "HTML";
-      case "none":      return "None";
-      case "text":      return "None";
-      default:          return "json";
+      case "json": return "json";
+      case "yaml": return "yaml";
+      case "markdown": return "markdown";
+      case "html": return "HTML";
+      case "none": return "None";
+      case "text": return "None";
+      default: return "json";
     }
   };
 
@@ -344,11 +345,13 @@ function AgentConfigForm(): JSX.Element {
             pollInterval = 2000; // 2 seconds for later stages
           }
 
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises -- idk man
           (window as any).currentPollingTimeout = setTimeout(pollProgress, pollInterval);
         }
       };
 
       // Start polling after a short delay
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises -- idk man
       (window as any).currentPollingTimeout = setTimeout(pollProgress, 1000);
 
       // Return cleanup function
@@ -680,25 +683,25 @@ function AgentConfigForm(): JSX.Element {
       nodes: nodes.map((node) =>
         isAgentNodeData(node.data)
           ? {
-              id: node.id,
-              position: node.position,
-              type: "agent" as const,
-              data: {
-                agent: node.data.agent,
-                prompt: node.data.prompt,
-                tools: node.data.tools,
-                tags: node.data.tags,
-              },
-            }
+            id: node.id,
+            position: node.position,
+            type: "agent" as const,
+            data: {
+              agent: node.data.agent,
+              prompt: node.data.prompt,
+              tools: node.data.tools,
+              tags: node.data.tags,
+            },
+          }
           : {
-              id: node.id,
-              position: node.position,
-              type: "tool" as const,
-              data: {
-                tool: node.data.tool,
-                tags: node.data.tags,
-              },
-            }
+            id: node.id,
+            position: node.position,
+            type: "tool" as const,
+            data: {
+              tool: node.data.tool,
+              tags: node.data.tags,
+            },
+          }
       ),
       edges: edges.map((edge) => ({
         source: edge.source,
@@ -784,8 +787,8 @@ function AgentConfigForm(): JSX.Element {
     },
     [selectedNode]
   );
-  
-  
+
+
   const handleToolAction = useCallback((nodeId: string, action: string, _nodeData?: ToolNodeData) => {
     switch (action) {
       case "editTool": setIsToolEditing(true); break;
@@ -933,7 +936,7 @@ function AgentConfigForm(): JSX.Element {
                     onAction: handleNodeAction,
                     onDelete: handleDeleteNode,
                     // eslint-disable-next-line @typescript-eslint/no-empty-function -- Will be overwritten
-                    onConfigure: () => {}, // This will be overwritten
+                    onConfigure: () => { }, // This will be overwritten
                     agent: agentData,
                     config: {
                       model: agentData.system_prompt.ai_model_name,
@@ -970,13 +973,13 @@ function AgentConfigForm(): JSX.Element {
         }
       } else if (toolDataJson) {
 
-        
+
         try {
           const toolData = JSON.parse(toolDataJson) as unknown;
           // console.log("toolData:", toolData);
           if (!toolData || !isTool(toolData)) throw new Error("Invalid tool data");
 
-        
+
           const position = reactFlowInstanceRef.current.project({
             x: event.clientX - reactFlowBounds.left,
             y: event.clientY - reactFlowBounds.top,
@@ -1001,8 +1004,8 @@ function AgentConfigForm(): JSX.Element {
           }
 
           setNodes((prevNodes) => [...prevNodes, newToolNode]);
-        
-        } catch(error) {
+
+        } catch (error) {
           if (error instanceof Error) {
             toast.error(error.message);
           } else {
@@ -1026,10 +1029,10 @@ function AgentConfigForm(): JSX.Element {
       // console.log("Dragging", agent ? "agent" : tool ? "tool" : "unknown");
 
       if (agent) {
-        event.dataTransfer.setData("dragData/agent",JSON.stringify(agent));
+        event.dataTransfer.setData("dragData/agent", JSON.stringify(agent));
         event.dataTransfer.effectAllowed = "move";
       } else if (tool) {
-        event.dataTransfer.setData("dragData/tool",JSON.stringify(tool));
+        event.dataTransfer.setData("dragData/tool", JSON.stringify(tool));
         event.dataTransfer.effectAllowed = "move";
       }
 
@@ -1088,15 +1091,15 @@ function AgentConfigForm(): JSX.Element {
         prevNodes.map((node) =>
           node.id === id
             ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  name,
-                  prompt,
-                  description,
-                  tags,
-                },
-              }
+              ...node,
+              data: {
+                ...node.data,
+                name,
+                prompt,
+                description,
+                tags,
+              },
+            }
             : node
         )
       );
@@ -1107,15 +1110,15 @@ function AgentConfigForm(): JSX.Element {
         setSelectedNode((prev) =>
           prev
             ? {
-                ...prev,
-                data: {
-                  ...prev.data,
-                  name,
-                  prompt,
-                  description,
-                  tags,
-                },
-              }
+              ...prev,
+              data: {
+                ...prev.data,
+                name,
+                prompt,
+                description,
+                tags,
+              },
+            }
             : null
         );
       }
@@ -1133,15 +1136,15 @@ function AgentConfigForm(): JSX.Element {
         prevNodes.map((node) =>
           node.id === nodeId
             ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  name: newName,
-                  // Make sure onDelete and onConfigure are maintained
-                  onDelete: node.data.onDelete,
-                  onConfigure: node.data.onConfigure,
-                },
-              }
+              ...node,
+              data: {
+                ...node.data,
+                name: newName,
+                // Make sure onDelete and onConfigure are maintained
+                onDelete: node.data.onDelete,
+                onConfigure: node.data.onConfigure,
+              },
+            }
             : node
         )
       );
@@ -1151,12 +1154,12 @@ function AgentConfigForm(): JSX.Element {
         setSelectedNode((prev) =>
           prev
             ? {
-                ...prev,
-                data: {
-                  ...prev.data,
-                  name: newName,
-                },
-              }
+              ...prev,
+              data: {
+                ...prev.data,
+                name: newName,
+              },
+            }
             : null
         );
       }
@@ -1226,25 +1229,25 @@ function AgentConfigForm(): JSX.Element {
     });
 
     const connections = edges.map((edge) => {
-        const source = nodeById.get(edge.source)?.data;
-        const target = nodeById.get(edge.target)?.data;
+      const source = nodeById.get(edge.source)?.data;
+      const target = nodeById.get(edge.target)?.data;
 
-        if (!source || !target) return null;
+      if (!source || !target) return null;
 
-        const sourceId = isAgentNodeData(source) ? source.agent.agent_id : source.tool.tool_id;
-        const targetId = isAgentNodeData(target) ? target.agent.agent_id : target.tool.tool_id;
+      const sourceId = isAgentNodeData(source) ? source.agent.agent_id : source.tool.tool_id;
+      const targetId = isAgentNodeData(target) ? target.agent.agent_id : target.tool.tool_id;
 
-        if (!sourceId || !targetId) {
-          console.log(`Missing agent ID for connection: ${edge.source} -> ${edge.target}`);
-          return null;
-        }
+      if (!sourceId || !targetId) {
+        console.log(`Missing agent ID for connection: ${edge.source} -> ${edge.target}`);
+        return null;
+      }
 
-        return {
-          source_agent_id: sourceId,
-          target_agent_id: targetId,
-          connection_type: mapActionTypeToConnectionType(edge.data?.actionType ?? "Action"),
-        };
-      }).filter((connection): connection is NonNullable<typeof connection> => connection !== null);
+      return {
+        source_agent_id: sourceId,
+        target_agent_id: targetId,
+        connection_type: mapActionTypeToConnectionType(edge.data?.actionType ?? "Action"),
+      };
+    }).filter((connection): connection is NonNullable<typeof connection> => connection !== null);
 
     return {
       name: name ?? workflowName,
@@ -1265,7 +1268,7 @@ function AgentConfigForm(): JSX.Element {
   // Deploy workflow
   const handleDeployWorkflow = async (nameOverride?: string): Promise<void> => {
     // Check for nodes
-    if (nodes.length === 0) {      
+    if (nodes.length === 0) {
       toast.error("Please add at least one agent to your workflow before deploying.");
       return;
     }
@@ -1334,7 +1337,7 @@ function AgentConfigForm(): JSX.Element {
       return;
     }
 
-    const workflow = buildWorkflowPayload(_workflowName, _description);    
+    const workflow = buildWorkflowPayload(_workflowName, _description);
 
     try {
       let workflowData: WorkflowResponse;
@@ -1477,38 +1480,38 @@ function AgentConfigForm(): JSX.Element {
     const uniqueId = `error_${Date.now().toString()}_${Math.random().toString(36).substring(2, 6)}`;
 
     const errorSchema: ToolParametersSchema = {
-        tool_name: "ErrorParameters",
-        tool_description: "This tool accepts no parameters as it represents an error state.",
-        properties: {}, // Minimum required property for ToolParametersSchema
-        required: []
+      tool_name: "ErrorParameters",
+      tool_description: "This tool accepts no parameters as it represents an error state.",
+      properties: {}, // Minimum required property for ToolParametersSchema
+      required: []
     };
 
     const errorTool: Tool = {
-        // Error-specific fields
-        id: uniqueId,
-        tool_id: `internal-error-${uuidv4()}`,
-        name: "Internal Error Handler",
-        description: "This tool is an internal placeholder signaling that the requested tool could not be loaded, found, or is unavailable.",
-        version: "0.0.1",
-        tool_type: "local",
-        execution_type: "internal",
+      // Error-specific fields
+      id: uniqueId,
+      tool_id: `internal-error-${uuidv4()}`,
+      name: "Internal Error Handler",
+      description: "This tool is an internal placeholder signaling that the requested tool could not be loaded, found, or is unavailable.",
+      version: "0.0.1",
+      tool_type: "local",
+      execution_type: "internal",
 
-        // Required structural fields
-        parameters_schema: errorSchema,
-        auth_required: false,
+      // Required structural fields
+      parameters_schema: errorSchema,
+      auth_required: false,
 
-        // Status fields indicating unavailability
-        is_active: false,
-        is_available: false,
+      // Status fields indicating unavailability
+      is_active: false,
+      is_available: false,
 
-        // Date/Usage fields
-        created_at: now,
-        updated_at: now,
-        usage_count: 0,
+      // Date/Usage fields
+      created_at: now,
+      updated_at: now,
+      usage_count: 0,
     };
 
     return errorTool;
-}
+  }
 
 
   // Memoized tools array to prevent re-renders
@@ -1645,48 +1648,48 @@ function AgentConfigForm(): JSX.Element {
             x: workflowAgent.position_x ?? 100,
             y: workflowAgent.position_y ?? 100,
           },
-          data: 
-            agent.agent_type === "tool" ? 
-            {
-              id: nodeId,
-              type: "local",
-              name: agent.name,
-              // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- ...stupid coalescing
-              description: agent.description === undefined || agent.description === null ? undefined : agent.description,
-              config: {
-                tool_defaultName: workflowAgent.agent_config?.tool_name && typeof workflowAgent.agent_config.tool_name === "string" ? workflowAgent.agent_config.tool_name : "unknown_tool",
-                tool_name: workflowAgent.agent_config?.step_label && typeof workflowAgent.agent_config.step_label === "string" ? workflowAgent.agent_config.step_label : undefined,
-                tool_description: workflowAgent.agent_config?.step_description && typeof workflowAgent.agent_config.step_description === "string" ? workflowAgent.agent_config.step_description : undefined,
-                param_mapping: workflowAgent.agent_config?.param_mapping && typeof workflowAgent.agent_config.param_mapping === "object" ? workflowAgent.agent_config.param_mapping as Record<string, unknown> : undefined,
-                static_params: workflowAgent.agent_config?.static_params && typeof workflowAgent.agent_config.static_params === "object" ? workflowAgent.agent_config?.static_params as Record<string, unknown> : undefined,
+          data:
+            agent.agent_type === "tool" ?
+              {
+                id: nodeId,
+                type: "local",
+                name: agent.name,
+                // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- ...stupid coalescing
+                description: agent.description === undefined || agent.description === null ? undefined : agent.description,
+                config: {
+                  tool_defaultName: workflowAgent.agent_config?.tool_name && typeof workflowAgent.agent_config.tool_name === "string" ? workflowAgent.agent_config.tool_name : "unknown_tool",
+                  tool_name: workflowAgent.agent_config?.step_label && typeof workflowAgent.agent_config.step_label === "string" ? workflowAgent.agent_config.step_label : undefined,
+                  tool_description: workflowAgent.agent_config?.step_description && typeof workflowAgent.agent_config.step_description === "string" ? workflowAgent.agent_config.step_description : undefined,
+                  param_mapping: workflowAgent.agent_config?.param_mapping && typeof workflowAgent.agent_config.param_mapping === "object" ? workflowAgent.agent_config.param_mapping as Record<string, unknown> : undefined,
+                  static_params: workflowAgent.agent_config?.static_params && typeof workflowAgent.agent_config.static_params === "object" ? workflowAgent.agent_config?.static_params as Record<string, unknown> : undefined,
+                },
+                onAction: handleToolAction,
+                onDelete: handleDeleteNode,
+                onConfigure: () => { handleNodeSelect(newNode); },
+                tool: toolsContext.getToolById(agent.agent_id) ?? getErrorTool(),
+              }
+              :
+              {
+                id: nodeId,
+                shortId: agent.deployment_code ?? agent.agent_id,
+                type: agent.agent_type ?? "custom",
+                name: agent.name,
+                prompt: agent.system_prompt.prompt || "",
+                tools: agent.functions, // Keep as ChatCompletionToolParam array
+                tags: [agent.agent_type ?? "custom"],
+                config: {
+                  model: agent.system_prompt.ai_model_name,
+                  agentName: agent.name,
+                  deploymentType: "",
+                  modelProvider: agent.system_prompt.ai_model_provider,
+                  outputFormat: "",
+                  selectedTools: agent.functions,
+                },
+                onAction: handleNodeAction,
+                onDelete: handleDeleteNode,
+                onConfigure: () => { handleNodeSelect(newNode); },
+                agent,
               },
-              onAction: handleToolAction,
-              onDelete: handleDeleteNode,
-              onConfigure: () => { handleNodeSelect(newNode); },
-              tool: toolsContext.getToolById(agent.agent_id) ?? getErrorTool(),
-            }
-            :
-            {
-              id: nodeId,
-              shortId: agent.deployment_code ?? agent.agent_id,
-              type: agent.agent_type ?? "custom",
-              name: agent.name,
-              prompt: agent.system_prompt.prompt || "",
-              tools: agent.functions, // Keep as ChatCompletionToolParam array
-              tags: [agent.agent_type ?? "custom"],
-              config: {
-                model: agent.system_prompt.ai_model_name,
-                agentName: agent.name,
-                deploymentType: "",
-                modelProvider: agent.system_prompt.ai_model_provider,
-                outputFormat: "",
-                selectedTools: agent.functions,
-              },
-              onAction: handleNodeAction,
-              onDelete: handleDeleteNode,
-              onConfigure: () => { handleNodeSelect(newNode); },
-              agent,
-            },
         };
 
         loadedNodes.push(newNode);
@@ -1772,12 +1775,12 @@ function AgentConfigForm(): JSX.Element {
         prevNodes.map((node) =>
           node.id === selectedNode.id
             ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  agent: newAgent, // Update with the real agent data from DB
-                },
-              }
+              ...node,
+              data: {
+                ...node.data,
+                agent: newAgent, // Update with the real agent data from DB
+              },
+            }
             : node
         )
       );
@@ -1787,9 +1790,9 @@ function AgentConfigForm(): JSX.Element {
   };
 
   // Helper function to update an existing agent in the database
-  const handleUpdateExistingAgentInDB = async (configData: AgentConfigData, tools: ChatCompletionToolParam[], agentName: string ): Promise<void> => {
+  const handleUpdateExistingAgentInDB = async (configData: AgentConfigData, tools: ChatCompletionToolParam[], agentName: string): Promise<void> => {
     if (!selectedNode?.data || !isAgentNodeData(selectedNode.data)) return;
-    if (!selectedNode.data.agent.agent_id) {throw new Error("No agent ID found for update"); }
+    if (!selectedNode.data.agent.agent_id) { throw new Error("No agent ID found for update"); }
 
     // Convert output format to valid response_type
     const getValidResponseType = (
@@ -1831,12 +1834,12 @@ function AgentConfigForm(): JSX.Element {
       prevNodes.map((node) =>
         node.id === selectedNode.id
           ? {
-              ...node,
-              data: {
-                ...node.data,
-                agent: updatedAgent, // Update with the real agent data from DB
-              },
-            }
+            ...node,
+            data: {
+              ...node.data,
+              agent: updatedAgent, // Update with the real agent data from DB
+            },
+          }
           : node
       )
     );
@@ -1869,14 +1872,14 @@ function AgentConfigForm(): JSX.Element {
           if (node.id !== selectedNode.id) return node;
           if (!isAgentNodeData(node.data)) return node;
           return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    name: agentName, // Use the potentially updated name
-                    tools, // Update tools from configuration
-                    config: configData, // Store configuration in the node data
-                  },
-                }
+            ...node,
+            data: {
+              ...node.data,
+              name: agentName, // Use the potentially updated name
+              tools, // Update tools from configuration
+              config: configData, // Store configuration in the node data
+            },
+          }
         })
       );
 
@@ -1894,37 +1897,37 @@ function AgentConfigForm(): JSX.Element {
     console.log("Node:", activeNode);
     console.log("Parameters:", parameters.properties);
     console.log("Saving stuff:", getToolConfigFromParameters(parameters));
-    
+
     setNodes((previousNodes) => previousNodes.map((node) => {
-        if (node.id !== activeNode.id) return node;
-        if (isAgentNodeData(node.data)) return node;
-        
-  
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            name: parameters.tool_name ?? node.data.name,
-            description: parameters.tool_description ?? node.data.description,
-            tool: {
-              ...node.data.tool,
-              parameters_schema: {
-                ...node.data.tool.parameters_schema,
-                properties: parameters.properties,
-                tool_name: parameters.tool_name ?? undefined,
-                tool_description: parameters.tool_description ?? undefined,
-              },
-              param_mapping: getToolConfigFromParameters(parameters),
+      if (node.id !== activeNode.id) return node;
+      if (isAgentNodeData(node.data)) return node;
+
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          name: parameters.tool_name ?? node.data.name,
+          description: parameters.tool_description ?? node.data.description,
+          config: getToolConfigFromParameters(parameters),
+          tool: {
+            ...node.data.tool,
+            parameters_schema: {
+              ...node.data.tool.parameters_schema,
+              properties: parameters.properties,
+              tool_name: parameters.tool_name ?? undefined,
+              tool_description: parameters.tool_description ?? undefined,
             },
           },
-        };
-      })
+        },
+      };
+    })
     );
     setHasUnsavedChanges(true);
   }
 
 
-  
+
   function getToolConfigFromParameters(parameters?: ToolParametersSchema, toolName?: string): Record<string, unknown> {
     console.log("Parameters", parameters);
     const mapping: Record<string, unknown> = {};
@@ -1935,8 +1938,10 @@ function AgentConfigForm(): JSX.Element {
     if (parameters.tool_description) mapping.step_description = parameters.tool_description;
 
     const paramMapping: Record<string, unknown> = {};
+    let usesResponse = false;
     for (const [key, value] of Object.entries(parameters.properties)) {
       if (value.isUsingResponse) {
+        usesResponse = true;
         const v = value.value;
         paramMapping[key] = v !== undefined && String(v).trim() !== "" ? `response.${String(v)}` : undefined;
       } else {
@@ -1944,6 +1949,10 @@ function AgentConfigForm(): JSX.Element {
       }
     }
     mapping.param_mapping = paramMapping;
+
+    if (usesResponse) {
+      (mapping as Record<string, unknown>).input_mapping = { response: "$prev" };
+    }
 
     console.log("Mapping:", mapping);
     return mapping;
@@ -2043,7 +2052,7 @@ function AgentConfigForm(): JSX.Element {
                 {/* Configuration Panel - shown when a node is selected OR vectorizer step is selected */}
                 {showConfigPanel && selectedNode && !selectedVectorizerStep ? (
                   <div className={`config-panel-container${!sidebarRightOpen ? " shrinked" : ""}${isEditingPrompt ? " editing" : ""}`} >
-                    {selectedNode.type === "agent" ? 
+                    {selectedNode.type === "agent" ?
                       <ConfigPanel
                         ref={panelRef}
                         agent={selectedNode.data as AgentNodeData}
@@ -2064,21 +2073,21 @@ function AgentConfigForm(): JSX.Element {
                             toSetNodes.map((node) =>
                               node.id === selectedNode.id
                                 ? {
-                                    ...node,
-                                    data: { ...node.data, tools: functions },
-                                  }
+                                  ...node,
+                                  data: { ...node.data, tools: functions },
+                                }
                                 : node
                             )
                           );
                         }}
                       />
-                    :
+                      :
                       <ToolsConfigPanel
                         toolNode={(selectedNode.data as ToolNodeData)}
                         isToolEditing={isToolEditing}
-                        onToolEdit={(intent) => { setIsToolEditing(intent) } }
+                        onToolEdit={(intent) => { setIsToolEditing(intent) }}
                         isSidebarOpen={sidebarRightOpen}
-                        toggleSidebar={() => { setSidebarRightOpen(!sidebarRightOpen); } }
+                        toggleSidebar={() => { setSidebarRightOpen(!sidebarRightOpen); }}
                         onSave={handleSaveToolConfig}
                       />
                     }

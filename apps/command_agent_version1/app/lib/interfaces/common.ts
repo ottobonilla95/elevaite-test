@@ -3,7 +3,8 @@ export interface ChatCompletionToolParam {
   function: {
     name: string;
     description?: string;
-    parameters?: Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- sod off
+    parameters?: Record<string, any>;
   };
 }
 

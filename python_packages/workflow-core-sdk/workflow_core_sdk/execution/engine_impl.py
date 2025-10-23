@@ -287,6 +287,10 @@ class WorkflowEngine:
         step_id = step_config["step_id"]
         step_type = step_config["step_type"]
 
+        if step_type == "agent":
+            step_type = "agent_execution"
+            step_config["step_type"] = step_type
+
         logger.info(f"Executing step: {step_id} ({step_type})")
 
         # Update current step

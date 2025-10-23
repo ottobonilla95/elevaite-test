@@ -176,7 +176,7 @@ class AgentStep:
         name: str = "Assistant",
         system_prompt: str = "You are a helpful assistant.",
         tools: Optional[List[Dict[str, Any]]] = None,
-        force_real_llm: bool = False,
+        force_real_llm: bool = True,
         connected_agents: Optional[List[Union[str, Dict[str, Any]]]] = None,  # IDs/names or dicts with {id/name, tools}
     ):
         self.name = name

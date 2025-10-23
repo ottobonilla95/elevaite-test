@@ -210,6 +210,148 @@ async def execute_workflow(
     workflow_config_for_execution["workflow_id"] = str(workflow_id)
     workflow_config_for_execution["name"] = sdk_workflow.name
 
+    # Build execution order from connections/dependencies and expand "$prev" based on graph (non-streaming)
+    try:
+        steps_list = workflow_config_for_execution.get("steps") or []
+        connections = workflow_config_for_execution.get("connections") or []
+
+        # Index steps by id and ensure config exists
+        step_by_id = {}
+        for s in steps_list:
+            if "config" not in s or s["config"] is None:
+                s["config"] = {}
+            sid = s.get("step_id")
+            if sid:
+                step_by_id[sid] = s
+
+        # Build graph: incoming and outgoing adjacency
+        incoming = {sid: [] for sid in step_by_id.keys()}
+        outgoing = {sid: [] for sid in step_by_id.keys()}
+        if connections:
+            for c in connections:
+                src = c.get("source_step_id") or c.get("source_agent_id")
+                tgt = c.get("target_step_id") or c.get("target_agent_id")
+                if src in step_by_id and tgt in step_by_id and src != tgt:
+                    incoming[tgt].append(src)
+                    outgoing[src].append(tgt)
+        else:
+            # Fall back to explicit dependencies on steps
+            for sid, s in step_by_id.items():
+                for dep in s.get("dependencies") or []:
+                    if dep in step_by_id and dep != sid:
+                        incoming[sid].append(dep)
+                        outgoing[dep].append(sid)
+
+        # Topologically sort (stable with respect to original order)
+        sid_order_idx = {s.get("step_id"): i for i, s in enumerate(steps_list)}
+        in_deg = {sid: len(incoming[sid]) for sid in step_by_id.keys()}
+        from collections import deque
+
+        queue = [sid for sid, d in in_deg.items() if d == 0]
+        queue.sort(key=lambda x: sid_order_idx.get(x, 0))
+        dq = deque(queue)
+        topo_order = []
+        visited = set()
+        while dq:
+            u = dq.popleft()
+            topo_order.append(u)
+            visited.add(u)
+            for v in outgoing.get(u, []):
+                in_deg[v] -= 1
+                if in_deg[v] == 0:
+                    dq.append(v)
+
+        # Tree-shake using connections: keep only reachable from roots if connections exist
+        if connections:
+            reachable = set()
+            roots = [sid for sid in step_by_id.keys() if len(incoming[sid]) == 0]
+            stack = list(roots)
+            while stack:
+                u = stack.pop()
+                if u in reachable:
+                    continue
+                reachable.add(u)
+                for v in outgoing.get(u, []):
+                    if v not in reachable:
+                        stack.append(v)
+            topo_order = [sid for sid in topo_order if sid in reachable]
+
+        # Fallback: append any unvisited steps in original order
+        for sid in [s.get("step_id") for s in steps_list]:
+            if sid and sid not in topo_order:
+                topo_order.append(sid)
+
+        # Reorder steps_list to topological order
+        workflow_config_for_execution["steps"] = [step_by_id[sid] for sid in topo_order if sid in step_by_id]
+
+        # Normalize each step using graph-aware previous (single dependency)
+        for sid in topo_order:
+            s = step_by_id.get(sid)
+            if not s:
+                continue
+            # Guarantee config exists
+            if "config" not in s or s["config"] is None:
+                s["config"] = {}
+
+            # Ensure dependencies reflect the graph if missing
+            if not s.get("dependencies") and incoming.get(sid):
+                # preserve order and uniqueness
+                seen = set()
+                s["dependencies"] = [d for d in incoming[sid] if not (d in seen or seen.add(d))]
+
+            # Pick a unique previous dependency if unambiguous
+            unique_dep = None
+            deps = s.get("dependencies") or []
+            if isinstance(deps, list) and len(deps) == 1:
+                unique_dep = deps[0]
+            elif len(incoming.get(sid, [])) == 1:
+                unique_dep = incoming[sid][0]
+
+            s["config"]["previous_step_id"] = unique_dep
+
+            # Normalize param_mapping and input_mapping
+            imap = s.get("input_mapping") or s["config"].get("input_mapping") or {}
+            pmap = s["config"].get("param_mapping")
+
+            if isinstance(pmap, dict):
+                need_response_alias = False
+                new_pmap = {}
+                for k, v in pmap.items():
+                    if isinstance(v, str):
+                        if v.startswith("$prev.response."):
+                            need_response_alias = True
+                            parts = v.split(".", 2)
+                            new_pmap[k] = f"response.{parts[2]}" if len(parts) > 2 else "response"
+                        elif v.startswith("response."):
+                            need_response_alias = True
+                            new_pmap[k] = v
+                        else:
+                            new_pmap[k] = v
+                    else:
+                        new_pmap[k] = v
+                s["config"]["param_mapping"] = new_pmap
+                if need_response_alias and "response" not in imap:
+                    imap["response"] = "$prev"
+
+            # Expand $prev using unique_dep if available
+            if isinstance(imap, dict):
+                new_imap = {}
+                for k, v in imap.items():
+                    if isinstance(v, str) and unique_dep:
+                        if v == "$prev":
+                            new_imap[k] = unique_dep
+                        elif v.startswith("$prev."):
+                            new_imap[k] = f"{unique_dep}.{v.split('.', 1)[1]}"
+                        else:
+                            new_imap[k] = v
+                    else:
+                        new_imap[k] = v
+                s["input_mapping"] = new_imap
+            else:
+                s["input_mapping"] = imap or {}
+    except Exception as _e:
+        logger.debug(f"Graph-based mapping preparation (sync) skipped: {_e}")
+
     # Build user context
     from workflow_core_sdk.execution.context_impl import UserContext
 
@@ -375,9 +517,15 @@ async def execute_workflow_stream(
                 if "config" not in step:
                     step["config"] = {}
 
-                # Check if this is an agent reference (has agent_id but empty/minimal config)
-                agent_id = step.get("step_id")
+                # Resolve the agent identifier correctly: prefer config.agent_id
                 step_config = step["config"]
+                agent_id = step_config.get("agent_id") or step.get("agent_id") or step.get("step_id")
+
+                # Ensure step_id is available inside config for streaming emissions
+                try:
+                    step_config["step_id"] = step.get("step_id")
+                except Exception:
+                    pass
 
                 # If config is missing critical fields, fetch from database
                 if not step_config.get("system_prompt") or not step_config.get("model"):
@@ -390,6 +538,8 @@ async def execute_workflow_stream(
                         sdk_agent = AgentsService.get_agent(db, agent_id)
                         if sdk_agent:
                             logger.info(f"Found agent in database: {sdk_agent.name}")
+                            # Ensure downstream step sees the agent by name for DB tool lookup
+                            step_config["agent_name"] = sdk_agent.name
 
                             # Fetch system prompt
                             system_prompt = PromptsService.get_prompt(db, str(sdk_agent.system_prompt_id))
@@ -500,6 +650,147 @@ async def execute_workflow_stream(
                 step["config"]["stream"] = True
                 logger.info(f"Enabled streaming for agent step: {step.get('step_id')}")
 
+    # Build execution order from connections/dependencies and expand "$prev" based on graph (streaming)
+    # - Topologically order steps using connections (fallback to dependencies)
+    # - Expand "$prev" only when a single dependency exists
+    # - Promote config.input_mapping to top-level input_mapping if needed
+    try:
+        steps_list = workflow_config_for_execution.get("steps") or []
+        connections = workflow_config_for_execution.get("connections") or []
+
+        # Index steps by id and ensure config exists
+        step_by_id = {}
+        for s in steps_list:
+            if "config" not in s or s["config"] is None:
+                s["config"] = {}
+            sid = s.get("step_id")
+            if sid:
+                step_by_id[sid] = s
+
+        # Build graph from connections (or dependencies)
+        incoming = {sid: [] for sid in step_by_id.keys()}
+        outgoing = {sid: [] for sid in step_by_id.keys()}
+        if connections:
+            for c in connections:
+                src = c.get("source_step_id") or c.get("source_agent_id")
+                tgt = c.get("target_step_id") or c.get("target_agent_id")
+                if src in step_by_id and tgt in step_by_id and src != tgt:
+                    incoming[tgt].append(src)
+                    outgoing[src].append(tgt)
+        else:
+            for sid, s in step_by_id.items():
+                for dep in s.get("dependencies") or []:
+                    if dep in step_by_id and dep != sid:
+                        incoming[sid].append(dep)
+                        outgoing[dep].append(sid)
+
+        # Stable topological ordering
+        sid_order_idx = {s.get("step_id"): i for i, s in enumerate(steps_list)}
+        in_deg = {sid: len(incoming[sid]) for sid in step_by_id.keys()}
+        from collections import deque
+
+        queue = [sid for sid, d in in_deg.items() if d == 0]
+        queue.sort(key=lambda x: sid_order_idx.get(x, 0))
+        dq = deque(queue)
+        topo_order = []
+        visited = set()
+        while dq:
+            u = dq.popleft()
+            topo_order.append(u)
+            visited.add(u)
+            for v in outgoing.get(u, []):
+                in_deg[v] -= 1
+                if in_deg[v] == 0:
+                    dq.append(v)
+
+        # Tree-shake reachable nodes when connections exist
+        if connections:
+            reachable = set()
+            roots = [sid for sid in step_by_id.keys() if len(incoming[sid]) == 0]
+            stack = list(roots)
+            while stack:
+                u = stack.pop()
+                if u in reachable:
+                    continue
+                reachable.add(u)
+                for v in outgoing.get(u, []):
+                    if v not in reachable:
+                        stack.append(v)
+            topo_order = [sid for sid in topo_order if sid in reachable]
+
+        # Fallback append any missing by original order
+        for sid in [s.get("step_id") for s in steps_list]:
+            if sid and sid not in topo_order:
+                topo_order.append(sid)
+
+        # Reorder steps
+        workflow_config_for_execution["steps"] = [step_by_id[sid] for sid in topo_order if sid in step_by_id]
+
+        # Per-step normalization
+        for sid in topo_order:
+            s = step_by_id.get(sid)
+            if not s:
+                continue
+            if "config" not in s or s["config"] is None:
+                s["config"] = {}
+
+            # Ensure dependencies reflect the graph if missing
+            if not s.get("dependencies") and incoming.get(sid):
+                seen = set()
+                s["dependencies"] = [d for d in incoming[sid] if not (d in seen or seen.add(d))]
+
+            # Resolve unique previous dependency
+            unique_dep = None
+            deps = s.get("dependencies") or []
+            if isinstance(deps, list) and len(deps) == 1:
+                unique_dep = deps[0]
+            elif len(incoming.get(sid, [])) == 1:
+                unique_dep = incoming[sid][0]
+
+            s["config"]["previous_step_id"] = unique_dep
+
+            # Normalize/expand mappings
+            imap = s.get("input_mapping") or s["config"].get("input_mapping") or {}
+            pmap = s["config"].get("param_mapping")
+
+            if isinstance(pmap, dict):
+                need_response_alias = False
+                new_pmap = {}
+                for k, v in pmap.items():
+                    if isinstance(v, str):
+                        if v.startswith("$prev.response."):
+                            need_response_alias = True
+                            parts = v.split(".", 2)
+                            new_pmap[k] = f"response.{parts[2]}" if len(parts) > 2 else "response"
+                        elif v.startswith("response."):
+                            need_response_alias = True
+                            new_pmap[k] = v
+                        else:
+                            new_pmap[k] = v
+                    else:
+                        new_pmap[k] = v
+                s["config"]["param_mapping"] = new_pmap
+                if need_response_alias and "response" not in imap:
+                    imap["response"] = "$prev"
+
+            if isinstance(imap, dict):
+                new_imap = {}
+                for k, v in imap.items():
+                    if isinstance(v, str) and unique_dep:
+                        if v == "$prev":
+                            new_imap[k] = unique_dep
+                        elif v.startswith("$prev."):
+                            new_imap[k] = f"{unique_dep}.{v.split('.', 1)[1]}"
+                        else:
+                            new_imap[k] = v
+                    else:
+                        new_imap[k] = v
+                s["input_mapping"] = new_imap
+            else:
+                s["input_mapping"] = imap or {}
+    except Exception as _e:
+        logger.debug(f"Graph-based mapping preparation (stream) skipped: {_e}")
+
     # Build user context
     from workflow_core_sdk.execution.context_impl import UserContext
 
@@ -572,14 +863,14 @@ async def execute_workflow_stream(
             logger.info(f"Starting event generator for execution: {execution_id}")
             # Add this connection to the stream manager
             stream_manager.add_execution_stream(execution_id, queue)
-            logger.info(f"Added execution stream to manager")
+            logger.info("Added execution stream to manager")
 
             # Start workflow execution in background
             async def run_workflow():
                 try:
-                    logger.info(f"Starting workflow execution in background")
+                    logger.info("Starting workflow execution in background")
                     await workflow_engine.execute_workflow(execution_context)
-                    logger.info(f"Workflow execution completed")
+                    logger.info("Workflow execution completed")
                 except Exception as e:
                     logger.error(f"Workflow execution failed: {e}", exc_info=True)
                     execution_context.fail_execution(str(e))
@@ -592,11 +883,11 @@ async def execute_workflow_stream(
             from adapters.streaming_adapter import StreamingAdapter
 
             # Get SDK stream
-            logger.info(f"Creating SDK event stream")
+            logger.info("Creating SDK event stream")
             sdk_event_stream = create_sse_stream(queue, heartbeat_interval=30, max_events=5000)
 
             # Convert SDK stream to Agent Studio format and yield
-            logger.info(f"Starting to adapt and yield events")
+            logger.info("Starting to adapt and yield events")
             async for agent_studio_event in StreamingAdapter.adapt_stream(
                 sdk_event_stream, execution_id=execution_id, workflow_id=str(workflow_id)
             ):

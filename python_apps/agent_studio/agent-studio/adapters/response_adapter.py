@@ -41,6 +41,62 @@ class ResponseAdapter:
             if agent.system_prompt_id:
                 system_prompt = PromptsService.get_prompt(db, str(agent.system_prompt_id))
 
+            # Load bound tools for this agent and convert to OpenAI function specs
+            functions: list[dict] = []
+            try:
+                from workflow_core_sdk.services.agents_service import AgentsService as _AgentsService
+                from workflow_core_sdk.services.tools_service import ToolsService as _ToolsService
+                from workflow_core_sdk.tools.registry import tool_registry as _tool_registry
+
+                bindings = _AgentsService.list_agent_tools(db, str(agent.id))
+                for b in bindings:
+                    if not getattr(b, "is_active", True):
+                        continue
+                    tool_name = None
+                    tool_description = ""
+                    tool_parameters = {}
+                    # Try DB tool first
+                    try:
+                        db_tool = _ToolsService.get_db_tool_by_id(db, str(b.tool_id))
+                        if db_tool:
+                            tool_name = db_tool.name
+                            tool_description = db_tool.description or ""
+                            if db_tool.parameters_schema:
+                                tool_parameters = db_tool.parameters_schema
+                    except Exception:
+                        pass
+                    # Fallback to unified registry
+                    if not tool_name:
+                        try:
+                            for ut in _tool_registry.get_unified_tools(db):
+                                if getattr(ut, "db_id", None) and str(ut.db_id) == str(b.tool_id):
+                                    tool_name = ut.name
+                                    tool_description = ut.description or ""
+                                    if getattr(ut, "parameters_schema", None):
+                                        tool_parameters = ut.parameters_schema
+                                    break
+                        except Exception:
+                            pass
+                    if not tool_name:
+                        tool_name = str(b.tool_id)
+                    functions.append(
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": tool_name,
+                                "description": tool_description,
+                                "parameters": (
+                                    getattr(b, "override_parameters", None)
+                                    or tool_parameters
+                                    or {"type": "object", "properties": {}}
+                                ),
+                            },
+                        }
+                    )
+            except Exception:
+                # If tool loading fails, continue with empty functions
+                functions = []
+
             # Build response matching AgentResponse schema
             response = {
                 "id": 0,  # Placeholder - Agent Studio uses int IDs
@@ -48,7 +104,7 @@ class ResponseAdapter:
                 "name": agent.name,
                 "agent_type": "router",
                 "description": agent.description or "",
-                "functions": [],
+                "functions": functions,
                 "routing_options": {},
                 "short_term_memory": False,
                 "long_term_memory": False,
