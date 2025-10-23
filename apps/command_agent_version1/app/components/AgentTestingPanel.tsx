@@ -1,15 +1,6 @@
 import { ChatbotIcons, CommonButton } from "@repo/ui/components";
 import { useAutoSizeTextArea } from "@repo/ui/hooks";
-import {
-  AlertCircle,
-  Bot,
-  FileText,
-  Maximize2,
-  Minimize2,
-  Upload,
-  User,
-  X,
-} from "lucide-react";
+import { AlertCircle, Bot, FileText, Maximize2, Minimize2, Upload, User, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { BACKEND_URL } from "../lib/constants";
 import { useWorkflows } from "../ui/contexts/WorkflowsContext";
@@ -19,6 +10,7 @@ import { AgentTestingParser } from "./AgentTestingParser";
 import AgentWorkflowDetailsModal from "./AgentWorkflowDetailsModal";
 import { type ChatMessage } from "./type";
 import { ChatLoading } from "./ui/ChatLoading";
+
 
 interface UploadedFile {
   id: string;
@@ -36,11 +28,7 @@ interface AgentTestingPanelProps {
   onWorkflowUpdate?: (workflowId: string) => void;
 }
 
-function AgentTestingPanel({
-  workflowId,
-  sessionId,
-  description,
-}: AgentTestingPanelProps): React.ReactElement {
+function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingPanelProps): React.ReactElement {
   const streamAbortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
@@ -55,13 +43,13 @@ function AgentTestingPanel({
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   useAutoSizeTextArea(textAreaRef.current, chatInput, 15);
 
+
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => [
     {
       id: Date.now(),
       text: workflowId
         ? // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- No! Not the same! description can be an empty string.
-          description ||
-          `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`
+          description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`
         : "No workflow detected. Please select a workflow from the left panel or save a new one.",
       sender: "bot",
     },
@@ -82,9 +70,7 @@ function AgentTestingPanel({
       const intro = {
         id: Date.now(),
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- description can be an empty string
-        text:
-          description ||
-          `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
+        text: description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`,
         sender: "bot" as const,
       };
       setChatMessages([intro]);
@@ -190,8 +176,7 @@ function AgentTestingPanel({
         runtime_overrides: {},
       };
 
-      const response = await fetch(
-        `${BACKEND_URL ?? ""}api/workflows/${workflowId}/stream`,
+      const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}/stream`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -233,11 +218,7 @@ function AgentTestingPanel({
           try {
             const parsed = JSON.parse(payload) as unknown;
             // status messages
-            if (
-              typeof parsed === "object" &&
-              parsed !== null &&
-              "status" in parsed
-            ) {
+            if (typeof parsed === "object" && parsed !== null && "status" in parsed) {
               const status = (parsed as { status?: string }).status;
               if (status === "started") setAgentStatus("Started");
               if (status === "completed") setAgentStatus("Completed");
@@ -280,14 +261,12 @@ function AgentTestingPanel({
             }
 
             // typed content/events
-            if (
-              typeof parsed === "object" &&
-              parsed !== null &&
-              "type" in parsed
-            ) {
-              const evt = parsed as { type: string; data?: unknown };
+            if (typeof parsed === "object" && parsed !== null && "type" in parsed) {
+              const evt = parsed as { type: string; data?: unknown; message?: unknown; };
               if (evt.type === "content") {
-                const data = typeof evt.data === "string" ? evt.data : "";
+                // console.log("[stream:content-payload]", { keys: Object.keys(parsed as Record<string, unknown>), dataType: typeof evt.data });
+                const data = typeof evt.data === "string" ? evt.data :
+                            typeof evt.message === "string" ? evt.message : "";
                 const nextText = accumulatedText + data;
                 accumulatedText = nextText;
                 // Live update the placeholder message
@@ -299,14 +278,16 @@ function AgentTestingPanel({
                   )
                 );
               } else if (evt.type === "info") {
-                const raw = typeof evt.data === "string" ? evt.data : "";
+                const raw = typeof evt.data === "string" ? evt.data :
+                            typeof evt.message === "string" ? evt.message : "";
                 const statusMessage = raw.trim();
                 if (statusMessage) setAgentStatus(statusMessage);
               } else if (evt.type === "tool_response") {
                 // Tool responses are logged to console for debugging
-                console.log("🔧 Tool Response:", evt.data);
+                // console.log("🔧 Tool Response:", evt.data);
               } else if (evt.type === "error") {
-                const raw = typeof evt.data === "string" ? evt.data : "";
+                const raw = typeof evt.data === "string" ? evt.data :
+                            typeof evt.message === "string" ? evt.message : "";
                 setAgentStatus("Error");
                 setChatMessages((prev) => [
                   ...prev,
