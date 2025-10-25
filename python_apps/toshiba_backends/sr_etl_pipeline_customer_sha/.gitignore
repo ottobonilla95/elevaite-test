@@ -1,0 +1,8 @@
+.env
+.env*
+/logs/*
+analysis/analysis_results.json
+analysis/failed_files_analysis.json
+
+failed_files_log.json
+processed_files_log.pkl

@@ -13,10 +13,10 @@ async def load_excel_to_postgres(excel_file):
         load_dotenv()
         
         # Get database connection string from environment
-        SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL")
+        SR_ANALYTICS_DATABASE_URL = os.getenv("SR_ANALYTICS_DATABASE_URL")
         
-        print(f"Connecting to database: {SQLALCHEMY_DATABASE_URL}")
-        engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
+        print(f"Connecting to database: {SR_ANALYTICS_DATABASE_URL}")
+        engine = create_async_engine(SR_ANALYTICS_DATABASE_URL)
         
         print(f"Reading Excel file: {excel_file}")
         # Read the Excel file initially with string dtype

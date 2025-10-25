@@ -83,7 +83,7 @@ def create_refresh_token(
 ) -> str:
     """Create a JWT refresh token."""
     expire = datetime.now(timezone.utc) + timedelta(
-        days=settings.REFRESH_TOKEN_EXPIRE_MINUTES
+        minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES
     )
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
 
@@ -240,3 +240,4 @@ def verify_totp(totp_code: str, totp_secret: str) -> bool:
     """Verify a TOTP code."""
     totp = pyotp.TOTP(totp_secret)
     return totp.verify(totp_code)
+

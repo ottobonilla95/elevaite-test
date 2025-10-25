@@ -21,8 +21,9 @@ jobs:
       toshiba_ui_changed: ${{ steps.filter.outputs.ui }}
       toshiba_backend_changed: ${{ steps.filter.outputs.backend }}
       toshiba_analytics_backend_changed: ${{ steps.filter.outputs.analytics_backend }}
-      toshiba_data_schema_changed: ${{ steps.filter.outputs.toshiba_data_schema }}
       toshiba_auth_changed: ${{ steps.filter.outputs.auth }}
+      toshiba_data_schema_changed: ${{ steps.filter.outputs.toshiba_data_schema }}
+      toshiba_sr_analytics_schema_changed: ${{ steps.filter.outputs.sr_analytics_schema }}
       should_deploy: ${{ steps.set.outputs.should_deploy }}
     steps:
       - uses: actions/checkout@v4
@@ -39,10 +40,12 @@ jobs:
               - 'python_apps/toshiba_backends/toshiba_backend/**'
             analytics_backend:
               - 'python_apps/toshiba_backends/analytics_backend/**'
-            toshiba_data_schema:
-              - 'python_apps/toshiba_backends/toshiba_data_schema/**'
             auth:
               - 'python_apps/auth_api/**'
+            toshiba_data_schema:
+              - 'python_apps/toshiba_backends/toshiba_data_schema/**'
+            sr_analytics_schema:
+              - 'python_apps/toshiba_backends/sr_analytics_schema/**'
 
       - name: Decide deploy
         id: set
@@ -51,6 +54,7 @@ jobs:
             "${{ steps.filter.outputs.backend }}" == "true" || \
             "${{ steps.filter.outputs.analytics_backend }}" == "true" || \
             "${{ steps.filter.outputs.toshiba_data_schema }}" == "true" || \
+            "${{ steps.filter.outputs.sr_analytics_schema }}" == "true" || \
             "${{ steps.filter.outputs.auth }}" == "true" ]]; then
             echo "should_deploy=true" >> $GITHUB_OUTPUT
           else
@@ -65,7 +69,6 @@ jobs:
       toshiba_ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
       toshiba_backend_tag: ${{ steps.set_tags.outputs.backend_tag }}
       toshiba_analytics_backend_tag: ${{ steps.set_tags.outputs.analytics_backend_tag }}
-      toshiba_data_schema_tag: ${{ steps.set_tags.outputs.toshiba_data_schema_tag }}
       toshiba_auth_tag: ${{ steps.set_tags.outputs.auth_tag }}
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -131,6 +134,17 @@ jobs:
 
           docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
 
+      - name: Build and Push Auth
+        if: needs.check-changes.outputs.toshiba_auth_changed == 'true'
+        run: |
+          IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-auth-api"
+          docker build \
+          -f python_apps/auth_api/Dockerfile \
+          -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
+          .
+
+          docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
+
       # Note: this is not a running service, just a container to hold the code and push to ECR
       - name: Build and Push Toshiba Data Schema
         if: needs.check-changes.outputs.toshiba_data_schema_changed == 'true'
@@ -143,14 +157,15 @@ jobs:
 
           docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
 
-      - name: Build and Push Auth
-        if: needs.check-changes.outputs.toshiba_auth_changed == 'true'
+      # Note: this is not a running service, just a container to hold the code and push to ECR
+      - name: Build and Push SR Analytics Schema
+        if: needs.check-changes.outputs.toshiba_sr_analytics_schema_changed == 'true'
         run: |
-          IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-auth-api"
+          IMAGE="${{ secrets.TGCS_ECR_REGISTRY }}/elevaite-toshiba-sr-analytics-schema"
           docker build \
-          -f python_apps/auth_api/Dockerfile \
+          -f python_apps/toshiba_backends/sr_analytics_schema/Dockerfile \
           -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \
-          .
+          python_apps/toshiba_backends/sr_analytics_schema
 
           docker push ${IMAGE}:${{ steps.meta.outputs.branch_tag }}
 
@@ -168,13 +183,12 @@ jobs:
             echo "analytics_backend_tag=${{ steps.meta.outputs.branch_tag }}" >> "$GITHUB_OUTPUT"
           fi
 
-          if [[ "${{ needs.check-changes.outputs.toshiba_data_schema_changed }}" == "true" ]]; then
-            echo "toshiba_data_schema_tag=${{ steps.meta.outputs.branch_tag }}" >> "$GITHUB_OUTPUT"
-          fi
-
           if [[ "${{ needs.check-changes.outputs.toshiba_auth_changed }}" == "true" ]]; then
             echo "auth_tag=${{ steps.meta.outputs.branch_tag }}" >> "$GITHUB_OUTPUT"
           fi
+
+          # note: don't need to export tags for the alembic schema images, as they're only used manually
+
 
   deploy-preview:
     if: needs.check-changes.outputs.should_deploy == 'true'

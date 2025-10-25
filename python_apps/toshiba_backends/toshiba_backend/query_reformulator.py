@@ -91,6 +91,8 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     - MTM codes without valid types
     - "TCx Sky" (OS)
     - Toshiba part numbers (e.g. 80Y1564, 3AC01587100)
+    - SR Data queries (e.g. "SR Data: How many SR tickets were done for Harris Teeter?")
+    - Service request related queries (e.g. "What are the SR tickets closed on 2024-11-06 and who resolved them?")
 
     ### IF NO REWRITE IS NEEDED:
     - If the input is a greeting or unrelated small talk (e.g. "hello", "thanks", "okay"), pass it through exactly.
@@ -118,6 +120,8 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     NOTICE HOW NO MODEL NUMBER IS PROVIDED, SO IT IS NOT INCLUDED IN THE QUERY.
 
     Rewritten queries must be natural and complete, as if a human rephrased them for clarity — but only when needed.
+    
+    IMPORTANT: Never re-write queries that begin with "KG:", "CAM: " or "SR Data:" or any service request related queries.
 
     ###
     """

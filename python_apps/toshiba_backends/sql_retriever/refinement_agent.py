@@ -27,6 +27,7 @@ async def sql_matching_values(
     """
     Given (table_name, column_name, value), returns up to 3 exact match values
     from the database using fuzzy matching. Schema-aware: validates table and column.
+    Note: for states, check for both full names and abbreviations. For example, if the user inputs "New York", check for both "New York" and "NY".
 
     Args:
         user_inputs (List[Tuple]): List of (table, column, value)
@@ -35,9 +36,14 @@ async def sql_matching_values(
 
     Returns:
         List[OutputTuple]: [(table_name, column_name, (match1, match2,...)), ...]
+
+    EXAMPLE:
+    Query:  how many srs were closed for walgreens in new york
+    Arguments: {'user_inputs': [['customers', 'customer_name', 'walgreens'], ['customers', 'state', 'new york'], ['customers', 'state', 'NY']], 'top_n': 3}
     """
 
-    database_url = os.getenv("SQLALCHEMY_DATABASE_URL")
+    database_url = os.getenv("SR_ANALYTICS_DATABASE_URL")
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
     if not database_url:
         return [("error", "config", ("Database URL not configured",))]
 
@@ -139,7 +145,9 @@ class QueryRefinementAgent(Agent):
                         if tool_call.function.name == "sql_matching_values":
                             import json
                             args = json.loads(tool_call.function.arguments)
+                            print(f"Arguments: {args}")
                             result = await sql_matching_values(**args)
+                            print(f"Result: {result}")
                             messages.append({
                                 "role": "tool",
                                 "tool_call_id": tool_call.id,

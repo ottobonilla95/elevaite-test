@@ -8,7 +8,7 @@ const ApplicationIcons = {
       alt: "Chatbot",
     },
     dashboard: {
-      src: "/icons/supportBot.svg",
+      src: "/icons/supportBot.svg", // Changed from supportBot.svg to dashboard.svg
       alt: "Dashboard",
     },
   },
@@ -21,17 +21,19 @@ const appLinks: Record<string, string> = {
 
 export function getApplications(
   _accountMemberships?: UserAccountMembershipObject[],
-  userSession?: any // Add user session parameter
+  userSession?: any
 ): { title: string; key: string; cards: CardProps[] }[] {
   const cards: CardProps[] = [];
 
   // Extract user role information from session
-  const isAdmin = userSession?.user?.is_superuser === true || userSession?.user?.application_admin === true;
+  const isSuperAdmin = userSession?.user?.is_superuser === true;
+  const isApplicationAdmin = userSession?.user?.application_admin === true;
+  const isAnyAdmin = isSuperAdmin || isApplicationAdmin;
   const isManager = userSession?.user?.is_manager === true;
-  const isFieldService = !isAdmin && !isManager; // Regular user (field service)
+  const isFieldService = !isAnyAdmin && !isManager;
 
-  // Chatbot tile - show to field service engineers and admins (not managers)
-  if (isFieldService || isAdmin) {
+  // Chatbot tile - show to EVERYONE (field service, managers, and admins)
+  if (isFieldService || isManager || isAnyAdmin) {
     cards.push({
       icon: ApplicationIcons.applications.supportBot.src,
       description:
@@ -46,8 +48,8 @@ export function getApplications(
     });
   }
 
-  // Dashboard tile - show to managers and admins (not field service)
-  if (isManager || isAdmin) {
+  // Dashboard tile - show to managers and admins ONLY (not field service)
+  if (isManager || isAnyAdmin) {
     cards.push({
       icon: ApplicationIcons.applications.dashboard.src,
       description:

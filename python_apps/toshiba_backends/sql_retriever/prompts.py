@@ -181,6 +181,10 @@ customers.customer_account_number = service_requests.customer_account_number
 service_requests.sr_number        = tasks.sr_number 
 tasks.task_number                 = parts_used.task_number 
 service_requests.sr_number        = sr_notes.sr_number 
+
+SPECIAL NOTE:
+1. In customers table, the address_line2 is the store number or store ID.
+2. In tasks table, assignee_name is the name of the technician or FST (Field Service Technician)
 """
 
 MACHINE_TYPE_TABLE = """
@@ -377,9 +381,13 @@ Your task:
 4. The tool will validate schema and return up to 3 exact matches per field.
 5. Use these exact matches to rewrite the query in schema-aware form.
 
-Rules:
+Instructions:
 - Always use valid schema column names.
-- If multiple matches are returned, include them all.
+- If the user input contains SQL keywords like DROP, DELETE, UPDATE, INSERT, TRUNCATE, ALTER, respond with "Cannot process this request" and explain why.
+- If the user mentions store number, or store ID, it is referring to the address_line1. For instance Alex Lee, Inc. at address_line1 2415 HERRONS NEST PLACE NW has store id 282, whereas the Alex Lee, Inc. at address_line1 331 W Carolina Ave has store id 673.
+- If multiple matches are returned, include only the best match. For example, if the user says "how many srs did michael barry complete on a 6800 in georgia?", and the tool returns ["michael barry", "michael barker", "michael burry"], only include "michael barry" in the refined query. Similarly, if the tool returns ["6800", "6801", "6802"], only include "6800" in the refined query.
+- The state names are abbreviated as follows: TX, CA, NY, etc. Check for both full names and abbreviations in the customers table.
+- Only one abbreviation is allowed for each state. For example, if the user says "Texas", and the tool returns "TX" and "TYX",then only include "TX" in the refined query.
 - If the tool returns an error, keep the original user value but flag it as uncertain.
 - Verify if the user is talking about a machine type from the table of Machin Types I have given in the prompt.
 For instance 4820, 6149 etc are machine types.

@@ -31,6 +31,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# settings.json files - almost always local-env files containing AWS access keys and database passwords
+settings.json
+
 # turbo
 .turbo
 

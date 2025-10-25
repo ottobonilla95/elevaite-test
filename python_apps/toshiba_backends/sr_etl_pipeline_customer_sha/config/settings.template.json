@@ -1,0 +1,9 @@
+{
+"s3_bucket": "tgcs-raw-data",
+    "s3_folder": "Toshiba/Historical Tickets/",
+    "aws_access_key_id":"",
+    "aws_secret_access_key": "",
+    "aws_region":"us-east-2",
+    "pg_conn_string": "postgresql+asyncpg://somansh:elevaite@localhost:5434/toshiba_db"
+}
+

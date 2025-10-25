@@ -21,24 +21,6 @@ const breadcrumbLabels: Record<string, { label: string; link: string }> = {
   },
 };
 
-const baseSidebarIcons: SidebarIconObject[] = [
-  {
-    icon: <ElevaiteIcons.SVGAccess />,
-    link: "/access",
-    description: "Access Management",
-  },
-  {
-    icon: <ElevaiteIcons.SVGApplications />,
-    link: "/",
-    description: "Applications",
-  },
-  {
-    icon: <ElevaiteIcons.SVGSettings />,
-    link: "/settings",
-    description: "Settings",
-  },
-];
-
 interface LayoutWrapperProps {
   customThemes?: ThemeObject[];
   children: React.ReactNode;
@@ -59,12 +41,32 @@ export function LayoutWrapper({
   const isApplicationAdmin =
     (effectiveSession?.user as any)?.application_admin === true;
   const isAnyAdmin = isSuperAdmin || isApplicationAdmin;
+  const isManager = (effectiveSession?.user as any)?.is_manager === true;
 
-  const shouldShowSidebar = isAnyAdmin;
+  const shouldShowSidebar = isAnyAdmin || isManager;
+
+  // Build sidebar icons with conditional disabled state
+  const baseSidebarIcons: SidebarIconObject[] = [
+    ...(isAnyAdmin ? [{
+      icon: <ElevaiteIcons.SVGAccess />,
+      link: "/access",
+      description: "Access Management",
+    }] : []),
+    {
+      icon: <ElevaiteIcons.SVGApplications />,
+      link: "/",
+      description: "Applications",
+    },
+    {
+      icon: <ElevaiteIcons.SVGSettings />,
+      link: "/settings",
+      description: "Settings",
+    },
+  ];
 
   // Check if we're on a page that should show admin layout
   const shouldShowAdminLayout =
-    isAnyAdmin &&
+    (isAnyAdmin || isManager) &&
     (pathname === "/" ||
       pathname.startsWith("/access") ||
       pathname.startsWith("/(admin)"));
@@ -99,4 +101,3 @@ export function LayoutWrapper({
     </ColorContextProvider>
   );
 }
-

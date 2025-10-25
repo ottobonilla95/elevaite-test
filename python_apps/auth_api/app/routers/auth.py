@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.future import select as async_select
 from pydantic import BaseModel, Field, field_validator
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+import json
 
 from app.core.logging import logger
 from app.db.orm import get_async_session
@@ -437,8 +438,13 @@ async def login(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Login with email and password."""
-    # Log login attempt
-    logger.info(f"Login attempt for email: {login_data.email}")
+    # Detect platform from user agent
+    user_agent = request.headers.get("user-agent", "unknown")
+    platform = get_platform_from_user_agent(user_agent)
+    
+    # Log login attempt with platform
+    logger.info(f"[{platform}] Login attempt for email: {login_data.email}")
+    logger.info(f"[{platform}] User-Agent: {user_agent[:100]}")  # Log first 100 chars
 
     # Step 1: Check if user exists
     user_id_value = None
@@ -688,6 +694,9 @@ async def login(
             user_agent=request.headers.get("user-agent"),
         )
         await session.commit()
+        
+        logger.info(f"[{platform}] Login successful for: {login_data.email}")
+
     except Exception as e:
         print(f"Error logging login activity: {e}")
         try:
@@ -731,6 +740,11 @@ async def refresh_token(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Refresh access token using refresh token."""
+    
+    user_agent = request.headers.get("user-agent", "unknown")
+    platform = get_platform_from_user_agent(user_agent)
+    
+    logger.info(f"[{platform}] Token refresh attempt")
     user_id = await verify_refresh_token(session, token_data.refresh_token)
 
     if not user_id:
@@ -2485,4 +2499,52 @@ def extract_platform_from_user_agent(user_agent: str) -> str:
         return "iOS"
     else:
         return "Unknown"
+    
+def get_platform_from_user_agent(user_agent: str) -> str:
+    """
+    Determine if request is from mobile app or web browser.
+    Returns: "MOBILE", "WEB", or "UNKNOWN"
+    """
+    if not user_agent:
+        return "UNKNOWN"
+    
+    user_agent_lower = user_agent.lower()
+    
+    # Check for mobile app identifier
+    if "toshibachatbot" in user_agent_lower:
+        return "MOBILE"
+    
+    # Check for web browsers
+    if any(browser in user_agent_lower for browser in ["mozilla", "chrome", "safari", "firefox", "edge"]):
+        return "WEB"
+    
+    return "UNKNOWN"
+    
+@router.post("/log-mobile-auth")
+async def log_mobile_auth(
+    request: Request,
+    log_data: dict
+):
+    """
+    Log mobile app authentication events.
+    Appears in kubectl logs with [MOBILE_AUTH] prefix.
+    """
+    try:
+        log_entry = {
+            "event": "MOBILE_AUTH",
+            "auth_method": log_data.get("auth_method"),
+            "app_version": log_data.get("app_version"),
+            "user_email": log_data.get("user_email"),
+            "user_agent": request.headers.get("user-agent"),
+            "ip_address": request.client.host if request.client else None,
+            "timestamp": log_data.get("timestamp"),
+        }
+        
+        logger.info(f"[MOBILE_AUTH] {json.dumps(log_entry)}")
+        
+        return {"status": "logged"}
+        
+    except Exception as e:
+        logger.error(f"Failed to log mobile auth: {str(e)}")
+        return {"status": "error"}
 

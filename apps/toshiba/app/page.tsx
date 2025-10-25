@@ -8,7 +8,6 @@ import { redirect } from "next/navigation";
 export default async function Page(): Promise<JSX.Element | never> {
   const session = await auth();
 
-
   console.log("=== DEBUG SESSION DATA ===");
   console.log("session?.user:", session?.user);
   console.log("is_manager:", (session?.user as any)?.is_manager);
@@ -18,16 +17,18 @@ export default async function Page(): Promise<JSX.Element | never> {
   const isSuperAdmin = (session?.user as any)?.is_superuser === true;
   const isApplicationAdmin = (session?.user as any)?.application_admin === true;
   const isAnyAdmin = isSuperAdmin || isApplicationAdmin;
-
   const isManager = (session?.user as any)?.is_manager === true;
 
-  if (!isAnyAdmin && !isManager) {
+  // Only field service engineers get auto-redirected to chatbot
+  // Managers and admins see the tiles page
+  const isFieldService = !isManager && !isAnyAdmin;
+
+  if (isFieldService) {
     redirect("/chatbot");
-  } else if (isManager && !isAnyAdmin) {
-    redirect("/analytics");
   }
 
   const applications = getApplications(session?.user?.accountMemberships, session);
+
   return (
     <div className="card-holders-container">
       {applications.map((app) => (
