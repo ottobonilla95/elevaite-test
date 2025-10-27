@@ -33,7 +33,7 @@ class TestApiKeyHttpValidator:
     async def test_real_api_key_validation_success(
         self,
         check_auth_api_available,
-        test_user_active,
+        test_user_with_api_key,
         auth_api_url,
     ):
         """Test that HTTP validator successfully validates a real API key."""
@@ -44,10 +44,10 @@ class TestApiKeyHttpValidator:
         request = Mock()
 
         # Validate the API key
-        user_id = validator(test_user_active["api_key"], request)
+        user_id = validator(test_user_with_api_key["api_key"], request)
 
         # Should return the user ID as a string
-        assert user_id == str(test_user_active["id"])
+        assert user_id == str(test_user_with_api_key["id"])
 
     async def test_real_api_key_validation_invalid_key(
         self,
@@ -94,7 +94,7 @@ class TestApiKeyHttpValidator:
     async def test_real_api_key_validation_caching(
         self,
         check_auth_api_available,
-        test_user_active,
+        test_user_with_api_key,
         auth_api_url,
     ):
         """Test that HTTP validator caches successful validations."""
@@ -105,14 +105,14 @@ class TestApiKeyHttpValidator:
         request = Mock()
 
         # First call - should hit the API
-        user_id_1 = validator(test_user_active["api_key"], request)
+        user_id_1 = validator(test_user_with_api_key["api_key"], request)
 
         # Second call - should use cache
-        user_id_2 = validator(test_user_active["api_key"], request)
+        user_id_2 = validator(test_user_with_api_key["api_key"], request)
 
         # Both should return the same user ID
         assert user_id_1 == user_id_2
-        assert user_id_1 == str(test_user_active["id"])
+        assert user_id_1 == str(test_user_with_api_key["id"])
 
     async def test_real_api_key_validation_network_failure(
         self,

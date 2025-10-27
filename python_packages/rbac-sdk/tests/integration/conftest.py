@@ -14,6 +14,8 @@ AUTH_API_URL = os.getenv("AUTH_API_URL", "http://localhost:8004")
 OPA_URL = os.getenv("OPA_URL", "http://localhost:8181")
 # Use SECRET_KEY for access tokens (not API_KEY_SECRET which is for API keys)
 SECRET_KEY = os.getenv("SECRET_KEY", "test-secret-key-do-not-use-in-production")
+# Use API_KEY_SECRET for API keys (type="api_key")
+API_KEY_SECRET = os.getenv("API_KEY_SECRET", "test-secret-key-for-integration-tests")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 
@@ -128,6 +130,49 @@ async def test_user_active(http_client: httpx.AsyncClient, auth_api_url: str) ->
         "email": user_data["email"],
         "status": user_data.get("status", "active"),
         "is_superuser": True,
+        "api_key": api_key,
+    }
+
+
+@pytest.fixture
+async def test_user_with_api_key(http_client: httpx.AsyncClient, auth_api_url: str) -> Dict[str, Any]:
+    """
+    Create an active test user with a real API key (type="api_key").
+
+    Returns:
+        Dict with user info including id, email, api_key (JWT with type="api_key")
+    """
+    # Register a test user
+    register_url = f"{auth_api_url}/api/auth/register"
+    timestamp = datetime.now(timezone.utc).timestamp()
+    email = f"test-apikey-{timestamp}@example.com"
+
+    response = await http_client.post(
+        register_url, json={"email": email, "password": "SecurePass123!", "full_name": "Test API Key User"}
+    )
+
+    if response.status_code not in (200, 201):
+        pytest.skip(f"Could not create test user: {response.status_code} - {response.text}")
+
+    user_data = response.json()
+
+    # Create an API key for this user
+    # Use API_KEY_SECRET because validate-apikey uses settings.API_KEY_SECRET
+    api_key = jwt.encode(
+        {
+            "sub": str(user_data["id"]),
+            "type": "api_key",  # API key type (not "access")
+            "tenant_id": "default",
+            "exp": datetime.now(timezone.utc) + timedelta(days=30),
+        },
+        API_KEY_SECRET,
+        algorithm=ALGORITHM,
+    )
+
+    return {
+        "id": user_data["id"],
+        "email": user_data["email"],
+        "status": user_data.get("status", "active"),
         "api_key": api_key,
     }
 
@@ -344,6 +389,7 @@ async def setup_integration_env():
     os.environ["AUTHZ_SERVICE_URL"] = AUTH_API_URL
     os.environ["OPA_URL"] = OPA_URL
     os.environ["SECRET_KEY"] = SECRET_KEY
+    os.environ["API_KEY_SECRET"] = API_KEY_SECRET
     os.environ["ALGORITHM"] = ALGORITHM
 
     yield
