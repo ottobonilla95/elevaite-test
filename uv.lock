@@ -24,8 +24,6 @@ members = [
     "rbac-sdk",
     "salesforce-csm-api",
     "servicenow-connector",
-    "worker",
-    "workers",
     "workflow-core-sdk",
     "workflow-engine-poc",
 ]
@@ -1121,19 +1119,6 @@ wheels = [
 ]
 
 [[package]]
-name = "dataclasses-json-speakeasy"
-version = "0.5.11"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "marshmallow" },
-    { name = "typing-inspect" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/1b/52/769882398bb126979fb0deb587d54e148420e4494e9aa8c118a943cbbb16/dataclasses_json_speakeasy-0.5.11.tar.gz", hash = "sha256:418a987cea2ccf4e4be662f39faa5cc79b47b147c9d1a69d6928d6a27e0c17e8", size = 31879, upload-time = "2024-02-01T08:53:54.765Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/5b/2002d3da4fc37c567287cd89fb08b43c1fb130ce0d757bd3e8f61b1a1f94/dataclasses_json_speakeasy-0.5.11-py3-none-any.whl", hash = "sha256:ac52a069a01e8521015d682f37849bfdf056c36fa3f81497055e201fec684104", size = 28328, upload-time = "2024-02-01T08:53:52.811Z" },
-]
-
-[[package]]
 name = "db-core"
 version = "0.1.0"
 source = { editable = "python_packages/db-core" }
@@ -1653,27 +1638,6 @@ wheels = [
 ]
 
 [[package]]
-name = "emoji"
-version = "2.14.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cb/7d/01cddcbb6f5cc0ba72e00ddf9b1fa206c802d557fd0a20b18e130edf1336/emoji-2.14.1.tar.gz", hash = "sha256:f8c50043d79a2c1410ebfae833ae1868d5941a67a6cd4d18377e2eb0bd79346b", size = 597182, upload-time = "2025-01-16T06:31:24.983Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/db/a0335710caaa6d0aebdaa65ad4df789c15d89b7babd9a30277838a7d9aac/emoji-2.14.1-py3-none-any.whl", hash = "sha256:35a8a486c1460addb1499e3bf7929d3889b2e2841a57401903699fef595e942b", size = 590617, upload-time = "2025-01-16T06:31:23.526Z" },
-]
-
-[[package]]
-name = "envd"
-version = "1.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3b/41/fe0925890cbbaba98287a97f1e5bff1b20ed7a1ab9645de45ae40e05bb71/envd-1.2.0.tar.gz", hash = "sha256:4fd9ba653880dc4f2a8cebdec8a70d893b88b9e21e59e426eeae1f03c8ddaf39", size = 339973, upload-time = "2025-04-02T04:26:21.134Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c4/1b/36b6dfa57688e58daf652aba93222a06631d280d6c7b930551fe0705702f/envd-1.2.0-py2.py3-none-macosx_10_9_x86_64.whl", hash = "sha256:8b595b50f6a5ed98e33891f4ce18da3f89aa5eae09a4659670e654c28de8780b", size = 34430328, upload-time = "2025-04-02T04:26:08.517Z" },
-    { url = "https://files.pythonhosted.org/packages/fc/5f/77e9f8a4408ff6891c7488502dea68e776fe2ed145de7bbfeec4df953e09/envd-1.2.0-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:eac83903a00b941d62fde905102049a8d8a4f7e58ad39bc4e144bf140d50344b", size = 34430781, upload-time = "2025-04-02T04:26:12.219Z" },
-    { url = "https://files.pythonhosted.org/packages/1f/98/9d78117e71f0b2330e8c98993d6567538adab732cc741e804c5fb32d3251/envd-1.2.0-py2.py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8285f6d8f3bcf1b7abd7aa9df5656da20e223cfcab8b289027899f0dd046f147", size = 17412197, upload-time = "2025-04-02T04:26:15.923Z" },
-    { url = "https://files.pythonhosted.org/packages/bf/46/9ba9c64f339f6ea41528cb4ef2b769648172e75736d5bf34f73a9dde679f/envd-1.2.0-py2.py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:32249bd6afaed043a5d8dfa76386b378ee25d242e04e33a9c153097319dbe5be", size = 17412167, upload-time = "2025-04-02T04:26:18.648Z" },
-]
-
-[[package]]
 name = "et-xmlfile"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1685,7 +1649,7 @@ wheels = [
 [[package]]
 name = "etl"
 version = "0.1.0"
-source = { virtual = "python_apps/etl" }
+source = { editable = "python_apps/etl" }
 dependencies = [
     { name = "alembic" },
     { name = "elasticsearch" },
@@ -1699,10 +1663,18 @@ dependencies = [
     { name = "python-multipart" },
     { name = "qdrant-client" },
     { name = "rbac-lib" },
+    { name = "rbac-sdk" },
     { name = "redis" },
     { name = "sqlalchemy" },
     { name = "urllib3" },
     { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
 ]
 
 [package.metadata]
@@ -1719,10 +1691,18 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.9" },
     { name = "qdrant-client", specifier = ">=1.9.1" },
     { name = "rbac-lib", editable = "python_packages/rbac-lib" },
+    { name = "rbac-sdk", editable = "python_packages/rbac-sdk" },
     { name = "redis", specifier = ">=5.0.1" },
     { name = "sqlalchemy", specifier = ">=2.0.30" },
     { name = "urllib3", specifier = "~=2.0.7" },
     { name = "uvicorn", specifier = ">=0.29.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.25.2" },
+    { name = "pytest", specifier = ">=7.4.3" },
+    { name = "pytest-asyncio", specifier = ">=0.21.1" },
 ]
 
 [[package]]
@@ -1907,32 +1887,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ed/ac/c73902513ba7a8f206c3b8f419f36a2abed7760783dcf06615e6db42e3da/flytekit-1.16.3.tar.gz", hash = "sha256:16533e1375eedccecfca673970a3cb7bda9eac3f6b9b094a81edac9c2388d09f", size = 564641, upload-time = "2025-07-17T18:56:15.241Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5f/9c/ae4f566977dcfcf20f935ac5906b53106aa16c7e98751646dc3c837f1513/flytekit-1.16.3-py3-none-any.whl", hash = "sha256:466848f9e44ee9ab4c56e7b47ffa2ded79f2bc74585139983ad4815a6bfe0336", size = 666231, upload-time = "2025-07-17T18:56:12.677Z" },
-]
-
-[[package]]
-name = "flytekitplugins-envd"
-version = "1.15.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "envd" },
-    { name = "flytekit" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/07/ac/050bd48d51655e6aa594ecc5aaf68e6abcdcc7822ce378fe83b03dff3d95/flytekitplugins_envd-1.15.4.tar.gz", hash = "sha256:321e765e3b61aafc0d9dd64be251636b5f86d9e3bafe3005d0d9363399aea7fe", size = 6433, upload-time = "2025-04-22T23:07:15.528Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/47/a6/30654c221bd4c239863a892f1d1a908da6bac6e11e239c2eb8be3a00e060/flytekitplugins_envd-1.15.4-py3-none-any.whl", hash = "sha256:fb9ae678bddc0780d862e2847325ecdc209beac033f02474e879a68278951aed", size = 5722, upload-time = "2025-04-22T23:06:30.296Z" },
-]
-
-[[package]]
-name = "flytekitplugins-pydantic"
-version = "1.13.15"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flytekit" },
-    { name = "pydantic" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/39/49/dbc54afd6868f183b5c7668a62ff7c8a893f1ed9900cea48148e86097836/flytekitplugins_pydantic-1.13.15.tar.gz", hash = "sha256:2b2de70c3772fe198406c49e516dd0a1d079f495604ddabdb4747146fe1deb16", size = 9075, upload-time = "2024-12-09T20:12:03.314Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/b9/9147a329fe325f519ad09d281cb61a1fa81c5dc031336d0e184d5e523890/flytekitplugins_pydantic-1.13.15-py3-none-any.whl", hash = "sha256:6ea69a2f7277ade618396537cc84ed5d8bcfa7a83c56c3dcac3c90c05c40471b", size = 9248, upload-time = "2024-12-09T20:11:21.259Z" },
 ]
 
 [[package]]
@@ -2370,19 +2324,6 @@ wheels = [
 ]
 
 [[package]]
-name = "html5lib"
-version = "1.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "six" },
-    { name = "webencodings" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ac/b6/b55c3f49042f1df3dcd422b7f224f939892ee94f22abcf503a9b7339eaf2/html5lib-1.1.tar.gz", hash = "sha256:b2e5b40261e20f354d198eae92afc10d750afb487ed5e50f9c4eaf07c184146f", size = 272215, upload-time = "2020-06-22T23:32:38.834Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/dd/a834df6482147d48e225a49515aabc28974ad5a4ca3215c18a882565b028/html5lib-1.1-py2.py3-none-any.whl", hash = "sha256:0d78f8fde1c230e99fe37986a60526d7049ed4bf8a9fadbad5f00e22e58e041d", size = 112173, upload-time = "2020-06-22T23:32:36.781Z" },
-]
-
-[[package]]
 name = "httpcore"
 version = "1.0.8"
 source = { registry = "https://pypi.org/simple" }
@@ -2695,15 +2636,6 @@ wheels = [
 ]
 
 [[package]]
-name = "jsonpath-python"
-version = "1.0.6"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b5/49/e582e50b0c54c1b47e714241c4a4767bf28758bf90212248aea8e1ce8516/jsonpath-python-1.0.6.tar.gz", hash = "sha256:dd5be4a72d8a2995c3f583cf82bf3cd1a9544cfdabf2d22595b67aff07349666", size = 18121, upload-time = "2022-03-14T02:35:01.877Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/8a/d63959f4eff03893a00e6e63592e3a9f15b9266ed8e0275ab77f8c7dbc94/jsonpath_python-1.0.6-py3-none-any.whl", hash = "sha256:1e3b78df579f5efc23565293612decee04214609208a2335884b3ee3f786b575", size = 7552, upload-time = "2022-03-14T02:34:59.754Z" },
-]
-
-[[package]]
 name = "jsonpickle"
 version = "4.0.5"
 source = { registry = "https://pypi.org/simple" }
@@ -2948,15 +2880,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/91/52/d43ad77acae169210
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e2/52/7638394b88bc15083fd2c3752a843784d9d2d110d68fed6437c8607fb749/langchain_text_splitters-0.3.9-py3-none-any.whl", hash = "sha256:cee0bb816211584ea79cc79927317c358543f40404bcfdd69e69ba3ccde54401", size = 33314, upload-time = "2025-07-24T14:38:43.953Z" },
 ]
-
-[[package]]
-name = "langdetect"
-version = "1.0.9"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/72/a3add0e4eec4eb9e2569554f7c70f4a3c27712f40e3284d483e88094cc0e/langdetect-1.0.9.tar.gz", hash = "sha256:cbc1fef89f8d062739774bd51eda3da3274006b3661d199c2655f6b3f6d605a0", size = 981474, upload-time = "2021-05-07T07:54:13.562Z" }
 
 [[package]]
 name = "langsmith"
@@ -3903,15 +3826,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/6d/fa/fbf4001037904031639e6bfbfc02badfc7e12f137a8afa254df6c4c8a670/oauthlib-3.2.2.tar.gz", hash = "sha256:9859c40929662bec5d64f34d01c99e093149682a3f38915dc0655d5a633dd918", size = 177352, upload-time = "2022-10-17T20:04:27.471Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/80/cab10959dc1faead58dc8384a781dfbf93cb4d33d50988f7a69f1b7c9bbe/oauthlib-3.2.2-py3-none-any.whl", hash = "sha256:8139f29aac13e25d502680e9e19963e83f16838d48a0d71c287fe40e7067fbca", size = 151688, upload-time = "2022-10-17T20:04:24.037Z" },
-]
-
-[[package]]
-name = "olefile"
-version = "0.47"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/69/1b/077b508e3e500e1629d366249c3ccb32f95e50258b231705c09e3c7a4366/olefile-0.47.zip", hash = "sha256:599383381a0bf3dfbd932ca0ca6515acd174ed48870cbf7fee123d698c192c1c", size = 112240, upload-time = "2023-12-01T16:22:53.025Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/17/d3/b64c356a907242d719fc668b71befd73324e47ab46c8ebbbede252c154b2/olefile-0.47-py2.py3-none-any.whl", hash = "sha256:543c7da2a7adadf21214938bb79c83ea12b473a4b6ee4ad4bf854e7715e13d1f", size = 114565, upload-time = "2023-12-01T16:22:51.518Z" },
 ]
 
 [[package]]
@@ -5131,15 +5045,6 @@ wheels = [
 ]
 
 [[package]]
-name = "python-iso639"
-version = "2025.2.18"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d5/19/45aa1917c7b1f4eb71104795b9b0cbf97169b99ec46cd303445883536549/python_iso639-2025.2.18.tar.gz", hash = "sha256:34e31e8e76eb3fc839629e257b12bcfd957c6edcbd486bbf66ba5185d1f566e8", size = 173552, upload-time = "2025-02-18T13:48:08.607Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/54/a3/3ceaf89a17a1e1d5e7bbdfe5514aa3055d91285b37a5c8fed662969e3d56/python_iso639-2025.2.18-py3-none-any.whl", hash = "sha256:b2d471c37483a26f19248458b20e7bd96492e15368b01053b540126bcc23152f", size = 167631, upload-time = "2025-02-18T13:48:06.602Z" },
-]
-
-[[package]]
 name = "python-jose"
 version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -5163,35 +5068,12 @@ wheels = [
 ]
 
 [[package]]
-name = "python-magic"
-version = "0.4.27"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/da/db/0b3e28ac047452d079d375ec6798bf76a036a08182dbb39ed38116a49130/python-magic-0.4.27.tar.gz", hash = "sha256:c1ba14b08e4a5f5c31a302b7721239695b2f0f058d125bd5ce1ee36b9d9d3c3b", size = 14677, upload-time = "2022-06-07T20:16:59.508Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/73/9f872cb81fc5c3bb48f7227872c28975f998f3e7c2b1c16e95e6432bbb90/python_magic-0.4.27-py2.py3-none-any.whl", hash = "sha256:c212960ad306f700aa0d01e5d7a325d20548ff97eb9920dcd29513174f0294d3", size = 13840, upload-time = "2022-06-07T20:16:57.763Z" },
-]
-
-[[package]]
 name = "python-multipart"
 version = "0.0.20"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f3/87/f44d7c9f274c7ee665a29b885ec97089ec5dc034c7f3fafa03da9e39a09e/python_multipart-0.0.20.tar.gz", hash = "sha256:8dd0cab45b8e23064ae09147625994d090fa46f5b0d1e13af944c331a7fa9d13", size = 37158, upload-time = "2024-12-16T19:45:46.972Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/45/58/38b5afbc1a800eeea951b9285d3912613f2603bdf897a4ab0f4bd7f405fc/python_multipart-0.0.20-py3-none-any.whl", hash = "sha256:8a62d3a8335e06589fe01f2a3e178cdcc632f3fbe0d492ad9ee0ec35aab1f104", size = 24546, upload-time = "2024-12-16T19:45:44.423Z" },
-]
-
-[[package]]
-name = "python-oxmsg"
-version = "0.0.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "click" },
-    { name = "olefile" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a2/4e/869f34faedbc968796d2c7e9837dede079c9cb9750917356b1f1eda926e9/python_oxmsg-0.0.2.tar.gz", hash = "sha256:a6aff4deb1b5975d44d49dab1d9384089ffeec819e19c6940bc7ffbc84775fad", size = 34713, upload-time = "2025-02-03T17:13:47.415Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/53/67/f56c69a98c7eb244025845506387d0f961681657c9fcd8b2d2edd148f9d2/python_oxmsg-0.0.2-py3-none-any.whl", hash = "sha256:22be29b14c46016bcd05e34abddfd8e05ee82082f53b82753d115da3fc7d0355", size = 31455, upload-time = "2025-02-03T17:13:46.061Z" },
 ]
 
 [[package]]
@@ -5372,14 +5254,16 @@ name = "rbac-sdk"
 version = "0.1.0"
 source = { editable = "python_packages/rbac-sdk" }
 dependencies = [
+    { name = "fastapi" },
     { name = "httpx" },
-    { name = "pydantic" },
+    { name = "requests" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "httpx", specifier = ">=0.25.0" },
-    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "fastapi", specifier = ">=0.103.0" },
+    { name = "httpx", specifier = ">=0.24.1" },
+    { name = "requests", specifier = ">=2.31.0" },
 ]
 
 [[package]]
@@ -6445,63 +6329,6 @@ wheels = [
 ]
 
 [[package]]
-name = "unstructured"
-version = "0.17.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "backoff" },
-    { name = "beautifulsoup4" },
-    { name = "chardet" },
-    { name = "dataclasses-json" },
-    { name = "emoji" },
-    { name = "filetype" },
-    { name = "html5lib" },
-    { name = "langdetect" },
-    { name = "lxml" },
-    { name = "nltk" },
-    { name = "numpy" },
-    { name = "psutil" },
-    { name = "python-iso639" },
-    { name = "python-magic" },
-    { name = "python-oxmsg" },
-    { name = "rapidfuzz" },
-    { name = "requests" },
-    { name = "tqdm" },
-    { name = "typing-extensions" },
-    { name = "unstructured-client" },
-    { name = "wrapt" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b4/49/b95ff4b609d7328cd0394ac9d8ad69839e11a1f879462496afcf4887154a/unstructured-0.17.2.tar.gz", hash = "sha256:af18c3caef0a6c562cf77e34ee8b6ff522b605031d2336ffe565df66f126aa46", size = 1684745, upload-time = "2025-03-20T16:55:58.507Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cb/88/061a9dedd4e8cc0c31097c3275a9ef1fd7307e26afac5cd582487386e1b8/unstructured-0.17.2-py3-none-any.whl", hash = "sha256:527dd26a4b273aebef2f9119c9d4f0d0ce17640038d92296d23abe89be123840", size = 1771563, upload-time = "2025-03-20T16:55:56.751Z" },
-]
-
-[[package]]
-name = "unstructured-client"
-version = "0.18.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "certifi" },
-    { name = "charset-normalizer" },
-    { name = "dataclasses-json-speakeasy" },
-    { name = "idna" },
-    { name = "jsonpath-python" },
-    { name = "marshmallow" },
-    { name = "mypy-extensions" },
-    { name = "packaging" },
-    { name = "python-dateutil" },
-    { name = "requests" },
-    { name = "six" },
-    { name = "typing-extensions" },
-    { name = "typing-inspect" },
-    { name = "urllib3" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/67/81/5d870f2036edf645beb3d77ec293af213a36dd407a34f8af43e15aa97b6b/unstructured-client-0.18.0.tar.gz", hash = "sha256:b5f1866b6a48d2e28645e37e86c9d58b1ee7df2d88e79adf873572338c027aa8", size = 18402, upload-time = "2024-02-08T16:31:42.086Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/07/6e0fba885472decf691bb70818858c7996e0509d55c5001546e967614301/unstructured_client-0.18.0-py3-none-any.whl", hash = "sha256:36d8c5cb01b97a87e271e11d4d5a063d1c5b85fc5fd7f07819c35a9bef74821f", size = 21584, upload-time = "2024-02-08T16:31:40.941Z" },
-]
-
-[[package]]
 name = "uritemplate"
 version = "4.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -6603,15 +6430,6 @@ wheels = [
 ]
 
 [[package]]
-name = "webencodings"
-version = "0.5.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0b/02/ae6ceac1baeda530866a85075641cec12989bd8d31af6d5ab4a3e8c92f47/webencodings-0.5.1.tar.gz", hash = "sha256:b36a1c245f2d304965eb4e0a82848379241dc04b865afcc4aab16748587e1923", size = 9721, upload-time = "2017-04-05T20:21:34.189Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/24/2a3e3df732393fed8b3ebf2ec078f05546de641fe1b667ee316ec1dcf3b7/webencodings-0.5.1-py2.py3-none-any.whl", hash = "sha256:a0af1213f3c2226497a97e2b3aa01a7e4bee4f403f95be16fc9acd2947514a78", size = 11774, upload-time = "2017-04-05T20:21:32.581Z" },
-]
-
-[[package]]
 name = "websocket-client"
 version = "1.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -6641,147 +6459,19 @@ wheels = [
 ]
 
 [[package]]
-name = "worker"
-version = "0.1.0"
-source = { virtual = "python_apps/flyte-worker" }
-dependencies = [
-    { name = "boto3" },
-    { name = "botocore" },
-    { name = "elasticsearch" },
-    { name = "elevaite-client" },
-    { name = "flyteidl" },
-    { name = "flytekit" },
-    { name = "flytekitplugins-envd" },
-    { name = "flytekitplugins-pydantic" },
-    { name = "lakefs" },
-    { name = "openai" },
-    { name = "pandas" },
-    { name = "pika" },
-    { name = "python-docx" },
-    { name = "python-dotenv" },
-    { name = "qdrant-client" },
-    { name = "redis" },
-    { name = "scikit-learn" },
-    { name = "tiktoken" },
-    { name = "unstructured" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "boto3", specifier = ">=1.34.69" },
-    { name = "botocore", specifier = ">=1.34.69" },
-    { name = "elasticsearch", specifier = ">=8.13.0" },
-    { name = "elevaite-client", editable = "python_packages/elevaite_client" },
-    { name = "flyteidl", specifier = ">=1.12.0" },
-    { name = "flytekit", specifier = "~=1.16.3" },
-    { name = "flytekitplugins-envd", specifier = ">=1.12.0" },
-    { name = "flytekitplugins-pydantic", specifier = ">=1.12.0" },
-    { name = "lakefs", specifier = ">=0.6.0" },
-    { name = "openai", specifier = ">=1.26" },
-    { name = "pandas", specifier = ">=2.2.2" },
-    { name = "pika", specifier = ">=1.3.2" },
-    { name = "python-docx", specifier = ">=1.1.2" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "qdrant-client", specifier = ">=1.9.1" },
-    { name = "redis", specifier = ">=5.0.4" },
-    { name = "scikit-learn", specifier = ">=1.4.2" },
-    { name = "tiktoken", specifier = ">=0.6.0" },
-    { name = "unstructured", specifier = ">=0.13.6" },
-]
-
-[[package]]
-name = "workers"
-version = "0.1.0"
-source = { virtual = "python_apps/workers" }
-dependencies = [
-    { name = "boto3" },
-    { name = "botocore" },
-    { name = "elasticsearch" },
-    { name = "elevaite-client" },
-    { name = "elevaitelib" },
-    { name = "lakefs" },
-    { name = "langchain" },
-    { name = "openai" },
-    { name = "packaging" },
-    { name = "pika" },
-    { name = "python-docx" },
-    { name = "python-dotenv" },
-    { name = "qdrant-client" },
-    { name = "redis" },
-    { name = "tiktoken" },
-    { name = "unstructured" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "boto3", specifier = ">=1.34.100" },
-    { name = "botocore", specifier = ">=1.34.100" },
-    { name = "elasticsearch", specifier = ">=8.13.0" },
-    { name = "elevaite-client", editable = "python_packages/elevaite_client" },
-    { name = "elevaitelib", editable = "python_packages/elevaitedblib" },
-    { name = "lakefs", specifier = ">=0.6.0" },
-    { name = "langchain", specifier = ">=0.1.16" },
-    { name = "openai", specifier = ">=1.26" },
-    { name = "packaging", specifier = "==23.2" },
-    { name = "pika", specifier = ">=1.3.2" },
-    { name = "python-docx", specifier = ">=1.1.2" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "qdrant-client", specifier = ">=1.9.1" },
-    { name = "redis", specifier = ">=5.0.4" },
-    { name = "tiktoken", specifier = ">=0.6.0" },
-    { name = "unstructured", specifier = ">=0.13.6" },
-]
-
-[[package]]
 name = "workflow-core-sdk"
 version = "0.1.0"
 source = { editable = "python_packages/workflow-core-sdk" }
 dependencies = [
-    { name = "aiohttp" },
-    { name = "asyncpg" },
-    { name = "croniter" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "openai" },
-    { name = "pydantic" },
-    { name = "python-multipart" },
-    { name = "requests" },
-    { name = "sqlalchemy" },
-    { name = "sqlmodel" },
+    { name = "cohere" },
+    { name = "colbert" },
     { name = "typing-extensions" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-workspace = [
-    { name = "db-core" },
-    { name = "elevaite-ingestion" },
-    { name = "elevaite-logger" },
-    { name = "llm-gateway" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", specifier = ">=3.9.1" },
-    { name = "asyncpg", specifier = ">=0.29.0" },
-    { name = "croniter", specifier = ">=3.0.4" },
-    { name = "db-core", marker = "extra == 'workspace'", editable = "python_packages/db-core" },
-    { name = "elevaite-ingestion", marker = "extra == 'workspace'", editable = "python_packages/elevaite_ingestion" },
-    { name = "elevaite-logger", marker = "extra == 'workspace'", editable = "python_packages/fastapi-logger" },
-    { name = "fastapi", specifier = ">=0.104.1" },
-    { name = "httpx", specifier = ">=0.25.0" },
-    { name = "llm-gateway", marker = "extra == 'workspace'", editable = "python_packages/llm-gateway" },
-    { name = "openai", specifier = ">=1.0.0" },
-    { name = "pydantic", specifier = ">=2.5.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
-    { name = "python-multipart", specifier = ">=0.0.6" },
-    { name = "requests", specifier = ">=2.31.0" },
-    { name = "sqlalchemy", specifier = ">=2.0.0" },
-    { name = "sqlmodel", specifier = ">=0.0.24" },
+    { name = "cohere", specifier = ">=5.18.0" },
+    { name = "colbert", specifier = ">=0.40" },
     { name = "typing-extensions", specifier = ">=4.9.0" },
 ]
 provides-extras = ["workspace", "dev"]
@@ -6810,6 +6500,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pytest-asyncio" },
     { name = "python-multipart" },
+    { name = "rbac-sdk" },
     { name = "sqlalchemy" },
     { name = "sqlmodel" },
     { name = "uvicorn", extra = ["standard"] },
@@ -6857,6 +6548,7 @@ requires-dist = [
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },
+    { name = "rbac-sdk", editable = "python_packages/rbac-sdk" },
     { name = "sqlalchemy", specifier = ">=2.0.0" },
     { name = "sqlmodel", specifier = ">=0.0.24" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },

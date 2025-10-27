@@ -1,0 +1,12 @@
+decision_logs:
+  console: true
+  reporting:
+    min_delay_seconds: 0
+    max_delay_seconds: 1
+  filter:
+    - decision_id: rbac/allow
+      condition: result.result == false
+  mask_decision: "false"
+  mask: "false"
+
+persistence_directory: "/data" 

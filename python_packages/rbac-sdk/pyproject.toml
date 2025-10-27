@@ -1,18 +1,33 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
-name = "rbac-sdk"
+name = "rbac_sdk"
 version = "0.1.0"
-description = "RBAC SDK for Elevaite"
+description = "Lightweight RBAC SDK for FastAPI services, delegating authorization decisions to an external OPA-backed RBAC service"
 readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-    "httpx>=0.25.0",
-    "pydantic>=2.0.0",
+authors = [{ name = "Elevaite", email = "dev@elevaite.ai" }]
+requires-python = ">=3.10"
+# Avoid adding new external deps for now; use stdlib + requests which is already in the repo
+dependencies = ["requests>=2.31.0", "fastapi>=0.103.0", "httpx>=0.24.1"]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-xdist>=3.3.0",
+    "python-jose[cryptography]>=3.3.0",
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["rbac_sdk"]
+[project.urls]
+Homepage = "https://elevaite.ai"
 
+[tool.setuptools]
+package-dir = { "" = "." }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["rbac_sdk*"]
+
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

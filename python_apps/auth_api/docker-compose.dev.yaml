@@ -1,0 +1,120 @@
+# Development docker-compose for Auth API with OPA integration
+# This adds OPA (Open Policy Agent) for RBAC authorization alongside authentication
+#
+# PostgreSQL Options:
+# 1. Use the included PostgreSQL container (default, uncomment the 'db' service below)
+# 2. Use external PostgreSQL (set SQLALCHEMY_DATABASE_URL env var)
+
+services:
+  # PostgreSQL database for Auth API (OPTIONAL - comment out if using external DB)
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+      POSTGRES_DB: auth_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "auth_user", "-d", "auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - auth_network
+    profiles:
+      - with-db # Only start if explicitly requested
+
+  # OPA (Open Policy Agent) for authorization
+  opa:
+    image: openpolicyagent/opa:latest
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "--config-file=/config/opa_config.yaml"
+      - "/policies"
+    volumes:
+      - ./opa_config.yaml:/config/opa_config.yaml
+      - ./policies:/policies
+    ports:
+      - "8181:8181"
+    networks:
+      - auth_network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8181/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Auth API application
+  auth_api:
+    build:
+      context: ../..
+      dockerfile: python_apps/auth_api/Dockerfile
+    environment:
+      # Database - Use external DB or included DB (if using --profile with-db)
+      # For external DB: postgresql://user:pass@your-postgres-host:5432/auth_db
+      # For included DB: postgresql://auth_user:auth_pass@db:5432/auth_db
+      SQLALCHEMY_DATABASE_URL: ${SQLALCHEMY_DATABASE_URL:-postgresql://auth_user:auth_pass@db:5432/auth_db}
+
+      # OPA Integration
+      OPA_URL: "http://opa:8181/v1/data/rbac/allow"
+      OPA_ENABLED: "true"
+
+      # Auth settings
+      SECRET_KEY: "dev-secret-key-change-in-production"
+      ACCESS_TOKEN_EXPIRE_MINUTES: "90"
+      REFRESH_TOKEN_EXPIRE_MINUTES: "10080" # 7 days
+
+      # API Key settings
+      API_KEY_ALGORITHM: "HS256"
+      API_KEY_SECRET: "dev-api-key-secret"
+
+      # Email settings (optional for dev)
+      SMTP_HOST: "smtp.gmail.com"
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      SMTP_FROM_EMAIL: "noreply@example.com"
+
+      # Frontend URL
+      FRONTEND_URL: "http://localhost:3000"
+
+      # Multitenancy
+      MULTITENANCY_ENABLED: "true"
+      DEFAULT_TENANT: "default"
+
+      # Debug
+      DEBUG: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      opa:
+        condition: service_healthy
+    ports:
+      - "8004:8004"
+    networks:
+      - auth_network
+    volumes:
+      # Mount source code for hot reload in development
+      - ./app:/elevaite/python_apps/auth_api/app
+      - ./migrations:/elevaite/python_apps/auth_api/migrations
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 5 &&
+        echo 'Running migrations...' &&
+        alembic upgrade head &&
+        echo 'Starting Auth API...' &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
+      "
+
+networks:
+  auth_network:
+    driver: bridge
+
+volumes:
+  auth_db_data:

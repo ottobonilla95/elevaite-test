@@ -13,6 +13,7 @@ dependencies = [
     "elevaite-ingestion",
     "elevaite-logger",
     "db-core",
+    "rbac_sdk",
     "workflow_core_sdk",
     "sqlalchemy>=2.0.0",
     "asyncpg>=0.29.0",
@@ -36,6 +37,7 @@ llm-gateway = { workspace = true }
 elevaite-ingestion = { workspace = true }
 db-core = { workspace = true }
 elevaite-logger = { workspace = true }
+rbac_sdk = { workspace = true }
 
 [project.optional-dependencies]
 dev = [

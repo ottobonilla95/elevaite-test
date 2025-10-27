@@ -20,11 +20,10 @@ async def send_email(
     """
     Send an email using SMTP.
     """
- 
+
     sender_email = sender or settings.EMAILS_FROM_EMAIL
     from_name = sender_name or settings.EMAILS_FROM_NAME
 
-  
     logger.info("=" * 50)
     logger.info("EMAIL SEND ATTEMPT")
     logger.info(f"Recipient: {recipient}")
@@ -43,21 +42,19 @@ async def send_email(
     message["From"] = f"{from_name} <{sender_email}>"
     message["To"] = recipient
 
-
     message.attach(MIMEText(text_body, "plain"))
 
- 
     if html_body:
         message.attach(MIMEText(html_body, "html"))
 
     try:
-        # Use SSL or TLS based on settings
+        # Use TLS, SSL, or plain SMTP based on settings
         if settings.SMTP_TLS:
             logger.info("Attempting TLS connection...")
-            # Use TLS
+            # Use STARTTLS (port 587 typically)
             with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
                 logger.info("SMTP connection established")
-                
+
                 logger.info("Starting TLS...")
                 server.starttls()
                 logger.info("TLS started successfully")
@@ -72,15 +69,29 @@ async def send_email(
                 logger.info("Sending email...")
                 server.sendmail(sender_email, recipient, message.as_string())
                 logger.info("Email sent successfully!")
-        else:
-            logger.info("Attempting SSL connection...")
-            # Use SSL
+        elif settings.SMTP_PORT == 465:
+            logger.info("Attempting SSL connection (port 465)...")
+            # Use SSL (port 465 typically)
             context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(
-                settings.SMTP_HOST, settings.SMTP_PORT, context=context, timeout=10
-            ) as server:
+            with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=context, timeout=10) as server:
                 logger.info("SMTP SSL connection established")
-                
+
+                # Login if credentials are provided
+                if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                    logger.info("Attempting SMTP login...")
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                    logger.info("SMTP login successful")
+
+                # Send email
+                logger.info("Sending email...")
+                server.sendmail(sender_email, recipient, message.as_string())
+                logger.info("Email sent successfully!")
+        else:
+            logger.info("Attempting plain SMTP connection (no encryption)...")
+            # Use plain SMTP (for testing with MailHog, etc.)
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+                logger.info("SMTP connection established")
+
                 # Login if credentials are provided
                 if settings.SMTP_USER and settings.SMTP_PASSWORD:
                     logger.info("Attempting SMTP login...")
@@ -103,7 +114,7 @@ async def send_email(
             },
         )
         return True
-        
+
     except smtplib.SMTPAuthenticationError as e:
         logger.error("=" * 50)
         logger.error("❌ SMTP AUTHENTICATION FAILED")
@@ -122,11 +133,11 @@ async def send_email(
                 "smtp_host": settings.SMTP_HOST,
                 "smtp_port": settings.SMTP_PORT,
                 "error": str(e),
-                "error_type": "SMTPAuthenticationError"
+                "error_type": "SMTPAuthenticationError",
             },
         )
         return False
-        
+
     except smtplib.SMTPConnectError as e:
         logger.error("=" * 50)
         logger.error("❌ SMTP CONNECTION FAILED")
@@ -137,14 +148,10 @@ async def send_email(
         logger.error("=" * 50)
         logger.error(
             f"Failed to send email to {recipient}: Connection failed - {str(e)}",
-            extra={
-                "recipient": recipient,
-                "error": str(e),
-                "error_type": "SMTPConnectError"
-            },
+            extra={"recipient": recipient, "error": str(e), "error_type": "SMTPConnectError"},
         )
         return False
-        
+
     except smtplib.SMTPException as e:
         logger.error("=" * 50)
         logger.error("❌ SMTP ERROR")
@@ -153,15 +160,10 @@ async def send_email(
         logger.error("=" * 50)
         logger.error(
             f"Failed to send email to {recipient}: SMTP error - {str(e)}",
-            extra={
-                "recipient": recipient,
-                "subject": subject,
-                "error": str(e),
-                "error_type": type(e).__name__
-            },
+            extra={"recipient": recipient, "subject": subject, "error": str(e), "error_type": type(e).__name__},
         )
         return False
-        
+
     except Exception as e:
         logger.error("=" * 50)
         logger.error("❌ UNEXPECTED EMAIL ERROR")
@@ -169,6 +171,7 @@ async def send_email(
         logger.error(f"Error: {str(e)}")
         logger.error("Full Traceback:")
         import traceback
+
         logger.error(traceback.format_exc())
         logger.error("=" * 50)
         logger.error(
@@ -180,15 +183,13 @@ async def send_email(
                 "smtp_host": settings.SMTP_HOST,
                 "smtp_port": settings.SMTP_PORT,
                 "error": str(e),
-                "error_type": type(e).__name__
+                "error_type": type(e).__name__,
             },
         )
         return False
 
 
-async def send_verification_email(
-    email: str, name: str, verification_token: str
-) -> bool:
+async def send_verification_email(email: str, name: str, verification_token: str) -> bool:
     """
     Send email verification link to a new user.
 
@@ -200,9 +201,7 @@ async def send_verification_email(
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    verification_url = (
-        f"{settings.FRONTEND_URI}/verify-email?token={verification_token}"
-    )
+    verification_url = f"{settings.FRONTEND_URI}/verify-email?token={verification_token}"
     subject = "Verify your email address"
 
     text_body = f"""
@@ -295,9 +294,7 @@ async def send_password_reset_email(email: str, name: str, reset_token: str) -> 
     return await send_email(email, subject, text_body, html_body)
 
 
-async def send_welcome_email_with_temp_password(
-    email: str, name: str, temp_password: str
-) -> bool:
+async def send_welcome_email_with_temp_password(email: str, name: str, temp_password: str) -> bool:
     """
     Send welcome email with temporary password to a new user.
 
@@ -368,9 +365,7 @@ async def send_welcome_email_with_temp_password(
     return await send_email(email, subject, text_body, html_body)
 
 
-async def send_password_reset_email_with_new_password(
-    email: str, name: str, new_password: str
-) -> bool:
+async def send_password_reset_email_with_new_password(email: str, name: str, new_password: str) -> bool:
     """
     Send password reset email with a new randomized password.
 

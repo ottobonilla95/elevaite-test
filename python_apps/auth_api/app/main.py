@@ -35,6 +35,7 @@ class NoCacheMiddleware(BaseHTTPMiddleware):
             or request.url.path.startswith("/api/user")
             or request.url.path.startswith("/api/email-mfa")
             or request.url.path.startswith("/api/sms-mfa")
+            or request.url.path.startswith("/api/admin")
         ):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
             response.headers["Pragma"] = "no-cache"
@@ -78,31 +79,28 @@ app = FastAPI(
     description="Minimal test version",
     version="0.1.0",
     lifespan=lifespan,
-    root_path="/auth-api"
 )
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Handle validation errors and log them properly"""
-    logger.error(f"❌ Validation error on {request.method} {request.url.path}")
-    logger.error(f"❌ Errors: {exc.errors()}")
-    logger.error(f"❌ Body: {exc.body}")
-    
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            "detail": jsonable_encoder(exc.errors()),
-            "body": str(exc.body) if exc.body else None
-        },
-    )
+# @app.exception_handler(RequestValidationError)
+# async def validation_exception_handler(request: Request, exc: RequestValidationError):
+#     """Handle validation errors and log them properly"""
+#     logger.error(f"❌ Validation error on {request.method} {request.url.path}")
+#     logger.error(f"❌ Errors: {exc.errors()}")
+#     logger.error(f"❌ Body: {exc.body}")
+
+#     return JSONResponse(
+#         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+#         content={
+#             "detail": jsonable_encoder(exc.errors()),
+#             "body": str(exc.body) if exc.body else None
+#         },
+#     )
 excluded_paths = {
     r"^/api/health$": {"default_tenant": "default"},
     r"^/docs.*": {"default_tenant": "default"},
     r"^/redoc.*": {"default_tenant": "default"},
     r"^/openapi\.json$": {"default_tenant": "default"},
 }
-add_tenant_middleware(
-    app, settings=multitenancy_settings, excluded_paths=excluded_paths
-)
+add_tenant_middleware(app, settings=multitenancy_settings, excluded_paths=excluded_paths)
 
 # Add security middleware
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
@@ -131,6 +129,26 @@ from app.routers import email_mfa
 
 app.include_router(email_mfa.router, prefix="/api/email-mfa", tags=["email-mfa"])
 
+# Include Authorization (authz) router
+from app.routers import authz
+
+app.include_router(authz.router, prefix="/api/authz", tags=["authz"])
+
+# Include RBAC management router
+from app.routers import rbac
+
+app.include_router(rbac.router, prefix="/api/rbac", tags=["rbac"])
+
+# Include Policy management router
+from app.routers import policies
+
+app.include_router(policies.router, prefix="/api", tags=["policies"])
+
+# Include Admin router
+from app.routers import admin
+
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+
 
 @app.get("/api/health", tags=["health"])
 def health_check():
@@ -149,9 +167,11 @@ def test_logs():
     logger.critical("This is a critical message")
     return {"message": "Check the logs to see different colored log levels!"}
 
+
 @app.get("/")
 def root():
     return {"status": "ok"}
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -38,6 +38,9 @@ from app.core.security import (
     verify_token,
     get_current_user,
 )
+from jose import jwt, JWTError
+from db_core.middleware import get_current_tenant_id
+
 from app.services.auth_orm import (
     activate_mfa,
     authenticate_user,
@@ -186,11 +189,9 @@ async def admin_create_user(
             f"Superuser {current_user.email} (ID: {current_user.id}) is creating a new user with email: {user_data.email} in tenant: {current_tenant_id or 'default'}"
         )
 
-    result = await session.execute(
-        async_select(User).where(User.email == user_data.email)
-    )
+    result = await session.execute(async_select(User).where(User.email == user_data.email))
     existing_user = result.scalars().first()
-    
+
     if existing_user:
         if existing_user.status == "deleted":
             # User was deleted, return special error with details
@@ -202,16 +203,13 @@ async def admin_create_user(
                     "message": f"User {user_data.email} was previously deleted and cannot be recreated",
                     "user_id": existing_user.id,
                     "deleted_at": existing_user.deleted_at.isoformat() if existing_user.deleted_at else None,
-                    "suggestion": "Please contact an administrator to reactivate this user account"
-                }
+                    "suggestion": "Please contact an administrator to reactivate this user account",
+                },
             )
         else:
             # User exists and is active
             logger.warning(f"Attempt to create user {user_data.email} who already exists with status {existing_user.status}")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="User with this email already exists"
-            )
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User with this email already exists")
 
     # Continue with normal user creation
     try:
@@ -237,8 +235,11 @@ async def admin_create_user(
         logger.info(f"User {user_data.email} successfully created by admin {current_user.email}")
         return user
     except HTTPException as e:
+        # Log failed attempt
         logger.error(f"Admin user {current_user.email} failed to create user with email: {user_data.email}. Error: {e.detail}")
         raise
+
+
 @router.delete(
     "/admin/delete-user/{user_id}",
     status_code=status.HTTP_200_OK,
@@ -250,54 +251,44 @@ async def admin_delete_user(
 ):
     """Delete a user (admin only)."""
     from db_core.middleware import get_current_tenant_id
-    
+
     current_tenant_id = get_current_tenant_id()
-    
+
     # Prevent deleting yourself
     if current_user.id == user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete your own account"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete your own account")
+
     # Get the user to delete
     result = await session.execute(async_select(User).where(User.id == user_id))
     user_to_delete = result.scalars().first()
-    
+
     if not user_to_delete:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
     # Prevent application admins from deleting superusers
     if current_user.application_admin and not current_user.is_superuser:
         if user_to_delete.is_superuser:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Cannot delete superuser accounts"
-            )
-    
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete superuser accounts")
+
     try:
         # Soft delete: change status and set deleted timestamp
         user_to_delete.status = "deleted"
         user_to_delete.deleted_at = datetime.now(timezone.utc)
-        
+
         # Clear user sessions when deactivating (solves orphaned sessions problem)
         stmt = update(Session).where(Session.user_id == user_id).values(is_active=False)
         await session.execute(stmt)
-        
+
         await session.commit()
-        
+
         logger.info(f"User {user_to_delete.email} deactivated by admin {current_user.email}")
         return {"message": f"User {user_to_delete.email} has been successfully deactivated"}
     except Exception as e:
         await session.rollback()
         logger.error(f"Error deleting user {user_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete user"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete user")
+
+
 @router.post(
     "/admin/reactivate-user/{user_id}",
     status_code=status.HTTP_200_OK,
@@ -310,9 +301,9 @@ async def admin_reactivate_user(
 ):
     """Reactivate a deleted user (admin only)."""
     from db_core.middleware import get_current_tenant_id
-    
+
     current_tenant_id = get_current_tenant_id()
-    
+
     # Tenant validation for application admins
     if current_user.application_admin and not current_user.is_superuser:
         if not current_tenant_id:
@@ -321,40 +312,35 @@ async def admin_reactivate_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Tenant context is required for application admins",
             )
-    
+
     # Get the user
     result = await session.execute(async_select(User).where(User.id == user_id))
     user = result.scalars().first()
-    
+
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
     if user.status != "deleted":
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"User is not deleted. Current status: {user.status}"
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"User is not deleted. Current status: {user.status}"
         )
-    
+
     # Application admins cannot reactivate superuser accounts
     if current_user.application_admin and not current_user.is_superuser:
         if user.is_superuser:
             logger.warning(f"Application admin {current_user.email} attempted to reactivate superuser: {user.email}")
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Application admins cannot reactivate superuser accounts"
+                status_code=status.HTTP_403_FORBIDDEN, detail="Application admins cannot reactivate superuser accounts"
             )
-    
+
     try:
         # Reactivate: change status back to ACTIVE and clear deleted timestamp
         user.status = UserStatus.ACTIVE
         user.deleted_at = None
         user.updated_at = datetime.now(timezone.utc)
-        
+
         await session.commit()
-        
+
         # Log activity
         details = {
             "admin_user_id": current_user.id,
@@ -362,7 +348,7 @@ async def admin_reactivate_user(
             "reactivated_user_email": user.email,
             "reactivated_user_id": user.id,
         }
-        
+
         await log_user_activity(
             session,
             current_user.id,
@@ -371,26 +357,24 @@ async def admin_reactivate_user(
             user_agent=request.headers.get("user-agent"),
             details=details,
         )
-        
+
         logger.info(f"User {user.email} (ID: {user.id}) reactivated by admin {current_user.email}")
-        
+
         return {
             "message": f"User {user.email} has been successfully reactivated",
             "user": {
                 "id": user.id,
                 "email": user.email,
                 "full_name": user.full_name,
-                "status": user.status.value if hasattr(user.status, 'value') else user.status
-            }
+                "status": user.status.value if hasattr(user.status, "value") else user.status,
+            },
         }
     except Exception as e:
         await session.rollback()
         logger.error(f"Error reactivating user {user_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to reactivate user"
-        )
-        
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to reactivate user")
+
+
 @router.put(
     "/admin/update-user/{user_id}",
     status_code=status.HTTP_200_OK,
@@ -402,23 +386,20 @@ async def admin_update_user(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Update user roles (admin only)."""
-    
+
     # Get the user to update
     result = await session.execute(async_select(User).where(User.id == user_id))
     user_to_update = result.scalars().first()
-    
+
     if not user_to_update:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
     # Update roles
     if "application_admin" in user_data:
         user_to_update.application_admin = user_data["application_admin"]
     if "is_manager" in user_data:
         user_to_update.is_manager = user_data["is_manager"]
-    
+
     try:
         await session.commit()
         logger.info(f"User {user_to_update.email} roles updated by admin {current_user.email}")
@@ -426,10 +407,9 @@ async def admin_update_user(
     except Exception as e:
         await session.rollback()
         logger.error(f"Error updating user {user_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update user"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update user")
+
+
 @router.post("/login", response_model=Token)
 @limiter.limit(f"{settings.RATE_LIMIT_LOGIN_PER_MINUTE}/minute")
 async def login(
@@ -441,7 +421,7 @@ async def login(
     # Detect platform from user agent
     user_agent = request.headers.get("user-agent", "unknown")
     platform = get_platform_from_user_agent(user_agent)
-    
+
     # Log login attempt with platform
     logger.info(f"[{platform}] Login attempt for email: {login_data.email}")
     logger.info(f"[{platform}] User-Agent: {user_agent[:100]}")  # Log first 100 chars
@@ -694,7 +674,7 @@ async def login(
             user_agent=request.headers.get("user-agent"),
         )
         await session.commit()
-        
+
         logger.info(f"[{platform}] Login successful for: {login_data.email}")
 
     except Exception as e:
@@ -740,10 +720,10 @@ async def refresh_token(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Refresh access token using refresh token."""
-    
+
     user_agent = request.headers.get("user-agent", "unknown")
     platform = get_platform_from_user_agent(user_agent)
-    
+
     logger.info(f"[{platform}] Token refresh attempt")
     user_id = await verify_refresh_token(session, token_data.refresh_token)
 
@@ -878,91 +858,98 @@ async def logout(
     return {"message": "Successfully logged out"}
 
 
-# Users are now automatically verified on first temp password use
-# @router.post("/verify-email")
-# async def verify_email(
-#     verification_data: EmailVerificationRequest,
-#     request: Request,
-#     session: AsyncSession = Depends(get_async_session),
-# ):
-#     """Verify user email with token."""
-#     import uuid
+@router.post("/validate-apikey")
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def validate_apikey(request: Request, session: AsyncSession = Depends(get_async_session)):
+    """
+    Validate an API key and return the associated service-account user_id.
 
-#     test_uuid = uuid.uuid4()
-#     test_uuid_str = str(test_uuid)
+    Expected header:
+      - X-elevAIte-apikey: the API key token (JWT-style)
 
-#     try:
-#         token_uuid = uuid.UUID(verification_data.token)
-#     except ValueError as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail=f"Invalid token format: {str(e)}",
-#         )
+    Verification rules:
+      - Uses settings.API_KEY_ALGORITHM (HS* uses settings.API_KEY_SECRET; RS*/ES* use settings.API_KEY_PUBLIC_KEY)
+      - Requires claim type == "api_key"
+      - Validates user exists and is active
+      - Returns {"user_id": <sub>} on success
+      - If tenant_id is present in the token and a current tenant context exists, they must match
+    """
+    api_key = request.headers.get("X-elevAIte-apikey")
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="missing X-elevAIte-apikey header",
+        )
 
-#     # Find user with this verification token
-#     result = await session.execute(
-#         async_select(User).where(User.verification_token == token_uuid)
-#     )
-#     user = result.scalars().first()
+    alg = settings.API_KEY_ALGORITHM or "HS256"
+    try:
+        # Select verification key material based on algorithm
+        if alg.startswith("HS"):
+            key = settings.API_KEY_SECRET
+            if not key:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="API key secret not configured",
+                )
+        elif alg.startswith("RS") or alg.startswith("ES"):
+            key = settings.API_KEY_PUBLIC_KEY
+            if not key:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="API key public key not configured",
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="unsupported API key algorithm",
+            )
 
-#     if not user:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail="Invalid verification token",
-#         )
+        payload = jwt.decode(api_key, key, algorithms=[alg])
 
-#     if user.is_verified:
-#         return {"message": "Email already verified"}
+        if payload.get("type") != "api_key":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid api key type")
 
-#     # Mark user as verified and active
-#     stmt = (
-#         update(User)
-#         .where(User.id == user.id)
-#         .values(is_verified=True, status="active", verification_token=None)
-#     )
-#     await session.execute(stmt)
-#     await session.commit()
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="invalid api key subject",
+            )
 
-#     if user.is_password_temporary:
-#         from app.services.email_service import send_welcome_email_with_temp_password
-#         from app.core.security import get_password_hash
-#         from app.core.password_utils import generate_secure_password
+        # Optional tenant check
+        try:
+            token_tenant_id = payload.get("tenant_id")
+            current_tenant_id = get_current_tenant_id()
+            if token_tenant_id and current_tenant_id and token_tenant_id != current_tenant_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="token is not valid for this tenant",
+                )
+        except Exception:
+            # If tenant machinery not available, skip
+            pass
 
-#         name = user.full_name.split()[0] if user.full_name else ""
+        # Validate user exists and is active
+        from sqlalchemy.future import select as async_select
 
-#         temp_password = generate_secure_password()
+        result = await session.execute(async_select(User).where(User.id == int(user_id)))
+        user = result.scalars().first()
 
-#         update_stmt = (
-#             update(User)
-#             .where(User.id == user.id)
-#             .values(
-#                 temporary_hashed_password=get_password_hash(temp_password),
-#                 temporary_password_expiry=datetime.now(timezone.utc)
-#                 + timedelta(hours=48),
-#             )
-#         )
-#         await session.execute(update_stmt)
-#         await session.commit()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="user_not_found",
+            )
 
-#         try:
-#             await send_welcome_email_with_temp_password(user.email, name, temp_password)
-#         except Exception as e:
-#             print(f"Error sending welcome email after verification: {e}")
+        if user.status != UserStatus.ACTIVE.value:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="user_inactive",
+            )
 
-#     # Log activity
-#     try:
-#         await log_user_activity(
-#             session,
-#             user.id,
-#             "email_verified",
-#             ip_address=request.client.host if request.client else None,
-#             user_agent=request.headers.get("user-agent"),
-#         )
-#     except Exception as e:
-#         print(f"Error logging email verification activity: {e}")
-#         # Continue even if we couldn't log the activity
-
-#     return {"message": "Email successfully verified"}
+        return {"user_id": user_id}
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid api key")
 
 
 class ResendVerificationRequest(BaseModel):
@@ -1017,55 +1004,6 @@ async def resend_sms_code_for_login(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to send SMS code",
         )
-
-
-# COMMENTED OUT: Resend verification endpoint - users are now automatically verified on first temp password use
-# @router.post("/resend-verification")
-# @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
-# async def resend_verification_email(
-#     request: Request,
-#     data: ResendVerificationRequest,
-#     session: AsyncSession = Depends(get_async_session),
-# ):
-#     result = await session.execute(async_select(User).where(User.email == data.email))
-#     user = result.scalars().first()
-
-#     if not user:
-#         return {
-#             "message": "If your email exists in our system, a verification email will be sent."
-#         }
-
-#     if user.is_verified:
-#         return {"message": "Your email is already verified. You can log in now."}
-
-#     if not user.verification_token:
-#         import uuid as uuid_module
-
-#         user.verification_token = uuid_module.uuid4()
-#         session.add(user)
-#         await session.commit()
-#         await session.refresh(user)
-
-#     from app.services.email_service import send_verification_email
-
-#     name = user.full_name.split()[0] if user.full_name else ""
-#     token_str = str(user.verification_token)
-#     await send_verification_email(user.email, name, token_str)
-
-#     try:
-#         await log_user_activity(
-#             session,
-#             user.id,
-#             "verification_email_sent",
-#             ip_address=request.client.host if request.client else None,
-#             user_agent=request.headers.get("user-agent"),
-#         )
-#     except Exception as e:
-#         print(f"Error logging verification email activity: {e}")
-
-#     return {
-#         "message": "If your email exists in our system, a verification email will be sent."
-#     }
 
 
 @router.post("/forgot-password")
@@ -1135,7 +1073,7 @@ async def forgot_password(
             # If that also fails, log what we know and raise an error
             print(f"User object type: {type(user)}")
             # Don't try to print the full user object as that might trigger a database query
-            raise ValueError(f"Could not find ID in user object")
+            raise ValueError("Could not find ID in user object")
 
         await log_user_activity(
             session,
@@ -1256,7 +1194,7 @@ async def reset_password(reset_data: PasswordResetConfirm, session: AsyncSession
             # If that also fails, log what we know and raise an error
             print(f"User object type: {type(user)}")
             # Don't try to print the full user object as that might trigger a database query
-            raise ValueError(f"Could not find ID in user object")
+            raise ValueError("Could not find ID in user object")
 
         await log_user_activity(session, user_id_value, "password_reset_completed")
     except Exception as e:
@@ -1521,9 +1459,9 @@ async def change_password(
     # Always return success to the user, even if some operations failed
     # The frontend relies on this to continue the flow
     return {
-    "message": "Password successfully changed",
-    "require_logout": True  #  Frontend will see this and force logout
-}
+        "message": "Password successfully changed",
+        "require_logout": True,  #  Frontend will see this and force logout
+    }
 
 
 @router.post("/recover-session")
@@ -1859,10 +1797,11 @@ async def admin_reset_password(
     logger.info(f"Password reset successfully for user {reset_data.email} by admin {current_user.email}")
 
     return {
-    "message": "Password reset successfully. The user will receive an email with the new password.",
-    "require_target_user_logout": True,  # ✅ ADD THIS LINE
-    "target_user_email": user.email,
-}
+        "message": "Password reset successfully. The user will receive an email with the new password.",
+        "require_target_user_logout": True,  # ✅ ADD THIS LINE
+        "target_user_email": user.email,
+    }
+
 
 @router.delete("/sessions/{session_id}")
 async def revoke_session(
@@ -2256,9 +2195,7 @@ async def get_users(
             f"Superuser {current_user.email} (ID: {current_user.id}) is listing users in tenant: {current_tenant_id or 'default'}"
         )
 
-    result = await session.execute(
-    async_select(User).where(User.status != UserStatus.DELETED)
-)    
+    result = await session.execute(async_select(User).where(User.status != UserStatus.DELETED))
     users = result.scalars().all()
 
     # Convert to list of dictionaries
@@ -2272,7 +2209,7 @@ async def get_users(
             "is_verified": user.is_verified,
             "is_superuser": user.is_superuser,
             "application_admin": user.application_admin,
-             "is_manager": user.is_manager,
+            "is_manager": user.is_manager,
             "created_at": user.created_at.isoformat() if user.created_at else None,
             "failed_login_attempts": user.failed_login_attempts,
             "locked_until": (user.locked_until.isoformat() if user.locked_until else None),
@@ -2499,7 +2436,8 @@ def extract_platform_from_user_agent(user_agent: str) -> str:
         return "iOS"
     else:
         return "Unknown"
-    
+
+
 def get_platform_from_user_agent(user_agent: str) -> str:
     """
     Determine if request is from mobile app or web browser.
@@ -2507,24 +2445,22 @@ def get_platform_from_user_agent(user_agent: str) -> str:
     """
     if not user_agent:
         return "UNKNOWN"
-    
+
     user_agent_lower = user_agent.lower()
-    
+
     # Check for mobile app identifier
     if "toshibachatbot" in user_agent_lower:
         return "MOBILE"
-    
+
     # Check for web browsers
     if any(browser in user_agent_lower for browser in ["mozilla", "chrome", "safari", "firefox", "edge"]):
         return "WEB"
-    
+
     return "UNKNOWN"
-    
+
+
 @router.post("/log-mobile-auth")
-async def log_mobile_auth(
-    request: Request,
-    log_data: dict
-):
+async def log_mobile_auth(request: Request, log_data: dict):
     """
     Log mobile app authentication events.
     Appears in kubectl logs with [MOBILE_AUTH] prefix.
@@ -2539,12 +2475,11 @@ async def log_mobile_auth(
             "ip_address": request.client.host if request.client else None,
             "timestamp": log_data.get("timestamp"),
         }
-        
+
         logger.info(f"[MOBILE_AUTH] {json.dumps(log_entry)}")
-        
+
         return {"status": "logged"}
-        
+
     except Exception as e:
         logger.error(f"Failed to log mobile auth: {str(e)}")
         return {"status": "error"}
-

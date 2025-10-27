@@ -1,0 +1,115 @@
+# Production Docker Compose for Auth API with OPA
+# This runs Auth API + OPA (uses external PostgreSQL)
+#
+# NOTE: This assumes you have a PostgreSQL instance running separately.
+# Set SQLALCHEMY_DATABASE_URL to point to your shared PostgreSQL instance.
+
+services:
+  # OPA (Open Policy Agent) for authorization
+  opa:
+    image: openpolicyagent/opa:0.60.0 # Pin to specific version in prod
+    restart: always
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "--config-file=/config/opa_config.yaml"
+      - "/policies"
+    volumes:
+      - ./policies:/policies:ro
+      - ./opa_config.yaml:/config/opa_config.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8181/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - auth_network
+    # OPA doesn't need to be exposed externally
+    # Auth API talks to it via internal network
+
+  # Auth API application
+  auth_api:
+    build:
+      context: ../..
+      dockerfile: python_apps/auth_api/Dockerfile
+    restart: always
+    depends_on:
+      opa:
+        condition: service_healthy
+    environment:
+      # Database - Point to your shared PostgreSQL instance
+      # Example: postgresql://user:pass@postgres-server:5432/auth_db
+      SQLALCHEMY_DATABASE_URL: ${SQLALCHEMY_DATABASE_URL:?Database URL required - point to your shared PostgreSQL instance}
+
+      # OPA Integration
+      OPA_URL: "http://opa:8181/v1/data/rbac/allow"
+      OPA_ENABLED: "true"
+      OPA_TIMEOUT: "5.0"
+
+      # Security - MUST be set via environment or .env file
+      SECRET_KEY: ${SECRET_KEY:?Secret key required}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-90}
+      REFRESH_TOKEN_EXPIRE_MINUTES: ${REFRESH_TOKEN_EXPIRE_MINUTES:-10080}
+
+      # API Key settings
+      API_KEY_ALGORITHM: ${API_KEY_ALGORITHM:-HS256}
+      API_KEY_SECRET: ${API_KEY_SECRET:?API key secret required}
+
+      # Email settings
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:?SMTP user required}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP password required}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@example.com}
+
+      # Frontend URL
+      FRONTEND_URL: ${FRONTEND_URL:?Frontend URL required}
+
+      # Multitenancy
+      MULTITENANCY_ENABLED: ${MULTITENANCY_ENABLED:-true}
+      DEFAULT_TENANT: ${DEFAULT_TENANT:-default}
+
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+      # Production mode
+      DEBUG: "false"
+    ports:
+      - "${AUTH_API_PORT:-8004}:8004"
+    networks:
+      - auth_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # Migration runner (runs once on startup)
+  migration:
+    build:
+      context: ../..
+      dockerfile: python_apps/auth_api/Dockerfile
+    environment:
+      SQLALCHEMY_DATABASE_URL: ${SQLALCHEMY_DATABASE_URL:?Database URL required}
+    command: ["alembic", "upgrade", "head"]
+    networks:
+      - auth_network
+    restart: "no" # Only run once
+
+networks:
+  auth_network:
+    driver: bridge

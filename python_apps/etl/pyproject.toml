@@ -22,8 +22,23 @@ dependencies = [
     "fastjsonschema>=2.19.1",
     "elevaitelib",
     "rbac_lib",
+    "rbac_sdk",
 ]
 
 [tool.uv.sources]
 elevaitelib = { workspace = true }
 rbac_lib = { workspace = true }
+rbac_sdk = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["workflow_engine_poc"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.uv]
+dev-dependencies = ["pytest>=7.4.3", "pytest-asyncio>=0.21.1", "httpx>=0.25.2"]

@@ -16,6 +16,14 @@ from elevaitelib.schemas import (
     pipeline as pipeline_schemas,
     api as api_schemas,
 )
+from rbac_sdk.fastapi_helpers import require_permission, resource_builders
+
+# Guard: require project-level view permission via RBAC service
+_guard_view_project = require_permission(
+    action="view_project",
+    resource_builder=resource_builders.project_from_headers(),
+)
+
 
 # from rbac_lib import route_validator_map, RBACValidatorProvider
 
@@ -24,7 +32,7 @@ from elevaitelib.schemas import (
 # router = APIRouter(prefix="/pipeline", tags=["pipelines"])
 
 
-@router.get("", response_model=list[pipeline_schemas.Pipeline])
+@router.get("", response_model=list[pipeline_schemas.Pipeline], dependencies=[Depends(_guard_view_project)])
 def getPipelines(
     request: Request,  # uncomment this when using validator
     skip: int = 0,

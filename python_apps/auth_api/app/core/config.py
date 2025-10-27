@@ -35,6 +35,15 @@ class Settings(BaseSettings):
     )
     ALGORITHM: str = "HS256"
 
+    # API Key configuration
+    API_KEY_ALGORITHM: str = os.environ.get(
+        "API_KEY_ALGORITHM", "HS256"
+    )  # e.g., HS256 or RS256
+    API_KEY_SECRET: str | None = os.environ.get("API_KEY_SECRET")  # for HS*
+    API_KEY_PUBLIC_KEY: str | None = os.environ.get(
+        "API_KEY_PUBLIC_KEY"
+    )  # PEM for RS*/ES*
+
     # Session Management Configuration
     INACTIVITY_TIMEOUT_MINUTES: int = int(
         os.environ.get("SESSION_INACTIVITY_TIMEOUT_MINUTES", "180")
@@ -52,6 +61,15 @@ class Settings(BaseSettings):
     # Password security
     PASSWORD_MIN_LENGTH: int = 9
     PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = 24
+
+    # OPA (Open Policy Agent) Configuration for Authorization
+    OPA_URL: str = os.environ.get("OPA_URL", "http://localhost:8181/v1/data/rbac/allow")
+    OPA_ENABLED: bool = os.environ.get("OPA_ENABLED", "true").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+    OPA_TIMEOUT: float = float(os.environ.get("OPA_TIMEOUT", "5.0"))
 
     # Rate limiting - More restrictive for security
     RATE_LIMIT_PER_MINUTE: int = 10  # Reduced from 60 to 10 for better security
