@@ -4,9 +4,7 @@ import os
 import httpx
 
 # Updated to point to Auth API's authz endpoint
-DEFAULT_AUTHZ_SERVICE_URL = os.getenv(
-    "AUTHZ_SERVICE_URL", "http://localhost:8004/auth-api"
-)
+DEFAULT_AUTHZ_SERVICE_URL = os.getenv("AUTHZ_SERVICE_URL", "http://localhost:8004")
 
 
 async def check_access_async(
@@ -36,9 +34,7 @@ async def check_access_async(
         True if allowed, False otherwise.
         Fails closed: network errors/timeouts return False.
     """
-    url = (
-        f"{(base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip('/')}/api/authz/check_access"
-    )
+    url = f"{(base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip('/')}/api/authz/check_access"
     payload = {"user_id": user_id, "action": action, "resource": resource}
 
     try:

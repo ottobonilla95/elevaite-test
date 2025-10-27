@@ -133,6 +133,49 @@ async def test_user_active(http_client: httpx.AsyncClient, auth_api_url: str) ->
 
 
 @pytest.fixture
+async def test_user_no_assignments(http_client: httpx.AsyncClient, auth_api_url: str) -> Dict[str, Any]:
+    """
+    Create an active test user with NO role assignments.
+
+    Returns:
+        Dict with user info including id, email, api_key
+    """
+    # Register a test user
+    register_url = f"{auth_api_url}/api/auth/register"
+    timestamp = datetime.now(timezone.utc).timestamp()
+    email = f"test-no-assignments-{timestamp}@example.com"
+
+    response = await http_client.post(
+        register_url, json={"email": email, "password": "SecurePass123!", "full_name": "Test No Assignments User"}
+    )
+
+    if response.status_code not in (200, 201):
+        pytest.skip(f"Could not create test user: {response.status_code} - {response.text}")
+
+    user_data = response.json()
+
+    # Create an access token for this user
+    api_key = jwt.encode(
+        {
+            "sub": str(user_data["id"]),
+            "type": "access",
+            "tenant_id": "default",
+            "exp": datetime.now(timezone.utc) + timedelta(days=30),
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+
+    return {
+        "id": user_data["id"],
+        "email": user_data["email"],
+        "status": user_data.get("status", "active"),
+        "is_superuser": False,
+        "api_key": api_key,
+    }
+
+
+@pytest.fixture
 async def test_user_inactive(http_client: httpx.AsyncClient, auth_api_url: str) -> Dict[str, Any]:
     """
     Create an inactive test user.

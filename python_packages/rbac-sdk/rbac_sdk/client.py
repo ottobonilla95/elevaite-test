@@ -3,9 +3,7 @@ from typing import Any, Dict
 import requests
 
 # Updated to point to Auth API's authz endpoint
-DEFAULT_AUTHZ_SERVICE_URL = os.getenv(
-    "AUTHZ_SERVICE_URL", "http://localhost:8004/auth-api"
-)
+DEFAULT_AUTHZ_SERVICE_URL = os.getenv("AUTHZ_SERVICE_URL", "http://localhost:8004")
 
 
 class RBACClientError(Exception):
@@ -34,7 +32,7 @@ def check_access(
         user_id: Integer user ID from Auth API users table.
         action: Action string (e.g., "view_project", "update_project").
         resource: Dict with keys: type, id, organization_id, account_id (optional).
-        base_url: Override base URL (default uses AUTHZ_SERVICE_URL env or http://localhost:8004/auth-api).
+        base_url: Override base URL (default uses AUTHZ_SERVICE_URL env or http://localhost:8004).
         timeout: Request timeout seconds.
 
     Returns:
@@ -43,9 +41,7 @@ def check_access(
     Raises:
         RBACClientError: If the service call fails.
     """
-    url = (base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip(
-        "/"
-    ) + "/api/authz/check_access"
+    url = (base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip("/") + "/api/authz/check_access"
     try:
         resp = requests.post(
             url,
