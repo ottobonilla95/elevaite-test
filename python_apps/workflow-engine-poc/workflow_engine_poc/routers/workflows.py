@@ -64,9 +64,19 @@ TOTAL_MB_DEFAULT = 60
 # Swagger/OpenAPI: expose API key header for testing in docs
 api_key_header = APIKeyHeader(name=HDR_API_KEY, auto_error=False)
 
-# RBAC guard: view_project required; resource from headers; principal by API key or user
+# RBAC guards: view_project (read-only) and edit_project (create/update/delete/execute)
 _guard_view_project = require_permission_async(
     action="view_project",
+    resource_builder=resource_builders.project_from_headers(
+        project_header=HDR_PROJECT_ID,
+        account_header=HDR_ACCOUNT_ID,
+        org_header=HDR_ORG_ID,
+    ),
+    principal_resolver=principal_resolvers.api_key_or_user(),
+)
+
+_guard_edit_project = require_permission_async(
+    action="edit_project",
     resource_builder=resource_builders.project_from_headers(
         project_header=HDR_PROJECT_ID,
         account_header=HDR_ACCOUNT_ID,
@@ -91,8 +101,10 @@ ALLOWED_MIME_DEFAULT = {
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 
 
-@router.post("/{workflow_id}/execute", response_model=WorkflowExecutionRead)
-@router.post("/{workflow_id}/execute/{backend}", response_model=WorkflowExecutionRead)
+@router.post("/{workflow_id}/execute", response_model=WorkflowExecutionRead, dependencies=[Depends(_guard_edit_project)])
+@router.post(
+    "/{workflow_id}/execute/{backend}", response_model=WorkflowExecutionRead, dependencies=[Depends(_guard_edit_project)]
+)
 async def execute_workflow_by_id(
     workflow_id: str,
     request: Request,
@@ -101,6 +113,12 @@ async def execute_workflow_by_id(
     payload: Optional[str] = Form(None),
     files: Optional[list[UploadFile]] = File(None),
     backend: Optional[str] = None,
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ) -> WorkflowExecutionRead:
     """Create a WorkflowExecution and kick off execution by workflow id.
 
@@ -375,9 +393,18 @@ async def execute_workflow_by_id(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{workflow_id}/stream")
+@router.get("/{workflow_id}/stream", dependencies=[Depends(_guard_view_project)])
 async def stream_workflow_execution(
-    workflow_id: str, request: Request, session: Session = Depends(get_db_session), execution_id: Optional[str] = None
+    workflow_id: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    execution_id: Optional[str] = None,
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ) -> StreamingResponse:
     """
     Stream real-time updates for workflow executions using Server-Sent Events (SSE).
@@ -464,8 +491,17 @@ async def stream_workflow_execution(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/validate")
-async def validate_workflow(workflow_config: WorkflowBase, request: Request):
+@router.post("/validate", dependencies=[Depends(_guard_view_project)])
+async def validate_workflow(
+    workflow_config: WorkflowBase,
+    request: Request,
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+):
     """Validate a workflow configuration"""
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
@@ -499,8 +535,17 @@ async def list_workflows(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/{workflow_id}")
-async def delete_workflow(workflow_id: str, session: Session = Depends(get_db_session)):
+@router.delete("/{workflow_id}", dependencies=[Depends(_guard_edit_project)])
+async def delete_workflow(
+    workflow_id: str,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+):
     """Delete a workflow configuration"""
     try:
         deleted = WorkflowsService.delete_workflow(session, workflow_id)
@@ -520,8 +565,17 @@ async def delete_workflow(workflow_id: str, session: Session = Depends(get_db_se
 # New SQLModel-based endpoints
 
 
-@router.post("/", response_model=WorkflowRead)
-async def create_workflow(workflow_data: WorkflowConfig, session: Session = Depends(get_db_session)) -> WorkflowRead:
+@router.post("/", response_model=WorkflowRead, dependencies=[Depends(_guard_edit_project)])
+async def create_workflow(
+    workflow_data: WorkflowConfig,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+) -> WorkflowRead:
     """Create a new workflow using SQLModel and return the SQLModel entity.
 
     Request body schema: WorkflowConfig
@@ -535,8 +589,17 @@ async def create_workflow(workflow_data: WorkflowConfig, session: Session = Depe
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{workflow_id}", response_model=WorkflowRead)
-async def get_workflow_by_id(workflow_id: str, session: Session = Depends(get_db_session)) -> WorkflowRead:
+@router.get("/{workflow_id}", response_model=WorkflowRead, dependencies=[Depends(_guard_view_project)])
+async def get_workflow_by_id(
+    workflow_id: str,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+) -> WorkflowRead:
     """Get a workflow by ID using SQLModel and return the SQLModel entity."""
     try:
         workflow_obj = WorkflowsService.get_workflow_entity(session, workflow_id)

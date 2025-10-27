@@ -4,7 +4,8 @@ Agents API router: CRUD for Agents, and Tool bindings
 
 from typing import List, Optional, Dict, Any
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form, Security, Header
+from fastapi.security.api_key import APIKeyHeader
 from sqlmodel import Session, select
 
 # Provider config validation models
@@ -21,6 +22,17 @@ from ..db.models import (
     Prompt,
 )
 from ..services.agents_service import AgentsService, AgentsListQuery
+
+from rbac_sdk import (
+    require_permission_async,
+    resource_builders,
+    principal_resolvers,
+    HDR_API_KEY,
+    HDR_USER_ID,
+    HDR_ORG_ID,
+    HDR_ACCOUNT_ID,
+    HDR_PROJECT_ID,
+)
 
 
 class ProviderType(str, Enum):
@@ -78,12 +90,45 @@ def validate_provider_config(provider_type: str, config: Dict[str, Any]) -> Dict
         raise HTTPException(status_code=422, detail=ve.errors())
 
 
+# Swagger/OpenAPI: expose API key header for testing in docs
+api_key_header = APIKeyHeader(name=HDR_API_KEY, auto_error=False)
+
+# RBAC guards: view_project (read-only) and edit_project (create/update/delete)
+_guard_view_project = require_permission_async(
+    action="view_project",
+    resource_builder=resource_builders.project_from_headers(
+        project_header=HDR_PROJECT_ID,
+        account_header=HDR_ACCOUNT_ID,
+        org_header=HDR_ORG_ID,
+    ),
+    principal_resolver=principal_resolvers.api_key_or_user(),
+)
+
+_guard_edit_project = require_permission_async(
+    action="edit_project",
+    resource_builder=resource_builders.project_from_headers(
+        project_header=HDR_PROJECT_ID,
+        account_header=HDR_ACCOUNT_ID,
+        org_header=HDR_ORG_ID,
+    ),
+    principal_resolver=principal_resolvers.api_key_or_user(),
+)
+
 router = APIRouter(prefix="/agents", tags=["agents"])
 
 
 # ---------- Agents CRUD ----------
-@router.post("/", response_model=AgentRead)
-async def create_agent(agent: AgentCreate, session: Session = Depends(get_db_session)):
+@router.post("/", response_model=AgentRead, dependencies=[Depends(_guard_edit_project)])
+async def create_agent(
+    agent: AgentCreate,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+):
     agent_data = agent.model_dump()
     agent_data["provider_config"] = validate_provider_config(agent.provider_type, agent.provider_config or {})
     try:
@@ -92,7 +137,7 @@ async def create_agent(agent: AgentCreate, session: Session = Depends(get_db_ses
         raise HTTPException(status_code=409, detail=str(ve))
 
 
-@router.get("/", response_model=List[AgentRead])
+@router.get("/", response_model=List[AgentRead], dependencies=[Depends(_guard_view_project)])
 async def list_agents(
     session: Session = Depends(get_db_session),
     organization_id: Optional[str] = Query(default=None),
@@ -101,6 +146,12 @@ async def list_agents(
     q: Optional[str] = Query(default=None),
     limit: int = 100,
     offset: int = 0,
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ):
     params = AgentsListQuery(
         organization_id=organization_id,
@@ -118,19 +169,34 @@ async def list_agents(
     return agents
 
 
-@router.get("/{agent_id}", response_model=AgentRead)
-async def get_agent(agent_id: str, session: Session = Depends(get_db_session)):
+@router.get("/{agent_id}", response_model=AgentRead, dependencies=[Depends(_guard_view_project)])
+async def get_agent(
+    agent_id: str,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+):
     agent = AgentsService.get_agent(session, agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     return agent
 
 
-@router.patch("/{agent_id}", response_model=AgentRead)
+@router.patch("/{agent_id}", response_model=AgentRead, dependencies=[Depends(_guard_edit_project)])
 async def update_agent(
     agent_id: str,
     payload: AgentUpdate,
     session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ):
     try:
         return AgentsService.update_agent(session, agent_id, payload)
@@ -138,8 +204,17 @@ async def update_agent(
         raise HTTPException(status_code=404, detail=str(ve))
 
 
-@router.delete("/{agent_id}")
-async def delete_agent(agent_id: str, session: Session = Depends(get_db_session)):
+@router.delete("/{agent_id}", dependencies=[Depends(_guard_edit_project)])
+async def delete_agent(
+    agent_id: str,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+):
     deleted = AgentsService.delete_agent(session, agent_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -147,16 +222,31 @@ async def delete_agent(agent_id: str, session: Session = Depends(get_db_session)
 
 
 # ---------- Agent Tool Bindings ----------
-@router.get("/{agent_id}/tools", response_model=List[AgentToolBinding])
-async def list_agent_tools(agent_id: str, session: Session = Depends(get_db_session)):
+@router.get("/{agent_id}/tools", response_model=List[AgentToolBinding], dependencies=[Depends(_guard_view_project)])
+async def list_agent_tools(
+    agent_id: str,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+):
     return AgentsService.list_agent_tools(session, agent_id)
 
 
-@router.post("/{agent_id}/tools", response_model=AgentToolBinding)
+@router.post("/{agent_id}/tools", response_model=AgentToolBinding, dependencies=[Depends(_guard_edit_project)])
 async def attach_tool_to_agent(
     agent_id: str,
     body: Dict[str, Any],
     session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ):
     try:
         return AgentsService.attach_tool_to_agent(
@@ -177,12 +267,18 @@ async def attach_tool_to_agent(
             raise HTTPException(status_code=400, detail=msg)
 
 
-@router.patch("/{agent_id}/tools/{binding_id}", response_model=AgentToolBinding)
+@router.patch("/{agent_id}/tools/{binding_id}", response_model=AgentToolBinding, dependencies=[Depends(_guard_edit_project)])
 async def update_agent_tool_binding(
     agent_id: str,
     binding_id: int,
     body: Dict[str, Any],
     session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ):
     try:
         return AgentsService.update_agent_tool_binding(session, agent_id, binding_id, body)
@@ -194,8 +290,18 @@ async def update_agent_tool_binding(
             raise HTTPException(status_code=400, detail=msg)
 
 
-@router.delete("/{agent_id}/tools/{binding_id}")
-async def detach_tool_from_agent(agent_id: str, binding_id: int, session: Session = Depends(get_db_session)):
+@router.delete("/{agent_id}/tools/{binding_id}", dependencies=[Depends(_guard_edit_project)])
+async def detach_tool_from_agent(
+    agent_id: str,
+    binding_id: int,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+):
     try:
         deleted = AgentsService.detach_tool_from_agent(session, agent_id, binding_id)
         if not deleted:

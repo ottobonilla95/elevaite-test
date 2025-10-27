@@ -5,10 +5,10 @@ Execution status and results endpoints
 import asyncio
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends, Security, Header
 from fastapi.responses import StreamingResponse
+from fastapi.security.api_key import APIKeyHeader
 from typing import Optional
-from fastapi import Depends
 from sqlmodel import Session
 from ..db.database import get_db_session
 from ..services.executions_service import ExecutionsService
@@ -22,13 +22,48 @@ from ..streaming import (
 
 from ..workflow_engine import WorkflowEngine
 
+from rbac_sdk import (
+    require_permission_async,
+    resource_builders,
+    principal_resolvers,
+    HDR_API_KEY,
+    HDR_USER_ID,
+    HDR_ORG_ID,
+    HDR_ACCOUNT_ID,
+    HDR_PROJECT_ID,
+)
+
 logger = logging.getLogger(__name__)
+
+# Swagger/OpenAPI: expose API key header for testing in docs
+api_key_header = APIKeyHeader(name=HDR_API_KEY, auto_error=False)
+
+# RBAC guard: view_project required for viewing executions
+_guard_view_project = require_permission_async(
+    action="view_project",
+    resource_builder=resource_builders.project_from_headers(
+        project_header=HDR_PROJECT_ID,
+        account_header=HDR_ACCOUNT_ID,
+        org_header=HDR_ORG_ID,
+    ),
+    principal_resolver=principal_resolvers.api_key_or_user(),
+)
 
 router = APIRouter(prefix="/executions", tags=["executions"])
 
 
-@router.get("/{execution_id}")
-async def get_execution_status(execution_id: str, request: Request, session: Session = Depends(get_db_session)):
+@router.get("/{execution_id}", dependencies=[Depends(_guard_view_project)])
+async def get_execution_status(
+    execution_id: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+):
     """Get the status of a workflow execution.
 
     - Prefer in-memory engine context if available (most up-to-date)
@@ -90,8 +125,18 @@ async def get_execution_status(execution_id: str, request: Request, session: Ses
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{execution_id}/results")
-async def get_execution_results(execution_id: str, request: Request, session: Session = Depends(get_db_session)):
+@router.get("/{execution_id}/results", dependencies=[Depends(_guard_view_project)])
+async def get_execution_results(
+    execution_id: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+):
     """Get the detailed results of a workflow execution.
 
     Returns in-memory results when available; otherwise falls back to DB record.
@@ -155,7 +200,7 @@ async def get_execution_results(execution_id: str, request: Request, session: Se
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(_guard_view_project)])
 async def get_execution_analytics(
     request: Request,
     limit: int = 100,
@@ -164,6 +209,12 @@ async def get_execution_analytics(
     workflow_id: Optional[str] = None,
     exclude_db: bool = False,
     session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ):
     """Get execution analytics and history.
 
@@ -188,8 +239,18 @@ async def get_execution_analytics(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{execution_id}/stream")
-async def stream_execution_updates(execution_id: str, request: Request, session: Session = Depends(get_db_session)):
+@router.get("/{execution_id}/stream", dependencies=[Depends(_guard_view_project)])
+async def stream_execution_updates(
+    execution_id: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+):
     """Stream real-time updates for a specific execution using Server-Sent Events (SSE)."""
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
