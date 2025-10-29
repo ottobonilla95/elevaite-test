@@ -9,42 +9,16 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from sqlmodel import Session
-from rbac_sdk.fastapi_helpers import require_permission_async, resource_builders, principal_resolvers
 
 from ..db.database import get_db_session
 from ..services.workflows_service import WorkflowsService
 from ..services.executions_service import ExecutionsService
 from ..workflow_engine import WorkflowEngine
+from ..util import api_key_or_user_guard
 
 logger = logging.getLogger(__name__)
 
-# RBAC header constants
-HDR_PROJECT_ID = "X-elevAIte-ProjectId"
-HDR_ACCOUNT_ID = "X-elevAIte-AccountId"
-HDR_ORG_ID = "X-elevAIte-OrganizationId"
-
 router = APIRouter(prefix="/executions", tags=["messages"])
-
-# RBAC guards: view_project (read messages) and edit_project (send messages)
-_guard_view_project = require_permission_async(
-    action="view_project",
-    resource_builder=resource_builders.project_from_headers(
-        project_header=HDR_PROJECT_ID,
-        account_header=HDR_ACCOUNT_ID,
-        org_header=HDR_ORG_ID,
-    ),
-    principal_resolver=principal_resolvers.api_key_or_user(),
-)
-
-_guard_edit_project = require_permission_async(
-    action="edit_project",
-    resource_builder=resource_builders.project_from_headers(
-        project_header=HDR_PROJECT_ID,
-        account_header=HDR_ACCOUNT_ID,
-        org_header=HDR_ORG_ID,
-    ),
-    principal_resolver=principal_resolvers.api_key_or_user(),
-)
 
 
 class AgentMessageCreate(BaseModel):
@@ -75,7 +49,7 @@ async def list_step_messages(
     limit: int = 100,
     offset: int = 0,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_view_project),
+    _principal: str = Depends(api_key_or_user_guard("view_message")),
 ):
     try:
         # Ensure execution exists (prefer engine context)
@@ -108,7 +82,7 @@ async def create_step_message(
     body: AgentMessageCreate,
     request: Request,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("send_message")),
 ):
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine

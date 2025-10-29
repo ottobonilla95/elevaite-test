@@ -12,6 +12,8 @@ from sqlmodel import Session, select
 from pydantic import BaseModel, ValidationError
 from enum import Enum
 
+from workflow_engine_poc.util import api_key_or_user_guard
+
 from ..db.database import get_db_session
 from ..db.models import (
     Agent,
@@ -24,9 +26,6 @@ from ..db.models import (
 from ..services.agents_service import AgentsService, AgentsListQuery
 
 from rbac_sdk import (
-    require_permission_async,
-    resource_builders,
-    principal_resolvers,
     HDR_API_KEY,
     HDR_USER_ID,
     HDR_ORG_ID,
@@ -93,32 +92,11 @@ def validate_provider_config(provider_type: str, config: Dict[str, Any]) -> Dict
 # Swagger/OpenAPI: expose API key header for testing in docs
 api_key_header = APIKeyHeader(name=HDR_API_KEY, auto_error=False)
 
-# RBAC guards: view_project (read-only) and edit_project (create/update/delete)
-_guard_view_project = require_permission_async(
-    action="view_project",
-    resource_builder=resource_builders.project_from_headers(
-        project_header=HDR_PROJECT_ID,
-        account_header=HDR_ACCOUNT_ID,
-        org_header=HDR_ORG_ID,
-    ),
-    principal_resolver=principal_resolvers.api_key_or_user(),
-)
-
-_guard_edit_project = require_permission_async(
-    action="edit_project",
-    resource_builder=resource_builders.project_from_headers(
-        project_header=HDR_PROJECT_ID,
-        account_header=HDR_ACCOUNT_ID,
-        org_header=HDR_ORG_ID,
-    ),
-    principal_resolver=principal_resolvers.api_key_or_user(),
-)
-
 router = APIRouter(prefix="/agents", tags=["agents"])
 
 
 # ---------- Agents CRUD ----------
-@router.post("/", response_model=AgentRead, dependencies=[Depends(_guard_edit_project)])
+@router.post("/", response_model=AgentRead, dependencies=[Depends(api_key_or_user_guard("create_agent"))])
 async def create_agent(
     agent: AgentCreate,
     session: Session = Depends(get_db_session),
@@ -137,7 +115,7 @@ async def create_agent(
         raise HTTPException(status_code=409, detail=str(ve))
 
 
-@router.get("/", response_model=List[AgentRead], dependencies=[Depends(_guard_view_project)])
+@router.get("/", response_model=List[AgentRead], dependencies=[Depends(api_key_or_user_guard("view_agent"))])
 async def list_agents(
     session: Session = Depends(get_db_session),
     organization_id: Optional[str] = Query(default=None),
@@ -169,7 +147,7 @@ async def list_agents(
     return agents
 
 
-@router.get("/{agent_id}", response_model=AgentRead, dependencies=[Depends(_guard_view_project)])
+@router.get("/{agent_id}", response_model=AgentRead, dependencies=[Depends(api_key_or_user_guard("view_agent"))])
 async def get_agent(
     agent_id: str,
     session: Session = Depends(get_db_session),
@@ -186,7 +164,7 @@ async def get_agent(
     return agent
 
 
-@router.patch("/{agent_id}", response_model=AgentRead, dependencies=[Depends(_guard_edit_project)])
+@router.patch("/{agent_id}", response_model=AgentRead, dependencies=[Depends(api_key_or_user_guard("edit_agent"))])
 async def update_agent(
     agent_id: str,
     payload: AgentUpdate,
@@ -204,7 +182,7 @@ async def update_agent(
         raise HTTPException(status_code=404, detail=str(ve))
 
 
-@router.delete("/{agent_id}", dependencies=[Depends(_guard_edit_project)])
+@router.delete("/{agent_id}", dependencies=[Depends(api_key_or_user_guard("delete_agent"))])
 async def delete_agent(
     agent_id: str,
     session: Session = Depends(get_db_session),
@@ -222,7 +200,9 @@ async def delete_agent(
 
 
 # ---------- Agent Tool Bindings ----------
-@router.get("/{agent_id}/tools", response_model=List[AgentToolBinding], dependencies=[Depends(_guard_view_project)])
+@router.get(
+    "/{agent_id}/tools", response_model=List[AgentToolBinding], dependencies=[Depends(api_key_or_user_guard("view_agent"))]
+)
 async def list_agent_tools(
     agent_id: str,
     session: Session = Depends(get_db_session),
@@ -236,7 +216,7 @@ async def list_agent_tools(
     return AgentsService.list_agent_tools(session, agent_id)
 
 
-@router.post("/{agent_id}/tools", response_model=AgentToolBinding, dependencies=[Depends(_guard_edit_project)])
+@router.post("/{agent_id}/tools", response_model=AgentToolBinding, dependencies=[Depends(api_key_or_user_guard("edit_agent"))])
 async def attach_tool_to_agent(
     agent_id: str,
     body: Dict[str, Any],
@@ -267,7 +247,11 @@ async def attach_tool_to_agent(
             raise HTTPException(status_code=400, detail=msg)
 
 
-@router.patch("/{agent_id}/tools/{binding_id}", response_model=AgentToolBinding, dependencies=[Depends(_guard_edit_project)])
+@router.patch(
+    "/{agent_id}/tools/{binding_id}",
+    response_model=AgentToolBinding,
+    dependencies=[Depends(api_key_or_user_guard("edit_agent"))],
+)
 async def update_agent_tool_binding(
     agent_id: str,
     binding_id: int,
@@ -290,7 +274,7 @@ async def update_agent_tool_binding(
             raise HTTPException(status_code=400, detail=msg)
 
 
-@router.delete("/{agent_id}/tools/{binding_id}", dependencies=[Depends(_guard_edit_project)])
+@router.delete("/{agent_id}/tools/{binding_id}", dependencies=[Depends(api_key_or_user_guard("edit_agent"))])
 async def detach_tool_from_agent(
     agent_id: str,
     binding_id: int,

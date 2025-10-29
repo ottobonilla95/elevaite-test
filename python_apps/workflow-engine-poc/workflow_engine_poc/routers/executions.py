@@ -21,11 +21,9 @@ from ..streaming import (
 )
 
 from ..workflow_engine import WorkflowEngine
+from ..util import api_key_or_user_guard
 
 from rbac_sdk import (
-    require_permission_async,
-    resource_builders,
-    principal_resolvers,
     HDR_API_KEY,
     HDR_USER_ID,
     HDR_ORG_ID,
@@ -38,21 +36,10 @@ logger = logging.getLogger(__name__)
 # Swagger/OpenAPI: expose API key header for testing in docs
 api_key_header = APIKeyHeader(name=HDR_API_KEY, auto_error=False)
 
-# RBAC guard: view_project required for viewing executions
-_guard_view_project = require_permission_async(
-    action="view_project",
-    resource_builder=resource_builders.project_from_headers(
-        project_header=HDR_PROJECT_ID,
-        account_header=HDR_ACCOUNT_ID,
-        org_header=HDR_ORG_ID,
-    ),
-    principal_resolver=principal_resolvers.api_key_or_user(),
-)
-
 router = APIRouter(prefix="/executions", tags=["executions"])
 
 
-@router.get("/{execution_id}", dependencies=[Depends(_guard_view_project)])
+@router.get("/{execution_id}", dependencies=[Depends(api_key_or_user_guard("view_execution"))])
 async def get_execution_status(
     execution_id: str,
     request: Request,
@@ -125,7 +112,7 @@ async def get_execution_status(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{execution_id}/results", dependencies=[Depends(_guard_view_project)])
+@router.get("/{execution_id}/results", dependencies=[Depends(api_key_or_user_guard("view_execution"))])
 async def get_execution_results(
     execution_id: str,
     request: Request,
@@ -200,7 +187,7 @@ async def get_execution_results(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/", dependencies=[Depends(_guard_view_project)])
+@router.get("/", dependencies=[Depends(api_key_or_user_guard("view_execution"))])
 async def get_execution_analytics(
     request: Request,
     limit: int = 100,
@@ -239,7 +226,7 @@ async def get_execution_analytics(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{execution_id}/stream", dependencies=[Depends(_guard_view_project)])
+@router.get("/{execution_id}/stream", dependencies=[Depends(api_key_or_user_guard("view_execution"))])
 async def stream_execution_updates(
     execution_id: str,
     request: Request,

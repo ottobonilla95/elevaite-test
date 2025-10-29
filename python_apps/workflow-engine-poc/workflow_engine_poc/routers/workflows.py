@@ -24,9 +24,6 @@ from typing import Dict, Any, Optional, List
 
 from fastapi.security.api_key import APIKeyHeader
 from rbac_sdk import (
-    require_permission_async,
-    resource_builders,
-    principal_resolvers,
     HDR_API_KEY,
     HDR_USER_ID,
     HDR_ORG_ID,
@@ -51,6 +48,7 @@ from ..streaming import (
 
 from ..execution_context import ExecutionContext, UserContext
 from ..schemas.workflows import WorkflowConfig, ExecutionRequest
+from ..util import api_key_or_user_guard
 
 # NOTE: Pydantic BaseModel not strictly required for these new routes
 
@@ -63,27 +61,6 @@ PER_FILE_MB_DEFAULT = 20
 TOTAL_MB_DEFAULT = 60
 # Swagger/OpenAPI: expose API key header for testing in docs
 api_key_header = APIKeyHeader(name=HDR_API_KEY, auto_error=False)
-
-# RBAC guards: view_project (read-only) and edit_project (create/update/delete/execute)
-_guard_view_project = require_permission_async(
-    action="view_project",
-    resource_builder=resource_builders.project_from_headers(
-        project_header=HDR_PROJECT_ID,
-        account_header=HDR_ACCOUNT_ID,
-        org_header=HDR_ORG_ID,
-    ),
-    principal_resolver=principal_resolvers.api_key_or_user(),
-)
-
-_guard_edit_project = require_permission_async(
-    action="edit_project",
-    resource_builder=resource_builders.project_from_headers(
-        project_header=HDR_PROJECT_ID,
-        account_header=HDR_ACCOUNT_ID,
-        org_header=HDR_ORG_ID,
-    ),
-    principal_resolver=principal_resolvers.api_key_or_user(),
-)
 
 ALLOWED_MIME_DEFAULT = {
     "doc": [
@@ -101,9 +78,15 @@ ALLOWED_MIME_DEFAULT = {
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 
 
-@router.post("/{workflow_id}/execute", response_model=WorkflowExecutionRead, dependencies=[Depends(_guard_edit_project)])
 @router.post(
-    "/{workflow_id}/execute/{backend}", response_model=WorkflowExecutionRead, dependencies=[Depends(_guard_edit_project)]
+    "/{workflow_id}/execute",
+    response_model=WorkflowExecutionRead,
+    dependencies=[Depends(api_key_or_user_guard("execute_workflow"))],
+)
+@router.post(
+    "/{workflow_id}/execute/{backend}",
+    response_model=WorkflowExecutionRead,
+    dependencies=[Depends(api_key_or_user_guard("execute_workflow"))],
 )
 async def execute_workflow_by_id(
     workflow_id: str,
@@ -393,7 +376,7 @@ async def execute_workflow_by_id(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{workflow_id}/stream", dependencies=[Depends(_guard_view_project)])
+@router.get("/{workflow_id}/stream", dependencies=[Depends(api_key_or_user_guard("view_workflow"))])
 async def stream_workflow_execution(
     workflow_id: str,
     request: Request,
@@ -491,7 +474,7 @@ async def stream_workflow_execution(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/validate", dependencies=[Depends(_guard_view_project)])
+@router.post("/validate", dependencies=[Depends(api_key_or_user_guard("view_workflow"))])
 async def validate_workflow(
     workflow_config: WorkflowBase,
     request: Request,
@@ -513,7 +496,7 @@ async def validate_workflow(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/", response_model=List[WorkflowRead], dependencies=[Depends(_guard_view_project)])
+@router.get("/", response_model=List[WorkflowRead], dependencies=[Depends(api_key_or_user_guard("view_workflow"))])
 async def list_workflows(
     session: Session = Depends(get_db_session),
     limit: int = 100,
@@ -535,7 +518,7 @@ async def list_workflows(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/{workflow_id}", dependencies=[Depends(_guard_edit_project)])
+@router.delete("/{workflow_id}", dependencies=[Depends(api_key_or_user_guard("delete_workflow"))])
 async def delete_workflow(
     workflow_id: str,
     session: Session = Depends(get_db_session),
@@ -565,7 +548,7 @@ async def delete_workflow(
 # New SQLModel-based endpoints
 
 
-@router.post("/", response_model=WorkflowRead, dependencies=[Depends(_guard_edit_project)])
+@router.post("/", response_model=WorkflowRead, dependencies=[Depends(api_key_or_user_guard("create_workflow"))])
 async def create_workflow(
     workflow_data: WorkflowConfig,
     session: Session = Depends(get_db_session),
@@ -589,7 +572,7 @@ async def create_workflow(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{workflow_id}", response_model=WorkflowRead, dependencies=[Depends(_guard_view_project)])
+@router.get("/{workflow_id}", response_model=WorkflowRead, dependencies=[Depends(api_key_or_user_guard("view_workflow"))])
 async def get_workflow_by_id(
     workflow_id: str,
     session: Session = Depends(get_db_session),

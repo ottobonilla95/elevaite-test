@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlmodel import Session
-from rbac_sdk.fastapi_helpers import require_permission_async, resource_builders, principal_resolvers
 from ..db.database import get_db_session
 from ..db.models import (
     ToolCreate,
@@ -22,36 +21,11 @@ from ..db.models import (
 )
 from ..tools.registry import tool_registry
 from ..services.tools_service import ToolsService
-
-# RBAC header constants
-HDR_PROJECT_ID = "X-elevAIte-ProjectId"
-HDR_ACCOUNT_ID = "X-elevAIte-AccountId"
-HDR_ORG_ID = "X-elevAIte-OrganizationId"
+from ..util import api_key_or_user_guard
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 if TYPE_CHECKING:
     from ..db.models import Tool  # for type hints only
-
-# RBAC guards: view_project (read-only) and edit_project (create/update/delete)
-_guard_view_project = require_permission_async(
-    action="view_project",
-    resource_builder=resource_builders.project_from_headers(
-        project_header=HDR_PROJECT_ID,
-        account_header=HDR_ACCOUNT_ID,
-        org_header=HDR_ORG_ID,
-    ),
-    principal_resolver=principal_resolvers.api_key_or_user(),
-)
-
-_guard_edit_project = require_permission_async(
-    action="edit_project",
-    resource_builder=resource_builders.project_from_headers(
-        project_header=HDR_PROJECT_ID,
-        account_header=HDR_ACCOUNT_ID,
-        org_header=HDR_ORG_ID,
-    ),
-    principal_resolver=principal_resolvers.api_key_or_user(),
-)
 
 
 # --------- Read-only endpoints (available now) ---------
@@ -61,7 +35,7 @@ async def list_tools(
     limit: int = 100,
     offset: int = 0,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_view_project),
+    _principal: str = Depends(api_key_or_user_guard("view_tool")),
 ):
     """Unified list of tools from DB + Local (+ MCP in future) as ToolRead objects.
     DB entries take precedence on name collisions. Includes source and uri fields.
@@ -156,7 +130,7 @@ async def list_tools(
 async def get_tool(
     tool_name: str,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_view_project),
+    _principal: str = Depends(api_key_or_user_guard("view_tool")),
 ):
     """Get a tool by name as ToolRead. Prefers DB; falls back to local registry."""
     # Prefer DB with enriched ToolRead
@@ -243,7 +217,7 @@ async def get_tool(
 async def create_tool(
     tool: ToolCreate,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("create_tool")),
 ):
     try:
         return ToolsService.create_tool(session, tool)
@@ -257,7 +231,7 @@ async def list_db_tools(
     q: Optional[str] = Query(default=None),
     limit: int = 100,
     offset: int = 0,
-    _principal: str = Depends(_guard_view_project),
+    _principal: str = Depends(api_key_or_user_guard("view_tool")),
 ):
     return ToolsService.list_db_tools(session, q=q, limit=limit, offset=offset)
 
@@ -266,7 +240,7 @@ async def list_db_tools(
 async def get_db_tool(
     tool_id: str,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_view_project),
+    _principal: str = Depends(api_key_or_user_guard("view_tool")),
 ):
     tool = ToolsService.get_db_tool_by_id(session, tool_id)
     if not tool:
@@ -279,7 +253,7 @@ async def update_db_tool(
     tool_id: str,
     payload: ToolUpdate,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("edit_tool")),
 ):
     try:
         _ = ToolsService.update_db_tool(session, tool_id, payload)
@@ -292,7 +266,7 @@ async def update_db_tool(
 async def delete_db_tool(
     tool_id: str,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("delete_tool")),
 ):
     ok = ToolsService.delete_db_tool(session, tool_id)
     if not ok:
@@ -305,7 +279,7 @@ async def delete_db_tool(
 async def create_category(
     category: ToolCategoryCreate,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("create_tool_category")),
 ):
     try:
         return ToolsService.create_category(session, category)
@@ -316,7 +290,7 @@ async def create_category(
 @router.get("/categories", response_model=List[ToolCategoryRead])
 async def list_categories(
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_view_project),
+    _principal: str = Depends(api_key_or_user_guard("view_tool_category")),
 ):
     return ToolsService.list_categories(session)
 
@@ -326,7 +300,7 @@ async def update_category(
     category_id: str,
     payload: ToolCategoryUpdate,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("edit_tool_category")),
 ):
     try:
         _ = ToolsService.update_category(session, category_id, payload)
@@ -339,7 +313,7 @@ async def update_category(
 async def get_category(
     category_id: str,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_view_project),
+    _principal: str = Depends(api_key_or_user_guard("view_tool_category")),
 ):
     cat = ToolsService.get_category(session, category_id)
     if not cat:
@@ -351,7 +325,7 @@ async def get_category(
 async def delete_category(
     category_id: str,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("delete_tool_category")),
 ):
     ok = ToolsService.delete_category(session, category_id)
     if not ok:
@@ -364,7 +338,7 @@ async def delete_category(
 async def create_mcp_server(
     server: MCPServerCreate,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("create_mcp_server")),
 ):
     try:
         return ToolsService.create_mcp_server(session, server)
@@ -375,7 +349,7 @@ async def create_mcp_server(
 @router.get("/mcp-servers", response_model=List[MCPServerRead])
 async def list_mcp_servers(
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_view_project),
+    _principal: str = Depends(api_key_or_user_guard("view_mcp_server")),
 ):
     return ToolsService.list_mcp_servers(session)
 
@@ -384,7 +358,7 @@ async def list_mcp_servers(
 async def get_mcp_server(
     server_id: str,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_view_project),
+    _principal: str = Depends(api_key_or_user_guard("view_mcp_server")),
 ):
     server = ToolsService.get_mcp_server(session, server_id)
     if not server:
@@ -397,7 +371,7 @@ async def update_mcp_server(
     server_id: str,
     payload: MCPServerUpdate,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("edit_mcp_server")),
 ):
     try:
         _ = ToolsService.update_mcp_server(session, server_id, payload)
@@ -410,7 +384,7 @@ async def update_mcp_server(
 async def delete_mcp_server(
     server_id: str,
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("delete_mcp_server")),
 ):
     ok = ToolsService.delete_mcp_server(session, server_id)
     if not ok:
@@ -422,7 +396,7 @@ async def delete_mcp_server(
 async def sync_tools(
     source: Optional[str] = Query(default="local"),
     session: Session = Depends(get_db_session),
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("sync_tools")),
 ):
     """Idempotent sync of tools from a source into DB. Currently supports source=local."""
     if source != "local":
@@ -435,7 +409,7 @@ async def sync_tools(
 async def update_tool_stub(
     tool_name: str,
     body: Dict[str, Any],
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("edit_tool")),
 ):
     """Stub for updating a tool."""
     return {"message": "Not implemented yet", "tool_name": tool_name, "request": body}
@@ -444,7 +418,7 @@ async def update_tool_stub(
 @router.delete("/{tool_name}")
 async def delete_tool_stub(
     tool_name: str,
-    _principal: str = Depends(_guard_edit_project),
+    _principal: str = Depends(api_key_or_user_guard("delete_tool")),
 ):
     """Stub for deleting a tool."""
     return {"message": "Not implemented yet", "tool_name": tool_name}
