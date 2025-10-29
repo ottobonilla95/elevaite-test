@@ -9,7 +9,42 @@ The RBAC system has **two separate concerns**:
 1. **Role Assignments** (Database) - Which users have which roles on which resources
 2. **Role Permissions** (OPA Policy) - What actions each role is allowed to perform
 
-**Key Point:** Admins assign roles to users via the Auth API, but the **permissions for each role are defined in the OPA policy file**.
+**Key Point:** Admins assign roles to users via the Auth API, but the **permissions for each role are defined in the OPA policy**.
+
+## Two Ways to Change Role Permissions
+
+### Option 1: Dynamic API Management (Recommended) ⚡
+
+**Change permissions via API without code changes or redeployment!**
+
+See [DYNAMIC_PERMISSIONS.md](DYNAMIC_PERMISSIONS.md) for complete guide.
+
+**Quick example:**
+```bash
+# Allow viewers to execute workflows
+curl -X POST http://localhost:8004/api/policies/generate \
+  -H "Authorization: Bearer $SUPERUSER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service_name": "workflow_engine",
+    "resource_type": "workflow",
+    "actions": {
+      "viewer": ["view_workflow", "execute_workflow"]
+    }
+  }'
+```
+
+**Benefits:**
+- ✅ Changes take effect immediately
+- ✅ No code changes needed
+- ✅ No redeployment needed
+- ✅ Can be done by superusers via API
+
+### Option 2: Edit OPA Policy File (Traditional) 🔧
+
+**Modify the Rego policy file directly (requires code deployment)**
+
+This document covers this approach in detail below.
 
 ## How It Works
 

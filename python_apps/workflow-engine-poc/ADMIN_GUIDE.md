@@ -24,12 +24,15 @@ Users are assigned roles at different levels, which determine their permissions.
 
 ### Important Distinction
 
-**This guide covers how admins assign roles to users.** The permissions for each role (what actions a role can perform) are defined in the OPA policy file, not through the API.
+**This guide covers how admins assign roles to users.** The permissions for each role (what actions a role can perform) can be managed in two ways:
 
 - **Role Assignments** (This Guide) - Admins assign roles to users via Auth API
-- **Role Permissions** (See [ROLE_PERMISSIONS.md](ROLE_PERMISSIONS.md)) - Developers define what each role can do in the OPA policy
+- **Role Permissions** - What each role can do:
+  - **Dynamic Management** (See [DYNAMIC_PERMISSIONS.md](DYNAMIC_PERMISSIONS.md)) - Superusers can change via API
+  - **Static Configuration** (See [ROLE_PERMISSIONS.md](ROLE_PERMISSIONS.md)) - Developers edit OPA policy file
 
-**As an admin, you control WHO has WHICH role. Developers control WHAT each role can DO.**
+**As an admin, you control WHO has WHICH role.**
+**As a superuser, you can also control WHAT each role can DO (via dynamic policy API).**
 
 ## Permission Model
 
@@ -436,9 +439,35 @@ curl -v -X GET http://localhost:8004/api/rbac/user_role_assignments?user_id=123 
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
+## Changing What Roles Can Do
+
+**As a superuser, you can dynamically change role permissions via API!**
+
+See [DYNAMIC_PERMISSIONS.md](DYNAMIC_PERMISSIONS.md) for complete guide on:
+- Allowing viewers to execute workflows
+- Restricting editors from deleting
+- Creating custom roles
+- Per-client custom permissions
+
+**Quick example:**
+```bash
+# Allow viewers to execute workflows (no code changes needed!)
+curl -X POST http://localhost:8004/api/policies/generate \
+  -H "Authorization: Bearer $SUPERUSER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service_name": "workflow_engine",
+    "resource_type": "workflow",
+    "actions": {
+      "viewer": ["view_workflow", "execute_workflow"]
+    }
+  }'
+```
+
 ## Additional Resources
 
-- [ROLE_PERMISSIONS.md](ROLE_PERMISSIONS.md) - How to modify what each role can access (for developers)
+- [DYNAMIC_PERMISSIONS.md](DYNAMIC_PERMISSIONS.md) - Change role permissions via API (for superusers)
+- [ROLE_PERMISSIONS.md](ROLE_PERMISSIONS.md) - Understanding and editing OPA policy (for developers)
 - [RBAC Integration Documentation](RBAC_INTEGRATION.md) - Technical implementation details
 - [Examples Directory](examples/README.md) - Example scripts and usage
 - [RBAC SDK Documentation](../../python_packages/rbac-sdk/README.md) - SDK reference
