@@ -102,10 +102,10 @@ async def test_user_active(http_client: httpx.AsyncClient, auth_api_url: str) ->
 
     conn = await asyncpg.connect(
         host="localhost",
-        port=5434,
-        user="auth_user",
-        password="auth_password",
-        database="auth_db",
+        port=5433,
+        user="elevaite",
+        password="elevaite",
+        database="auth",
     )
     try:
         await conn.execute("UPDATE users SET is_superuser = true WHERE id = $1", user_data["id"])
