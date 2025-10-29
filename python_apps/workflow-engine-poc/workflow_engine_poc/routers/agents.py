@@ -254,7 +254,7 @@ async def attach_tool_to_agent(
 )
 async def update_agent_tool_binding(
     agent_id: str,
-    binding_id: int,
+    binding_id: str,
     body: Dict[str, Any],
     session: Session = Depends(get_db_session),
     # RBAC headers for Swagger UI testing
@@ -277,7 +277,7 @@ async def update_agent_tool_binding(
 @router.delete("/{agent_id}/tools/{binding_id}", dependencies=[Depends(api_key_or_user_guard("edit_agent"))])
 async def detach_tool_from_agent(
     agent_id: str,
-    binding_id: int,
+    binding_id: str,
     session: Session = Depends(get_db_session),
     # RBAC headers for Swagger UI testing
     api_key: Optional[str] = Security(api_key_header),

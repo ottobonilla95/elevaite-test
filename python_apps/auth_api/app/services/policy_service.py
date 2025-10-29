@@ -45,10 +45,7 @@ class PolicyService:
                     logger.info(f"Successfully uploaded policy: {module_name}")
                     return True
                 else:
-                    logger.error(
-                        f"Failed to upload policy {module_name}: "
-                        f"{response.status_code} - {response.text}"
-                    )
+                    logger.error(f"Failed to upload policy {module_name}: {response.status_code} - {response.text}")
                     return False
 
         except Exception as e:
@@ -76,10 +73,7 @@ class PolicyService:
                     logger.warning(f"Policy not found: {module_name}")
                     return None
                 else:
-                    logger.error(
-                        f"Error getting policy {module_name}: "
-                        f"{response.status_code} - {response.text}"
-                    )
+                    logger.error(f"Error getting policy {module_name}: {response.status_code} - {response.text}")
                     return None
 
         except Exception as e:
@@ -104,10 +98,7 @@ class PolicyService:
                     logger.info(f"Successfully deleted policy: {module_name}")
                     return True
                 else:
-                    logger.error(
-                        f"Failed to delete policy {module_name}: "
-                        f"{response.status_code} - {response.text}"
-                    )
+                    logger.error(f"Failed to delete policy {module_name}: {response.status_code} - {response.text}")
                     return False
 
         except Exception as e:
@@ -128,15 +119,10 @@ class PolicyService:
                 if response.status_code == 200:
                     result = response.json().get("result", {})
                     # Convert to list of dicts with module name and ID
-                    policies = [
-                        {"id": policy_id, "name": policy_id}
-                        for policy_id in result.keys()
-                    ]
+                    policies = [{"id": policy_id, "name": policy_id} for policy_id in result.keys()]
                     return policies
                 else:
-                    logger.error(
-                        f"Error listing policies: {response.status_code} - {response.text}"
-                    )
+                    logger.error(f"Error listing policies: {response.status_code} - {response.text}")
                     return []
 
         except Exception as e:
@@ -168,9 +154,7 @@ class PolicyService:
                     await self.delete_policy(test_module)
                     return True, None
                 else:
-                    error_msg = response.json().get("errors", [{}])[0].get(
-                        "message", "Unknown syntax error"
-                    )
+                    error_msg = response.json().get("errors", [{}])[0].get("message", "Unknown syntax error")
                     return False, error_msg
 
         except Exception as e:
@@ -197,13 +181,20 @@ class PolicyService:
         """
 
         # Generate valid_resource_match rule
+        # When resource_type == belongs_to (e.g., project belongs to project),
+        # use input.resource.id instead of input.resource.project_id
+        if resource_type == belongs_to:
+            resource_id_field = "id"
+        else:
+            resource_id_field = f"{belongs_to}_id"
+
         resource_match = f"""
-# {service_name.replace('_', ' ').title()} - Resource matching
+# {service_name.replace("_", " ").title()} - Resource matching
 # Resources of type '{resource_type}' belong to {belongs_to}s
 valid_resource_match(assignment) if {{
     assignment.resource_type == "{belongs_to}"
     input.resource.type == "{resource_type}"
-    input.resource.{belongs_to}_id == assignment.resource_id
+    input.resource.{resource_id_field} == assignment.resource_id
 }}
 """
 
@@ -215,9 +206,10 @@ valid_resource_match(assignment) if {{
 
             # Format actions as rego set
             if len(allowed_actions) == 1:
-                actions_str = f'"{allowed_actions[0]}"'
+                actions_condition = f'input.action == "{allowed_actions[0]}"'
             else:
-                actions_str = "{" + ", ".join([f'"{a}"' for a in allowed_actions]) + "}"
+                actions_set = "{" + ", ".join([f'"{a}"' for a in allowed_actions]) + "}"
+                actions_condition = f"input.action in {actions_set}"
 
             role_checks.append(
                 f"""
@@ -225,7 +217,7 @@ valid_resource_match(assignment) if {{
 role_check(assignment) if {{
     assignment.role == "{role}"
     input.resource.type == "{resource_type}"
-    input.action in {{{actions_str}}}
+    {actions_condition}
 }}"""
             )
 
@@ -235,7 +227,7 @@ role_check(assignment) if {{
 import rego.v1
 
 # ============================================================================
-# {service_name.upper().replace('_', ' ')} Service Permissions
+# {service_name.upper().replace("_", " ")} Service Permissions
 # Auto-generated policy module
 # Resource type: {resource_type}
 # Belongs to: {belongs_to}
@@ -257,4 +249,3 @@ def get_policy_service() -> PolicyService:
     if _policy_service is None:
         _policy_service = PolicyService()
     return _policy_service
-

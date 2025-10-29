@@ -25,13 +25,13 @@ def api_key_or_user_guard(action: str) -> Callable[[Request], Awaitable[None]]:
     )
 
 
-# def user_guard(action: str) -> Callable[[Request], None]:
-#     return require_permission_async(
-#         action=action,
-#         resource_builder=resource_builders.project_from_headers(
-#             project_header=HDR_PROJECT_ID,
-#             account_header=HDR_ACCOUNT_ID,
-#             org_header=HDR_ORG_ID,
-#         ),
-#         principal_resolver=principal_resolvers.
-#     )
+def user_guard(action: str) -> Callable[[Request], Awaitable[None]]:
+    return require_permission_async(
+        action=action,
+        resource_builder=resource_builders.project_from_headers(
+            project_header=HDR_PROJECT_ID,
+            account_header=HDR_ACCOUNT_ID,
+            org_header=HDR_ORG_ID,
+        ),
+        principal_resolver=principal_resolvers.user_id_header(),
+    )
