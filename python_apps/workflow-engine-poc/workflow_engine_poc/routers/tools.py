@@ -4,11 +4,12 @@ Tools API router: GET endpoints for tools and stubs for full CRUD including exte
 
 import uuid
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional, TYPE_CHECKING
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlmodel import Session
 from ..db.database import get_db_session
 from ..db.models import (
+    Tool,
     ToolCreate,
     ToolRead,
     ToolUpdate,
@@ -24,8 +25,6 @@ from ..services.tools_service import ToolsService
 from ..util import api_key_or_user_guard
 
 router = APIRouter(prefix="/tools", tags=["tools"])
-if TYPE_CHECKING:
-    from ..db.models import Tool  # for type hints only
 
 
 # --------- Read-only endpoints (available now) ---------
