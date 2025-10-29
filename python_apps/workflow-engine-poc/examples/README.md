@@ -2,6 +2,53 @@
 
 This directory contains example scripts and demonstrations for the Workflow Engine PoC.
 
+## Dynamic Policy Management
+
+### `dynamic_policy_demo.sh`
+
+A demonstration script showing how to change role permissions via API **without code changes or redeployment**.
+
+**What it demonstrates:**
+
+1. **List Current Policies** - View all policy modules in OPA
+2. **View Current Policy** - See the existing workflow_engine policy
+3. **Generate New Policy** - Create policy allowing viewers to execute workflows
+4. **Upload to OPA** - Upload the new policy via API
+5. **Verify Policy** - Confirm the policy was loaded correctly
+6. **Test Authorization** - Verify the new permissions work
+7. **Cleanup** - Remove test data
+
+**Prerequisites:**
+
+- Auth API running on `http://localhost:8004` (or set `AUTH_API_URL`)
+- OPA running on `http://localhost:8181`
+- Superuser credentials
+- `jq` installed for JSON parsing
+
+**Usage:**
+
+```bash
+# Set superuser credentials
+export SUPERUSER_EMAIL=superuser@elevaite.com
+export SUPERUSER_PASSWORD=superuser123
+
+# Run the script
+./examples/dynamic_policy_demo.sh
+```
+
+**Expected output:**
+
+The script will:
+- Login as superuser
+- List current policies
+- Generate a new workflow_engine policy allowing viewers to execute workflows
+- Upload the policy to OPA
+- Create a test viewer user
+- Verify the viewer can view and execute workflows (but not edit)
+- Clean up test data
+
+**Key takeaway:** Role permissions changed via API with no code changes!
+
 ## RBAC Permission Management
 
 ### `rbac_permission_management.sh`
