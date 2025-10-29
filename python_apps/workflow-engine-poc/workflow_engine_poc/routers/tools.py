@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlmodel import Session
+from rbac_sdk.fastapi_helpers import require_permission_async, resource_builders, principal_resolvers
 from ..db.database import get_db_session
 from ..db.models import (
     ToolCreate,
@@ -22,10 +23,35 @@ from ..db.models import (
 from ..tools.registry import tool_registry
 from ..services.tools_service import ToolsService
 
+# RBAC header constants
+HDR_PROJECT_ID = "X-elevAIte-ProjectId"
+HDR_ACCOUNT_ID = "X-elevAIte-AccountId"
+HDR_ORG_ID = "X-elevAIte-OrganizationId"
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 if TYPE_CHECKING:
     from ..db.models import Tool  # for type hints only
+
+# RBAC guards: view_project (read-only) and edit_project (create/update/delete)
+_guard_view_project = require_permission_async(
+    action="view_project",
+    resource_builder=resource_builders.project_from_headers(
+        project_header=HDR_PROJECT_ID,
+        account_header=HDR_ACCOUNT_ID,
+        org_header=HDR_ORG_ID,
+    ),
+    principal_resolver=principal_resolvers.api_key_or_user(),
+)
+
+_guard_edit_project = require_permission_async(
+    action="edit_project",
+    resource_builder=resource_builders.project_from_headers(
+        project_header=HDR_PROJECT_ID,
+        account_header=HDR_ACCOUNT_ID,
+        org_header=HDR_ORG_ID,
+    ),
+    principal_resolver=principal_resolvers.api_key_or_user(),
+)
 
 
 # --------- Read-only endpoints (available now) ---------
@@ -35,6 +61,7 @@ async def list_tools(
     limit: int = 100,
     offset: int = 0,
     session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_view_project),
 ):
     """Unified list of tools from DB + Local (+ MCP in future) as ToolRead objects.
     DB entries take precedence on name collisions. Includes source and uri fields.
@@ -126,7 +153,11 @@ async def list_tools(
 
 
 @router.get("/{tool_name}", response_model=ToolRead)
-async def get_tool(tool_name: str, session: Session = Depends(get_db_session)):
+async def get_tool(
+    tool_name: str,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_view_project),
+):
     """Get a tool by name as ToolRead. Prefers DB; falls back to local registry."""
     # Prefer DB with enriched ToolRead
     db_tool = ToolsService.get_db_tool_by_name(session, tool_name)
@@ -209,7 +240,11 @@ async def get_tool(tool_name: str, session: Session = Depends(get_db_session)):
 
 # -- Tool CRUD --
 @router.post("/db", response_model=ToolRead)
-async def create_tool(tool: ToolCreate, session: Session = Depends(get_db_session)):
+async def create_tool(
+    tool: ToolCreate,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_edit_project),
+):
     try:
         return ToolsService.create_tool(session, tool)
     except ValueError as e:
@@ -222,12 +257,17 @@ async def list_db_tools(
     q: Optional[str] = Query(default=None),
     limit: int = 100,
     offset: int = 0,
+    _principal: str = Depends(_guard_view_project),
 ):
     return ToolsService.list_db_tools(session, q=q, limit=limit, offset=offset)
 
 
 @router.get("/db/{tool_id}", response_model=ToolRead)
-async def get_db_tool(tool_id: str, session: Session = Depends(get_db_session)):
+async def get_db_tool(
+    tool_id: str,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_view_project),
+):
     tool = ToolsService.get_db_tool_by_id(session, tool_id)
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
@@ -235,7 +275,12 @@ async def get_db_tool(tool_id: str, session: Session = Depends(get_db_session)):
 
 
 @router.patch("/db/{tool_id}", response_model=ToolRead)
-async def update_db_tool(tool_id: str, payload: ToolUpdate, session: Session = Depends(get_db_session)):
+async def update_db_tool(
+    tool_id: str,
+    payload: ToolUpdate,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_edit_project),
+):
     try:
         _ = ToolsService.update_db_tool(session, tool_id, payload)
     except LookupError:
@@ -244,7 +289,11 @@ async def update_db_tool(tool_id: str, payload: ToolUpdate, session: Session = D
 
 
 @router.delete("/db/{tool_id}")
-async def delete_db_tool(tool_id: str, session: Session = Depends(get_db_session)):
+async def delete_db_tool(
+    tool_id: str,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_edit_project),
+):
     ok = ToolsService.delete_db_tool(session, tool_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Tool not found")
@@ -253,7 +302,11 @@ async def delete_db_tool(tool_id: str, session: Session = Depends(get_db_session
 
 # -- Tool Category CRUD --
 @router.post("/categories", response_model=ToolCategoryRead)
-async def create_category(category: ToolCategoryCreate, session: Session = Depends(get_db_session)):
+async def create_category(
+    category: ToolCategoryCreate,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_edit_project),
+):
     try:
         return ToolsService.create_category(session, category)
     except ValueError as e:
@@ -261,12 +314,20 @@ async def create_category(category: ToolCategoryCreate, session: Session = Depen
 
 
 @router.get("/categories", response_model=List[ToolCategoryRead])
-async def list_categories(session: Session = Depends(get_db_session)):
+async def list_categories(
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_view_project),
+):
     return ToolsService.list_categories(session)
 
 
 @router.patch("/categories/{category_id}", response_model=ToolCategoryRead)
-async def update_category(category_id: str, payload: ToolCategoryUpdate, session: Session = Depends(get_db_session)):
+async def update_category(
+    category_id: str,
+    payload: ToolCategoryUpdate,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_edit_project),
+):
     try:
         _ = ToolsService.update_category(session, category_id, payload)
     except LookupError:
@@ -275,7 +336,11 @@ async def update_category(category_id: str, payload: ToolCategoryUpdate, session
 
 
 @router.get("/categories/{category_id}", response_model=ToolCategoryRead)
-async def get_category(category_id: str, session: Session = Depends(get_db_session)):
+async def get_category(
+    category_id: str,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_view_project),
+):
     cat = ToolsService.get_category(session, category_id)
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -283,7 +348,11 @@ async def get_category(category_id: str, session: Session = Depends(get_db_sessi
 
 
 @router.delete("/categories/{category_id}")
-async def delete_category(category_id: str, session: Session = Depends(get_db_session)):
+async def delete_category(
+    category_id: str,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_edit_project),
+):
     ok = ToolsService.delete_category(session, category_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -292,7 +361,11 @@ async def delete_category(category_id: str, session: Session = Depends(get_db_se
 
 # -- MCP Server CRUD --
 @router.post("/mcp-servers", response_model=MCPServerRead)
-async def create_mcp_server(server: MCPServerCreate, session: Session = Depends(get_db_session)):
+async def create_mcp_server(
+    server: MCPServerCreate,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_edit_project),
+):
     try:
         return ToolsService.create_mcp_server(session, server)
     except ValueError as e:
@@ -300,12 +373,19 @@ async def create_mcp_server(server: MCPServerCreate, session: Session = Depends(
 
 
 @router.get("/mcp-servers", response_model=List[MCPServerRead])
-async def list_mcp_servers(session: Session = Depends(get_db_session)):
+async def list_mcp_servers(
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_view_project),
+):
     return ToolsService.list_mcp_servers(session)
 
 
 @router.get("/mcp-servers/{server_id}", response_model=MCPServerRead)
-async def get_mcp_server(server_id: str, session: Session = Depends(get_db_session)):
+async def get_mcp_server(
+    server_id: str,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_view_project),
+):
     server = ToolsService.get_mcp_server(session, server_id)
     if not server:
         raise HTTPException(status_code=404, detail="MCP server not found")
@@ -313,7 +393,12 @@ async def get_mcp_server(server_id: str, session: Session = Depends(get_db_sessi
 
 
 @router.patch("/mcp-servers/{server_id}", response_model=MCPServerRead)
-async def update_mcp_server(server_id: str, payload: MCPServerUpdate, session: Session = Depends(get_db_session)):
+async def update_mcp_server(
+    server_id: str,
+    payload: MCPServerUpdate,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_edit_project),
+):
     try:
         _ = ToolsService.update_mcp_server(session, server_id, payload)
     except LookupError:
@@ -322,7 +407,11 @@ async def update_mcp_server(server_id: str, payload: MCPServerUpdate, session: S
 
 
 @router.delete("/mcp-servers/{server_id}")
-async def delete_mcp_server(server_id: str, session: Session = Depends(get_db_session)):
+async def delete_mcp_server(
+    server_id: str,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_edit_project),
+):
     ok = ToolsService.delete_mcp_server(session, server_id)
     if not ok:
         raise HTTPException(status_code=404, detail="MCP server not found")
@@ -330,7 +419,11 @@ async def delete_mcp_server(server_id: str, session: Session = Depends(get_db_se
 
 
 @router.post("/sync")
-async def sync_tools(source: Optional[str] = Query(default="local"), session: Session = Depends(get_db_session)):
+async def sync_tools(
+    source: Optional[str] = Query(default="local"),
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(_guard_edit_project),
+):
     """Idempotent sync of tools from a source into DB. Currently supports source=local."""
     if source != "local":
         raise HTTPException(status_code=400, detail="Only source=local is supported")
@@ -339,12 +432,19 @@ async def sync_tools(source: Optional[str] = Query(default="local"), session: Se
 
 
 @router.patch("/{tool_name}")
-async def update_tool_stub(tool_name: str, body: Dict[str, Any]):
+async def update_tool_stub(
+    tool_name: str,
+    body: Dict[str, Any],
+    _principal: str = Depends(_guard_edit_project),
+):
     """Stub for updating a tool."""
     return {"message": "Not implemented yet", "tool_name": tool_name, "request": body}
 
 
 @router.delete("/{tool_name}")
-async def delete_tool_stub(tool_name: str):
+async def delete_tool_stub(
+    tool_name: str,
+    _principal: str = Depends(_guard_edit_project),
+):
     """Stub for deleting a tool."""
     return {"message": "Not implemented yet", "tool_name": tool_name}

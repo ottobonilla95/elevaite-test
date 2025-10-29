@@ -1,17 +1,35 @@
 """
 File upload and processing endpoints
 """
+
 import logging
-from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form, Depends
 from typing import Optional
 from pathlib import Path
 from datetime import datetime
+from rbac_sdk.fastapi_helpers import require_permission_async, resource_builders, principal_resolvers
 
 from ..execution_context import ExecutionContext, UserContext
 
 logger = logging.getLogger(__name__)
 
+# RBAC header constants
+HDR_PROJECT_ID = "X-elevAIte-ProjectId"
+HDR_ACCOUNT_ID = "X-elevAIte-AccountId"
+HDR_ORG_ID = "X-elevAIte-OrganizationId"
+
 router = APIRouter(prefix="/files", tags=["files"])
+
+# RBAC guard: edit_project (file upload is a write operation)
+_guard_edit_project = require_permission_async(
+    action="edit_project",
+    resource_builder=resource_builders.project_from_headers(
+        project_header=HDR_PROJECT_ID,
+        account_header=HDR_ACCOUNT_ID,
+        org_header=HDR_ORG_ID,
+    ),
+    principal_resolver=principal_resolvers.api_key_or_user(),
+)
 
 
 @router.post("/upload")
@@ -20,6 +38,7 @@ async def upload_file(
     workflow_id: Optional[str] = Form(None),
     auto_process: bool = Form(False),
     request: Request = None,
+    _principal: str = Depends(_guard_edit_project),
 ):
     """
     Upload a file and optionally trigger workflow processing.
@@ -60,12 +79,8 @@ async def upload_file(
                 # Execute workflow with file path
                 workflow_engine = request.app.state.workflow_engine
                 user_context = UserContext(user_id="file_upload_user")
-                execution_context = ExecutionContext(
-                    workflow_config=workflow_config, user_context=user_context
-                )
-                execution_context.step_io_data["file_upload"] = {
-                    "file_path": str(file_path)
-                }
+                execution_context = ExecutionContext(workflow_config=workflow_config, user_context=user_context)
+                execution_context.step_io_data["file_upload"] = {"file_path": str(file_path)}
 
                 # Start execution in background
                 import asyncio
