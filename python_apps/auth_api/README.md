@@ -92,6 +92,61 @@ A secure FastAPI-based authentication service with dual authentication providers
 
 ## Configuration
 
+### Environment Files
+
+The Auth API uses different environment files for different purposes:
+
+- **`.env.local.example`** - Template for local development with MailHog email testing
+  - Copy to `.env` for local development
+  - Uses MailHog (localhost:1025) for email testing
+  - Uses test JWT keys (DO NOT use in production!)
+  - Safe for integration testing
+
+- **`.env.test`** - Configuration for automated integration tests
+  - Used by pytest integration tests
+  - Uses MailHog for email testing
+  - Uses test database and test JWT keys
+
+- **`.env.production.template`** - Template for production deployment
+  - Copy to `.env.production` and fill in real values
+  - **IMPORTANT:** Uses real SMTP server (NOT MailHog!)
+  - Requires strong, randomly generated SECRET_KEY
+  - Never commit `.env.production` to git!
+
+### Setting Up for Local Development
+
+1. Copy the local development template:
+   ```bash
+   cp .env.local.example .env
+   ```
+
+2. Start MailHog for email testing:
+   ```bash
+   docker run -d -p 1025:1025 -p 8025:8025 mailhog/mailhog
+   ```
+
+3. Access MailHog web UI at http://localhost:8025 to view test emails
+
+### Setting Up for Production
+
+1. Copy the production template:
+   ```bash
+   cp .env.production.template .env.production
+   ```
+
+2. Generate secure keys:
+   ```bash
+   python -c "import secrets; print('SECRET_KEY=' + secrets.token_urlsafe(32))"
+   python -c "import secrets; print('API_KEY_SECRET=' + secrets.token_urlsafe(32))"
+   ```
+
+3. Configure real SMTP server (Gmail, SendGrid, AWS SES, etc.)
+   - **DO NOT use MailHog in production!**
+   - Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS=True`
+   - Set `SMTP_USER` and `SMTP_PASSWORD` with real credentials
+
+4. Update database URL, CORS origins, and other production settings
+
 ### Environment Variables
 
 #### Core Settings
@@ -100,15 +155,17 @@ A secure FastAPI-based authentication service with dual authentication providers
 # Database
 SQLALCHEMY_DATABASE_URL="postgresql+asyncpg://user:pass@localhost:5433/auth"
 
-# JWT Settings
+# JWT Settings (generate with: python -c "import secrets; print(secrets.token_urlsafe(32))")
 SECRET_KEY="your-secret-key"
 ACCESS_TOKEN_EXPIRE_MINUTES="30"
 REFRESH_TOKEN_EXPIRE_DAYS="7"
 
-# Email Settings
-SMTP_HOST="your-smtp-host"
-SMTP_USER="your-smtp-user"
-SMTP_PASSWORD="your-smtp-password"
+# Email Settings (DO NOT use MailHog in production!)
+SMTP_HOST="smtp.gmail.com"  # Use real SMTP server
+SMTP_PORT="587"
+SMTP_TLS="True"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASSWORD="your-app-specific-password"
 EMAILS_FROM_EMAIL="noreply@yourdomain.com"
 
 # Frontend URL
