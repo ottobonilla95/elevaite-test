@@ -22,6 +22,15 @@ The Workflow Engine PoC uses a hierarchical Role-Based Access Control (RBAC) sys
 
 Users are assigned roles at different levels, which determine their permissions.
 
+### Important Distinction
+
+**This guide covers how admins assign roles to users.** The permissions for each role (what actions a role can perform) are defined in the OPA policy file, not through the API.
+
+- **Role Assignments** (This Guide) - Admins assign roles to users via Auth API
+- **Role Permissions** (See [ROLE_PERMISSIONS.md](ROLE_PERMISSIONS.md)) - Developers define what each role can do in the OPA policy
+
+**As an admin, you control WHO has WHICH role. Developers control WHAT each role can DO.**
+
 ## Permission Model
 
 ### Roles
@@ -429,6 +438,7 @@ curl -v -X GET http://localhost:8004/api/rbac/user_role_assignments?user_id=123 
 
 ## Additional Resources
 
+- [ROLE_PERMISSIONS.md](ROLE_PERMISSIONS.md) - How to modify what each role can access (for developers)
 - [RBAC Integration Documentation](RBAC_INTEGRATION.md) - Technical implementation details
 - [Examples Directory](examples/README.md) - Example scripts and usage
 - [RBAC SDK Documentation](../../python_packages/rbac-sdk/README.md) - SDK reference
