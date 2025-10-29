@@ -126,7 +126,16 @@ def create_access_token(user_id: int) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
 
-async def test_endpoint(client: httpx.AsyncClient, endpoint: str, token: str, user_id: int, expected_status: int) -> bool:
+async def test_endpoint(
+    client: httpx.AsyncClient,
+    method: str,
+    endpoint: str,
+    token: str,
+    user_id: int,
+    expected_status: int,
+    data: dict = None,
+    description: str = None,
+) -> bool:
     """Test an endpoint with a token."""
     headers = {
         "Authorization": f"Bearer {token}",
@@ -136,18 +145,32 @@ async def test_endpoint(client: httpx.AsyncClient, endpoint: str, token: str, us
         "X-elevAIte-ProjectId": TEST_PROJECT_ID,
     }
 
-    response = await client.get(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers)
+    if method.upper() == "GET":
+        response = await client.get(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers)
+    elif method.upper() == "POST":
+        response = await client.post(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers, json=data)
+    elif method.upper() == "PUT":
+        response = await client.put(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers, json=data)
+    elif method.upper() == "DELETE":
+        response = await client.delete(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers)
+    else:
+        raise ValueError(f"Unsupported method: {method}")
 
+    desc = description or f"{method} {endpoint}"
     if response.status_code == expected_status:
-        print(f"   ✅ {endpoint}: {response.status_code} (expected {expected_status})")
+        print(f"   ✅ {desc}: {response.status_code} (expected {expected_status})")
         return True
     else:
-        print(f"   ❌ {endpoint}: {response.status_code} (expected {expected_status})")
+        print(f"   ❌ {desc}: {response.status_code} (expected {expected_status})")
         if response.status_code >= 400:
             try:
-                print(f"      Error: {response.json()}")
+                error_detail = response.json()
+                if "detail" in error_detail:
+                    print(f"      Error: {error_detail['detail']}")
+                else:
+                    print(f"      Error: {error_detail}")
             except:
-                print(f"      Error: {response.text}")
+                print(f"      Error: {response.text[:200]}")
         return False
 
 
@@ -175,22 +198,125 @@ async def main():
 
     async with httpx.AsyncClient() as client:
         # Test viewer (should only be able to view)
-        print("\n   Testing VIEWER role:")
-        await test_endpoint(client, "/workflows/", viewer_token, viewer_id, 200)
-        await test_endpoint(client, "/agents/", viewer_token, viewer_id, 200)
-        await test_endpoint(client, "/tools/", viewer_token, viewer_id, 200)
+        print("\n   Testing VIEWER role (read-only access):")
+        await test_endpoint(client, "GET", "/workflows/", viewer_token, viewer_id, 200, description="List workflows")
+        await test_endpoint(client, "GET", "/agents/", viewer_token, viewer_id, 200, description="List agents")
+        await test_endpoint(client, "GET", "/tools/", viewer_token, viewer_id, 200, description="List tools")
+        await test_endpoint(client, "GET", "/prompts/", viewer_token, viewer_id, 200, description="List prompts")
+
+        # Viewer should NOT be able to create
+        print("\n   Testing VIEWER role (should deny create operations):")
+        workflow_data = {
+            "name": "Test Workflow",
+            "description": "Test",
+            "steps": [],
+        }
+        await test_endpoint(
+            client,
+            "POST",
+            "/workflows/",
+            viewer_token,
+            viewer_id,
+            403,
+            data=workflow_data,
+            description="Create workflow (should deny)",
+        )
+
+        agent_data = {
+            "name": "Test Agent",
+            "description": "Test",
+            "agent_type": "openai",
+        }
+        await test_endpoint(
+            client, "POST", "/agents/", viewer_token, viewer_id, 403, data=agent_data, description="Create agent (should deny)"
+        )
 
         # Test editor (should be able to view and create)
-        print("\n   Testing EDITOR role:")
-        await test_endpoint(client, "/workflows/", editor_token, editor_id, 200)
-        await test_endpoint(client, "/agents/", editor_token, editor_id, 200)
-        await test_endpoint(client, "/tools/", editor_token, editor_id, 200)
+        print("\n   Testing EDITOR role (read + create access):")
+        await test_endpoint(client, "GET", "/workflows/", editor_token, editor_id, 200, description="List workflows")
+        await test_endpoint(client, "GET", "/agents/", editor_token, editor_id, 200, description="List agents")
+        await test_endpoint(client, "GET", "/tools/", editor_token, editor_id, 200, description="List tools")
+
+        # Editor should be able to create
+        print("\n   Testing EDITOR role (create operations):")
+        response = await client.post(
+            f"{WORKFLOW_ENGINE_URL}/workflows/",
+            headers={
+                "Authorization": f"Bearer {editor_token}",
+                "X-elevAIte-UserId": str(editor_id),
+                "X-elevAIte-OrganizationId": TEST_ORG_ID,
+                "X-elevAIte-AccountId": TEST_ACCOUNT_ID,
+                "X-elevAIte-ProjectId": TEST_PROJECT_ID,
+            },
+            json=workflow_data,
+        )
+        if response.status_code in [200, 201]:
+            print(f"   ✅ Create workflow: {response.status_code}")
+            created_workflow_id = response.json().get("id")
+        else:
+            print(f"   ❌ Create workflow: {response.status_code}")
+            print(f"      Error: {response.text[:200]}")
+            created_workflow_id = None
+
+        # Editor should NOT be able to delete
+        if created_workflow_id:
+            print("\n   Testing EDITOR role (should deny delete operations):")
+            await test_endpoint(
+                client,
+                "DELETE",
+                f"/workflows/{created_workflow_id}",
+                editor_token,
+                editor_id,
+                403,
+                description="Delete workflow (should deny)",
+            )
 
         # Test admin (should be able to do everything)
-        print("\n   Testing ADMIN role:")
-        await test_endpoint(client, "/workflows/", admin_token, admin_id, 200)
-        await test_endpoint(client, "/agents/", admin_token, admin_id, 200)
-        await test_endpoint(client, "/tools/", admin_token, admin_id, 200)
+        print("\n   Testing ADMIN role (full access):")
+        await test_endpoint(client, "GET", "/workflows/", admin_token, admin_id, 200, description="List workflows")
+        await test_endpoint(client, "GET", "/agents/", admin_token, admin_id, 200, description="List agents")
+        await test_endpoint(client, "GET", "/tools/", admin_token, admin_id, 200, description="List tools")
+
+        # Admin should be able to create
+        print("\n   Testing ADMIN role (create operations):")
+        response = await client.post(
+            f"{WORKFLOW_ENGINE_URL}/workflows/",
+            headers={
+                "Authorization": f"Bearer {admin_token}",
+                "X-elevAIte-UserId": str(admin_id),
+                "X-elevAIte-OrganizationId": TEST_ORG_ID,
+                "X-elevAIte-AccountId": TEST_ACCOUNT_ID,
+                "X-elevAIte-ProjectId": TEST_PROJECT_ID,
+            },
+            json=workflow_data,
+        )
+        if response.status_code in [200, 201]:
+            print(f"   ✅ Create workflow: {response.status_code}")
+            admin_workflow_id = response.json().get("id")
+        else:
+            print(f"   ❌ Create workflow: {response.status_code}")
+            print(f"      Error: {response.text[:200]}")
+            admin_workflow_id = None
+
+        # Admin should be able to delete
+        if admin_workflow_id:
+            print("\n   Testing ADMIN role (delete operations):")
+            await test_endpoint(
+                client, "DELETE", f"/workflows/{admin_workflow_id}", admin_token, admin_id, 200, description="Delete workflow"
+            )
+
+        # Clean up editor's workflow if it exists
+        if created_workflow_id:
+            await client.delete(
+                f"{WORKFLOW_ENGINE_URL}/workflows/{created_workflow_id}",
+                headers={
+                    "Authorization": f"Bearer {admin_token}",
+                    "X-elevAIte-UserId": str(admin_id),
+                    "X-elevAIte-OrganizationId": TEST_ORG_ID,
+                    "X-elevAIte-AccountId": TEST_ACCOUNT_ID,
+                    "X-elevAIte-ProjectId": TEST_PROJECT_ID,
+                },
+            )
 
     print("\n" + "=" * 60)
     print("Testing Complete!")
