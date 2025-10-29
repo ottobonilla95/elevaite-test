@@ -4,7 +4,7 @@ This document summarizes the comprehensive RBAC test coverage for the Workflow E
 
 ## Test Suites
 
-### 1. Basic RBAC Tests (`test_with_real_rbac.py`)
+### 1. Basic RBAC Tests (`tests/test_with_real_rbac.py`)
 
 Quick smoke tests to verify basic RBAC functionality:
 
@@ -14,7 +14,7 @@ Quick smoke tests to verify basic RBAC functionality:
 
 **Test Results**: ✅ All tests passing
 
-### 2. Comprehensive RBAC Tests (`test_comprehensive_rbac.py`)
+### 2. Comprehensive RBAC Tests (`tests/test_comprehensive_rbac.py`)
 
 Full test suite covering all CRUD operations and edge cases:
 
@@ -152,13 +152,19 @@ All editor actions plus:
 ### Run Basic Tests
 ```bash
 cd python_apps/workflow-engine-poc
-uv run python test_with_real_rbac.py
+uv run python tests/test_with_real_rbac.py
 ```
 
 ### Run Comprehensive Tests
 ```bash
 cd python_apps/workflow-engine-poc
-uv run python test_comprehensive_rbac.py
+uv run python tests/test_comprehensive_rbac.py
+```
+
+### Run All RBAC Tests with Pytest
+```bash
+cd python_apps/workflow-engine-poc
+uv run pytest tests/test_rbac*.py -v
 ```
 
 ## Next Steps
