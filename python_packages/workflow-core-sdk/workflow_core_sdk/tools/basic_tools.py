@@ -156,11 +156,7 @@ def json_operations(operation: str, data: str, key: str = "", value: str = "") -
 
         elif operation == "modify":
             parsed = json.loads(data)
-            parsed[key] = (
-                json.loads(value)
-                if value.startswith("{") or value.startswith("[")
-                else value
-            )
+            parsed[key] = json.loads(value) if value.startswith("{") or value.startswith("[") else value
             return json.dumps(parsed, indent=2)
 
         else:
@@ -182,10 +178,7 @@ def get_environment_info(info_type: str = "all") -> str:
         safe_vars = {
             k: v
             for k, v in os.environ.items()
-            if not any(
-                sensitive in k.lower()
-                for sensitive in ["key", "secret", "password", "token"]
-            )
+            if not any(sensitive in k.lower() for sensitive in ["key", "secret", "password", "token"])
         }
         return f"Environment variables: {json.dumps(safe_vars, indent=2)}"
 
@@ -220,9 +213,44 @@ BASIC_TOOL_STORE = {
 }
 
 # Tool schemas - maps tool names to their OpenAI schemas
-BASIC_TOOL_SCHEMAS = {
-    name: func.openai_schema for name, func in BASIC_TOOL_STORE.items()
-}
+BASIC_TOOL_SCHEMAS = {name: func.openai_schema for name, func in BASIC_TOOL_STORE.items()}
+
+# ---- Optional: include ported tool groups ----
+try:
+    from .kevel_tools import KEVEL_TOOL_STORE, KEVEL_TOOL_SCHEMAS
+
+    BASIC_TOOL_STORE.update(KEVEL_TOOL_STORE)
+    BASIC_TOOL_SCHEMAS.update(KEVEL_TOOL_SCHEMAS)
+except Exception:
+    # Keep SDK usable even if optional tool groups fail to import
+    pass
+
+try:
+    from .servicenow_tools import SERVICENOW_TOOL_STORE, SERVICENOW_TOOL_SCHEMAS
+
+    BASIC_TOOL_STORE.update(SERVICENOW_TOOL_STORE)
+    BASIC_TOOL_SCHEMAS.update(SERVICENOW_TOOL_SCHEMAS)
+except Exception:
+    pass
+
+try:
+    from .salesforce_tools import SALESFORCE_TOOL_STORE, SALESFORCE_TOOL_SCHEMAS
+
+    BASIC_TOOL_STORE.update(SALESFORCE_TOOL_STORE)
+    BASIC_TOOL_SCHEMAS.update(SALESFORCE_TOOL_SCHEMAS)
+except Exception:
+    pass
+
+try:
+    from .database_tools import DATABASE_TOOL_STORE, DATABASE_TOOL_SCHEMAS
+
+    BASIC_TOOL_STORE.update(DATABASE_TOOL_STORE)
+    BASIC_TOOL_SCHEMAS.update(DATABASE_TOOL_SCHEMAS)
+except Exception:
+    pass
+
+# Note: Additional tools from agent-studio are registered at runtime
+# by the agent-studio API during startup (see main.py lifespan function)
 
 
 def get_tool_by_name(name: str):

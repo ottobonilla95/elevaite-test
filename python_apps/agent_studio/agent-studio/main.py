@@ -120,9 +120,61 @@ async def lifespan(app_instance: fastapi.FastAPI):  # noqa: ARG001
     Base.metadata.create_all(bind=engine)
     # Note: Database initialization moved to /admin/initialize endpoint
 
+    # Register agent-studio tools with SDK's tool registry
+    from workflow_core_sdk.tools import basic_tools
+    from agents.tools import tool_store, tool_schemas
+
+    try:
+        # Register all agent-studio tools by updating SDK's BASIC_TOOL_STORE
+        logging.info(f"📦 Registering {len(tool_store)} agent-studio tools with SDK...")
+
+        # Filter out tools that are already in the SDK to avoid duplicates
+        MIGRATED_TOOLS = {
+            # Basic tools (already in SDK)
+            "add_numbers",
+            "weather_forecast",
+            "web_search",
+            "url_to_markdown",
+            "print_to_console",
+            "get_current_time",
+            "calculate",
+            "file_operations",
+            "json_operations",
+            "environment_info",
+            # Kevel tools (migrated to SDK)
+            "kevel_get_sites",
+            "kevel_get_ad_types",
+            "kevel_debug_api",
+            # ServiceNow tools (old monolithic versions replaced by granular SDK versions)
+            "ServiceNow_ITSM",
+            "ServiceNow_CSM",
+            # Salesforce CSM tools (old monolithic version replaced by granular SDK versions)
+            "Salesforce_CSM",
+            # Database tools (migrated to SDK)
+            "redis_cache_operation",
+            "postgres_query",
+            "sql_database",
+        }
+
+        # Register non-migrated tools by updating the SDK's tool dictionaries
+        registered_count = 0
+        for tool_name, tool_func in tool_store.items():
+            if tool_name not in MIGRATED_TOOLS:
+                tool_schema = tool_schemas.get(tool_name)
+                if tool_schema:
+                    basic_tools.BASIC_TOOL_STORE[tool_name] = tool_func
+                    basic_tools.BASIC_TOOL_SCHEMAS[tool_name] = tool_schema
+                    registered_count += 1
+
+        logging.info(f"✅ Registered {registered_count} agent-studio tools with SDK")
+    except Exception as e:
+        logging.error(f"Failed to register agent-studio tools: {e}")
+        # Continue startup even if registration fails
+
     # Sync local tools to database so they get IDs
     from workflow_core_sdk.tools.registry import tool_registry
 
+    # Sync local tools to database so they get IDs
     try:
         # Get a database session for syncing
         db_gen = get_db()

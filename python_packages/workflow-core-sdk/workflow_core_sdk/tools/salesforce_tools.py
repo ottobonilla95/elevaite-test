@@ -1,0 +1,348 @@
+"""
+Salesforce Tools (ported from Agent Studio)
+
+These tools interact with Salesforce via the Salesforce CSM API.
+Includes CSM (case management) tools.
+
+Environment variables:
+- SALESFORCE_CSM_API_URL: Base URL for Salesforce CSM API (default: http://localhost:8092)
+"""
+
+from __future__ import annotations
+
+import os
+import requests
+import json
+from typing import Dict, Any, Optional
+
+from .decorators import function_schema
+
+# Config from environment
+SALESFORCE_CSM_API_BASE = os.getenv("SALESFORCE_CSM_API_URL", "http://localhost:8092")
+
+
+@function_schema
+def salesforce_csm_create_case(
+    status: str = "New",
+    case_origin: str = "Email",
+    first_name: str = "",
+    last_name: str = "",
+    account_id: Optional[str] = None,
+    contact_id: Optional[str] = None,
+    email_address: Optional[str] = None,
+    contact_phone: Optional[str] = None,
+    case_sub_type: Optional[str] = None,
+    case_type: Optional[str] = None,
+    type: Optional[str] = None,
+    priority: str = "Medium",
+    case_reason: Optional[str] = None,
+    symptoms: Optional[str] = None,
+    rootcause: Optional[str] = None,
+    ux_version: Optional[str] = None,
+    case_summary: Optional[str] = None,
+    subject: Optional[str] = None,
+    description: Optional[str] = None,
+    internal_comments: Optional[str] = None,
+    web_email: Optional[str] = None,
+    web_company: Optional[str] = None,
+    web_name: Optional[str] = None,
+    web_phone: Optional[str] = None
+) -> str:
+    """
+    Create a new Salesforce CSM case.
+
+    Args:
+        status: Case status - "New", "In Progress", "Escalated", "On Hold", "Closed" (default: "New")
+        case_origin: How the case was created - "Email", "Phone", "Web", "Chat", "Social Media" (required)
+        first_name: Contact's first name for case creation (required)
+        last_name: Contact's last name for case creation (required)
+        account_id: Salesforce Account ID if linking to existing account
+        contact_id: Salesforce Contact ID if linking to existing contact
+        email_address: Contact's email address
+        contact_phone: Contact's phone number
+        case_sub_type: Case subcategory for classification
+        case_type: Case type - "Email", "Phone", "Chat", etc.
+        type: General case type - "Problem", "Question", "Feature Request"
+        priority: Case priority - "High", "Medium", "Low" (default: "Medium")
+        case_reason: Reason for case - "Bug", "Enhancement", "Question", "Complaint"
+        symptoms: Brief description of symptoms (max 100 chars)
+        rootcause: Root cause analysis (max 250 chars)
+        ux_version: Application/UX version information (max 50 chars)
+        case_summary: Detailed case summary (max 2000 chars)
+        subject: Case subject line
+        description: Detailed case description
+        internal_comments: Internal notes for case handlers
+        web_email: Web form email if different from contact email
+        web_company: Company name from web form
+        web_name: Full name from web form
+        web_phone: Phone number from web form
+
+    Returns:
+        str: JSON string with created case details including case ID, case number, and all field values
+    """
+    try:
+        payload = {
+            "status": status,
+            "case_origin": case_origin,
+            "first_name": first_name,
+            "last_name": last_name,
+            "priority": priority
+        }
+
+        if account_id:
+            payload["account_id"] = account_id
+        if contact_id:
+            payload["contact_id"] = contact_id
+        if email_address:
+            payload["email_address"] = email_address
+        if contact_phone:
+            payload["contact_phone"] = contact_phone
+        if case_sub_type:
+            payload["case_sub_type"] = case_sub_type
+        if case_type:
+            payload["case_type"] = case_type
+        if type:
+            payload["type"] = type
+        if case_reason:
+            payload["case_reason"] = case_reason
+        if symptoms:
+            payload["symptoms"] = symptoms
+        if rootcause:
+            payload["rootcause"] = rootcause
+        if ux_version:
+            payload["ux_version"] = ux_version
+        if case_summary:
+            payload["case_summary"] = case_summary
+        if subject:
+            payload["subject"] = subject
+        if description:
+            payload["description"] = description
+        if internal_comments:
+            payload["internal_comments"] = internal_comments
+        if web_email:
+            payload["web_email"] = web_email
+        if web_company:
+            payload["web_company"] = web_company
+        if web_name:
+            payload["web_name"] = web_name
+        if web_phone:
+            payload["web_phone"] = web_phone
+
+        response = requests.post(
+            f"{SALESFORCE_CSM_API_BASE}/cases",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+
+        if response.status_code == 201:
+            return json.dumps({
+                "success": True,
+                "message": "Case created successfully",
+                "data": response.json()
+            })
+        elif response.status_code == 400:
+            return json.dumps({
+                "success": False,
+                "message": "Invalid case data provided",
+                "error": response.text
+            })
+        else:
+            return json.dumps({
+                "success": False,
+                "message": f"Failed to create case: {response.status_code}",
+                "error": response.text
+            })
+
+    except requests.exceptions.RequestException as e:
+        return json.dumps({
+            "success": False,
+            "message": "Failed to connect to Salesforce CSM API",
+            "error": str(e)
+        })
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "message": "Unexpected error occurred",
+            "error": str(e)
+        })
+
+
+@function_schema
+def salesforce_csm_get_case(
+    identifier: str,
+    identifier_type: str = "case_id"
+) -> str:
+    """
+    Retrieve a Salesforce CSM case by case ID or case number.
+
+    Args:
+        identifier: The case identifier (Salesforce case ID like 5001234567890AB or case number like 00001234)
+        identifier_type: Type of identifier - "case_id" or "case_number" (default: "case_id")
+
+    Returns:
+        str: JSON string with case details including all fields, status, and contact information
+    """
+    try:
+        if identifier_type.lower() == "case_number":
+            endpoint = f"{SALESFORCE_CSM_API_BASE}/cases/number/{identifier}"
+        else:
+            endpoint = f"{SALESFORCE_CSM_API_BASE}/cases/{identifier}"
+
+        response = requests.get(
+            endpoint,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            return json.dumps({
+                "success": True,
+                "message": "Case retrieved successfully",
+                "data": response.json()
+            })
+        elif response.status_code == 404:
+            return json.dumps({
+                "success": False,
+                "message": f"Case not found: {identifier}",
+                "error": "Case not found"
+            })
+        else:
+            return json.dumps({
+                "success": False,
+                "message": f"Failed to retrieve case: {response.status_code}",
+                "error": response.text
+            })
+
+    except requests.exceptions.RequestException as e:
+        return json.dumps({
+            "success": False,
+            "message": "Failed to connect to Salesforce CSM API",
+            "error": str(e)
+        })
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "message": "Unexpected error occurred",
+            "error": str(e)
+        })
+
+
+@function_schema
+def salesforce_csm_update_case(
+    case_id: str,
+    status: Optional[str] = None,
+    priority: Optional[str] = None,
+    case_reason: Optional[str] = None,
+    symptoms: Optional[str] = None,
+    rootcause: Optional[str] = None,
+    case_summary: Optional[str] = None,
+    subject: Optional[str] = None,
+    description: Optional[str] = None,
+    internal_comments: Optional[str] = None,
+    case_sub_type: Optional[str] = None,
+    case_type: Optional[str] = None,
+    type: Optional[str] = None,
+    ux_version: Optional[str] = None
+) -> str:
+    """
+    Update an existing Salesforce CSM case.
+
+    Args:
+        case_id: The unique Salesforce case ID (required, format: 5001234567890AB)
+        status: Updated case status - "New", "In Progress", "Escalated", "On Hold", "Closed"
+        priority: Updated priority - "High", "Medium", "Low"
+        case_reason: Updated reason - "Bug", "Enhancement", "Question", "Complaint"
+        symptoms: Updated symptoms description (max 100 chars)
+        rootcause: Updated root cause analysis (max 250 chars)
+        case_summary: Updated detailed case summary (max 2000 chars)
+        subject: Updated case subject line
+        description: Updated detailed case description
+        internal_comments: Additional internal notes for case handlers
+        case_sub_type: Updated case subcategory
+        case_type: Updated case type
+        type: Updated general case type - "Problem", "Question", "Feature Request"
+        ux_version: Updated application/UX version (max 50 chars)
+
+    Returns:
+        str: JSON string with updated case details
+    """
+    try:
+        payload = {}
+
+        if status:
+            payload["status"] = status
+        if priority:
+            payload["priority"] = priority
+        if case_reason:
+            payload["case_reason"] = case_reason
+        if symptoms:
+            payload["symptoms"] = symptoms
+        if rootcause:
+            payload["rootcause"] = rootcause
+        if case_summary:
+            payload["case_summary"] = case_summary
+        if subject:
+            payload["subject"] = subject
+        if description:
+            payload["description"] = description
+        if internal_comments:
+            payload["internal_comments"] = internal_comments
+        if case_sub_type:
+            payload["case_sub_type"] = case_sub_type
+        if case_type:
+            payload["case_type"] = case_type
+        if type:
+            payload["type"] = type
+        if ux_version:
+            payload["ux_version"] = ux_version
+
+        response = requests.put(
+            f"{SALESFORCE_CSM_API_BASE}/cases/{case_id}",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            return json.dumps({
+                "success": True,
+                "message": "Case updated successfully",
+                "data": response.json()
+            })
+        elif response.status_code == 404:
+            return json.dumps({
+                "success": False,
+                "message": f"Case not found: {case_id}",
+                "error": "Case not found"
+            })
+        else:
+            return json.dumps({
+                "success": False,
+                "message": f"Failed to update case: {response.status_code}",
+                "error": response.text
+            })
+
+    except requests.exceptions.RequestException as e:
+        return json.dumps({
+            "success": False,
+            "message": "Failed to connect to Salesforce CSM API",
+            "error": str(e)
+        })
+    except Exception as e:
+        return json.dumps({
+            "success": False,
+            "message": "Unexpected error occurred",
+            "error": str(e)
+        })
+
+
+# Export store and schemas for aggregation in basic_tools
+SALESFORCE_TOOL_STORE = {
+    "salesforce_csm_create_case": salesforce_csm_create_case,
+    "salesforce_csm_get_case": salesforce_csm_get_case,
+    "salesforce_csm_update_case": salesforce_csm_update_case,
+}
+
+SALESFORCE_TOOL_SCHEMAS = {name: func.openai_schema for name, func in SALESFORCE_TOOL_STORE.items()}
+
