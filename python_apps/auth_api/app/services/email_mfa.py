@@ -21,9 +21,9 @@ class EmailMFAService:
         return f"{secrets.randbelow(1000000):06d}"
 
     async def _store_mfa_code(
-        self, user: "User", code: str, db: "AsyncSession", expires_in: int = 60
+        self, user: "User", code: str, db: "AsyncSession", expires_in: int = 300  # Change from 60 to 300 (5 minutes)
     ):
-        """Store MFA code in database with expiration (1 minute default)."""
+        """Store MFA code in database with expiration (5 minutes default)."""
         from sqlalchemy import update
         from datetime import datetime, timezone, timedelta
 
@@ -67,29 +67,30 @@ class EmailMFAService:
 
     def _should_auto_enable_mfa(self, user: User) -> bool:
         """Check if MFA should be auto-enabled based on grace period."""
-        # If auto-enable is disabled, return False
         if self.auto_enable_method == "none":
             return False
 
-        # Check if the configured MFA method is already enabled
-        if self.auto_enable_method == "email" and user.email_mfa_enabled:
-            return False
-        elif self.auto_enable_method == "sms" and user.sms_mfa_enabled:
-            return False
-        elif self.auto_enable_method == "totp" and user.mfa_enabled:
+        # Check if user has "strong" MFA methods enabled
+        has_strong_mfa = (
+            user.email_mfa_enabled or 
+            user.sms_mfa_enabled or 
+            user.mfa_enabled  # TOTP
+        )
+        
+        # Biometric alone is not considered sufficient for auto-enable bypass
+        if has_strong_mfa:
             return False
 
-        # Check if user was created more than grace period days ago
+        # If user only has biometric MFA, still auto-enable a stronger method
+        # This ensures they have a backup method that works on all devices
+
+        # Check grace period
         grace_period = timedelta(days=self.grace_period_days)
-
-        # Use timezone-aware datetime for comparison
         now = datetime.now(timezone.utc)
         cutoff_date = now - grace_period
 
-        # Ensure user.created_at is timezone-aware for comparison
         user_created_at = user.created_at
         if user_created_at.tzinfo is None:
-            # If user.created_at is naive, assume it's UTC
             user_created_at = user_created_at.replace(tzinfo=timezone.utc)
 
         return user_created_at < cutoff_date
@@ -237,7 +238,7 @@ class EmailMFAService:
 
         Your login verification code is: {mfa_code}
 
-        This code will expire in 1 minute.
+        This code will expire in 5 minutes. Please enter this code to complete your login.
 
         If you did not request this code, please ignore this email.
 
@@ -257,6 +258,7 @@ class EmailMFAService:
                         <span style="font-size: 36px; font-weight: bold; color: {self.primary_color}; letter-spacing: 8px;">{mfa_code}</span>
                     </div>
                 </div>
+                <p>This code will expire in 5 minutes. Please enter this code to complete your login.</p>
             </div>
         </body>
         </html>
@@ -488,3 +490,6 @@ class EmailMFAService:
 
 # Global service instance
 email_mfa_service = EmailMFAService()
+
+
+

@@ -1,0 +1,114 @@
+[
+  {
+    "timestamp": "2025-10-27T08:07:51.789943",
+    "pipeline_type": "etl_data_processing",
+    "duration_seconds": 16.747334,
+    "files_processed": 1,
+    "files_failed": 0,
+    "files_skipped": 0,
+    "total_rows": 15522,
+    "throughput_rows_per_second": 926.8340859506355,
+    "error_breakdown": {}
+  },
+  {
+    "timestamp": "2025-10-27T08:10:07.561132",
+    "pipeline_type": "etl_data_processing",
+    "duration_seconds": 0.079872,
+    "files_processed": 0,
+    "files_failed": 1,
+    "files_skipped": 0,
+    "total_rows": 0,
+    "throughput_rows_per_second": 0.0,
+    "error_breakdown": {
+      "OTHER_ERROR": 1
+    }
+  },
+  {
+    "timestamp": "2025-10-27T08:12:19.169266",
+    "pipeline_type": "etl_data_processing",
+    "duration_seconds": 5.831513,
+    "files_processed": 1,
+    "files_failed": 1,
+    "files_skipped": 0,
+    "total_rows": 4349,
+    "throughput_rows_per_second": 745.7755817401076,
+    "error_breakdown": {
+      "OTHER_ERROR": 1
+    }
+  },
+  {
+    "timestamp": "2025-10-27T08:26:07.104168",
+    "pipeline_type": "etl_data_processing",
+    "duration_seconds": 523.768937,
+    "files_processed": 98,
+    "files_failed": 3,
+    "files_skipped": 0,
+    "total_rows": 568094,
+    "throughput_rows_per_second": 1084.6271320591889,
+    "error_breakdown": {
+      "MISSING_REQUIRED_COLUMNS": 1,
+      "SCHEMA_LENGTH_ERROR": 1,
+      "OTHER_ERROR": 1
+    }
+  },
+  {
+    "timestamp": "2025-10-27T08:40:19.896391",
+    "pipeline_type": "etl_data_processing",
+    "duration_seconds": 521.774886,
+    "files_processed": 100,
+    "files_failed": 3,
+    "files_skipped": 0,
+    "total_rows": 579460,
+    "throughput_rows_per_second": 1110.5555586284004,
+    "error_breakdown": {
+      "OTHER_ERROR": 1,
+      "MISSING_REQUIRED_COLUMNS": 1,
+      "SCHEMA_LENGTH_ERROR": 1
+    }
+  },
+  {
+    "timestamp": "2025-10-27T09:04:37.668547",
+    "pipeline_type": "etl_data_processing",
+    "duration_seconds": 1167.072005,
+    "files_processed": 200,
+    "files_failed": 3,
+    "files_skipped": 0,
+    "total_rows": 1181900,
+    "throughput_rows_per_second": 1012.7052957627923,
+    "error_breakdown": {
+      "OTHER_ERROR": 1,
+      "MISSING_REQUIRED_COLUMNS": 1,
+      "SCHEMA_LENGTH_ERROR": 1
+    }
+  },
+  {
+    "timestamp": "2025-10-27T09:54:34.642393",
+    "pipeline_type": "etl_data_processing",
+    "duration_seconds": 1119.156369,
+    "files_processed": 200,
+    "files_failed": 3,
+    "files_skipped": 0,
+    "total_rows": 1200642,
+    "throughput_rows_per_second": 1072.80987112892,
+    "error_breakdown": {
+      "OTHER_ERROR": 1,
+      "MISSING_REQUIRED_COLUMNS": 1,
+      "SCHEMA_LENGTH_ERROR": 1
+    }
+  },
+  {
+    "timestamp": "2025-10-27T10:23:57.545785",
+    "pipeline_type": "etl_data_processing",
+    "duration_seconds": 1429.624773,
+    "files_processed": 45,
+    "files_failed": 3,
+    "files_skipped": 0,
+    "total_rows": 1202500,
+    "throughput_rows_per_second": 841.1298004277098,
+    "error_breakdown": {
+      "OTHER_ERROR": 1,
+      "MISSING_REQUIRED_COLUMNS": 1,
+      "SCHEMA_LENGTH_ERROR": 1
+    }
+  }
+]

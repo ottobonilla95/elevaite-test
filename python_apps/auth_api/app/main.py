@@ -14,6 +14,7 @@ from fastapi.encoders import jsonable_encoder
 
 from app.routers import auth
 from app.routers import user
+from app.routers import biometric
 from app.core.config import settings
 from app.db.tenant_db import initialize_db
 from app.core.logging import attach_logger_to_app, logger
@@ -79,20 +80,20 @@ app = FastAPI(
     lifespan=lifespan,
     root_path="/auth-api"
 )
-# @app.exception_handler(RequestValidationError)
-# async def validation_exception_handler(request: Request, exc: RequestValidationError):
-#     """Handle validation errors and log them properly"""
-#     logger.error(f"❌ Validation error on {request.method} {request.url.path}")
-#     logger.error(f"❌ Errors: {exc.errors()}")
-#     logger.error(f"❌ Body: {exc.body}")
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle validation errors and log them properly"""
+    logger.error(f"❌ Validation error on {request.method} {request.url.path}")
+    logger.error(f"❌ Errors: {exc.errors()}")
+    logger.error(f"❌ Body: {exc.body}")
     
-#     return JSONResponse(
-#         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-#         content={
-#             "detail": jsonable_encoder(exc.errors()),
-#             "body": str(exc.body) if exc.body else None
-#         },
-#     )
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": jsonable_encoder(exc.errors()),
+            "body": str(exc.body) if exc.body else None
+        },
+    )
 excluded_paths = {
     r"^/api/health$": {"default_tenant": "default"},
     r"^/docs.*": {"default_tenant": "default"},
@@ -119,7 +120,7 @@ app.add_middleware(NoCacheMiddleware)
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(user.router, prefix="/api/user", tags=["user"])
-
+app.include_router(biometric.router, prefix="/api")
 # Include SMS MFA router
 from app.routers import sms_mfa
 

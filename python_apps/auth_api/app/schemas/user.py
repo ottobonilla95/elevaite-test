@@ -136,6 +136,7 @@ class UserDetail(UserResponse):
     phone_number: Optional[str] = None
     email_mfa_enabled: bool = False
     is_manager: bool
+    biometric_mfa_enabled: bool = False
 
 
 
@@ -234,3 +235,43 @@ class SessionInfo(BaseModel):
     is_current: bool = False
 
     model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
+    
+class BiometricDeviceResponse(BaseModel):
+    """Biometric device response schema."""
+    
+    id: int
+    device_name: str
+    device_model: Optional[str] = None
+    is_active: bool
+    last_used_at: Optional[datetime] = None
+    created_at: datetime
+    
+    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
+
+
+class BiometricRegisterRequest(BaseModel):
+    """Biometric device registration request schema."""
+    
+    device_fingerprint: str = Field(..., min_length=1, max_length=255)
+    device_name: str = Field(..., min_length=1, max_length=255)
+    device_model: Optional[str] = Field(None, max_length=255)
+    public_key: str = Field(..., min_length=1)
+
+
+class BiometricLoginRequest(BaseModel):
+    """Biometric login request schema."""
+    
+    device_fingerprint: str = Field(..., min_length=1, max_length=255)
+    challenge_signature: str = Field(..., min_length=1)
+
+class BiometricLoginRequest(BaseModel):
+    """Biometric login request schema."""
+    
+    device_fingerprint: str = Field(..., min_length=1, max_length=255)
+    challenge_signature: str = Field(..., min_length=1)
+
+
+class BiometricToggleRequest(BaseModel):
+    """Request to toggle biometric MFA setting."""
+    
+    enabled: bool

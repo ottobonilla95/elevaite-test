@@ -10,6 +10,7 @@ from app.db.orm import get_async_session
 from app.services.sms_mfa import sms_mfa_service
 from app.schemas.mfa import SMSMFASetupRequest, SMSMFAVerifyRequest, SMSMFAResponse
 from app.db.models import User
+from app.core.mfa_validator import ensure_at_least_one_mfa
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -98,6 +99,7 @@ async def disable_sms_mfa(
     logger.info(f"SMS MFA disable request for user {current_user.id}")
 
     try:
+        ensure_at_least_one_mfa(current_user, 'sms')
         result = await sms_mfa_service.disable_sms_mfa(current_user, db)
         return SMSMFAResponse(message=result["message"], message_id=None)
     except HTTPException:

@@ -366,3 +366,74 @@ export async function updateUserRoles(
     };
   }
 }
+export async function toggleBiometricMFA(
+  enabled: boolean
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const session = await auth();
+    const authToken = session?.authToken;
+
+    if (!authToken) {
+      return {
+        success: false,
+        message: "Authentication required. Please log in again.",
+      };
+    }
+
+    const backendUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    const tenantId = process.env.NEXT_PUBLIC_AUTH_TENANT_ID ?? "default";
+
+    if (!backendUrl) {
+      return {
+        success: false,
+        message: "Server configuration error.",
+      };
+    }
+
+    const apiUrl = backendUrl.replace("localhost", "127.0.0.1");
+
+    const response = await fetch(`${apiUrl}/api/biometric/toggle-setting`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant-ID": tenantId,
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ enabled }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = "Failed to update biometric setting";
+
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        if (response.status === 401) {
+          errorMessage = "Unauthorized. Please log in again.";
+        } else if (response.status === 403) {
+          errorMessage = "Forbidden. Insufficient privileges.";
+        }
+      }
+
+      return {
+        success: false,
+        message: errorMessage,
+      };
+    }
+
+    const responseData = await response.json();
+
+    return {
+      success: true,
+      message: responseData.message || `Biometric MFA ${enabled ? "enabled" : "disabled"} successfully.`,
+    };
+  } catch (error) {
+    console.error("Toggle biometric MFA error:", error);
+    return {
+      success: false,
+      message: "An unexpected error occurred.",
+    };
+  }
+}

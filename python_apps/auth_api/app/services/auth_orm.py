@@ -307,17 +307,14 @@ async def authenticate_user(
                     failed_attempts = user.failed_login_attempts + 1
 
                     # Progressive lockout strategy:
-                    # 5 attempts: 5 minutes
-                    # 10 attempts: 15 minutes
-                    # 15 attempts: 30 minutes
-                    # 20+ attempts: 60 minutes
+                    # 100 attempts: 15 minutes
+                    # 200 attempts: 30 minutes
+                    # 300+ attempts: 60 minutes
                     lockout_duration = None
-                    if failed_attempts >= 5:
-                        if failed_attempts < 10:
-                            lockout_duration = now + timedelta(minutes=5)
-                        elif failed_attempts < 15:
+                    if failed_attempts >= 100:
+                        if failed_attempts < 200:
                             lockout_duration = now + timedelta(minutes=15)
-                        elif failed_attempts < 20:
+                        elif failed_attempts < 300:
                             lockout_duration = now + timedelta(minutes=30)
                         else:
                             lockout_duration = now + timedelta(minutes=60)
@@ -377,13 +374,26 @@ async def authenticate_user(
                 f"Error during auto-enable MFA check for user {user.id}: {str(e)}"
             )
 
-        # Check MFA if enabled (TOTP, SMS, or Email)
+        # Get platform from request headers - use explicit X-Platform header
+        x_platform = request.headers.get("x-platform", "").lower() if request else ""
+
+        # STRICT: Only mobile if X-Platform header explicitly says so
+        is_mobile = x_platform == 'android' or x_platform == 'ios'
+
+        # Skip email MFA only for mobile app with biometric enabled
+        skip_email_mfa_for_mobile = is_mobile and user.biometric_mfa_enabled
+
+        if skip_email_mfa_for_mobile:
+            logger.info(f"Mobile user {user.id} with biometric - skipping email MFA")
+
+        # Check MFA if enabled (TOTP, SMS, Email, or Biometric on mobile only)
         has_totp_mfa = user.mfa_enabled and user.mfa_secret
         has_sms_mfa = user.sms_mfa_enabled and user.phone_verified
-        has_email_mfa = user.email_mfa_enabled
+        has_email_mfa = user.email_mfa_enabled and not skip_email_mfa_for_mobile  # Skip only if mobile + biometric
+        has_biometric_mfa = False  # Biometric is optional, never required
 
         logger.info(
-            f"MFA check for user {user.id}: TOTP={has_totp_mfa}, SMS={has_sms_mfa}, Email={has_email_mfa}"
+            f"MFA check for user {user.id}: TOTP={has_totp_mfa}, SMS={has_sms_mfa}, Email={has_email_mfa}, Biometric={has_biometric_mfa}"
         )
 
         # Check if device has valid MFA bypass (24-hour window)
@@ -398,7 +408,7 @@ async def authenticate_user(
                 logger.info(f"Device has valid MFA bypass for user {user.id}")
 
         if (
-            (has_totp_mfa or has_sms_mfa or has_email_mfa)
+            (has_totp_mfa or has_sms_mfa or has_email_mfa or has_biometric_mfa)
             and not totp_code
             and not device_has_mfa_bypass
         ):
@@ -410,6 +420,8 @@ async def authenticate_user(
                 available_methods.append("SMS")
             if has_email_mfa:
                 available_methods.append("Email")
+            if has_biometric_mfa:
+                available_methods.append("Biometric")
 
             if len(available_methods) > 1:
                 methods_str = " or ".join(available_methods)
@@ -431,6 +443,11 @@ async def authenticate_user(
                 raise HTTPException(
                     status_code=http_status.HTTP_400_BAD_REQUEST,
                     detail="Email code required",
+                )
+            elif has_biometric_mfa:
+                raise HTTPException(
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
+                    detail="Biometric verification required",
                 )
 
         # Verify MFA code if provided
@@ -462,7 +479,7 @@ async def authenticate_user(
                     pass
 
             # Try Email verification if TOTP and SMS failed or not available
-            if not mfa_valid and has_email_mfa:
+            if not mfa_valid and user.email_mfa_enabled:  # Use direct DB value
                 try:
                     # Verify Email MFA code
                     await email_mfa_service.verify_mfa_code(user, totp_code, session)
@@ -470,6 +487,18 @@ async def authenticate_user(
                     mfa_method_used = "email"
                 except HTTPException:
                     # Email verification failed
+                    pass
+
+            # Try Biometric verification if others failed or not available
+            if not mfa_valid and has_biometric_mfa:
+                try:
+                    # For biometric, totp_code contains WebAuthn assertion
+                    from app.services.biometric_mfa import biometric_mfa_service
+                    await biometric_mfa_service.verify_biometric_assertion(user, totp_code, session)
+                    mfa_valid = True
+                    mfa_method_used = "biometric"
+                except HTTPException:
+                    # Biometric verification failed
                     pass
 
             if not mfa_valid:
@@ -874,3 +903,25 @@ async def activate_mfa(session: AsyncSession, user_id: int, totp_code: str) -> b
     await log_user_activity(session, user_id, "mfa_activated")
 
     return True
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

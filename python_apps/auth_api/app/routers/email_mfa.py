@@ -15,6 +15,7 @@ from app.schemas.mfa import (
     EmailMFAVerifyRequest,
     EmailMFAResponse,
 )
+from app.core.mfa_validator import ensure_at_least_one_mfa
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -28,9 +29,9 @@ async def setup_email_mfa(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session),
 ):
-    logger.info(f"Email MFA setup request for user {current_user.id}")
-
     try:
+        print(f"🔍 Email MFA setup request for user {current_user.id}")
+        print(f"  - Current email_mfa_enabled: {current_user.email_mfa_enabled}")
         result = await email_mfa_service.setup_email_mfa(current_user, db)
         return EmailMFAResponse(message=result["message"], email=result.get("email"))
     except HTTPException:
@@ -103,6 +104,7 @@ async def disable_email_mfa(
     logger.info(f"Email MFA disable request for user {current_user.id}")
 
     try:
+        ensure_at_least_one_mfa(current_user, 'email')
         result = await email_mfa_service.disable_email_mfa(current_user, db)
         return EmailMFAResponse(message=result["message"], email=None)
     except HTTPException:
@@ -216,3 +218,4 @@ async def send_email_mfa_code_for_login(
         else:
             # Re-raise other authentication errors (invalid credentials, etc.)
             raise
+

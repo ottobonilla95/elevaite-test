@@ -7,6 +7,7 @@ import { TOTPSetup, SMSMFASetup, EmailMFASetup } from "../components/mfa";
 import { UserDetailResponse, MfaSetupResponse } from "../lib/authApiClient";
 import { getMFAConfig, isMFADisableAllowed } from "../lib/mfaConfig";
 import { changeUserPassword } from "../lib/actions";
+import { toggleBiometricMFA } from "../lib/services/userService";
 import "./page.scss";
 
 const LockIcon = ({ size = 14 }: { size?: number }) => (
@@ -85,6 +86,7 @@ export default function Settings(): JSX.Element {
     if (emailEnabled) count++;
     if (smsEnabled) count++;
     if (totpEnabled) count++;
+    if (biometricEnabled) count++;
     return count;
   };
 
@@ -112,11 +114,13 @@ export default function Settings(): JSX.Element {
   const [totpEnabled, setTotpEnabled] = useState(false);
   const [smsEnabled, setSmsEnabled] = useState(false);
   const [emailEnabled, setEmailEnabled] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
 
   // MFA modal and setup state
   const [showTOTPModal, setShowTOTPModal] = useState(false);
   const [showSMSModal, setShowSMSModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  // const [showBiometricModal, setShowBiometricModal] = useState(false);
   const [userDetails, setUserDetails] = useState<UserDetailResponse | null>(
     null
   );
@@ -124,6 +128,7 @@ export default function Settings(): JSX.Element {
     null
   );
   const [mfaError, setMfaError] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
   const [isLoadingMFA, setIsLoadingMFA] = useState(false);
 
   // Load user details on component mount
@@ -184,6 +189,7 @@ export default function Settings(): JSX.Element {
       setTotpEnabled(data.mfa_enabled || false);
       setSmsEnabled(data.sms_mfa_enabled || false);
       setEmailEnabled(data.email_mfa_enabled || false);
+      setBiometricEnabled(data.biometric_mfa_enabled || false);
     } catch (error) {
       setMfaError(
         error instanceof Error ? error.message : "Failed to load user details"
@@ -223,12 +229,13 @@ export default function Settings(): JSX.Element {
   const handleVerifyTOTP = async (code: string) => {
     try {
       setMfaError("");
-      const response = await fetch("/api/auth/mfa/activate", {
+      setIsLoadingMFA(true);
+      const response = await fetch("/api/auth/mfa/verify", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ totp_code: code }),
+        body: JSON.stringify({ code }),
       });
 
       if (!response.ok) {
@@ -236,13 +243,45 @@ export default function Settings(): JSX.Element {
         throw new Error(errorData.detail || "Failed to verify TOTP code");
       }
 
+      // Success! Close modal and show success message
       setShowTOTPModal(false);
-      await loadUserDetails();
+      setTotpEnabled(true);
+      await loadUserDetails(); // Refresh user details
     } catch (error) {
       setMfaError(
         error instanceof Error ? error.message : "Failed to verify TOTP code"
       );
-      throw error;
+      throw error; // Re-throw to be handled by TOTPSetup component
+    } finally {
+      setIsLoadingMFA(false);
+    }
+  };
+
+  const handleDisableTOTP = async () => {
+    try {
+      setMfaError("");
+      setIsLoadingMFA(true);
+      const response = await fetch("/api/auth/mfa/disable", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to disable TOTP MFA");
+      }
+
+      setTotpEnabled(false);
+      await loadUserDetails(); // Refresh user details
+    } catch (error) {
+      setMfaError(
+        error instanceof Error ? error.message : "Failed to disable TOTP MFA"
+      );
+      setTotpEnabled(true); // Reset toggle on error
+    } finally {
+      setIsLoadingMFA(false);
     }
   };
 
@@ -250,7 +289,8 @@ export default function Settings(): JSX.Element {
   const handleSetupSMS = async (phoneNumber: string) => {
     try {
       setMfaError("");
-      const response = await fetch("/api/sms-mfa/setup", {
+      setIsLoadingMFA(true);
+      const response = await fetch("/api/auth/mfa/sms/setup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -262,23 +302,29 @@ export default function Settings(): JSX.Element {
         const errorData = await response.json();
         throw new Error(errorData.detail || "Failed to setup SMS MFA");
       }
+
+      // SMS sent successfully
+      return true;
     } catch (error) {
       setMfaError(
         error instanceof Error ? error.message : "Failed to setup SMS MFA"
       );
       throw error;
+    } finally {
+      setIsLoadingMFA(false);
     }
   };
 
   const handleVerifySMS = async (code: string) => {
     try {
       setMfaError("");
-      const response = await fetch("/api/sms-mfa/verify", {
+      setIsLoadingMFA(true);
+      const response = await fetch("/api/auth/mfa/sms/verify", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ mfa_code: code }),
+        body: JSON.stringify({ code }),
       });
 
       if (!response.ok) {
@@ -286,13 +332,46 @@ export default function Settings(): JSX.Element {
         throw new Error(errorData.detail || "Failed to verify SMS code");
       }
 
+      // Success! Close modal and show success message
       setShowSMSModal(false);
-      await loadUserDetails();
+      setSmsEnabled(true);
+      await loadUserDetails(); // Refresh user details
+      return true;
     } catch (error) {
       setMfaError(
         error instanceof Error ? error.message : "Failed to verify SMS code"
       );
       throw error;
+    } finally {
+      setIsLoadingMFA(false);
+    }
+  };
+
+  const handleDisableSMS = async () => {
+    try {
+      setMfaError("");
+      setIsLoadingMFA(true);
+      const response = await fetch("/api/auth/mfa/sms/disable", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to disable SMS MFA");
+      }
+
+      setSmsEnabled(false);
+      await loadUserDetails(); // Refresh user details
+    } catch (error) {
+      setMfaError(
+        error instanceof Error ? error.message : "Failed to disable SMS MFA"
+      );
+      setSmsEnabled(true); // Reset toggle on error
+    } finally {
+      setIsLoadingMFA(false);
     }
   };
 
@@ -300,31 +379,35 @@ export default function Settings(): JSX.Element {
   const handleSetupEmail = async () => {
     try {
       setMfaError("");
+      setIsLoadingMFA(true);
       const response = await fetch("/api/email-mfa/setup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({}),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || "Failed to setup Email MFA");
       }
+
+      // Email sent successfully
+      return true;
     } catch (error) {
       setMfaError(
         error instanceof Error ? error.message : "Failed to setup Email MFA"
       );
       throw error;
+    } finally {
+      setIsLoadingMFA(false);
     }
   };
 
   const handleVerifyEmail = async (code: string) => {
     try {
       setMfaError("");
-      console.log("Verifying email MFA code:", code);
-
+      setIsLoadingMFA(true);
       const response = await fetch("/api/email-mfa/verify", {
         method: "POST",
         headers: {
@@ -333,69 +416,104 @@ export default function Settings(): JSX.Element {
         body: JSON.stringify({ mfa_code: code }),
       });
 
-      console.log("Email MFA verify response status:", response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Email MFA verify error:", errorData);
         throw new Error(errorData.detail || "Failed to verify Email code");
       }
 
-      const responseData = await response.json();
-      console.log("Email MFA verify success:", responseData);
-
+      // Success! Close modal and show success message
       setShowEmailModal(false);
-      await loadUserDetails();
+      setEmailEnabled(true);
+      await loadUserDetails(); // Refresh user details
+      return true;
     } catch (error) {
-      console.error("Email MFA verification error:", error);
       setMfaError(
         error instanceof Error ? error.message : "Failed to verify Email code"
       );
       throw error;
+    } finally {
+      setIsLoadingMFA(false);
     }
   };
 
-  const handleChangePassword = async (): Promise<void> => {
-    // Prevent double submissions
+  const handleDisableEmail = async () => {
+    try {
+      setMfaError("");
+      setIsLoadingMFA(true);
+      const response = await fetch("/api/email-mfa/disable", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to disable Email MFA");
+      }
+
+      setEmailEnabled(false);
+      await loadUserDetails(); // Refresh user details
+    } catch (error) {
+      setMfaError(
+        error instanceof Error
+          ? error.message
+          : "Failed to disable Email MFA"
+      );
+      setEmailEnabled(true); // Reset toggle on error
+    } finally {
+      setIsLoadingMFA(false);
+    }
+  };
+
+  // Biometric MFA functions
+  const handleDisableBiometric = async () => {
+    try {
+      setMfaError("");
+      setIsLoadingMFA(true);
+
+      const result = await toggleBiometricMFA(false);
+
+      if (result.success) {
+        setBiometricEnabled(false);
+        setSuccessMessage("Biometric MFA disabled. All registered devices have been removed.");
+        setTimeout(() => setSuccessMessage(""), 5000);
+        await loadUserDetails(); // Refresh user details
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      setMfaError(
+        error instanceof Error
+          ? error.message
+          : "Failed to disable Biometric MFA"
+      );
+      setBiometricEnabled(true); // Reset toggle on error
+    } finally {
+      setIsLoadingMFA(false);
+    }
+  };
+
+  // Password change handler
+  const handleChangePassword = async () => {
+    // Only allow one submission at a time
     if (isSubmittingRef.current) {
       return;
     }
 
-    if (!currentPassword) {
-      setError("Current password is required");
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError("All fields are required.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("New passwords don't match");
+      setError("Passwords do not match.");
       return;
     }
 
-    if (newPassword.length < 9) {
-      setError("New password must be at least 9 characters");
-      return;
-    }
-
-    const hasUppercase = /[A-Z]/.test(newPassword);
-    const hasLowercase = /[a-z]/.test(newPassword);
-    const hasNumber = /[0-9]/.test(newPassword);
-    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
-
-    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
-      setError(
-        "New password must include uppercase, lowercase, numbers, and special characters"
-      );
-      return;
-    }
-
-    if (currentPassword === newPassword) {
-      setError("New password must be different from current password");
-      return;
-    }
-
-    setError(null);
     setIsSubmitting(true);
-    isSubmittingRef.current = true; // Set immediately to prevent double calls
+    setError(null);
+    isSubmittingRef.current = true; // Mark as in progress
 
     try {
       const result = await changeUserPassword(currentPassword, newPassword);
@@ -640,9 +758,73 @@ export default function Settings(): JSX.Element {
                     </label>
                   </div>
                 </div>
-                {(mfaConfig.totp || mfaConfig.sms) && (
+                {(mfaConfig.totp || mfaConfig.sms || mfaConfig.biometric) && (
                   <div className="mfa-separator"></div>
                 )}
+              </>
+            )}
+
+            {mfaConfig.biometric && (
+              <>
+                <div className="mfa-method-section">
+                  <div className="mfa-method-header">
+                    <div className="mfa-method-info">
+                      <h3>Biometric Authentication</h3>
+                      <p>
+                        {biometricEnabled
+                          ? "Use fingerprint or face recognition on your mobile device"
+                          : "Enable to use biometric login on mobile devices"}
+                      </p>
+                    </div>
+                    <label className="mfa-toggle">
+                      <input
+                        type="checkbox"
+                        checked={biometricEnabled}
+                        disabled={isLoadingMFA || shouldDisableToggle(biometricEnabled)}
+                        onChange={async (e) => {
+                          const isEnabled = e.target.checked;
+
+                          if (isEnabled && !biometricEnabled) {
+                            // Enable biometric
+                            try {
+                              setIsLoadingMFA(true);
+                              const result = await toggleBiometricMFA(true);
+
+                              if (result.success) {
+                                setBiometricEnabled(true);
+                                setSuccessMessage("Biometric MFA enabled. Register devices on your mobile app.");
+                                setTimeout(() => setSuccessMessage(""), 5000);
+                                await loadUserDetails();
+                              } else {
+                                setMfaError(result.message);
+                                setBiometricEnabled(false);
+                              }
+                            } catch (error) {
+                              setMfaError("Failed to enable biometric MFA");
+                              setBiometricEnabled(false);
+                            } finally {
+                              setIsLoadingMFA(false);
+                            }
+                          } else if (!isEnabled && biometricEnabled) {
+                            // Disable biometric
+                            handleDisableBiometric();
+                          }
+                        }}
+                      />
+                      <span className="mfa-toggle-slider" />
+                    </label>
+                  </div>
+
+                  {/* Success message */}
+                  {biometricEnabled && (
+                    <div className="mfa-status success">
+                      Biometric authentication is enabled
+                      <p style={{ fontSize: '0.9em', marginTop: '8px', color: '#6b7280' }}>
+                        Open your mobile app to register your device with fingerprint or face recognition.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
@@ -788,8 +970,12 @@ export default function Settings(): JSX.Element {
           >
             <div className="mfa-modal-content">
               <SMSMFASetup
-                onSetup={handleSetupSMS}
-                onVerify={handleVerifySMS}
+                onSetup={async (phoneNumber: string) => {
+                  await handleSetupSMS(phoneNumber);
+                }}
+                onVerify={async (code: string) => {
+                  await handleVerifySMS(code);
+                }}
                 onCancel={() => {
                   setShowSMSModal(false);
                   setSmsEnabled(false); // Reset toggle on cancel
@@ -816,8 +1002,12 @@ export default function Settings(): JSX.Element {
           >
             <div className="mfa-modal-content">
               <EmailMFASetup
-                onSetup={handleSetupEmail}
-                onVerify={handleVerifyEmail}
+                onSetup={async () => {
+                  await handleSetupEmail();
+                }}
+                onVerify={async (code: string) => {
+                  await handleVerifyEmail(code);
+                }}
                 onCancel={() => {
                   setShowEmailModal(false);
                   setEmailEnabled(false); // Reset toggle on cancel
@@ -916,3 +1106,9 @@ export default function Settings(): JSX.Element {
     </>
   );
 }
+
+
+
+
+
+

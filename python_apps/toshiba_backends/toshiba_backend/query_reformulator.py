@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from abbreviation_dict import ABBREVIATION_TABLE
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
-    load_dotenv()
+    load_dotenv(".env.local")
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 
@@ -30,11 +30,11 @@ def extract_abbreviation_expansions(query: str) -> dict:
             matches[words[i]] = str(MACHINE_ABBREVIATIONS[words[i]])
         for j in range(i + 1, min(i + 5, len(words) + 1)):
             phrase = " ".join(words[i:j]).strip(string.punctuation)
-            suggestions = trie.get_all_with_prefix(phrase)
+            suggestions = trie.get_all_with_prefix(phrase.upper())
             if suggestions:
                 print(f"==> Phrase: '{phrase}' ::==> Suggestions: {suggestions}")
             for key, mapped_value in suggestions:
-                if key == phrase:
+                if key == phrase.upper():
                     matches[phrase] = mapped_value
 
 
@@ -141,6 +141,7 @@ def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dic
     - Expand abbreviations and machine codes inline, using this format: "<Full Name> (<Abbreviation>)"
     - If the query is vague (e.g. "search in 7610"), combine it with previous relevant messages to form a natural, clear query.
     - If the chat history or known abbreviations do not help clarify the query, return the query exactly as written.
+    - Consider the context of the word when expanding abbreviations. For example, if the user says "So, what is loader module pn", and the suggested expansion is "{{"So": "Standard Operation","pn": "Part Number"}}, then expand it to "So, what is loader module part number (pn)" instead of "Standard Operation (SO), what is loader module part number (pn)".
     - If the input is casual conversation (e.g. "hello", "thanks"), pass it through without rewriting.
     - DO NOT INCLUDE MODEL NUMBERS IF THE USER DID NOT SPECIFY THEM. 
     For example, if the user asks "what is the part number for the motorized controller in 6800?", do not rewrite it to "what is the part number for the motorized controller in System 7 (Machine Type:6800 model: 100)?" because the user did not specify the model number.

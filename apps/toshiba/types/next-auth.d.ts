@@ -17,6 +17,7 @@ declare module "next-auth" {
       phone_verified?: boolean;
       phone_number?: string;
       email_mfa_enabled?: boolean;
+      biometric_mfa_enabled?: boolean;
       grace_period?: {
         in_grace_period: boolean;
         days_remaining: number;
@@ -41,6 +42,7 @@ declare module "next-auth" {
     phone_verified?: boolean | null;
     phone_number?: string | null;
     email_mfa_enabled?: boolean | null;
+    biometric_mfa_enabled?: boolean | null;
     grace_period?: {
       in_grace_period: boolean;
       days_remaining: number;

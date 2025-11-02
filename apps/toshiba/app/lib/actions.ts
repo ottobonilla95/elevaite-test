@@ -123,10 +123,11 @@ export async function changeUserPassword(
   currentPassword: string,
   newPassword: string
 ): Promise<{
+  error: string;
   success: boolean;
   message: string;
   requireLogout?: boolean;
-  needsPasswordReset?: boolean;  
+  needsPasswordReset?: boolean;
 }> {
   try {
     const session = await auth();
@@ -136,6 +137,7 @@ export async function changeUserPassword(
       return {
         success: false,
         message: "Authentication required. Please log in again.",
+        error: "Authentication required. Please log in again.",
       };
     }
 
@@ -144,6 +146,7 @@ export async function changeUserPassword(
       return {
         success: false,
         message: "Server configuration error. Please contact support.",
+        error: "Server configuration error. Please contact support.",
       };
     }
 
@@ -169,15 +172,17 @@ export async function changeUserPassword(
         success: false,
         message:
           errorData.detail || "Failed to change password. Please try again.",
+        error: errorData.detail || "Failed to change password. Please try again.",
       };
     }
 
     const data = await response.json();
     const requireLogout = data.require_logout === true;
-    
+
     return {
       success: true,
       message: data.message || "Password changed successfully.",
+      error: "",
       needsPasswordReset: false,
       requireLogout: requireLogout
     };
@@ -186,6 +191,7 @@ export async function changeUserPassword(
     return {
       success: false,
       message: "An unexpected error occurred. Please try again.",
+      error: "An unexpected error occurred. Please try again.",
     };
   }
 }
@@ -439,3 +445,5 @@ export async function addSRNumberToSession(
   if (!response.ok) throw new Error("Failed to add SR number");
   return await response.json();
 }
+
+

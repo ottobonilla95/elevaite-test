@@ -7,6 +7,7 @@ export interface MFAConfig {
   email: boolean;
   sms: boolean;
   totp: boolean;
+  biometric: boolean;
 }
 
 /**
@@ -22,7 +23,7 @@ export function getMFAConfig(): MFAConfig {
   const enabledMethods = mfaMethodsEnabled
     .split(",")
     .map((method) => method.trim().toLowerCase())
-    .filter((method) => ["email", "sms", "totp"].includes(method));
+    .filter((method) => ["email", "sms", "totp", "biometric"].includes(method));
 
   // If no valid methods found, fallback to email
   const validMethods = enabledMethods.length > 0 ? enabledMethods : ["email"];
@@ -31,6 +32,7 @@ export function getMFAConfig(): MFAConfig {
     email: validMethods.includes("email"),
     sms: validMethods.includes("sms"),
     totp: validMethods.includes("totp"),
+    biometric: validMethods.includes("biometric"),
   };
 }
 
@@ -48,7 +50,7 @@ export function isMFADisableAllowed(): boolean {
  */
 export function hasAnyMFAMethodEnabled(): boolean {
   const config = getMFAConfig();
-  return config.email || config.sms || config.totp;
+  return config.email || config.sms || config.totp || config.biometric;
 }
 
 /**
@@ -56,7 +58,12 @@ export function hasAnyMFAMethodEnabled(): boolean {
  */
 export function getEnabledMFAMethodsCount(): number {
   const config = getMFAConfig();
-  return [config.email, config.sms, config.totp].filter(Boolean).length;
+  return [
+    config.email,
+    config.sms,
+    config.totp,
+    config.biometric,
+  ].filter(Boolean).length;
 }
 
 /**
@@ -69,6 +76,7 @@ export function getEnabledMFAMethods(): string[] {
   if (config.email) methods.push("email");
   if (config.sms) methods.push("sms");
   if (config.totp) methods.push("totp");
+  if (config.biometric) methods.push("biometric");
 
   return methods;
 }

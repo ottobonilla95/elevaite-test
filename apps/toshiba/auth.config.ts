@@ -54,6 +54,7 @@ export const authConfig = {
           phone_verified?: boolean;
           phone_number?: string;
           email_mfa_enabled?: boolean;
+          biometric_mfa_enabled?: boolean;
           grace_period?: {
             in_grace_period: boolean;
             days_remaining: number;
@@ -139,6 +140,14 @@ export const authConfig = {
         typeof token.email_mfa_enabled === "boolean"
       ) {
         stockSession.user.email_mfa_enabled = token.email_mfa_enabled;
+      }
+
+      if (
+        token.biometric_mfa_enabled !== undefined &&
+        token.biometric_mfa_enabled !== null &&
+        typeof token.biometric_mfa_enabled === "boolean"
+      ) {
+        stockSession.user.biometric_mfa_enabled = token.biometric_mfa_enabled;
       }
 
       if (
@@ -242,6 +251,12 @@ export const authConfig = {
           ) {
             token.email_mfa_enabled = user.email_mfa_enabled;
           }
+          if (
+            user?.biometric_mfa_enabled !== undefined &&
+            typeof user.biometric_mfa_enabled === "boolean"
+          ) {
+            token.biometric_mfa_enabled = user.biometric_mfa_enabled;
+          }
           if (user?.grace_period !== undefined) {
             token.grace_period = user.grace_period;
           }
@@ -326,6 +341,14 @@ export const authConfig = {
             newToken.email_mfa_enabled = user.email_mfa_enabled;
           } else {
             newToken.email_mfa_enabled = null;
+          }
+          if (
+            user?.biometric_mfa_enabled !== undefined &&
+            typeof user.biometric_mfa_enabled === "boolean"
+          ) {
+            newToken.biometric_mfa_enabled = user.biometric_mfa_enabled;
+          } else {
+            newToken.biometric_mfa_enabled = null;
           }
           if (user?.grace_period !== undefined) {
             newToken.grace_period = user.grace_period;

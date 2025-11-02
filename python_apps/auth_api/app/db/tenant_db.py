@@ -87,7 +87,7 @@ async def get_tenant_session(
     """Get a tenant-aware database session."""
     tenant_id = get_current_tenant_id() or settings.default_tenant_id
     logger.debug(f"Getting database session for tenant: {tenant_id}")
-    async for session in get_tenant_async_db(settings):
+    async for session in get_tenant_async_db(settings, tenant_id=tenant_id):
         yield session
 
 

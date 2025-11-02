@@ -104,7 +104,7 @@ jobs:
           --build-arg NEXT_PUBLIC_AUTH_API_URL=https://${{ steps.meta.outputs.preview_host }}/auth-api \
           --build-arg NEXT_PUBLIC_BACKEND_URL=https://${{ steps.meta.outputs.preview_host }}/api/core/ \
           --build-arg NEXT_PUBLIC_API_URL=https://${{ steps.meta.outputs.preview_host }} \
-          --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED=email \
+          --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED="email,biometric" \
           --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
           -f apps/toshiba/Dockerfile \
           -t ${IMAGE}:${{ steps.meta.outputs.branch_tag }} \

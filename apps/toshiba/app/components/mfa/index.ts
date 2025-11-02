@@ -7,3 +7,4 @@ export { SMSMFASetup } from "./SMSMFASetup";
 export { EmailMFASetup } from "./EmailMFASetup";
 export { MFALoginVerification } from "./MFALoginVerification";
 export { MFAMethodSelection } from "./MFAMethodSelection";
+export { BiometricMFASetup } from "./BiometricMFASetup";
