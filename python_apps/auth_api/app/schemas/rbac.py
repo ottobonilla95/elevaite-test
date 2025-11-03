@@ -131,9 +131,7 @@ class AccessCheckRequest(BaseModel):
     """Schema for access check request."""
 
     user_id: int = Field(..., description="User ID to check access for")
-    action: str = Field(
-        ..., description="Action to perform (e.g., view_project, edit_project)"
-    )
+    action: str = Field(..., description="Action to perform (e.g., view_project, edit_project)")
     resource: ResourceInfo = Field(..., description="Resource being accessed")
 
 
@@ -141,9 +139,7 @@ class AccessCheckResponse(BaseModel):
     """Schema for access check response."""
 
     allowed: bool = Field(..., description="Whether access is allowed")
-    deny_reason: Optional[str] = Field(
-        None, description="Reason for denial if not allowed"
-    )
+    deny_reason: Optional[str] = Field(None, description="Reason for denial if not allowed")
     user_status: str = Field(..., description="User status at time of check")
 
 
@@ -173,4 +169,52 @@ class UserRoleAssignmentListResponse(BaseModel):
     """Schema for list of user role assignments."""
 
     assignments: List[UserRoleAssignmentResponse]
+    total: int | None
+
+
+# Permission override schemas
+class PermissionOverrideCreate(BaseModel):
+    """Schema for creating a permission override."""
+
+    user_id: int = Field(..., description="User ID to apply overrides to")
+    resource_type: ResourceType = Field(..., description="Type of resource")
+    resource_id: UUID = Field(..., description="Resource ID")
+    allow_actions: Optional[List[str]] = Field(
+        None, description="List of actions to explicitly allow (e.g., ['edit_project', 'delete_workflow'])"
+    )
+    deny_actions: Optional[List[str]] = Field(
+        None, description="List of actions to explicitly deny. Deny takes precedence over allow."
+    )
+
+
+class PermissionOverrideUpdate(BaseModel):
+    """Schema for updating a permission override."""
+
+    allow_actions: Optional[List[str]] = Field(
+        None, description="List of actions to explicitly allow. Set to empty list to clear."
+    )
+    deny_actions: Optional[List[str]] = Field(
+        None, description="List of actions to explicitly deny. Set to empty list to clear."
+    )
+
+
+class PermissionOverrideResponse(BaseModel):
+    """Schema for permission override response."""
+
+    user_id: int
+    resource_type: str
+    resource_id: UUID
+    allow_actions: Optional[List[str]]
+    deny_actions: Optional[List[str]]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PermissionOverrideListResponse(BaseModel):
+    """Schema for list of permission overrides."""
+
+    overrides: List[PermissionOverrideResponse]
     total: int | None

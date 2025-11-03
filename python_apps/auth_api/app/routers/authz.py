@@ -9,7 +9,7 @@ from sqlalchemy.future import select
 
 from app.core.deps import get_current_user
 from app.db.models import User
-from app.db.models_rbac import UserRoleAssignment
+from app.db.models_rbac import UserRoleAssignment, PermissionOverride
 from app.db.tenant_db import get_tenant_async_db
 from app.schemas.rbac import AccessCheckRequest, AccessCheckResponse
 from app.services.opa_service import get_opa_service
@@ -83,6 +83,28 @@ async def check_access(
 
     logger.info(f"User {user.id} ({user.email}) has {len(user_assignments)} role assignments")
 
+    # Step 3.5: Get user's permission overrides for this resource
+    overrides_result = await session.execute(
+        select(PermissionOverride).where(
+            PermissionOverride.user_id == request.user_id,
+            PermissionOverride.resource_id == request.resource.id,
+        )
+    )
+    override = overrides_result.scalars().first()
+
+    # Convert overrides to OPA format
+    permission_overrides = None
+    if override:
+        permission_overrides = {
+            "resource_id": str(override.resource_id),
+            "allow": override.allow_actions or [],
+            "deny": override.deny_actions or [],
+        }
+        logger.info(
+            f"User {user.id} has permission overrides on resource {override.resource_id}: "
+            f"allow={override.allow_actions}, deny={override.deny_actions}"
+        )
+
     # Step 4: Call OPA for policy evaluation
     # Convert resource to dict and ensure all UUIDs are strings for JSON serialization
     resource_dict = request.resource.dict()
@@ -98,6 +120,7 @@ async def check_access(
         user_assignments=user_assignments,
         action=request.action,
         resource=resource_dict,
+        permission_overrides=permission_overrides,
     )
 
     # Step 5: Return result

@@ -11,7 +11,7 @@ from sqlalchemy import func
 
 from app.core.deps import get_current_user
 from app.db.models import User
-from app.db.models_rbac import Organization, Account, Project, UserRoleAssignment
+from app.db.models_rbac import Organization, Account, Project, UserRoleAssignment, PermissionOverride
 from app.db.tenant_db import get_tenant_async_db
 from app.schemas.rbac import (
     OrganizationCreate,
@@ -26,6 +26,10 @@ from app.schemas.rbac import (
     UserRoleAssignmentCreate,
     UserRoleAssignmentResponse,
     UserRoleAssignmentListResponse,
+    PermissionOverrideCreate,
+    PermissionOverrideUpdate,
+    PermissionOverrideResponse,
+    PermissionOverrideListResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,9 +64,7 @@ async def create_organization(
         )
 
     # Check if organization name already exists
-    result = await session.execute(
-        select(Organization).where(Organization.name == org_data.name)
-    )
+    result = await session.execute(select(Organization).where(Organization.name == org_data.name))
     if result.scalars().first():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -99,9 +101,7 @@ async def list_organizations(
     organizations = result.scalars().all()
 
     return OrganizationListResponse(
-        organizations=[
-            OrganizationResponse.model_validate(org) for org in organizations
-        ],
+        organizations=[OrganizationResponse.model_validate(org) for org in organizations],
         total=total,
     )
 
@@ -113,9 +113,7 @@ async def get_organization(
     current_user: User = Depends(get_current_user),
 ) -> OrganizationResponse:
     """Get organization by ID."""
-    result = await session.execute(
-        select(Organization).where(Organization.id == org_id)
-    )
+    result = await session.execute(select(Organization).where(Organization.id == org_id))
     org = result.scalars().first()
 
     if not org:
@@ -132,9 +130,7 @@ async def get_organization(
 # ============================================================================
 
 
-@router.post(
-    "/accounts", response_model=AccountResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/accounts", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)
 async def create_account(
     account_data: AccountCreate,
     session: AsyncSession = Depends(get_tenant_async_db),
@@ -146,9 +142,7 @@ async def create_account(
     **Requires:** Superuser or organization admin
     """
     # Verify organization exists
-    org_result = await session.execute(
-        select(Organization).where(Organization.id == account_data.organization_id)
-    )
+    org_result = await session.execute(select(Organization).where(Organization.id == account_data.organization_id))
     if not org_result.scalars().first():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -172,9 +166,7 @@ async def create_account(
     await session.commit()
     await session.refresh(account)
 
-    logger.info(
-        f"Account '{account.name}' created in org {account.organization_id} by user {current_user.id}"
-    )
+    logger.info(f"Account '{account.name}' created in org {account.organization_id} by user {current_user.id}")
 
     return AccountResponse.model_validate(account)
 
@@ -233,9 +225,7 @@ async def get_account(
 # ============================================================================
 
 
-@router.post(
-    "/projects", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/projects", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(
     project_data: ProjectCreate,
     session: AsyncSession = Depends(get_tenant_async_db),
@@ -247,9 +237,7 @@ async def create_project(
     **Requires:** Superuser or account admin
     """
     # Verify account exists and belongs to organization
-    account_result = await session.execute(
-        select(Account).where(Account.id == project_data.account_id)
-    )
+    account_result = await session.execute(select(Account).where(Account.id == project_data.account_id))
     account = account_result.scalars().first()
 
     if not account:
@@ -282,9 +270,7 @@ async def create_project(
     await session.commit()
     await session.refresh(project)
 
-    logger.info(
-        f"Project '{project.name}' created in account {project.account_id} by user {current_user.id}"
-    )
+    logger.info(f"Project '{project.name}' created in account {project.account_id} by user {current_user.id}")
 
     return ProjectResponse.model_validate(project)
 
@@ -364,9 +350,7 @@ async def create_user_role_assignment(
     **Requires:** Superuser or admin on the resource
     """
     # Verify user exists
-    user_result = await session.execute(
-        select(User).where(User.id == assignment_data.user_id)
-    )
+    user_result = await session.execute(select(User).where(User.id == assignment_data.user_id))
     if not user_result.scalars().first():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -375,17 +359,11 @@ async def create_user_role_assignment(
 
     # Verify resource exists based on type
     if assignment_data.resource_type.value == "organization":
-        resource_result = await session.execute(
-            select(Organization).where(Organization.id == assignment_data.resource_id)
-        )
+        resource_result = await session.execute(select(Organization).where(Organization.id == assignment_data.resource_id))
     elif assignment_data.resource_type.value == "account":
-        resource_result = await session.execute(
-            select(Account).where(Account.id == assignment_data.resource_id)
-        )
+        resource_result = await session.execute(select(Account).where(Account.id == assignment_data.resource_id))
     elif assignment_data.resource_type.value == "project":
-        resource_result = await session.execute(
-            select(Project).where(Project.id == assignment_data.resource_id)
-        )
+        resource_result = await session.execute(select(Project).where(Project.id == assignment_data.resource_id))
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -421,9 +399,7 @@ async def create_user_role_assignment(
         existing.resource_type = assignment_data.resource_type.value
         await session.commit()
         await session.refresh(existing)
-        logger.info(
-            f"Updated role assignment for user {assignment_data.user_id} to {assignment_data.role.value}"
-        )
+        logger.info(f"Updated role assignment for user {assignment_data.user_id} to {assignment_data.role.value}")
         return UserRoleAssignmentResponse.model_validate(existing)
 
     # Create new assignment
@@ -438,8 +414,7 @@ async def create_user_role_assignment(
     await session.refresh(assignment)
 
     logger.info(
-        f"Assigned role {assignment.role} to user {assignment.user_id} "
-        f"on {assignment.resource_type} {assignment.resource_id}"
+        f"Assigned role {assignment.role} to user {assignment.user_id} on {assignment.resource_type} {assignment.resource_id}"
     )
 
     return UserRoleAssignmentResponse.model_validate(assignment)
@@ -469,9 +444,7 @@ async def list_user_role_assignments(
 
     if resource_type:
         query = query.where(UserRoleAssignment.resource_type == resource_type)
-        count_query = count_query.where(
-            UserRoleAssignment.resource_type == resource_type
-        )
+        count_query = count_query.where(UserRoleAssignment.resource_type == resource_type)
 
     # Get total count
     count_result = await session.execute(count_query)
@@ -528,5 +501,245 @@ async def delete_user_role_assignment(
     await session.commit()
 
     logger.info(f"Removed role assignment for user {user_id} on resource {resource_id}")
+
+    return None
+
+
+# ============================================================================
+# Permission Overrides
+# ============================================================================
+
+
+@router.post(
+    "/permission_overrides",
+    response_model=PermissionOverrideResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_permission_override(
+    override_data: PermissionOverrideCreate,
+    session: AsyncSession = Depends(get_tenant_async_db),
+    current_user: User = Depends(get_current_user),
+) -> PermissionOverrideResponse:
+    """
+    Create or update a permission override for a user on a resource.
+
+    Permission overrides allow fine-grained control beyond role-based permissions:
+    - **allow_actions**: List of actions explicitly allowed
+    - **deny_actions**: List of actions explicitly denied (takes precedence)
+
+    **Requires:** Superuser or admin on the resource
+    """
+    # TODO: Check if current user has admin role on resource
+    # For now, require superuser
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only superusers can create permission overrides",
+        )
+
+    # Validate user exists
+    user_result = await session.execute(select(User).where(User.id == override_data.user_id))
+    user = user_result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {override_data.user_id} not found",
+        )
+
+    # Validate resource exists
+    resource_model = {
+        "organization": Organization,
+        "account": Account,
+        "project": Project,
+    }.get(override_data.resource_type.value)
+
+    if resource_model:
+        resource_result = await session.execute(select(resource_model).where(resource_model.id == override_data.resource_id))
+        if not resource_result.scalars().first():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"{override_data.resource_type.value.capitalize()} {override_data.resource_id} not found",
+            )
+
+    # Check if override already exists (upsert behavior)
+    result = await session.execute(
+        select(PermissionOverride).where(
+            PermissionOverride.user_id == override_data.user_id,
+            PermissionOverride.resource_id == override_data.resource_id,
+        )
+    )
+    existing_override = result.scalars().first()
+
+    if existing_override:
+        # Update existing override
+        existing_override.allow_actions = override_data.allow_actions or []
+        existing_override.deny_actions = override_data.deny_actions or []
+        existing_override.resource_type = override_data.resource_type.value
+        await session.commit()
+        await session.refresh(existing_override)
+        logger.info(f"Updated permission override for user {override_data.user_id} on resource {override_data.resource_id}")
+        return PermissionOverrideResponse.model_validate(existing_override)
+    else:
+        # Create new override
+        override = PermissionOverride(
+            user_id=override_data.user_id,
+            resource_id=override_data.resource_id,
+            resource_type=override_data.resource_type.value,
+            allow_actions=override_data.allow_actions or [],
+            deny_actions=override_data.deny_actions or [],
+        )
+        session.add(override)
+        await session.commit()
+        await session.refresh(override)
+        logger.info(f"Created permission override for user {override_data.user_id} on resource {override_data.resource_id}")
+        return PermissionOverrideResponse.model_validate(override)
+
+
+@router.get("/permission_overrides", response_model=PermissionOverrideListResponse)
+async def list_permission_overrides(
+    user_id: Optional[int] = Query(None, description="Filter by user ID"),
+    resource_id: Optional[UUID] = Query(None, description="Filter by resource ID"),
+    resource_type: Optional[str] = Query(None, description="Filter by resource type"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    session: AsyncSession = Depends(get_tenant_async_db),
+    current_user: User = Depends(get_current_user),
+) -> PermissionOverrideListResponse:
+    """
+    List permission overrides with optional filters.
+
+    **Requires:** Superuser or admin on the resource
+    """
+    # TODO: Filter based on current user's permissions
+    # For now, require superuser
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only superusers can list permission overrides",
+        )
+
+    # Build query with filters
+    query = select(PermissionOverride)
+    count_query = select(func.count(PermissionOverride.user_id))
+
+    if user_id is not None:
+        query = query.where(PermissionOverride.user_id == user_id)
+        count_query = count_query.where(PermissionOverride.user_id == user_id)
+
+    if resource_id is not None:
+        query = query.where(PermissionOverride.resource_id == resource_id)
+        count_query = count_query.where(PermissionOverride.resource_id == resource_id)
+
+    if resource_type is not None:
+        query = query.where(PermissionOverride.resource_type == resource_type)
+        count_query = count_query.where(PermissionOverride.resource_type == resource_type)
+
+    # Get total count
+    count_result = await session.execute(count_query)
+    total = count_result.scalar()
+
+    # Get overrides
+    result = await session.execute(query.offset(skip).limit(limit))
+    overrides = result.scalars().all()
+
+    return PermissionOverrideListResponse(
+        overrides=[PermissionOverrideResponse.model_validate(o) for o in overrides],
+        total=total,
+    )
+
+
+@router.patch(
+    "/permission_overrides/{user_id}/{resource_id}",
+    response_model=PermissionOverrideResponse,
+)
+async def update_permission_override(
+    user_id: int,
+    resource_id: UUID,
+    override_data: PermissionOverrideUpdate,
+    session: AsyncSession = Depends(get_tenant_async_db),
+    current_user: User = Depends(get_current_user),
+) -> PermissionOverrideResponse:
+    """
+    Update an existing permission override.
+
+    **Requires:** Superuser or admin on the resource
+    """
+    # TODO: Check if current user has admin role on resource
+    # For now, require superuser
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only superusers can update permission overrides",
+        )
+
+    result = await session.execute(
+        select(PermissionOverride).where(
+            PermissionOverride.user_id == user_id,
+            PermissionOverride.resource_id == resource_id,
+        )
+    )
+    override = result.scalars().first()
+
+    if not override:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Permission override not found for user {user_id} on resource {resource_id}",
+        )
+
+    # Update fields if provided
+    if override_data.allow_actions is not None:
+        override.allow_actions = override_data.allow_actions
+    if override_data.deny_actions is not None:
+        override.deny_actions = override_data.deny_actions
+
+    await session.commit()
+    await session.refresh(override)
+
+    logger.info(f"Updated permission override for user {user_id} on resource {resource_id}")
+
+    return PermissionOverrideResponse.model_validate(override)
+
+
+@router.delete(
+    "/permission_overrides/{user_id}/{resource_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_permission_override(
+    user_id: int,
+    resource_id: UUID,
+    session: AsyncSession = Depends(get_tenant_async_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """
+    Remove a permission override.
+
+    **Requires:** Superuser or admin on the resource
+    """
+    # TODO: Check if current user has admin role on resource
+    # For now, require superuser
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only superusers can delete permission overrides",
+        )
+
+    result = await session.execute(
+        select(PermissionOverride).where(
+            PermissionOverride.user_id == user_id,
+            PermissionOverride.resource_id == resource_id,
+        )
+    )
+    override = result.scalars().first()
+
+    if not override:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Permission override not found for user {user_id} on resource {resource_id}",
+        )
+
+    await session.delete(override)
+    await session.commit()
+
+    logger.info(f"Deleted permission override for user {user_id} on resource {resource_id}")
 
     return None

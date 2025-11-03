@@ -35,6 +35,7 @@ class OPAService:
         user_assignments: List[Dict[str, Any]],
         action: str,
         resource: Dict[str, Any],
+        permission_overrides: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Check if a user has access to perform an action on a resource.
@@ -45,6 +46,7 @@ class OPAService:
             user_assignments: List of user role assignments
             action: Action to perform (e.g., "view_project", "edit_project")
             resource: Resource being accessed (type, id, organization_id, account_id)
+            permission_overrides: Optional permission overrides (allow/deny lists)
 
         Returns:
             Dict with:
@@ -55,19 +57,23 @@ class OPAService:
             HTTPException: If OPA service is unavailable
         """
         if not self.enabled:
-            logger.warning(
-                f"OPA disabled - allowing access for user {user_id} to {action} on {resource.get('type')}"
-            )
+            logger.warning(f"OPA disabled - allowing access for user {user_id} to {action} on {resource.get('type')}")
             return {"allowed": True}
 
         # Build OPA input
+        user_data = {
+            "id": str(user_id),
+            "status": user_status,
+            "assignments": user_assignments,
+        }
+
+        # Add permission overrides if provided
+        if permission_overrides:
+            user_data["overrides"] = permission_overrides
+
         opa_input = {
             "input": {
-                "user": {
-                    "id": str(user_id),
-                    "status": user_status,
-                    "assignments": user_assignments,
-                },
+                "user": user_data,
                 "action": action,
                 "resource": resource,
             }
@@ -84,7 +90,7 @@ class OPAService:
                 result = response.json()
 
                 allowed = result.get("result", False)
-                
+
                 # Get deny reason if available
                 deny_reason = None
                 if not allowed:
@@ -100,8 +106,7 @@ class OPAService:
 
                 logger.info(
                     f"OPA decision for user {user_id} ({user_status}) - {action} on {resource.get('type')}: "
-                    f"{'ALLOWED' if allowed else 'DENIED'}"
-                    + (f" - Reason: {deny_reason}" if deny_reason else "")
+                    f"{'ALLOWED' if allowed else 'DENIED'}" + (f" - Reason: {deny_reason}" if deny_reason else "")
                 )
 
                 return {
@@ -160,4 +165,3 @@ def get_opa_service() -> OPAService:
     if _opa_service is None:
         _opa_service = OPAService()
     return _opa_service
-
