@@ -319,23 +319,23 @@ class TestApiKeyJwtValidator:
 
     def test_jwt_validator_success_hs256(self):
         """Test successful JWT validation with HS256."""
-        mock_jwt = Mock()
-        mock_jwt.decode.return_value = {"type": "api_key", "sub": "service-account-123"}
+        mock_jwt_module = Mock()
+        mock_jwt_module.decode.return_value = {"type": "api_key", "sub": "service-account-123"}
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret")
             request = Mock()
             user_id = validator("test.jwt.token", request)
 
             assert user_id == "service-account-123"
-            mock_jwt.decode.assert_called_once()
+            mock_jwt_module.decode.assert_called_once()
 
     def test_jwt_validator_success_rs256(self):
         """Test successful JWT validation with RS256."""
-        mock_jwt = Mock()
-        mock_jwt.decode.return_value = {"type": "api_key", "sub": "service-account-456"}
+        mock_jwt_module = Mock()
+        mock_jwt_module.decode.return_value = {"type": "api_key", "sub": "service-account-456"}
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="RS256", public_key="test-public-key")
             request = Mock()
             user_id = validator("test.jwt.token", request)
@@ -344,10 +344,10 @@ class TestApiKeyJwtValidator:
 
     def test_jwt_validator_invalid_type(self):
         """Test that wrong token type returns None."""
-        mock_jwt = Mock()
-        mock_jwt.decode.return_value = {"type": "access_token", "sub": "user-123"}
+        mock_jwt_module = Mock()
+        mock_jwt_module.decode.return_value = {"type": "access_token", "sub": "user-123"}
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret", require_type="api_key")
             request = Mock()
             user_id = validator("test.jwt.token", request)
@@ -356,10 +356,10 @@ class TestApiKeyJwtValidator:
 
     def test_jwt_validator_missing_sub(self):
         """Test that missing 'sub' claim returns None."""
-        mock_jwt = Mock()
-        mock_jwt.decode.return_value = {"type": "api_key"}  # No 'sub'
+        mock_jwt_module = Mock()
+        mock_jwt_module.decode.return_value = {"type": "api_key"}  # No 'sub'
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret")
             request = Mock()
             user_id = validator("test.jwt.token", request)
@@ -370,10 +370,10 @@ class TestApiKeyJwtValidator:
         """Test that JWT decode errors return None."""
         from jose import JWTError
 
-        mock_jwt = Mock()
-        mock_jwt.decode.side_effect = JWTError("Invalid signature")
+        mock_jwt_module = Mock()
+        mock_jwt_module.decode.side_effect = JWTError("Invalid signature")
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret")
             request = Mock()
             user_id = validator("invalid.jwt.token", request)
@@ -382,10 +382,10 @@ class TestApiKeyJwtValidator:
 
     def test_jwt_validator_generic_exception(self):
         """Test that generic exceptions return None."""
-        mock_jwt = Mock()
-        mock_jwt.decode.side_effect = RuntimeError("Unexpected error")
+        mock_jwt_module = Mock()
+        mock_jwt_module.decode.side_effect = RuntimeError("Unexpected error")
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret")
             request = Mock()
             user_id = validator("test.jwt.token", request)
@@ -403,10 +403,10 @@ class TestApiKeyJwtValidator:
 
     def test_jwt_validator_no_type_requirement(self):
         """Test that type requirement can be disabled."""
-        mock_jwt = Mock()
-        mock_jwt.decode.return_value = {"sub": "user-123"}  # No 'type' field
+        mock_jwt_module = Mock()
+        mock_jwt_module.decode.return_value = {"sub": "user-123"}  # No 'type' field
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret", require_type=None)
             request = Mock()
             user_id = validator("test.jwt.token", request)
@@ -416,24 +416,24 @@ class TestApiKeyJwtValidator:
     @patch.dict(os.environ, {"API_KEY_ALGORITHM": "HS256", "API_KEY_SECRET": "env-secret"})
     def test_jwt_validator_uses_env_vars(self):
         """Test that environment variables are used when parameters not provided."""
-        mock_jwt = Mock()
-        mock_jwt.decode.return_value = {"type": "api_key", "sub": "user-123"}
+        mock_jwt_module = Mock()
+        mock_jwt_module.decode.return_value = {"type": "api_key", "sub": "user-123"}
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator()
             request = Mock()
             user_id = validator("test.jwt.token", request)
 
             assert user_id == "user-123"
             # Verify it used the env var secret
-            call_args = mock_jwt.decode.call_args
+            call_args = mock_jwt_module.decode.call_args
             assert call_args[0][1] == "env-secret"
 
     def test_jwt_validator_missing_secret_for_hs(self):
         """Test that missing secret for HS algorithm returns None."""
-        mock_jwt = Mock()
+        mock_jwt_module = Mock()
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="HS256", secret=None)
             request = Mock()
             user_id = validator("test.jwt.token", request)
@@ -442,9 +442,9 @@ class TestApiKeyJwtValidator:
 
     def test_jwt_validator_missing_public_key_for_rs(self):
         """Test that missing public key for RS algorithm returns None."""
-        mock_jwt = Mock()
+        mock_jwt_module = Mock()
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="RS256", public_key=None)
             request = Mock()
             user_id = validator("test.jwt.token", request)
@@ -453,9 +453,9 @@ class TestApiKeyJwtValidator:
 
     def test_jwt_validator_unsupported_algorithm(self):
         """Test that unsupported algorithm returns None."""
-        mock_jwt = Mock()
+        mock_jwt_module = Mock()
 
-        with patch.dict("sys.modules", {"jose.jwt": mock_jwt}):
+        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="UNSUPPORTED", secret="test-secret")
             request = Mock()
             user_id = validator("test.jwt.token", request)
