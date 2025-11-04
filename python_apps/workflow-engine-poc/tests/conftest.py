@@ -20,6 +20,13 @@ from fastapi import Request
 from sqlmodel import Session, create_engine, SQLModel
 from sqlalchemy.pool import StaticPool
 
+
+# Configure pytest-anyio to only use asyncio backend (not trio)
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
 # Set test environment variables before importing app
 os.environ["TESTING"] = "true"
 os.environ["ENVIRONMENT"] = "test"
@@ -62,10 +69,19 @@ from workflow_engine_poc.db.database import get_db_session
 
 
 @pytest.fixture(name="engine")
-def engine_fixture():
-    """Create an in-memory SQLite engine for testing."""
+def engine_fixture(tmp_path):
+    """Create a file-based SQLite engine for testing.
+
+    Uses a temporary file-based database instead of in-memory to ensure all connections
+    see the same data. This is critical for tests where background tasks create their
+    own sessions (like human_approval_step) and the test needs to see the data.
+
+    In-memory databases don't work well with multiple sessions because each session
+    gets its own isolated database, even with shared cache mode.
+    """
+    db_path = tmp_path / "test.db"
     engine = create_engine(
-        "sqlite:///:memory:",
+        f"sqlite:///{db_path}",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
@@ -295,28 +311,43 @@ async def async_client_fixture(engine, auth_headers: Dict[str, str], mock_rbac_a
 
     Uses LifespanManager to ensure lifespan events are triggered, so app.state
     will be initialized with workflow_engine, step_registry, etc.
+
+    IMPORTANT: Also patches the SDK's database engine so that steps that create their own
+    sessions (like human_approval_step) use the test's SQLite engine instead of PostgreSQL.
+
+    NOTE: Unlike the synchronous test_client fixture, this does NOT override get_db_session
+    to use a single session. Instead, each request creates its own session from the engine.
+    This is necessary because background tasks create their own sessions, and we need all
+    sessions to see each other's committed data.
     """
     from httpx import ASGITransport, AsyncClient
     from asgi_lifespan import LifespanManager
+    from unittest.mock import patch
 
-    # Create one session for the entire test
-    test_session = Session(bind=engine)
-
+    # Override get_db_session to create a new session for each request
+    # This ensures all requests see committed data from other sessions
     def get_session_override():
-        return test_session
+        session = Session(bind=engine)
+        try:
+            yield session
+        finally:
+            session.close()
 
     app.dependency_overrides[get_db_session] = get_session_override
 
-    # Use LifespanManager to trigger lifespan events
-    async with LifespanManager(app) as manager:
-        async with AsyncClient(
-            transport=ASGITransport(app=manager.app),
-            base_url="http://test",
-            headers=auth_headers,
-        ) as client:
-            yield client
+    # Patch BOTH the SDK's and PoC's database engines so steps use the test engine
+    # This is critical for steps like human_approval that create their own sessions
+    # We patch at the module level where the engine is defined
+    with patch("workflow_core_sdk.db.database.engine", engine), patch("workflow_engine_poc.db.database.engine", engine):
+        # Use LifespanManager to trigger lifespan events
+        async with LifespanManager(app) as manager:
+            async with AsyncClient(
+                transport=ASGITransport(app=manager.app),
+                base_url="http://test",
+                headers=auth_headers,
+            ) as client:
+                yield client
 
-    test_session.close()
     app.dependency_overrides.clear()
 
 

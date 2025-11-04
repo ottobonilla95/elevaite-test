@@ -23,13 +23,13 @@ async def human_approval_step(
     backend = step_config.get("_backend") or step_config.get("backend") or "local"
 
     # Persist ApprovalRequest so UIs/APIs can list it
+    approval_id = None
     try:
         from sqlmodel import Session as _SQLSession
         from workflow_core_sdk.db.database import engine
         from workflow_core_sdk.services.approvals_service import ApprovalsService as DatabaseService
 
         _dbs = DatabaseService()
-        print("Creating approval request...")
         with _SQLSession(engine) as _session:
             approval_id = _dbs.create_approval_request(
                 _session,
