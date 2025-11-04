@@ -33,8 +33,11 @@ class WorkflowScheduler:
             self._task.cancel()
             try:
                 await self._task
-            except Exception:
+            except asyncio.CancelledError:
+                # Expected when cancelling the task
                 pass
+            except Exception as e:
+                logger.warning(f"Error stopping scheduler: {e}")
             self._task = None
         logger.info("🛑 WorkflowScheduler stopped")
 
