@@ -8,6 +8,7 @@ Tests workflow management, file upload, and execution endpoints.
 import asyncio
 import json
 import tempfile
+import pytest
 from pathlib import Path
 from typing import Dict, Any
 
@@ -17,13 +18,14 @@ from fastapi.testclient import TestClient
 from workflow_engine_poc.main import app
 
 
-def test_api_endpoints(test_client):
-    """Test all API endpoints using TestClient"""
+@pytest.mark.unit
+def test_api_endpoints(authenticated_client):
+    """Test all API endpoints using authenticated TestClient"""
 
     print("🧪 Testing API Endpoints")
     print("=" * 60)
 
-    client = test_client
+    client = authenticated_client
 
     # Test health endpoints
     print("\n📋 Testing Health Endpoints:")
@@ -212,13 +214,14 @@ def test_api_endpoints(test_client):
     return True
 
 
-def test_file_workflow_integration():
+@pytest.mark.integration
+def test_file_workflow_integration(authenticated_client):
     """Test file upload with workflow execution"""
 
     print("\n🧪 Testing File + Workflow Integration")
     print("-" * 40)
 
-    client = TestClient(app)
+    client = authenticated_client
 
     # Create a file processing workflow
     file_workflow = {
