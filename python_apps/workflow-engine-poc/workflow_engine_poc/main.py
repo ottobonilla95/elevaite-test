@@ -23,17 +23,21 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from fastapi_logger import ElevaiteLogger
 
 # Early DBOS bootstrap to ensure decorators are bound before importing routers
-try:  # optional dependency; skip silently if not installed
-    from dbos import DBOS as _DBOS_EARLY, DBOSConfig as _DBOSConfig_EARLY
-    from workflow_engine_poc.db.database import DATABASE_URL as _ENGINE_DB_URL
+# Skip DBOS in test mode to avoid SQLite compatibility issues
+if not os.getenv("TESTING"):
+    try:  # optional dependency; skip silently if not installed
+        from dbos import DBOS as _DBOS_EARLY, DBOSConfig as _DBOSConfig_EARLY
+        from workflow_engine_poc.db.database import DATABASE_URL as _ENGINE_DB_URL
 
-    _dbos_db_url_early = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
-    _app_name_early = os.getenv("DBOS_APPLICATION_NAME") or "workflow-engine-poc"
-    _cfg_early = _DBOSConfig_EARLY(database_url=_dbos_db_url_early, name=_app_name_early)
-    _DBOS_EARLY(config=_cfg_early)
-    logging.getLogger(__name__).info("✅ DBOS pre-initialized (no framework binding yet)")
-except Exception as _e:
-    logging.getLogger(__name__).warning(f"DBOS pre-init skipped: {_e}")
+        _dbos_db_url_early = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
+        _app_name_early = os.getenv("DBOS_APPLICATION_NAME") or "workflow-engine-poc"
+        _cfg_early = _DBOSConfig_EARLY(database_url=_dbos_db_url_early, name=_app_name_early)
+        _DBOS_EARLY(config=_cfg_early)
+        logging.getLogger(__name__).info("✅ DBOS pre-initialized (no framework binding yet)")
+    except Exception as _e:
+        logging.getLogger(__name__).warning(f"DBOS pre-init skipped: {_e}")
+else:
+    logging.getLogger(__name__).info("⏭️  DBOS pre-init skipped (test mode)")
 
 from workflow_engine_poc.routers import (
     health,
@@ -103,14 +107,17 @@ async def lifespan(app: FastAPI):
     app.state.step_registry = step_registry
     app.state.workflow_engine = WorkflowEngine(step_registry)
 
-    # Launch DBOS executor if configured
-    try:
-        from dbos import DBOS as _DBOS_CLASS
+    # Launch DBOS executor if configured (skip in test mode)
+    if not os.getenv("TESTING"):
+        try:
+            from dbos import DBOS as _DBOS_CLASS
 
-        _DBOS_CLASS.launch()
-        logger.info("✅ DBOS executor launched")
-    except Exception as e:
-        logger.warning(f"DBOS launch skipped/failed: {e}")
+            _DBOS_CLASS.launch()
+            logger.info("✅ DBOS executor launched")
+        except Exception as e:
+            logger.warning(f"DBOS launch skipped/failed: {e}")
+    else:
+        logger.info("⏭️  DBOS executor skipped (test mode)")
 
     # Start lightweight scheduler (interval mode only for now)
     try:
@@ -164,23 +171,26 @@ app.include_router(prompts)
 app.include_router(messages)
 app.include_router(approvals)
 
-# Initialize DBOS context if available so DBOS.start_* can be used
-try:  # Lazy import so dev env without DBOS package still runs
-    from dbos import DBOS as _DBOS, DBOSConfig as _DBOSConfig
+# Initialize DBOS context if available so DBOS.start_* can be used (skip in test mode)
+if not os.getenv("TESTING"):
+    try:  # Lazy import so dev env without DBOS package still runs
+        from dbos import DBOS as _DBOS, DBOSConfig as _DBOSConfig
 
-    # Reuse engine DB URL if explicit DBOS vars are not set
-    from workflow_engine_poc.db.database import DATABASE_URL as _ENGINE_DB_URL
+        # Reuse engine DB URL if explicit DBOS vars are not set
+        from workflow_engine_poc.db.database import DATABASE_URL as _ENGINE_DB_URL
 
-    # Prefer explicit DBOS_DATABASE_URL, then DATABASE_URL; fallback to engine DB URL
-    _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
+        # Prefer explicit DBOS_DATABASE_URL, then DATABASE_URL; fallback to engine DB URL
+        _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
 
-    _app_name = os.getenv("DBOS_APPLICATION_NAME") or "workflow-engine-poc"
-    _cfg = _DBOSConfig(database_url=_dbos_db_url, name=_app_name)
-    _dbos_inst = _DBOS(config=_cfg, fastapi=app)
-    app.state.dbos = _dbos_inst
-    logging.getLogger(__name__).info("✅ DBOS initialized for %s (app=%s)", _dbos_db_url, _app_name)
-except Exception as _e:  # pragma: no cover - optional dependency
-    logging.getLogger(__name__).warning(f"DBOS not initialized: {_e}")
+        _app_name = os.getenv("DBOS_APPLICATION_NAME") or "workflow-engine-poc"
+        _cfg = _DBOSConfig(database_url=_dbos_db_url, name=_app_name)
+        _dbos_inst = _DBOS(config=_cfg, fastapi=app)
+        app.state.dbos = _dbos_inst
+        logging.getLogger(__name__).info("✅ DBOS initialized for %s (app=%s)", _dbos_db_url, _app_name)
+    except Exception as _e:  # pragma: no cover - optional dependency
+        logging.getLogger(__name__).warning(f"DBOS not initialized: {_e}")
+else:
+    logging.getLogger(__name__).info("⏭️  DBOS initialization skipped (test mode)")
 
 
 # All endpoints are now defined in routers

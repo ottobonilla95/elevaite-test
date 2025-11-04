@@ -77,30 +77,30 @@ def engine_fixture():
 
 @pytest.fixture(name="session")
 def session_fixture(engine) -> Generator[Session, None, None]:
-    """Create a database session for testing with automatic rollback."""
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = Session(bind=connection)
-
+    """Create a database session for testing."""
+    session = Session(bind=engine)
     yield session
-
     session.close()
-    transaction.rollback()
-    connection.close()
 
 
 @pytest.fixture(name="test_client")
-def test_client_fixture(session: Session) -> Generator[TestClient, None, None]:
-    """Create a FastAPI test client with database session override."""
+def test_client_fixture(engine) -> Generator[TestClient, None, None]:
+    """Create a FastAPI test client with database session override.
+
+    Uses a single session per test to ensure data persists across requests.
+    """
+    # Create one session for the entire test
+    test_session = Session(bind=engine)
 
     def get_session_override():
-        return session
+        return test_session
 
     app.dependency_overrides[get_db_session] = get_session_override
 
     with TestClient(app) as client:
         yield client
 
+    test_session.close()
     app.dependency_overrides.clear()
 
 

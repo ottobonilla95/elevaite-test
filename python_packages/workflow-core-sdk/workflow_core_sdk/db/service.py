@@ -41,7 +41,8 @@ class DatabaseService:
             existing.description = workflow_data.get("description", existing.description)
             existing.version = workflow_data.get("version", existing.version)
             existing.execution_pattern = workflow_data.get("execution_pattern", existing.execution_pattern)
-            existing.configuration = workflow_data.get("configuration", existing.configuration)
+            # Store the entire workflow_data as configuration (not a nested field)
+            existing.configuration = workflow_data
             existing.global_config = workflow_data.get("global_config", existing.global_config)
             existing.tags = workflow_data.get("tags", existing.tags)
             existing.timeout_seconds = workflow_data.get("timeout_seconds", existing.timeout_seconds)
@@ -49,13 +50,14 @@ class DatabaseService:
             session.add(existing)
         else:
             # Create new workflow with provided id
+            # Store the entire workflow_data as configuration (not a nested field)
             workflow = Workflow(
                 id=wf_uuid,
                 name=workflow_data.get("name", "Untitled Workflow"),
                 description=workflow_data.get("description"),
                 version=workflow_data.get("version", "1.0.0"),
                 execution_pattern=workflow_data.get("execution_pattern", "sequential"),
-                configuration=workflow_data.get("configuration", {}),
+                configuration=workflow_data,
                 global_config=workflow_data.get("global_config", {}),
                 tags=workflow_data.get("tags", []),
                 timeout_seconds=workflow_data.get("timeout_seconds"),

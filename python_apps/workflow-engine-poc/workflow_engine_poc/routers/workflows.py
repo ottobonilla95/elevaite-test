@@ -3,6 +3,7 @@ Workflow management endpoints
 """
 
 import logging
+import os
 import uuid
 import asyncio
 from pathlib import Path
@@ -310,7 +311,9 @@ async def execute_workflow_by_id(
             execution_context.step_io_data.update(input_data)
 
         # Decide backend: DBOS vs local engine
-        chosen_backend = (backend or body_data.get("backend") or body_data.get("execution_backend") or "dbos").lower()
+        # Default to local in test mode, dbos otherwise
+        default_backend = "local" if os.getenv("TESTING") else "dbos"
+        chosen_backend = (backend or body_data.get("backend") or body_data.get("execution_backend") or default_backend).lower()
         if chosen_backend not in ("dbos", "local"):
             raise HTTPException(status_code=400, detail=f"Invalid execution backend: {chosen_backend}")
 
