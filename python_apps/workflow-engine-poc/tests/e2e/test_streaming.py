@@ -27,6 +27,18 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 TIMEOUT = 30.0
 
 
+@pytest.fixture(scope="module", autouse=True)
+def check_server_available():
+    """Check if server is available before running streaming tests"""
+    try:
+        with httpx.Client(timeout=2.0) as client:
+            response = client.get(f"{BASE_URL}/health")
+            if response.status_code not in [200, 404]:  # 404 is ok if /health doesn't exist
+                pytest.skip(f"Server not reachable at {BASE_URL}: HTTP {response.status_code}")
+    except (httpx.ConnectError, httpx.TimeoutException) as e:
+        pytest.skip(f"Server not reachable at {BASE_URL}: {e}")
+
+
 def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
     """Make HTTP request to the API"""
     # Add /api prefix if not already present
