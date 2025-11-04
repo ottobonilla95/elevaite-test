@@ -24,6 +24,7 @@ from .db.models import (
 # Services - Business logic layer
 from .services.workflows_service import WorkflowsService
 from .services.executions_service import ExecutionsService
+from .services.execution_service import ExecutionService
 from .services.tools_service import ToolsService
 from .services.agents_service import AgentsService
 from .services.prompts_service import PromptsService
@@ -59,6 +60,7 @@ __all__ = [
     # Services
     "WorkflowsService",
     "ExecutionsService",
+    "ExecutionService",
     "ToolsService",
     "AgentsService",
     "PromptsService",

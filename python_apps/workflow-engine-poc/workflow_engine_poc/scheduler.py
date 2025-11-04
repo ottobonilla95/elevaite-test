@@ -2,15 +2,14 @@ import asyncio
 import logging
 import random
 from datetime import datetime, timezone, timedelta
-from typing import Any, Optional, cast
+from typing import Any, Optional
 from zoneinfo import ZoneInfo
 from croniter import croniter
-from starlette.requests import Request
 
 from .db.service import DatabaseService
 from .db.database import engine
 from sqlmodel import Session
-from .routers.workflows import execute_workflow_by_id  # reuse endpoint logic
+from workflow_core_sdk.services.execution_service import ExecutionService
 
 logger = logging.getLogger(__name__)
 
@@ -171,28 +170,21 @@ class WorkflowScheduler:
             if jitter > 0:
                 await asyncio.sleep(random.randint(0, jitter))
 
-            # Fire execution via internal engine path using the same router logic
+            # Fire execution via ExecutionService
             try:
-                # Simulate a minimal request-like object for execute_workflow_by_id
-                class DummyRequest:
-                    def __init__(self, app):
-                        self.app = app
-                        self.headers = {"content-type": "application/json"}
-
-                    async def json(self):
-                        # No payload; use schedule defaults; source metadata for analytics
-                        return {"metadata": {"source": "scheduler"}}
-
-                req = DummyRequest(app)
                 # Use a single short-lived DB session for both execution and update
                 with Session(engine) as exec_session:
-                    await execute_workflow_by_id(
+                    # Get workflow engine from app state
+                    workflow_engine = app.state.workflow_engine
+
+                    # Execute workflow using the service
+                    await ExecutionService.execute_workflow(
                         workflow_id=wf["id"],
-                        request=cast(Request, req),
-                        backend=backend,
                         session=exec_session,
-                        payload=None,
-                        files=None,
+                        workflow_engine=workflow_engine,
+                        backend=backend,
+                        metadata={"source": "scheduler"},
+                        wait=False,  # Don't wait for completion
                     )
 
                     # Update last run timestamp and next run using the same session

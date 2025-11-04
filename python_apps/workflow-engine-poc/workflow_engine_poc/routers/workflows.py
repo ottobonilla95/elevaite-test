@@ -36,9 +36,9 @@ from ..db.database import get_db_session
 from ..db.models import WorkflowRead, WorkflowBase
 from ..services.workflows_service import WorkflowsService
 from ..workflow_engine import WorkflowEngine
-from ..dbos_impl.workflows import execute_and_persist_dbos_result
+from workflow_core_sdk.dbos_impl.workflows import execute_and_persist_dbos_result
 from ..db.models import WorkflowExecutionRead, ExecutionStatus
-from ..db.service import DatabaseService
+from workflow_core_sdk.db.service import DatabaseService
 from ..streaming import (
     stream_manager,
     create_sse_stream,
