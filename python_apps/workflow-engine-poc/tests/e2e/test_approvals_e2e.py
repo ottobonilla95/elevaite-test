@@ -1,48 +1,33 @@
 """
 E2E tests for human_approval step (local + DBOS)
 
-Requires a running server at BASE_URL.
-- Set SMOKE_APPROVALS=1 to enable
-- For DBOS path, ensure DBOS is configured and available
+Uses TestClient for testing without requiring a live server.
 """
 
 from __future__ import annotations
 
-import os
 import time
-import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-import httpx
 import pytest
+from fastapi.testclient import TestClient
 
-BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8006")
-SMOKE_APPROVALS = os.environ.get("SMOKE_APPROVALS", "1")
 try:
     import dbos  # type: ignore
 
     HAS_DBOS = True
 except Exception:
     HAS_DBOS = False
-TIMEOUT = float(os.environ.get("SMOKE_TIMEOUT", "25"))
-POLL_INTERVAL = float(os.environ.get("SMOKE_POLL_INTERVAL", "2"))
 
-
-def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
-    # Add /api prefix if not already present
-    if not path.startswith("/api/"):
-        path = "/api" + path
-    url = BASE_URL + path
-    with httpx.Client(timeout=TIMEOUT) as client:
-        return client.request(method, url, json=json_body)
+POLL_INTERVAL = 0.5  # Faster polling for tests
 
 
 def _now_suffix() -> str:
     return str(int(time.time()))
 
 
-@pytest.mark.skipif(SMOKE_APPROVALS != "1", reason="SMOKE_APPROVALS disabled")
-def test_local_human_approval_flow():
+@pytest.mark.integration
+def test_local_human_approval_flow(authenticated_client: TestClient):
     suffix = _now_suffix()
 
     # Create workflow: trigger -> human_approval -> data_input
@@ -89,7 +74,7 @@ def test_local_human_approval_flow():
         "status": "active",
         "created_by": "tests",
     }
-    r = _http("POST", "/workflows/", payload)
+    r = authenticated_client.post("/workflows/", json=payload)
     assert r.status_code == 200, r.text
     wf = r.json()
     workflow_id = wf["id"]
@@ -102,7 +87,7 @@ def test_local_human_approval_flow():
         "organization_id": "tests",
         "trigger": {"kind": "chat", "current_message": "start"},
     }
-    r = _http("POST", f"/workflows/{workflow_id}/execute/local", exec_req)
+    r = authenticated_client.post(f"/workflows/{workflow_id}/execute", json=exec_req)
     assert r.status_code == 200, r.text
     exe = r.json()
     execution_id = str(exe["id"]) if isinstance(exe["id"], str) else exe["id"]
@@ -111,7 +96,7 @@ def test_local_human_approval_flow():
     approval_id = None
     for _ in range(40):
         time.sleep(POLL_INTERVAL)
-        lr = _http("GET", f"/approvals?execution_id={execution_id}")
+        lr = authenticated_client.get(f"/approvals?execution_id={execution_id}")
         assert lr.status_code == 200
         items = lr.json()
         if items:
@@ -120,13 +105,15 @@ def test_local_human_approval_flow():
     assert approval_id, "Approval request not created"
 
     # Approve it
-    ar = _http("POST", f"/approvals/{approval_id}/approve", {"payload": {"note": "ok"}, "decided_by": "tester"})
+    ar = authenticated_client.post(
+        f"/approvals/{approval_id}/approve", json={"payload": {"note": "ok"}, "decided_by": "tester"}
+    )
     assert ar.status_code == 200, ar.text
 
     # Poll execution to completion
     for _ in range(60):
         time.sleep(POLL_INTERVAL)
-        sr = _http("GET", f"/executions/{execution_id}")
+        sr = authenticated_client.get(f"/executions/{execution_id}")
         assert sr.status_code == 200
         status = sr.json().get("status")
         if status in {"completed", "failed", "cancelled"}:
@@ -134,9 +121,9 @@ def test_local_human_approval_flow():
     assert status == "completed", f"Unexpected final status: {status}"
 
 
-@pytest.mark.skipif(SMOKE_APPROVALS != "1", reason="SMOKE_APPROVALS disabled")
+@pytest.mark.integration
 @pytest.mark.skipif(not HAS_DBOS, reason="DBOS package not available")
-def test_dbos_human_approval_flow():
+def test_dbos_human_approval_flow(authenticated_client: TestClient):
     suffix = _now_suffix()
 
     # Same workflow but will run under DBOS backend
@@ -182,7 +169,7 @@ def test_dbos_human_approval_flow():
         "status": "active",
         "created_by": "tests",
     }
-    r = _http("POST", "/workflows/", payload)
+    r = authenticated_client.post("/workflows/", json=payload)
     assert r.status_code == 200, r.text
     wf = r.json()
     workflow_id = wf["id"]
@@ -194,7 +181,7 @@ def test_dbos_human_approval_flow():
         "organization_id": "tests",
         "trigger": {"kind": "chat", "current_message": "start"},
     }
-    r = _http("POST", f"/workflows/{workflow_id}/execute", exec_req)
+    r = authenticated_client.post(f"/workflows/{workflow_id}/execute", json=exec_req)
     assert r.status_code == 200, r.text
     # In DBOS path, the endpoint currently waits to completion; with timeout, the step may return WAITING
     # Sleep briefly, then approve
@@ -205,7 +192,7 @@ def test_dbos_human_approval_flow():
     approval_id = None
     for _ in range(40):
         time.sleep(POLL_INTERVAL)
-        lr = _http("GET", f"/approvals?execution_id={execution_id}")
+        lr = authenticated_client.get(f"/approvals?execution_id={execution_id}")
         assert lr.status_code == 200
         items = lr.json()
         if items:
@@ -214,5 +201,7 @@ def test_dbos_human_approval_flow():
     assert approval_id, "Approval request not created (dbos)"
 
     # Approve it (this will call DBOS.set_event)
-    ar = _http("POST", f"/approvals/{approval_id}/approve", {"payload": {"note": "ok"}, "decided_by": "tester"})
+    ar = authenticated_client.post(
+        f"/approvals/{approval_id}/approve", json={"payload": {"note": "ok"}, "decided_by": "tester"}
+    )
     assert ar.status_code == 200, ar.text

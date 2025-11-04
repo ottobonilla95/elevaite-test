@@ -1,69 +1,21 @@
 """
-Interactive multi-agent E2E via API only.
-Requires the workflow-engine-poc FastAPI app running on port 8006.
+Interactive multi-agent E2E via API using TestClient.
 """
 
-import asyncio
-import httpx
-
-API_BASE_URL = "http://localhost:8006"
-
-
-async def check_api_health():
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{API_BASE_URL}/api/health")
-            return resp.status_code == 200
-    except Exception:
-        return False
+import time
+import pytest
+from fastapi.testclient import TestClient
 
 
-async def create_workflow(config: dict) -> str:
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(f"{API_BASE_URL}/api/workflows/", json=config, follow_redirects=True)
-        resp.raise_for_status()
-        return resp.json()["id"]
-
-
-async def execute_workflow(workflow_id: str, body: dict) -> str:
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(f"{API_BASE_URL}/api/workflows/{workflow_id}/execute/local", json=body, follow_redirects=True)
-        resp.raise_for_status()
-        return resp.json()["id"]
-
-
-async def get_status(execution_id: str) -> dict:
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(f"{API_BASE_URL}/api/executions/{execution_id}")
-        resp.raise_for_status()
-        return resp.json()
-
-
-async def post_message(execution_id: str, step_id: str, role: str, content: str, metadata: dict | None = None) -> dict:
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.post(
-            f"{API_BASE_URL}/api/executions/{execution_id}/steps/{step_id}/messages",
-            json={"role": role, "content": content, "metadata": metadata or {}},
-        )
-        resp.raise_for_status()
-        return resp.json()
-
-
-async def list_messages(execution_id: str, step_id: str) -> list[dict]:
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(f"{API_BASE_URL}/api/executions/{execution_id}/steps/{step_id}/messages", follow_redirects=True)
-        resp.raise_for_status()
-        return resp.json()
-
-
-async def _run_interactive_multi_agent_api():
-    ok = await check_api_health()
-    assert ok, "API must be running at http://localhost:8006"
-
+@pytest.mark.integration
+def test_interactive_multi_agent_api(authenticated_client: TestClient):
     # Build workflow with a trigger and two agent steps
     wf = {
         "name": "Interactive Multi-Agent (API)",
         "description": "Agent 1 pauses for user input, Agent 2 depends on Agent 1",
+        "version": "1.0.0",
+        "execution_pattern": "sequential",
+        "status": "active",
         "steps": [
             {
                 "step_id": "trigger",
@@ -101,52 +53,71 @@ async def _run_interactive_multi_agent_api():
         ],
     }
 
-    workflow_id = await create_workflow(wf)
+    resp = authenticated_client.post("/workflows/", json=wf)
+    assert resp.status_code == 200, resp.text
+    workflow_id = resp.json()["id"]
 
     # Execute with chat trigger and wait=false
     body = {
+        "backend": "local",
         "trigger": {"kind": "chat", "messages": []},
         "wait": False,
     }
-    execution_id = await execute_workflow(workflow_id, body)
+    resp = authenticated_client.post(f"/workflows/{workflow_id}/execute", json=body)
+    assert resp.status_code == 200, resp.text
+    execution_id = resp.json()["id"]
 
     # Give engine time to reach WAITING
     for _ in range(10):
-        s = await get_status(execution_id)
+        resp = authenticated_client.get(f"/executions/{execution_id}")
+        assert resp.status_code == 200
+        s = resp.json()
         if s.get("status") in ("waiting", "running"):
             break
-        await asyncio.sleep(0.5)
+        time.sleep(0.5)
 
     # Send user message to agent_1
-    await post_message(execution_id, "agent_1", "user", "Research AI trends in healthcare")
-    await asyncio.sleep(1)
+    resp = authenticated_client.post(
+        f"/executions/{execution_id}/steps/agent_1/messages",
+        json={"role": "user", "content": "Research AI trends in healthcare", "metadata": {}},
+    )
+    assert resp.status_code == 200
+    time.sleep(1)
 
     # Send final turn to complete agent_1
-    await post_message(execution_id, "agent_1", "user", "That's enough, proceed.", {"final_turn": True})
+    resp = authenticated_client.post(
+        f"/executions/{execution_id}/steps/agent_1/messages",
+        json={"role": "user", "content": "That's enough, proceed.", "metadata": {"final_turn": True}},
+    )
+    assert resp.status_code == 200
 
     # Now agent_2 should pause as well; send a final message to let it complete
-    await post_message(execution_id, "agent_2", "user", "Analyze now.")
-    await asyncio.sleep(1)
-    await post_message(execution_id, "agent_2", "user", "Finalize.", {"final_turn": True})
+    resp = authenticated_client.post(
+        f"/executions/{execution_id}/steps/agent_2/messages",
+        json={"role": "user", "content": "Analyze now.", "metadata": {}},
+    )
+    assert resp.status_code == 200
+    time.sleep(1)
+
+    resp = authenticated_client.post(
+        f"/executions/{execution_id}/steps/agent_2/messages",
+        json={"role": "user", "content": "Finalize.", "metadata": {"final_turn": True}},
+    )
+    assert resp.status_code == 200
 
     # Wait for completion
     last_status = None
     for _ in range(60):
-        last_status = await get_status(execution_id)
+        resp = authenticated_client.get(f"/executions/{execution_id}")
+        assert resp.status_code == 200
+        last_status = resp.json()
         if last_status.get("status") in ("completed", "failed", "cancelled"):
             break
-        await asyncio.sleep(1)
+        time.sleep(1)
 
     assert last_status and last_status.get("status") == "completed", f"Execution did not complete: {last_status}"
 
-    msgs = await list_messages(execution_id, "agent_1")
+    resp = authenticated_client.get(f"/executions/{execution_id}/steps/agent_1/messages")
+    assert resp.status_code == 200
+    msgs = resp.json()
     assert len(msgs) >= 2
-
-
-def test_interactive_multi_agent_api():
-    # Run the async scenario using asyncio.run; no pytest-asyncio needed
-    asyncio.run(_run_interactive_multi_agent_api())
-
-
-if __name__ == "__main__":
-    asyncio.run(_run_interactive_multi_agent_api())
