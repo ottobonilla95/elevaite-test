@@ -9,13 +9,13 @@ import asyncio
 from pathlib import Path
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Request,
     HTTPException,
     UploadFile,
     File,
     Form,
     Depends,
-    BackgroundTasks,
     Security,
     Header,
 )
@@ -101,7 +101,7 @@ async def execute_workflow_by_id(
     api_key: Optional[str] = Security(api_key_header),
     user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
     org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
-    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
     account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ) -> WorkflowExecutionRead:
     """Create a WorkflowExecution and kick off execution by workflow id.
@@ -342,14 +342,8 @@ async def execute_workflow_by_id(
             if wait:
                 await workflow_engine.execute_workflow(execution_context)
             else:
-                # Use FastAPI BackgroundTasks for proper async background execution
-                async def execute_async():
-                    try:
-                        await workflow_engine.execute_workflow(execution_context)
-                    except Exception as e:
-                        logger.error(f"Background execution failed for {execution_id}: {e}", exc_info=True)
-
-                background_tasks.add_task(execute_async)
+                # Use background_tasks for async execution
+                background_tasks.add_task(workflow_engine.execute_workflow, execution_context)
 
         # Return the execution as response
         created = WorkflowsService.get_execution(session, execution_id)

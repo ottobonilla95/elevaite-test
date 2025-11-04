@@ -285,6 +285,41 @@ def authenticated_client_fixture(
     return test_client
 
 
+@pytest.fixture(name="async_client")
+async def async_client_fixture(engine, auth_headers: Dict[str, str], mock_rbac_allow):
+    """Create an async test client for tests that need true async execution.
+
+    Uses httpx.AsyncClient with ASGITransport for proper async background task execution.
+    This is needed for tests that require background tasks to run while the test is executing,
+    such as approval flow tests that poll for approval records created by background workflows.
+
+    Uses LifespanManager to ensure lifespan events are triggered, so app.state
+    will be initialized with workflow_engine, step_registry, etc.
+    """
+    from httpx import ASGITransport, AsyncClient
+    from asgi_lifespan import LifespanManager
+
+    # Create one session for the entire test
+    test_session = Session(bind=engine)
+
+    def get_session_override():
+        return test_session
+
+    app.dependency_overrides[get_db_session] = get_session_override
+
+    # Use LifespanManager to trigger lifespan events
+    async with LifespanManager(app) as manager:
+        async with AsyncClient(
+            transport=ASGITransport(app=manager.app),
+            base_url="http://test",
+            headers=auth_headers,
+        ) as client:
+            yield client
+
+    test_session.close()
+    app.dependency_overrides.clear()
+
+
 @pytest.fixture(name="api_key_client")
 def api_key_client_fixture(
     test_client: TestClient,

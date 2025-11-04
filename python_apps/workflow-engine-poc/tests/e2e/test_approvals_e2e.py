@@ -1,7 +1,7 @@
 """
 E2E tests for human_approval step (local + DBOS)
 
-Uses TestClient for testing without requiring a live server.
+Uses async tests with httpx.AsyncClient for proper background task execution.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ import time
 from typing import Any, Dict
 
 import pytest
-from fastapi.testclient import TestClient
+from httpx import AsyncClient
 
 try:
     import dbos  # type: ignore
@@ -26,8 +26,9 @@ def _now_suffix() -> str:
     return str(int(time.time()))
 
 
-@pytest.mark.integration
-def test_local_human_approval_flow(authenticated_client: TestClient):
+@pytest.mark.anyio
+@pytest.mark.e2e
+async def test_local_human_approval_flow(async_client: AsyncClient):
     suffix = _now_suffix()
 
     # Create workflow: trigger -> human_approval -> data_input
@@ -74,7 +75,7 @@ def test_local_human_approval_flow(authenticated_client: TestClient):
         "status": "active",
         "created_by": "tests",
     }
-    r = authenticated_client.post("/workflows/", json=payload)
+    r = await async_client.post("/workflows/", json=payload)
     assert r.status_code == 200, r.text
     wf = r.json()
     workflow_id = wf["id"]
@@ -87,7 +88,7 @@ def test_local_human_approval_flow(authenticated_client: TestClient):
         "organization_id": "tests",
         "trigger": {"kind": "chat", "current_message": "start"},
     }
-    r = authenticated_client.post(f"/workflows/{workflow_id}/execute", json=exec_req)
+    r = await async_client.post(f"/workflows/{workflow_id}/execute", json=exec_req)
     assert r.status_code == 200, r.text
     exe = r.json()
     execution_id = str(exe["id"]) if isinstance(exe["id"], str) else exe["id"]
@@ -96,7 +97,7 @@ def test_local_human_approval_flow(authenticated_client: TestClient):
     approval_id = None
     for _ in range(40):
         time.sleep(POLL_INTERVAL)
-        lr = authenticated_client.get(f"/approvals?execution_id={execution_id}")
+        lr = await async_client.get(f"/approvals?execution_id={execution_id}")
         assert lr.status_code == 200
         items = lr.json()
         if items:
@@ -105,15 +106,13 @@ def test_local_human_approval_flow(authenticated_client: TestClient):
     assert approval_id, "Approval request not created"
 
     # Approve it
-    ar = authenticated_client.post(
-        f"/approvals/{approval_id}/approve", json={"payload": {"note": "ok"}, "decided_by": "tester"}
-    )
+    ar = await async_client.post(f"/approvals/{approval_id}/approve", json={"payload": {"note": "ok"}, "decided_by": "tester"})
     assert ar.status_code == 200, ar.text
 
     # Poll execution to completion
     for _ in range(60):
         time.sleep(POLL_INTERVAL)
-        sr = authenticated_client.get(f"/executions/{execution_id}")
+        sr = await async_client.get(f"/executions/{execution_id}")
         assert sr.status_code == 200
         status = sr.json().get("status")
         if status in {"completed", "failed", "cancelled"}:
@@ -121,9 +120,10 @@ def test_local_human_approval_flow(authenticated_client: TestClient):
     assert status == "completed", f"Unexpected final status: {status}"
 
 
+@pytest.mark.anyio
 @pytest.mark.integration
 @pytest.mark.skipif(not HAS_DBOS, reason="DBOS package not available")
-def test_dbos_human_approval_flow(authenticated_client: TestClient):
+async def test_dbos_human_approval_flow(async_client: AsyncClient):
     suffix = _now_suffix()
 
     # Same workflow but will run under DBOS backend
@@ -169,7 +169,7 @@ def test_dbos_human_approval_flow(authenticated_client: TestClient):
         "status": "active",
         "created_by": "tests",
     }
-    r = authenticated_client.post("/workflows/", json=payload)
+    r = await async_client.post("/workflows/", json=payload)
     assert r.status_code == 200, r.text
     wf = r.json()
     workflow_id = wf["id"]
@@ -181,7 +181,7 @@ def test_dbos_human_approval_flow(authenticated_client: TestClient):
         "organization_id": "tests",
         "trigger": {"kind": "chat", "current_message": "start"},
     }
-    r = authenticated_client.post(f"/workflows/{workflow_id}/execute", json=exec_req)
+    r = await async_client.post(f"/workflows/{workflow_id}/execute", json=exec_req)
     assert r.status_code == 200, r.text
     # In DBOS path, the endpoint currently waits to completion; with timeout, the step may return WAITING
     # Sleep briefly, then approve
@@ -192,7 +192,7 @@ def test_dbos_human_approval_flow(authenticated_client: TestClient):
     approval_id = None
     for _ in range(40):
         time.sleep(POLL_INTERVAL)
-        lr = authenticated_client.get(f"/approvals?execution_id={execution_id}")
+        lr = await async_client.get(f"/approvals?execution_id={execution_id}")
         assert lr.status_code == 200
         items = lr.json()
         if items:
@@ -201,7 +201,5 @@ def test_dbos_human_approval_flow(authenticated_client: TestClient):
     assert approval_id, "Approval request not created (dbos)"
 
     # Approve it (this will call DBOS.set_event)
-    ar = authenticated_client.post(
-        f"/approvals/{approval_id}/approve", json={"payload": {"note": "ok"}, "decided_by": "tester"}
-    )
+    ar = await async_client.post(f"/approvals/{approval_id}/approve", json={"payload": {"note": "ok"}, "decided_by": "tester"})
     assert ar.status_code == 200, ar.text
