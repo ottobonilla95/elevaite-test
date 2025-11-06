@@ -501,8 +501,31 @@ async def execute_workflow_stream(
     if not sdk_workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # Create execution context
-    execution_id = str(uuid.uuid4())
+    # Extract user context from request
+    user_id = execution_request.user_id if hasattr(execution_request, "user_id") else None
+    session_id = execution_request.session_id if hasattr(execution_request, "session_id") else None
+    organization_id = execution_request.organization_id if hasattr(execution_request, "organization_id") else None
+
+    # Prepare input data for persistence
+    input_data = {}
+    if hasattr(execution_request, "query") and execution_request.query:
+        input_data["query"] = execution_request.query
+    if hasattr(execution_request, "chat_history") and execution_request.chat_history:
+        input_data["chat_history"] = execution_request.chat_history
+
+    # Persist execution to database BEFORE starting execution
+    execution_id = WorkflowsService.create_execution(
+        db,
+        {
+            "workflow_id": str(workflow_id),
+            "user_id": user_id,
+            "session_id": session_id,
+            "organization_id": organization_id,
+            "input_data": input_data,
+            "metadata": {},
+        },
+    )
+    logger.info(f"Created execution record in database: {execution_id}")
 
     # Build workflow config with workflow_id for execution context
     workflow_config_for_execution = sdk_workflow.configuration.copy() if sdk_workflow.configuration else {}
@@ -811,6 +834,7 @@ async def execute_workflow_stream(
     # Normalize chat history coming from various frontends (actor/role/isBot formats),
     # drop any trailing duplicate of the current user query, and build LLM-ready messages.
     if execution_request.query:
+
         def _normalize_history(raw_history: Optional[List[Dict[str, Any]]], current_query: str) -> List[Dict[str, str]]:
             normalized: List[Dict[str, str]] = []
             if not raw_history:
