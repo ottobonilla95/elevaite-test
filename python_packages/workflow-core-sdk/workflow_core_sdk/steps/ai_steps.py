@@ -15,6 +15,7 @@ import logging
 
 # Import tools system
 from workflow_core_sdk.tools.registry import tool_registry
+from workflow_core_sdk.tools.basic_tools import get_tool_by_name as get_tool_function
 
 # DB access for dynamic agent tools
 from sqlmodel import select
@@ -725,7 +726,7 @@ class AgentStep:
                 }
 
             # Fall back to static tool registry
-            tool_function = tool_registry.get_tool_function(function_name)
+            tool_function = get_tool_function(function_name)
             if not tool_function:
                 raise ValueError(f"Tool function not found: {function_name}")
 
