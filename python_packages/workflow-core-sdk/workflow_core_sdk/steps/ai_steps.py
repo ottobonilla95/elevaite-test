@@ -1070,8 +1070,10 @@ async def agent_execution_step(
 
                     # Make streaming LLM call with tool support
                     svc = TextGenerationService()  # type: ignore
-                    stream_generator = await asyncio.to_thread(
-                        svc.stream,
+
+                    # Create a sync generator in the main thread (not in a thread pool)
+                    # This allows us to process events as they arrive from the LLM provider
+                    stream_generator = svc.stream(
                         "",  # prompt not used when messages provided
                         provider_config,
                         _max_tokens,
@@ -1090,7 +1092,10 @@ async def agent_execution_step(
                     tool_calls_from_stream = []
                     finish_reason = None
 
+                    # Iterate through the sync generator, yielding control to event loop
                     for event in stream_generator:
+                        # Yield control to the event loop to allow other tasks to run
+                        await asyncio.sleep(0)
                         event_type = event.get("type")
 
                         if event_type == "delta":
@@ -1269,6 +1274,9 @@ async def agent_execution_step(
                     messages=messages,
                     response_format=_response_format,
                 ):
+                    # Yield control to the event loop to allow other tasks to run
+                    await asyncio.sleep(0)
+
                     et = (ev.get("type") or "").lower()
                     if et == "delta":
                         delta = ev.get("text") or ""
