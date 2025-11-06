@@ -363,7 +363,8 @@ def get_execution_input_output(execution_id: str, db: Session = Depends(get_db))
         "execution_input": sdk_execution.input_data or {},
         "execution_output": sdk_execution.result or {},
         "status": ResponseAdapter._map_status_to_as(sdk_execution.status),
-        "error": sdk_execution.error,
+        "error": getattr(sdk_execution, "error_message", None) or getattr(sdk_execution, "error", None),
+        "step_io_data": sdk_execution.step_io_data or {},  # Include step-by-step I/O data
         "steps": [],  # TODO: Get step I/O from SDK
     }
 

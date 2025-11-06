@@ -240,7 +240,10 @@ class ResponseAdapter:
         if "result" in exec_dict:
             as_response["result"] = exec_dict["result"]
 
-        if "error" in exec_dict:
+        # Check both 'error' and 'error_message' for backwards compatibility
+        if "error_message" in exec_dict and exec_dict["error_message"]:
+            as_response["error"] = exec_dict["error_message"]
+        elif "error" in exec_dict:
             as_response["error"] = exec_dict["error"]
 
         # Map current_step_id to current_step
