@@ -1100,7 +1100,12 @@ async def agent_execution_step(
                     while True:
                         try:
                             # Run the blocking next() call in a thread pool to avoid blocking event loop
-                            event = await asyncio.get_event_loop().run_in_executor(None, lambda: next(stream_generator))
+                            # Use functools.partial to avoid lambda closure issues
+                            import functools
+
+                            event = await asyncio.get_event_loop().run_in_executor(
+                                None, functools.partial(next, stream_generator)
+                            )
                         except StopIteration:
                             break
                         event_type = event.get("type")
@@ -1288,7 +1293,10 @@ async def agent_execution_step(
                 while True:
                     try:
                         # Run the blocking next() call in a thread pool to avoid blocking event loop
-                        ev = await asyncio.get_event_loop().run_in_executor(None, lambda: next(stream_generator))
+                        # Use functools.partial to avoid lambda closure issues
+                        import functools
+
+                        ev = await asyncio.get_event_loop().run_in_executor(None, functools.partial(next, stream_generator))
                     except StopIteration:
                         break
 
