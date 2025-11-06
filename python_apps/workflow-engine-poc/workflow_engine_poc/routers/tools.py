@@ -125,87 +125,6 @@ async def list_tools(
     return items
 
 
-@router.get("/{tool_name}", response_model=ToolRead)
-async def get_tool(
-    tool_name: str,
-    session: Session = Depends(get_db_session),
-    _principal: str = Depends(api_key_or_user_guard("view_tool")),
-):
-    """Get a tool by name as ToolRead. Prefers DB; falls back to local registry."""
-    # Prefer DB with enriched ToolRead
-    db_tool = ToolsService.get_db_tool_by_name(session, tool_name)
-    if db_tool:
-        return ToolRead(
-            id=db_tool.id,
-            name=db_tool.name,
-            display_name=db_tool.display_name,
-            description=db_tool.description,
-            version=db_tool.version,
-            tool_type=db_tool.tool_type,  # type: ignore[arg-type]
-            execution_type=db_tool.execution_type,  # type: ignore[arg-type]
-            parameters_schema=db_tool.parameters_schema or {"type": "object", "properties": {}, "required": []},
-            return_schema=db_tool.return_schema,
-            module_path=db_tool.module_path,
-            function_name=db_tool.function_name,
-            mcp_server_id=db_tool.mcp_server_id,
-            remote_name=db_tool.remote_name,
-            api_endpoint=db_tool.api_endpoint,
-            http_method=db_tool.http_method,  # type: ignore[arg-type]
-            headers=db_tool.headers,
-            auth_required=db_tool.auth_required,
-            category_id=db_tool.category_id,
-            tags=db_tool.tags or [],
-            documentation=db_tool.documentation,
-            examples=db_tool.examples,
-            is_active=db_tool.is_active,
-            is_available=db_tool.is_available,
-            last_used=db_tool.last_used,
-            usage_count=db_tool.usage_count,
-            created_at=db_tool.created_at,
-            updated_at=db_tool.updated_at,
-            source="db",
-            uri=f"db://{db_tool.id}",
-        )
-
-    # Fallback to local via registry
-    ut = tool_registry.get_tool_by_name(session, tool_name)
-    if ut:
-        now = datetime.now(timezone.utc)
-        return ToolRead(
-            id=uuid.uuid5(uuid.NAMESPACE_URL, f"{ut.source}:{ut.name}"),
-            name=ut.name,
-            display_name=None,
-            description=ut.description,
-            version=ut.version,
-            tool_type=("local" if ut.source == "local" else "mcp"),  # type: ignore[arg-type]
-            execution_type=ut.execution_type,  # type: ignore[arg-type]
-            parameters_schema=ut.parameters_schema,
-            return_schema=ut.return_schema,
-            module_path=None,
-            function_name=ut.name,
-            mcp_server_id=None,
-            remote_name=None,
-            api_endpoint=None,
-            http_method=None,  # type: ignore[arg-type]
-            headers=None,
-            auth_required=False,
-            category_id=None,
-            tags=[],
-            documentation=None,
-            examples=None,
-            is_active=True,
-            is_available=True,
-            last_used=None,
-            usage_count=0,
-            created_at=now,
-            updated_at=now,
-            source=ut.source,
-            uri=ut.uri,
-        )
-
-    raise HTTPException(status_code=404, detail="Tool not found")
-
-
 # --------- Stubs for full CRUD and registration (future) ---------
 
 # --------- DB-backed CRUD for Tools, Categories, MCP Servers ---------
@@ -402,6 +321,90 @@ async def sync_tools(
         raise HTTPException(status_code=400, detail="Only source=local is supported")
     result = tool_registry.sync_local_to_db(session)
     return {"source": source, **result}
+
+
+# --------- Generic tool operations (catch-all routes - must be last) ---------
+
+
+@router.get("/{tool_name}", response_model=ToolRead)
+async def get_tool(
+    tool_name: str,
+    session: Session = Depends(get_db_session),
+    _principal: str = Depends(api_key_or_user_guard("view_tool")),
+):
+    """Get a tool by name as ToolRead. Prefers DB; falls back to local registry."""
+    # Prefer DB with enriched ToolRead
+    db_tool = ToolsService.get_db_tool_by_name(session, tool_name)
+    if db_tool:
+        return ToolRead(
+            id=db_tool.id,
+            name=db_tool.name,
+            display_name=db_tool.display_name,
+            description=db_tool.description,
+            version=db_tool.version,
+            tool_type=db_tool.tool_type,  # type: ignore[arg-type]
+            execution_type=db_tool.execution_type,  # type: ignore[arg-type]
+            parameters_schema=db_tool.parameters_schema or {"type": "object", "properties": {}, "required": []},
+            return_schema=db_tool.return_schema,
+            module_path=db_tool.module_path,
+            function_name=db_tool.function_name,
+            mcp_server_id=db_tool.mcp_server_id,
+            remote_name=db_tool.remote_name,
+            api_endpoint=db_tool.api_endpoint,
+            http_method=db_tool.http_method,  # type: ignore[arg-type]
+            headers=db_tool.headers,
+            auth_required=db_tool.auth_required,
+            category_id=db_tool.category_id,
+            tags=db_tool.tags or [],
+            documentation=db_tool.documentation,
+            examples=db_tool.examples,
+            is_active=db_tool.is_active,
+            is_available=db_tool.is_available,
+            last_used=db_tool.last_used,
+            usage_count=db_tool.usage_count,
+            created_at=db_tool.created_at,
+            updated_at=db_tool.updated_at,
+            source="db",
+            uri=f"db://{db_tool.id}",
+        )
+
+    # Fallback to local via registry
+    ut = tool_registry.get_tool_by_name(session, tool_name)
+    if ut:
+        now = datetime.now(timezone.utc)
+        return ToolRead(
+            id=uuid.uuid5(uuid.NAMESPACE_URL, f"{ut.source}:{ut.name}"),
+            name=ut.name,
+            display_name=None,
+            description=ut.description,
+            version=ut.version,
+            tool_type=("local" if ut.source == "local" else "mcp"),  # type: ignore[arg-type]
+            execution_type=ut.execution_type,  # type: ignore[arg-type]
+            parameters_schema=ut.parameters_schema,
+            return_schema=ut.return_schema,
+            module_path=None,
+            function_name=ut.name,
+            mcp_server_id=None,
+            remote_name=None,
+            api_endpoint=None,
+            http_method=None,  # type: ignore[arg-type]
+            headers=None,
+            auth_required=False,
+            category_id=None,
+            tags=[],
+            documentation=None,
+            examples=None,
+            is_active=True,
+            is_available=True,
+            last_used=None,
+            usage_count=0,
+            created_at=now,
+            updated_at=now,
+            source=ut.source,
+            uri=ut.uri,
+        )
+
+    raise HTTPException(status_code=404, detail="Tool not found")
 
 
 @router.patch("/{tool_name}")

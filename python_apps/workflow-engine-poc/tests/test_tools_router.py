@@ -358,7 +358,6 @@ class TestDBToolCRUD:
 
         assert response.status_code == 409
 
-    @pytest.mark.xfail(reason="Router bug: GET /tools/db is matched by GET /tools/{tool_name} due to route ordering")
     @patch("workflow_engine_poc.routers.tools.ToolsService.list_db_tools")
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
@@ -508,7 +507,6 @@ class TestCategoryCRUD:
 
         assert response.status_code == 409
 
-    @pytest.mark.xfail(reason="Router bug: GET /tools/categories is matched by GET /tools/{tool_name} due to route ordering")
     @patch("workflow_engine_poc.routers.tools.ToolsService.list_categories")
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
@@ -617,7 +615,6 @@ class TestMCPServerCRUD:
         data = response.json()
         assert data["name"] == "test_mcp_server"
 
-    @pytest.mark.xfail(reason="Router bug: GET /tools/mcp-servers is matched by GET /tools/{tool_name} due to route ordering")
     @patch("workflow_engine_poc.routers.tools.ToolsService.list_mcp_servers")
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
