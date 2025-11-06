@@ -233,15 +233,13 @@ async def test_retry_strategies():
         attempt_times.clear()
 
 
-@pytest.mark.skip(reason="ExecutionContext API changed - needs update to match workflow-core-sdk")
 async def test_workflow_error_integration():
     """Test error handling integration with workflow execution"""
 
     print("\n🧪 Testing Workflow Error Integration")
     print("-" * 40)
 
-    from workflow_core_sdk.execution.context import ExecutionContext
-    from workflow_engine_poc.execution_context import UserContext
+    from workflow_core_sdk.execution_context import ExecutionContext, UserContext
     from workflow_core_sdk import WorkflowEngine, StepRegistry
 
     # Create test workflow with retry configuration
