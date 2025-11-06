@@ -93,8 +93,12 @@ class ResponseAdapter:
                             },
                         }
                     )
-            except Exception:
-                # If tool loading fails, continue with empty functions
+            except Exception as e:
+                # If tool loading fails, log the error and continue with empty functions
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error loading tools for agent {agent_id}: {str(e)}", exc_info=True)
                 functions = []
 
             # Build response matching AgentResponse schema
