@@ -107,7 +107,8 @@ def sdk_agent_to_response(sdk_agent: SDKAgent, db: Session) -> schemas.AgentResp
             if not tool_name:
                 tool_name = str(binding.tool_id)
 
-            # Convert tool binding to ChatCompletionToolParam format with id and openai_schema
+            # Convert tool binding to ChatCompletionToolParam format
+            # UI expects: { type: "function", function: { name, description?, parameters? } }
             tool_function = {
                 "name": tool_name,
                 "description": tool_description,
@@ -115,13 +116,8 @@ def sdk_agent_to_response(sdk_agent: SDKAgent, db: Session) -> schemas.AgentResp
             }
             functions.append(
                 {
-                    "id": str(binding.tool_id),
                     "type": "function",
                     "function": tool_function,
-                    "openai_schema": {
-                        "type": "function",
-                        "function": tool_function,
-                    },
                 }
             )
 
