@@ -1071,31 +1071,38 @@ async def agent_execution_step(
                     # Make streaming LLM call with tool support
                     svc = TextGenerationService()  # type: ignore
 
-                    # Create a sync generator in the main thread (not in a thread pool)
-                    # This allows us to process events as they arrive from the LLM provider
-                    stream_generator = svc.stream(
-                        "",  # prompt not used when messages provided
-                        provider_config,
-                        _max_tokens,
-                        model_name,
-                        "",  # sys_msg already in messages
-                        None,  # retries
-                        _temperature,
-                        llm_tools,
-                        "auto" if llm_tools else None,
-                        messages,
-                        _response_format,
-                    )
+                    # Create a sync generator and wrap it to run in executor
+                    # This allows the blocking I/O from OpenAI to not block the event loop
+                    def create_stream():
+                        return svc.stream(
+                            "",  # prompt not used when messages provided
+                            provider_config,
+                            _max_tokens,
+                            model_name,
+                            "",  # sys_msg already in messages
+                            None,  # retries
+                            _temperature,
+                            llm_tools,
+                            "auto" if llm_tools else None,
+                            messages,
+                            _response_format,
+                        )
+
+                    # Get the generator
+                    stream_generator = create_stream()
 
                     # Process streaming response
                     collected_content = ""
                     tool_calls_from_stream = []
                     finish_reason = None
 
-                    # Iterate through the sync generator, yielding control to event loop
-                    for event in stream_generator:
-                        # Yield control to the event loop to allow other tasks to run
-                        await asyncio.sleep(0)
+                    # Iterate through the sync generator, running each next() call in executor
+                    while True:
+                        try:
+                            # Run the blocking next() call in a thread pool to avoid blocking event loop
+                            event = await asyncio.get_event_loop().run_in_executor(None, lambda: next(stream_generator))
+                        except StopIteration:
+                            break
                         event_type = event.get("type")
 
                         if event_type == "delta":
@@ -1261,7 +1268,9 @@ async def agent_execution_step(
                 # Use llm-gateway streaming API
                 # Note: sys_msg is not needed since we already added it to messages
                 svc = TextGenerationService()  # type: ignore
-                for ev in svc.stream(
+
+                # Create stream generator
+                stream_generator = svc.stream(
                     prompt="",
                     config=provider_config,
                     max_tokens=_max_tokens,
@@ -1273,9 +1282,15 @@ async def agent_execution_step(
                     tool_choice=None,
                     messages=messages,
                     response_format=_response_format,
-                ):
-                    # Yield control to the event loop to allow other tasks to run
-                    await asyncio.sleep(0)
+                )
+
+                # Iterate through the sync generator, running each next() call in executor
+                while True:
+                    try:
+                        # Run the blocking next() call in a thread pool to avoid blocking event loop
+                        ev = await asyncio.get_event_loop().run_in_executor(None, lambda: next(stream_generator))
+                    except StopIteration:
+                        break
 
                     et = (ev.get("type") or "").lower()
                     if et == "delta":
