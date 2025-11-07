@@ -97,7 +97,7 @@ function convertConfigToAgentCreate(
   };
 
   // Build provider_config with model settings
-  const provider_config: Record<string, unknown> = {
+  const providerConfig: Record<string, unknown> = {
     model_name: configData.model || "gpt-4o",
     temperature: 0.7,
     max_tokens: 4096,
@@ -128,7 +128,7 @@ function convertConfigToAgentCreate(
     deployment_code: null,
     functions: convertToolsToAgentFunctions(tools),
     provider_type: getProviderType(configData.modelProvider),
-    provider_config,
+    provider_config: providerConfig,
   };
 }
 
