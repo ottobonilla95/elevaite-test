@@ -164,12 +164,25 @@ class StreamingAdapter:
                     query = output_data.get("query", "")
                     return [{"type": "info", "message": f"Agent Called: {agent_name}: {query}\n"}]
 
+                elif event_subtype == "tool_call":
+                    # Regular tool call event - show tool being executed
+                    tool_name = output_data.get("tool_name", "Unknown Tool")
+                    return [{"type": "info", "message": f"Tool Called: {tool_name}\n"}]
+
                 elif event_subtype == "tool_response":
-                    # Agent tool response event - keep as tool_response type
-                    agent_name = output_data.get("agent_name", "Unknown Agent")
-                    response = output_data.get("response", "")
-                    duration_ms = output_data.get("duration_ms", 0)
-                    return [{"type": "tool_response", "message": f"{agent_name} responded ({duration_ms}ms): {response}\n"}]
+                    # Tool response event (both agent and regular tools)
+                    # Check if this is an agent tool or regular tool
+                    if "agent_name" in output_data:
+                        # Agent tool response
+                        agent_name = output_data.get("agent_name", "Unknown Agent")
+                        response = output_data.get("response", "")
+                        duration_ms = output_data.get("duration_ms", 0)
+                        return [{"type": "tool_response", "message": f"{agent_name} responded ({duration_ms}ms): {response}\n"}]
+                    else:
+                        # Regular tool response
+                        tool_name = output_data.get("tool_name", "Unknown Tool")
+                        duration_ms = output_data.get("duration_ms", 0)
+                        return [{"type": "info", "message": f"Tool Completed: {tool_name} ({duration_ms}ms)\n"}]
 
                 # Check if this is a tool execution start event
                 if "tool_name" in output_data and "message" in output_data:

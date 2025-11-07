@@ -800,6 +800,32 @@ class AgentStep:
             if not tool_function:
                 raise ValueError(f"Tool function not found: {function_name}")
 
+            # Emit tool_call event for regular tools
+            try:
+                if context and isinstance(context, dict):
+                    execution_id = context.get("_execution_id")
+                    workflow_id = context.get("_workflow_id")
+                    step_id = context.get("_step_id")
+                    if execution_id and step_id:
+                        from ..execution.streaming import create_step_event, stream_manager
+
+                        tool_call_event = create_step_event(
+                            execution_id=execution_id,
+                            step_id=step_id,
+                            step_status="running",
+                            workflow_id=workflow_id,
+                            output_data={
+                                "event_type": "tool_call",
+                                "tool_name": function_name,
+                                "arguments": function_args,
+                            },
+                        )
+                        await stream_manager.emit_execution_event(tool_call_event)
+                        if workflow_id:
+                            await stream_manager.emit_workflow_event(tool_call_event)
+            except Exception as e:
+                logger.warning(f"Failed to emit tool_call event: {e}")
+
             # Determine sync/async and execute accordingly
             is_async = getattr(tool_function, "_is_async", False)
             if not is_async:
@@ -815,6 +841,33 @@ class AgentStep:
             else:
                 result = await asyncio.to_thread(tool_function, **function_args)
             duration_ms = int((time.time() - start_time) * 1000)
+
+            # Emit tool_response event for regular tools
+            try:
+                if context and isinstance(context, dict):
+                    execution_id = context.get("_execution_id")
+                    workflow_id = context.get("_workflow_id")
+                    step_id = context.get("_step_id")
+                    if execution_id and step_id:
+                        from ..execution.streaming import create_step_event, stream_manager
+
+                        tool_response_event = create_step_event(
+                            execution_id=execution_id,
+                            step_id=step_id,
+                            step_status="running",
+                            workflow_id=workflow_id,
+                            output_data={
+                                "event_type": "tool_response",
+                                "tool_name": function_name,
+                                "result": result if isinstance(result, (str, int, float, bool)) else str(result)[:200],
+                                "duration_ms": duration_ms,
+                            },
+                        )
+                        await stream_manager.emit_execution_event(tool_response_event)
+                        if workflow_id:
+                            await stream_manager.emit_workflow_event(tool_response_event)
+            except Exception as e:
+                logger.warning(f"Failed to emit tool_response event: {e}")
 
             return {
                 "tool_name": function_name,
