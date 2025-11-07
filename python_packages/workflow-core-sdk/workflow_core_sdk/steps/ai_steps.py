@@ -548,6 +548,38 @@ class AgentStep:
 
                 messages.append(assistant_message)
 
+                # Persist assistant message with tool_calls to database
+                try:
+                    if context and isinstance(context, dict):
+                        execution_id = context.get("_execution_id")
+                        step_id = context.get("_step_id")
+                        user_id = context.get("_user_id")
+                        session_id = context.get("_session_id")
+                        if execution_id and step_id and assistant_message.get("content"):
+                            from ..db.service import DatabaseService
+                            from ..db.database import get_db_session
+
+                            dbs = DatabaseService()
+                            session = get_db_session()
+                            try:
+                                dbs.create_agent_message(
+                                    session,
+                                    execution_id=execution_id,
+                                    step_id=step_id,
+                                    role="assistant",
+                                    content=str(assistant_message["content"]),
+                                    metadata={"tool_calls": assistant_message.get("tool_calls", [])},
+                                    user_id=user_id,
+                                    session_id=session_id,
+                                )
+                            finally:
+                                try:
+                                    session.close()
+                                except Exception:
+                                    pass
+                except Exception as persist_err:
+                    logger.debug(f"Could not persist assistant message with tool_calls: {persist_err}")
+
                 # Execute tool calls and add proper tool response messages
                 for tool_call in response.tool_calls or []:
                     try:
@@ -584,6 +616,38 @@ class AgentStep:
 
                         # Add proper tool response message
                         messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": content})
+
+                        # Persist tool message to database for conversation continuity
+                        try:
+                            if context and isinstance(context, dict):
+                                execution_id = context.get("_execution_id")
+                                step_id = context.get("_step_id")
+                                user_id = context.get("_user_id")
+                                session_id = context.get("_session_id")
+                                if execution_id and step_id:
+                                    from ..db.service import DatabaseService
+                                    from ..db.database import get_db_session
+
+                                    dbs = DatabaseService()
+                                    session = get_db_session()
+                                    try:
+                                        dbs.create_agent_message(
+                                            session,
+                                            execution_id=execution_id,
+                                            step_id=step_id,
+                                            role="tool",
+                                            content=content,
+                                            metadata={"tool_call_id": tool_call_id, "tool_name": tool_result.get("tool_name")},
+                                            user_id=user_id,
+                                            session_id=session_id,
+                                        )
+                                    finally:
+                                        try:
+                                            session.close()
+                                        except Exception:
+                                            pass
+                        except Exception as persist_err:
+                            logger.debug(f"Could not persist tool message: {persist_err}")
 
                     except Exception as e:
                         err = {
