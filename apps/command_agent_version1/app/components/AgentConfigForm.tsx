@@ -1216,14 +1216,30 @@ function AgentConfigForm(): JSX.Element {
 
       console.log("Is agent?", isAgentNodeData(data), data);
       if (isAgentNodeData(data)) {
+        // Build config object with agent configuration including tools/functions
+        const agentConfig: Record<string, unknown> = {
+          agent_type: data.agent.agent_type,
+        };
+
+        // Include functions if tools are present
+        if (data.tools && data.tools.length > 0) {
+          agentConfig.functions = data.tools.map((tool) => ({
+            function: {
+              name: tool.function.name,
+            },
+          }));
+        }
+
         return {
           node_type: "agent" as const,
           agent_id: data.agent.agent_id,
           agent_type: data.agent.agent_type as string,
+          name: data.agent.name,
           prompt: data.prompt,
           tools: data.tools,
           tags: data.tags,
           position: node.position,
+          config: agentConfig,
         };
       }
 
