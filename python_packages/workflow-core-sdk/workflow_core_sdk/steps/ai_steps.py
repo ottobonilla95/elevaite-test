@@ -470,7 +470,7 @@ class AgentStep:
                 _llm = (context or {}).get("_llm_params", {}) if isinstance(context, dict) else {}
                 _max_tokens = _llm.get("max_tokens")
                 if not isinstance(_max_tokens, int) or _max_tokens <= 0:
-                    _max_tokens = 600  # default to avoid premature truncation
+                    _max_tokens = 4096  # increased to support large tool call arguments
                 _temperature = _llm.get("temperature")
                 _response_format = _llm.get("response_format")
 
@@ -1133,7 +1133,7 @@ async def agent_execution_step(
                 _llm = input_data.get("_llm_params", {}) if isinstance(input_data, dict) else {}
                 _max_tokens = _llm.get("max_tokens")
                 if not isinstance(_max_tokens, int) or _max_tokens <= 0:
-                    _max_tokens = 600
+                    _max_tokens = 4096  # increased to support large tool call arguments
                 _temperature = _llm.get("temperature")
                 _response_format = _llm.get("response_format")
 
@@ -1353,7 +1353,7 @@ async def agent_execution_step(
                 _llm = input_data.get("_llm_params", {}) if isinstance(input_data, dict) else {}
                 _max_tokens = _llm.get("max_tokens")
                 if not isinstance(_max_tokens, int) or _max_tokens <= 0:
-                    _max_tokens = 600
+                    _max_tokens = 4096  # increased to support large tool call arguments
                 _temperature = _llm.get("temperature")
                 _response_format = _llm.get("response_format")
 
