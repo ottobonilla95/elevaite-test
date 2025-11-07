@@ -640,6 +640,10 @@ class AgentStep:
                 function_name = getattr(tool_call.function, "name", None)
                 function_args = getattr(tool_call.function, "arguments", None)
 
+            # Log raw tool call for debugging
+            logger.debug(f"Processing tool call: {function_name}")
+            logger.debug(f"Raw arguments type: {type(function_args)}, value: {function_args}")
+
             # Normalize arguments: allow JSON string or dict; default to {}
             if isinstance(function_args, str):
                 try:
@@ -758,14 +762,21 @@ class AgentStep:
             }
 
         except Exception as e:
+            tool_name = getattr(
+                tool_call,
+                "name",
+                getattr(getattr(tool_call, "function", None), "name", "unknown"),
+            )
+            # Log detailed error information for debugging
+            logger.error(f"Tool execution failed for {tool_name}: {e}")
+            logger.error(f"Tool call object: {tool_call}")
+            logger.error(f"Parsed arguments: {function_args if 'function_args' in locals() else 'N/A'}")
+
             return {
-                "tool_name": getattr(
-                    tool_call,
-                    "name",
-                    getattr(getattr(tool_call, "function", None), "name", "unknown"),
-                ),
+                "tool_name": tool_name,
                 "error": str(e),
                 "success": False,
+                "arguments": function_args if "function_args" in locals() else None,
             }
 
 
