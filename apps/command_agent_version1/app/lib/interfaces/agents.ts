@@ -136,6 +136,9 @@ export interface AgentCreate {
   available_for_deployment: boolean;
   deployment_code?: string | null;
   functions: AgentFunction[];
+  // SDK fields for model configuration
+  provider_type?: string;
+  provider_config?: Record<string, unknown>;
 }
 
 export interface AgentUpdate {

@@ -448,10 +448,33 @@ class AgentStep:
             if dynamic_agent_tools:
                 llm_tools = (llm_tools or []) + list(dynamic_agent_tools)
 
-            # Default provider config; could be made configurable later
-            config = {"type": "openai_textgen"}
-            # Use GPT-4o (the only supported model in this setup)
-            model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
+            # Use agent's provider config from context if available, otherwise default to OpenAI GPT-4o
+            agent_provider_type = context.get("_agent_provider_type") if isinstance(context, dict) else None
+            agent_provider_config = context.get("_agent_provider_config") if isinstance(context, dict) else None
+
+            if agent_provider_type and agent_provider_config:
+                config = {"type": agent_provider_type}
+                model_name_from_config = agent_provider_config.get("model_name", "gpt-4o")
+                # Map model name to TextGenerationModelName enum
+                try:
+                    # Try to find matching enum value
+                    model_name = getattr(TextGenerationModelName, f"OPENAI_{model_name_from_config.replace('-', '_')}", None)
+                    if model_name:
+                        model_name = model_name.value  # type: ignore
+                    else:
+                        # Fallback to string if enum not found
+                        model_name = model_name_from_config
+                        logger.info(f"Using model name as string (not in enum): {model_name}")
+                except Exception as e:
+                    logger.warning(f"Failed to map model name to enum: {e}, using string: {model_name_from_config}")
+                    model_name = model_name_from_config
+                logger.info(f"Using agent provider config: {agent_provider_type}, model: {model_name}")
+            else:
+                # Default provider config
+                config = {"type": "openai_textgen"}
+                # Use GPT-4o as default
+                model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
+                logger.info("Using default provider config: openai_textgen, model: gpt-4o")
 
             # Multi-turn tool loop with a small cap
             tool_calls_trace: List[Dict[str, Any]] = []
@@ -922,11 +945,54 @@ async def agent_execution_step(
     query_template = config.get("query", "")
     force_real_llm = config.get("force_real_llm", False)
 
+    # Load agent from database if agent_id is provided to get provider_config
+    agent_provider_type = None
+    agent_provider_config = None
+    agent_id = config.get("agent_id")
+
+    if agent_id:
+        try:
+            from ..db.database import get_db_session
+            from workflow_core_sdk import AgentsService
+
+            session = get_db_session()
+            try:
+                db_agent = AgentsService.get_agent(session, agent_id)
+                if db_agent:
+                    agent_provider_type = db_agent.provider_type
+                    agent_provider_config = db_agent.provider_config or {}
+                    # Override agent_name and system_prompt from DB if not explicitly set
+                    if not config.get("agent_name"):
+                        agent_name = db_agent.name
+                    # Load system prompt from database
+                    if db_agent.system_prompt_id:
+                        from ..db.models.prompts import Prompt
+                        from sqlmodel import select
+
+                        prompt = session.exec(select(Prompt).where(Prompt.id == db_agent.system_prompt_id)).first()
+                        if prompt and not config.get("system_prompt"):
+                            system_prompt = prompt.prompt
+                    logger.info(
+                        f"Loaded agent from DB: {db_agent.name}, provider: {agent_provider_type}, model: {agent_provider_config.get('model_name')}"
+                    )
+            finally:
+                try:
+                    session.close()
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.warning(f"Failed to load agent from database: {e}")
+
     # Add execution context metadata to input_data for streaming events
     if isinstance(input_data, dict):
         input_data["_execution_id"] = execution_context.execution_id
         input_data["_workflow_id"] = execution_context.workflow_id
         input_data["_step_id"] = step_config.get("step_id")
+        # Pass agent provider config through context
+        if agent_provider_type:
+            input_data["_agent_provider_type"] = agent_provider_type
+        if agent_provider_config:
+            input_data["_agent_provider_config"] = agent_provider_config
 
     # Ensure current_message is available from Trigger output if not present
     try:
