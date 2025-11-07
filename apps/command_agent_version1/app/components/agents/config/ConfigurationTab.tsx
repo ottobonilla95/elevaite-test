@@ -10,6 +10,7 @@ import {
   getAgentTypeDisplay,
   MODEL_OPTIONS,
   getModelDisplayName,
+  getProviderForModel,
 } from "./configUtils";
 import { type ConfigurationTabProps } from "./types";
 import "./ConfigurationTab.scss";
@@ -128,7 +129,11 @@ function ConfigurationTab({
                 <select
                   value={model}
                   onChange={(e) => {
-                    setModel(e.target.value);
+                    const selectedModel = e.target.value;
+                    setModel(selectedModel);
+                    // Automatically set the provider based on the selected model
+                    const provider = getProviderForModel(selectedModel);
+                    setModelProvider(provider);
                   }}
                   className="parameter-select"
                   disabled={disabledFields}

@@ -29,6 +29,7 @@ import HeaderBottom from "./agents/HeaderBottom.tsx";
 import VectorizerBottomDrawer, { type PipelineStep, type VectorizationStepData } from "./agents/VectorizerBottomDrawer";
 import VectorizerConfigPanel from "./agents/VectorizerConfigPanel";
 import AgentTestingPanel from "./AgentTestingPanel.tsx";
+import { getProviderForModel } from "./agents/config/configUtils";
 
 
 
@@ -73,29 +74,6 @@ function convertConfigToAgentCreate(
     }
   };
 
-  // Map model provider to SDK provider_type
-  const getProviderType = (modelProvider?: string): string => {
-    if (!modelProvider) return "openai_textgen";
-
-    const provider = modelProvider.toLowerCase();
-    switch (provider) {
-      case "openai":
-      case "meta": // Meta models via OpenAI-compatible API
-        return "openai_textgen";
-      case "google":
-      case "gemini":
-        return "gemini_textgen";
-      case "aws":
-      case "bedrock":
-        return "bedrock_textgen";
-      case "on-prem":
-      case "elevaite":
-        return "on-prem_textgen";
-      default:
-        return "openai_textgen";
-    }
-  };
-
   // Build provider_config with model settings
   const providerConfig: Record<string, unknown> = {
     model_name: configData.model || "gpt-4o",
@@ -127,7 +105,7 @@ function convertConfigToAgentCreate(
     available_for_deployment: true,
     deployment_code: null,
     functions: convertToolsToAgentFunctions(tools),
-    provider_type: getProviderType(configData.modelProvider),
+    provider_type: getProviderForModel(configData.model || "gpt-4o"),
     provider_config: providerConfig,
   };
 }
@@ -1843,36 +1821,13 @@ function AgentConfigForm(): JSX.Element {
       }
     };
 
-    // Map model provider to SDK provider_type
-    const getProviderType = (modelProvider?: string): string => {
-      if (!modelProvider) return "openai_textgen";
-
-      const provider = modelProvider.toLowerCase();
-      switch (provider) {
-        case "openai":
-        case "meta": // Meta models via OpenAI-compatible API
-          return "openai_textgen";
-        case "google":
-        case "gemini":
-          return "gemini_textgen";
-        case "aws":
-        case "bedrock":
-          return "bedrock_textgen";
-        case "on-prem":
-        case "elevaite":
-          return "on-prem_textgen";
-        default:
-          return "openai_textgen";
-      }
-    };
-
     const agentUpdateData: AgentUpdate = {
       name: agentName,
       agent_type: configData.agentType,
       description: configData.description,
       functions: convertToolsToAgentFunctions(tools),
       response_type: getValidResponseType(configData.outputFormat),
-      provider_type: getProviderType(configData.modelProvider),
+      provider_type: getProviderForModel(configData.model || "gpt-4o"),
       provider_config: {
         model_name: configData.model || "gpt-4o",
         temperature: 0.7,
