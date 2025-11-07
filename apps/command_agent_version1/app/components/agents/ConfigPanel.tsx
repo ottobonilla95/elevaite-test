@@ -73,7 +73,7 @@ const ConfigPanel = forwardRef<ConfigPanelHandle, ConfigPanelProps>(
     // State for editable fields
     const [deploymentType, setDeploymentType] = useState("Elevaite");
     const [modelProvider, setModelProvider] = useState("meta");
-    const [model, setModel] = useState("Llama-3.1-8B-Instruct");
+    const [model, setModel] = useState("gpt-4o");
     const [outputFormat, setOutputFormat] = useState("JSON");
     const [activeTab, setActiveTab] = useState("config");
 
@@ -136,7 +136,7 @@ const ConfigPanel = forwardRef<ConfigPanelHandle, ConfigPanelProps>(
     useEffect(() => {
       setEditedAgentType(
         agent.agent.agent_type ??
-          (agentType === "custom" ? "router" : agentType)
+        (agentType === "custom" ? "router" : agentType)
       );
       setEditedDescription(agent.agent.description ?? description);
       setEditedTags(agent.agent.system_prompt.tags?.join(", ") ?? "");
@@ -521,7 +521,7 @@ const ConfigPanel = forwardRef<ConfigPanelHandle, ConfigPanelProps>(
                       );
                       setEditedAgentType(
                         agent.agent.agent_type ??
-                          (agentType === "custom" ? "router" : agentType)
+                        (agentType === "custom" ? "router" : agentType)
                       );
                       setEditedTags(
                         agent.agent.system_prompt.tags?.join(", ") ?? ""

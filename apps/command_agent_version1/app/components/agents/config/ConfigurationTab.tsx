@@ -8,6 +8,8 @@ import {
   getModels,
   OUTPUT_FORMATS,
   getAgentTypeDisplay,
+  MODEL_OPTIONS,
+  getModelDisplayName,
 } from "./configUtils";
 import { type ConfigurationTabProps } from "./types";
 import "./ConfigurationTab.scss";
@@ -114,7 +116,7 @@ function ConfigurationTab({
               <div className="flex flex-col gap-1">
                 <span className="parameter-label">Model</span>
                 <Pill
-                  text={model}
+                  text={getModelDisplayName(model)}
                   textColor="#6C8271"
                   backgroundColor="#6C82711F"
                   className="flex-shrink"
@@ -131,9 +133,9 @@ function ConfigurationTab({
                   className="parameter-select"
                   disabled={disabledFields}
                 >
-                  {models.map((_model) => (
-                    <option key={_model} value={_model}>
-                      {_model}
+                  {MODEL_OPTIONS.map((modelOption) => (
+                    <option key={modelOption.modelCode} value={modelOption.modelCode}>
+                      {modelOption.displayName}
                     </option>
                   ))}
                 </select>

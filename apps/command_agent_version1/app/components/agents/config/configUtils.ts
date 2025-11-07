@@ -55,36 +55,33 @@ export const getModelProviders = (deployType: string): string[] => {
   }
 };
 
-// Get models based on deployment type and model provider
-export const getModels = (deployType: string, provider: string): string[] => {
-  // Currently only supporting GPT-4o
-  return ["GPT-4o"];
+// Model configuration: maps display names to model codes
+export const MODEL_OPTIONS = [
+  { displayName: "GPT-4o", modelCode: "gpt-4o" },
+  { displayName: "GPT-4o Mini", modelCode: "gpt-4o-mini" },
+  { displayName: "GPT-4.1", modelCode: "gpt-4.1" },
+  { displayName: "GPT-4.1 Mini", modelCode: "gpt-4.1-mini" },
+  { displayName: "GPT-5", modelCode: "gpt-5" },
+  { displayName: "GPT-5 Mini", modelCode: "gpt-5-mini" },
+  { displayName: "o3-mini", modelCode: "o3-mini" },
+  { displayName: "Gemini 2.5 Pro", modelCode: "gemini-2.5-pro" },
+  { displayName: "Gemini 2.5 Flash", modelCode: "gemini-2.5-flash" },
+  { displayName: "Gemini 2.5 Flash Lite", modelCode: "gemini-2.5-flash-lite" },
+] as const;
 
-  // Original code commented out - multiple model support
-  // if (deployType === "Elevaite") {
-  //     switch (provider) {
-  //         case "meta":
-  //             return ["Llama-3.1-8B-Instruct"];
-  //         case "openbmb":
-  //             return ["MiniCPM-V-2_6"];
-  //         case "OpenAI":
-  //             return ["GPT-4o", "GPT-4o mini", "GPT-3.5", "o3-mini"];
-  //         default:
-  //             return ["Llama-3.1-8B-Instruct"];
-  //     }
-  // } else if (deployType === "Enterprise" || deployType === "Cloud") {
-  //     switch (provider) {
-  //         case "OpenAI":
-  //             return ["GPT-4o", "GPT-4o mini", "GPT-3.5", "o3-mini"];
-  //         case "Gemini":
-  //             return ["2.5 Pro", "2.5 Flash", "2.0 Flash"];
-  //         case "Bedrock":
-  //             return ["Claude 3.5", "Claude 3.5 Sonnet", "Claude 3.5 Haiku", "Llama 3.1 8B Instruct"];
-  //         case "Azure":
-  //             return ["GPT-4o", "GPT-4o mini", "GPT-3.5"];
-  //         default:
-  //             return ["GPT-4o"];
-  //     }
-  // }
-  // return ["GPT-4o"];
+// Get available models (returns model codes)
+export const getModels = (_deployType: string, _provider: string): string[] => {
+  return MODEL_OPTIONS.map((model) => model.modelCode);
+};
+
+// Get display name for a model code
+export const getModelDisplayName = (modelCode: string): string => {
+  const model = MODEL_OPTIONS.find((m) => m.modelCode === modelCode);
+  return model ? model.displayName : modelCode;
+};
+
+// Get model code from display name
+export const getModelCode = (displayName: string): string => {
+  const model = MODEL_OPTIONS.find((m) => m.displayName === displayName);
+  return model ? model.modelCode : displayName;
 };
