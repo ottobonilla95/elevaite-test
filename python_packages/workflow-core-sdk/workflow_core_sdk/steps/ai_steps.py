@@ -644,8 +644,10 @@ class AgentStep:
             if isinstance(function_args, str):
                 try:
                     function_args = json.loads(function_args)
-                except Exception:
-                    function_args = {}
+                except Exception as json_err:
+                    logger.error(f"Failed to parse tool arguments as JSON for {function_name}: {json_err}")
+                    logger.error(f"Raw arguments string: {function_args[:500]}")
+                    raise ValueError(f"Invalid JSON in tool arguments: {json_err}")
             if function_args is None:
                 function_args = {}
 
