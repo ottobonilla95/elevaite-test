@@ -211,24 +211,33 @@ class StreamingAdapter:
             elif step_status == "completed":
                 # Check if this is a tool execution result
                 output_data = data.get("output_data", {})
+                logger.info(f"=== STEP COMPLETED: step_id={step_id}, output_data keys={list(output_data.keys())} ===")
+                logger.info(f"=== STEP COMPLETED: output_data={output_data} ===")
 
-                # Tool execution step
-                if "tool" in output_data:
+                # Tool execution step (check for both "tool" and "tool_name" for compatibility)
+                if "tool" in output_data or "tool_name" in output_data:
                     tool_result = output_data.get("result", "")
+                    logger.info(
+                        f"=== TOOL COMPLETION: result type={type(tool_result)}, length={len(str(tool_result)) if tool_result else 0} ==="
+                    )
+                    logger.info(f"=== TOOL RESULT PREVIEW: {str(tool_result)[:200]} ===")
                     # Standalone tool step: emit as primary content instead of tool_response
                     try:
                         if isinstance(tool_result, str):
                             json.loads(tool_result)  # Validate JSON
+                            logger.info(f"=== TOOL RESULT IS VALID JSON STRING ===")
                             return [
                                 {"type": "content", "message": "\n\n", "source": step_id},
                                 {"type": "content", "message": tool_result + "\n", "source": step_id},
                             ]
                         else:
+                            logger.info(f"=== TOOL RESULT IS NOT STRING, CONVERTING TO JSON ===")
                             return [
                                 {"type": "content", "message": "\n\n", "source": step_id},
                                 {"type": "content", "message": json.dumps(tool_result) + "\n", "source": step_id},
                             ]
-                    except (json.JSONDecodeError, TypeError):
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.info(f"=== TOOL RESULT JSON DECODE FAILED: {e}, USING STR ===")
                         return [
                             {"type": "content", "message": "\n\n", "source": step_id},
                             {"type": "content", "message": str(tool_result) + "\n", "source": step_id},
