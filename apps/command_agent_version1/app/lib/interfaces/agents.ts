@@ -165,6 +165,9 @@ export interface AgentUpdate {
   collaboration_mode?: "single" | "team" | "parallel" | "sequential";
   available_for_deployment?: boolean;
   deployment_code?: string | null;
+  // SDK fields for model configuration
+  provider_type?: string;
+  provider_config?: Record<string, unknown>;
 }
 
 export interface AgentNodeData {
