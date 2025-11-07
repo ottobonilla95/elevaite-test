@@ -914,15 +914,30 @@ async def agent_execution_step(
                     session.close()
                 except Exception:
                     pass
-            # Convert to simple role/content list
-            step_msgs = [
-                {
-                    "role": m.get("role", "user"),
-                    "content": m.get("content", ""),
-                    **({"metadata": m.get("metadata")} if m.get("metadata") else {}),
-                }
-                for m in step_msgs
-            ]
+            # Convert to simple role/content list, handling tool messages specially
+            converted_msgs = []
+            for m in step_msgs:
+                role = m.get("role", "user")
+                content = m.get("content", "")
+                metadata = m.get("metadata", {})
+
+                msg_dict = {"role": role, "content": content}
+
+                # Tool messages need tool_call_id
+                if role == "tool" and isinstance(metadata, dict):
+                    tool_call_id = metadata.get("tool_call_id")
+                    if tool_call_id:
+                        msg_dict["tool_call_id"] = tool_call_id
+
+                # Assistant messages with tool_calls need special structure
+                if role == "assistant" and isinstance(metadata, dict):
+                    tool_calls = metadata.get("tool_calls")
+                    if tool_calls and isinstance(tool_calls, list):
+                        msg_dict["tool_calls"] = tool_calls
+
+                converted_msgs.append(msg_dict)
+
+            step_msgs = converted_msgs
         except Exception as _db_err:
             logger.debug(f"No DB messages found or DB unavailable: {_db_err}")
 
