@@ -154,6 +154,9 @@ def sdk_agent_to_response(sdk_agent: SDKAgent, db: Session) -> schemas.AgentResp
         functions=functions,  # Tool bindings converted to functions
         # System prompt (converted from SDK)
         system_prompt=sdk_prompt_to_response(system_prompt),
+        # SDK fields for model configuration
+        provider_type=sdk_agent.provider_type,
+        provider_config=sdk_agent.provider_config,
     )
 
 
@@ -237,8 +240,18 @@ def create_agent(agent: schemas.AgentCreate, db: Session = Depends(get_db)):
 
     # Add tool bindings based on functions
     for func in functions:
+        # Handle both formats:
+        # 1. ChatCompletionToolParam format: { type: "function", function: { name, description, parameters } }
+        # 2. AgentFunction format: { function: { name } }
+        function_data = None
         if func.get("type") == "function":
+            # ChatCompletionToolParam format
             function_data = func.get("function", {})
+        elif "function" in func:
+            # AgentFunction format (from UI)
+            function_data = func.get("function", {})
+
+        if function_data:
             tool_name = function_data.get("name")
 
             if tool_name:
@@ -254,6 +267,9 @@ def create_agent(agent: schemas.AgentCreate, db: Session = Depends(get_db)):
                 except ValueError as e:
                     # Tool not found - skip it for now
                     print(f"Warning: Could not attach tool {tool_name}: {e}")
+                    continue
+                except Exception as e:
+                    print(f"Error: Failed to attach tool {tool_name}: {e}")
                     continue
 
     # Convert to response format using adapter

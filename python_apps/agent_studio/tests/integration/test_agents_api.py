@@ -88,6 +88,93 @@ class TestAgentsAPI:
         assert data["name"] == agent_data["name"]
         assert data["status"] == "active"  # Default value
 
+    def test_create_agent_with_gemini_and_tools(self, test_client: TestClient, sample_prompt):
+        """Test creating an agent with Gemini model and tools (as UI would send)."""
+        # This mimics what the UI sends when creating an agent with:
+        # - Gemini 2.5 Flash model
+        # - Tools attached
+        # - Provider config with model_name
+        agent_data = {
+            "name": f"Gemini Agent {uuid.uuid4().hex[:8]}",
+            "agent_type": "router",
+            "description": "Test agent with Gemini model and tools",
+            "system_prompt_id": sample_prompt["pid"],
+            "persona": "Helpful assistant",
+            "routing_options": {"respond": "Respond directly"},
+            "functions": [
+                {
+                    "function": {
+                        "name": "web_search",
+                        "description": "Search the web for information",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {"query": {"type": "string", "description": "The search query"}},
+                            "required": ["query"],
+                        },
+                    }
+                },
+                {
+                    "function": {
+                        "name": "get_current_time",
+                        "description": "Get the current time",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {"timezone": {"type": "string", "description": "The timezone"}},
+                            "required": [],
+                        },
+                    }
+                },
+            ],
+            "provider_type": "gemini_textgen",
+            "provider_config": {
+                "model_name": "gemini-2.5-flash",
+                "temperature": 0.7,
+                "max_tokens": 4096,
+            },
+            "short_term_memory": False,
+            "long_term_memory": False,
+            "reasoning": False,
+            "input_type": ["text"],
+            "output_type": ["text"],
+            "response_type": "markdown",
+            "max_retries": 3,
+            "status": "active",
+            "collaboration_mode": "single",
+        }
+
+        response = test_client.post("/api/agents/", json=agent_data)
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Debug: print the response to see what we're getting
+        import json
+
+        print("\n=== AGENT RESPONSE ===")
+        print(json.dumps(data, indent=2, default=str))
+        print("======================\n")
+
+        # Verify basic fields
+        assert data["name"] == agent_data["name"]
+        assert data["agent_type"] == agent_data["agent_type"]
+        assert data["description"] == agent_data["description"]
+        assert "agent_id" in data
+
+        # Verify provider configuration
+        assert data["provider_type"] == "gemini_textgen"
+        assert data["provider_config"]["model_name"] == "gemini-2.5-flash"
+        assert data["provider_config"]["temperature"] == 0.7
+        assert data["provider_config"]["max_tokens"] == 4096
+
+        # Verify tools/functions are persisted
+        assert len(data["functions"]) == 2
+        function_names = [f["function"]["name"] for f in data["functions"]]
+        assert "web_search" in function_names
+        assert "get_current_time" in function_names
+
+        # Cleanup
+        test_client.delete(f"/api/agents/{data['agent_id']}")
+
     def test_list_agents_empty(self, test_client: TestClient):
         """Test listing agents when none exist."""
         response = test_client.get("/api/agents/")

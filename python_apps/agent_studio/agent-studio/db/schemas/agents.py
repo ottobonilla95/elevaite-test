@@ -43,6 +43,8 @@ class AgentFunction(BaseModel):
 
 class AgentCreate(AgentBase):
     functions: List[AgentFunction]
+    provider_type: Optional[str] = None
+    provider_config: Optional[Dict[str, Any]] = None
 
 
 class AgentUpdate(BaseModel):
@@ -79,6 +81,8 @@ class AgentUpdate(BaseModel):
     collaboration_mode: Optional[Literal["single", "team", "parallel", "sequential"]] = None
     available_for_deployment: Optional[bool] = None
     deployment_code: Optional[str] = None
+    provider_type: Optional[str] = None
+    provider_config: Optional[Dict[str, Any]] = None
 
 
 class AgentInDB(AgentBase):
@@ -94,3 +98,5 @@ class AgentInDB(AgentBase):
 class AgentResponse(AgentInDB):
     system_prompt: PromptResponse
     functions: List[ChatCompletionToolParam]
+    provider_type: Optional[str] = None
+    provider_config: Optional[Dict[str, Any]] = None
