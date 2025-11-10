@@ -166,6 +166,11 @@ class TestAgentsAPI:
         assert data["provider_config"]["temperature"] == 0.7
         assert data["provider_config"]["max_tokens"] == 4096
 
+        # Verify AS-specific fields are stored under legacy_fields
+        assert "legacy_fields" in data["provider_config"]
+        assert data["provider_config"]["legacy_fields"]["response_type"] == "markdown"
+        assert data["provider_config"]["legacy_fields"]["short_term_memory"] is False
+
         # Verify tools/functions are persisted
         assert len(data["functions"]) == 2
         function_names = [f["function"]["name"] for f in data["functions"]]

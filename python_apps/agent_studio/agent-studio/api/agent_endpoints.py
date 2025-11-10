@@ -63,6 +63,8 @@ def sdk_agent_to_response(sdk_agent: SDKAgent, db: Session) -> schemas.AgentResp
 
     # Extract other AS-specific data from provider_config
     provider_config = sdk_agent.provider_config or {}
+    # AS-specific fields are stored under "legacy_fields" key
+    legacy_fields = provider_config.get("legacy_fields", {})
 
     # Get agent's tool bindings and convert to functions format
     from workflow_core_sdk.tools.registry import tool_registry
@@ -130,25 +132,25 @@ def sdk_agent_to_response(sdk_agent: SDKAgent, db: Session) -> schemas.AgentResp
         description=sdk_agent.description or "A new agent ready to be configured",
         system_prompt_id=sdk_agent.system_prompt_id,
         status=as_status,  # type: ignore
-        # AS-only fields - extract from provider_config or use defaults
+        # AS-only fields - extract from legacy_fields or use defaults
         agent_type=agent_type or "router",  # type: ignore  # Default to "router" for UI compatibility
         parent_agent_id=None,
-        persona=provider_config.get("persona"),
-        routing_options=provider_config.get("routing_options", {}),
-        short_term_memory=provider_config.get("short_term_memory", False),
-        long_term_memory=provider_config.get("long_term_memory", False),
-        reasoning=provider_config.get("reasoning", False),
-        input_type=provider_config.get("input_type", ["text", "voice"]),
-        output_type=provider_config.get("output_type", ["text", "voice"]),
-        response_type=provider_config.get("response_type", "json"),
-        max_retries=provider_config.get("max_retries", 3),
-        timeout=provider_config.get("timeout"),
-        deployed=provider_config.get("deployed", False),
-        priority=provider_config.get("priority"),
-        failure_strategies=provider_config.get("failure_strategies"),
-        collaboration_mode=provider_config.get("collaboration_mode", "single"),
-        available_for_deployment=provider_config.get("available_for_deployment", True),
-        deployment_code=provider_config.get("deployment_code"),
+        persona=legacy_fields.get("persona"),
+        routing_options=legacy_fields.get("routing_options", {}),
+        short_term_memory=legacy_fields.get("short_term_memory", False),
+        long_term_memory=legacy_fields.get("long_term_memory", False),
+        reasoning=legacy_fields.get("reasoning", False),
+        input_type=legacy_fields.get("input_type", ["text", "voice"]),
+        output_type=legacy_fields.get("output_type", ["text", "voice"]),
+        response_type=legacy_fields.get("response_type", "json"),
+        max_retries=legacy_fields.get("max_retries", 3),
+        timeout=legacy_fields.get("timeout"),
+        deployed=legacy_fields.get("deployed", False),
+        priority=legacy_fields.get("priority"),
+        failure_strategies=legacy_fields.get("failure_strategies"),
+        collaboration_mode=legacy_fields.get("collaboration_mode", "single"),
+        available_for_deployment=legacy_fields.get("available_for_deployment", True),
+        deployment_code=legacy_fields.get("deployment_code"),
         session_id=None,
         last_active=None,
         functions=functions,  # Tool bindings converted to functions
@@ -178,6 +180,7 @@ def create_agent(agent: schemas.AgentCreate, db: Session = Depends(get_db)):
         agent_data["provider_config"] = {}
 
     # Store AS-specific fields in provider_config for later retrieval
+    # Use a nested "legacy_fields" key to avoid conflicts with provider config
     as_config_fields = {
         "persona": agent_data.get("persona"),
         "routing_options": agent_data.get("routing_options", {}),
@@ -196,7 +199,7 @@ def create_agent(agent: schemas.AgentCreate, db: Session = Depends(get_db)):
         "available_for_deployment": agent_data.get("available_for_deployment", True),
         "deployment_code": agent_data.get("deployment_code"),
     }
-    agent_data["provider_config"].update(as_config_fields)
+    agent_data["provider_config"]["legacy_fields"] = as_config_fields
 
     # Store agent_type in tags with special prefix
     if "tags" not in agent_data:
@@ -367,9 +370,15 @@ def update_agent(
                     print(f"❌ Warning: Could not attach tool {tool_name}: {e}")
                     continue
 
-    # Merge AS-specific fields into provider_config
+    # Merge AS-specific fields into provider_config under "legacy_fields"
     if "provider_config" not in update_data:
         update_data["provider_config"] = existing_agent.provider_config or {}
+
+    # Get existing legacy_fields or create new dict
+    if "legacy_fields" not in update_data["provider_config"]:
+        update_data["provider_config"]["legacy_fields"] = (
+            existing_agent.provider_config.get("legacy_fields", {}) if existing_agent.provider_config else {}
+        )
 
     as_config_fields = {
         "persona": update_data.get("persona"),
@@ -392,7 +401,7 @@ def update_agent(
     # Only update fields that were actually provided
     for key, value in as_config_fields.items():
         if value is not None:
-            update_data["provider_config"][key] = value
+            update_data["provider_config"]["legacy_fields"][key] = value
 
     # Handle agent_type in tags
     if "agent_type" in update_data and update_data["agent_type"] is not None:
