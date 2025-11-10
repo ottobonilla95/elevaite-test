@@ -70,6 +70,11 @@ export async function updateAgent(
 ): Promise<AgentResponse> {
   const url = new URL(`${BACKEND_URL ?? ""}api/agents/${agentId}`);
 
+  console.log("=== UPDATE AGENT REQUEST ===");
+  console.log("Agent ID:", agentId);
+  console.log("Update payload:", JSON.stringify(agentUpdate, null, 2));
+  console.log("===========================");
+
   const response = await fetch(url, {
     method: "PUT",
     headers: {

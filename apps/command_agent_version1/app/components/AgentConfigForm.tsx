@@ -1837,6 +1837,12 @@ function AgentConfigForm(): JSX.Element {
       }
     };
 
+    console.log("=== UPDATE AGENT DEBUG ===");
+    console.log("configData.model:", configData.model);
+    console.log("tools passed to update:", tools);
+    console.log("selectedNode.data.tools:", selectedNode.data.tools);
+    console.log("==========================");
+
     const agentUpdateData: AgentUpdate = {
       name: agentName,
       agent_type: configData.agentType,

@@ -23,6 +23,7 @@ import {
   ToolsTab,
   getModelProviders,
   getModels,
+  getProviderForModel,
 } from "./config";
 import PromptDetailView from "./config/PromptDetailView";
 import "./ConfigPanel.scss";
@@ -194,8 +195,12 @@ const ConfigPanel = forwardRef<ConfigPanelHandle, ConfigPanelProps>(
     useEffect(() => {
       if (agentConfig) {
         setDeploymentType(agent.config?.deploymentType ?? "Elevaite");
-        setModelProvider(agent.agent.system_prompt.ai_model_provider);
-        setModel(agent.agent.system_prompt.ai_model_name);
+        // Load model from agent.provider_config (new SDK-based config) instead of prompt
+        const modelName = agent.agent.provider_config?.model_name ?? agent.agent.system_prompt.ai_model_name ?? "gpt-4o";
+        setModel(modelName);
+        // Set provider based on the model
+        const provider = getProviderForModel(modelName);
+        setModelProvider(provider);
         setOutputFormat(agent.agent.output_type.join(", "));
         setSelectedFunctions(agentConfig.selectedTools);
       }
