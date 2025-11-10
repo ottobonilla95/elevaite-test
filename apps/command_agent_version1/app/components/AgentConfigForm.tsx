@@ -1805,6 +1805,7 @@ function AgentConfigForm(): JSX.Element {
               data: {
                 ...node.data,
                 agent: newAgent, // Update with the real agent data from DB
+                tools: newAgent.functions, // Sync tools with the new agent's functions
               },
             }
             : node
@@ -1876,6 +1877,7 @@ function AgentConfigForm(): JSX.Element {
             data: {
               ...node.data,
               agent: updatedAgent, // Update with the real agent data from DB
+              tools: updatedAgent.functions, // Sync tools with the updated agent's functions
             },
           }
           : node
@@ -1892,6 +1894,12 @@ function AgentConfigForm(): JSX.Element {
     try {
       // If tools are provided in the configuration data, update them
       const tools = selectedNode.data.tools ?? [];
+
+      console.log("=== SAVE AGENT CONFIG DEBUG ===");
+      console.log("selectedNode.data.tools:", selectedNode.data.tools);
+      console.log("tools to save:", tools);
+      console.log("configData.selectedTools:", configData.selectedTools);
+      console.log("===============================");
 
       // The name might have been updated through the inline editor
       const agentName = configData.agentName || selectedNode.data.name;
