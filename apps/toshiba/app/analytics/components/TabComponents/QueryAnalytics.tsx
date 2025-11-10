@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { FiUsers, FiMessageSquare, FiClock, FiTrendingUp, FiDownload, FiBarChart2, FiRefreshCw, FiThumbsUp, FiThumbsDown, FiAlertCircle, FiCheckCircle, FiDatabase, FiUserCheck } from 'react-icons/fi';
 import './QueryAnalytics.scss';
+import QueryTypeHeatmap from '../SubComponents/QueryTypeHeatmap';
 
 interface DateFilters {
     startDate: string;
@@ -1002,6 +1003,13 @@ const QueryAnalyticsDashboard: React.FC<QueryAnalyticsProps> = ({
                 </div>
             </div>
 
+            {/* Query Type Heatmap Section */}
+            <QueryTypeHeatmap
+                dateFilters={dateFilters}
+                managerFilter={managerFilter}
+                fstFilter={fstFilter}
+            />
+
             <div className="unresolved-section">
                 <div className="section-header">
                     <h2>Top Unresolved Queries Analysis</h2>
@@ -1014,8 +1022,6 @@ const QueryAnalyticsDashboard: React.FC<QueryAnalyticsProps> = ({
                                 <th className="query-column">Query Text</th>
                                 <th className="count-column">Count</th>
                                 <th className="percent-column">% of Total</th>
-                                {/* <th className="feedback-column">Feedback</th>
-                                <th className="confidence-column">Bot Confidence</th> */}
                             </tr>
                         </thead>
                         <tbody>
@@ -1024,8 +1030,6 @@ const QueryAnalyticsDashboard: React.FC<QueryAnalyticsProps> = ({
                                     <td className="query-text">"{query.text}"</td>
                                     <td className="count-value">{query.count?.toLocaleString() || 0}</td>
                                     <td><span className="percentage-badge">{query.percentage || '0%'}</span></td>
-                                    {/* <td className={`feedback-value ${query.feedback?.includes('👎') ? 'negative' : ''}`}>{query.feedback || 'N/A'}</td>
-                                    <td className="confidence-value">{query.botConfidence || 'N/A'}</td> */}
                                 </tr>
                             ))}
                         </tbody>

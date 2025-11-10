@@ -1752,3 +1752,69 @@ async def export_queries_with_feedback(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+    
+@router.get("/classification-metrics")
+def get_classification_metrics(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    manager_id: Optional[int] = Query(None),
+    fst_id: Optional[int] = Query(None)
+):
+    """Get query classification breakdown for pie chart"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Build filters
+        date_filter, date_params = build_chatbot_date_filter(start_date, end_date)
+        fst_filter, fst_params = build_fst_filter(manager_id, fst_id)
+        
+        # Combine parameters
+        all_params = date_params + fst_params
+        
+        # Build WHERE clause
+        where_clauses = []
+        if date_filter:
+            where_clauses.append(date_filter.replace("WHERE ", ""))
+        if fst_filter:
+            where_clauses.append(fst_filter.replace("AND ", ""))
+        
+        where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        
+        # Query Type Distribution
+        query_type_query = f"""
+            SELECT
+                COALESCE(cdf.query_type, 'Unknown') as query_type,
+                COUNT(*) as count,
+                ROUND((COUNT(*) * 100.0 / (
+                    SELECT COUNT(*) FROM chat_data_final cdf2 {where_clause.replace('cdf.', 'cdf2.')}
+                )), 2) as percentage
+            FROM chat_data_final cdf
+            {where_clause}
+            GROUP BY cdf.query_type
+            ORDER BY count DESC
+        """
+        
+        # Duplicate params for subquery
+        query_type_params = all_params + all_params
+        cur.execute(query_type_query, query_type_params)
+        query_types = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        return {
+            "query_types": [
+                {
+                    "type": row['query_type'],
+                    "count": int(row['count']),
+                    "percentage": float(row['percentage'])
+                }
+                for row in query_types
+            ],
+            "_source": "real_chatbot_database_with_fst_filtering"
+        }
+        
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))

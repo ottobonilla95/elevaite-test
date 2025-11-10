@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Body
+from fastapi import FastAPI, Request, Body, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from contextlib import asynccontextmanager
 from agents import toshiba_agent, toshiba_video_agent
-from data_classes import SessionObject, MessageObject
+from data_classes import SessionObject, MessageObject, QueryClassificationRequest
 from utils import convert_messages_to_chat_history
 import dotenv
 import os
@@ -24,6 +24,8 @@ import re
 import tools
 from data_classes import SRNumberRequest
 import requests
+from dbos_query_classification_flow import launch_durable_workflow, get_last_completed_step
+import time
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
     dotenv.load_dotenv(".env")
@@ -85,6 +87,26 @@ def health_check():
     return {"status": "ok"}
 
 
+async def save_and_launch_workflow(data_log: ChatRequest, qid_uuid: uuid.UUID):
+    """
+    Background task to save chat request and launch workflow.
+    This runs after the response is sent to the user.
+    """
+    try:
+        success = await database_connection.save_chat_request(data_log)
+        if success:
+            print("Chat request saved to database successfully")
+            try:
+                dbos_request = QueryClassificationRequest(qid=qid_uuid)
+                launch_durable_workflow(dbos_request)
+                print("Workflow launched successfully")
+            except Exception as e:
+                print(f"Error launching durable workflow: {e}")
+        else:
+            print("Failed to save chat request to database")
+    except Exception as e:
+        print(f"Unexpected error saving chat request: {str(e)}")
+
 # Your existing endpoint for status updates
 @app.get("/currentStatus")
 async def get_current_status(uid: str, sid: str):
@@ -142,7 +164,7 @@ def is_part_number(query: str) -> bool:
     return False
 
 @app.post("/run")
-async def run(request: Request):
+async def run(request: Request, background_tasks: BackgroundTasks):
     """
     Endpoint to run the Toshiba agent and stream responses back to the frontend.
     """
@@ -365,14 +387,12 @@ async def run(request: Request):
                 )
                 print("Data Log: ", data_log)
                 await update_sources(user_id, [])
-                try:
-                    success = await database_connection.save_chat_request(data_log)
-                    if success:
-                        print("Chat request saved to database successfully")
-                    else:
-                        print("Failed to save chat request to database")
-                except Exception as e:
-                    print(f"Unexpected error saving chat request: {str(e)}")
+                background_tasks.add_task(save_and_launch_workflow, data_log, qid_uuid)
+
+                print("Background task scheduled")
+
+
+
             except Exception as e:
                 print(f"Error preparing chat request data: {str(e)}")
 

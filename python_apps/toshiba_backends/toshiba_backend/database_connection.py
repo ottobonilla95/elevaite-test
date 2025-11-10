@@ -10,7 +10,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.future import select
-from data_classes import ChatRequest, AgentFlow
+from data_classes import ChatRequest, AgentFlow, QueryClassificationResult
 
 # Define the data table
 Base = declarative_base()
@@ -34,6 +34,11 @@ class ChatRequestTable(Base):
     agent_flow_id = Column(UUID(as_uuid=True), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.now())
     updated_at = Column(DateTime, default=datetime.datetime.now(), onupdate=datetime.datetime.now())
+    query_type = Column(String, nullable=True)
+    machine_type = Column(String, nullable=True)
+    machine_model = Column(String, nullable=True)
+    machine_name = Column(String, nullable=True)
+    customer_name = Column(String, nullable=True)
 
 
 class AgentFlowTable(Base):
@@ -347,6 +352,18 @@ class DatabaseConnection:
                 print(f"Error fetching session messages: {str(e)}")
                 return []
 
+    async def get_query_request(self, qid: str):
+        async with self.SessionLocal() as session:
+            try:
+                stmt = select(ChatRequestTable).where(ChatRequestTable.qid == qid)
+                result = await session.execute(stmt)
+                chat_request = result.scalars().first()
+                return chat_request
+            except Exception as e:
+                print(f"Error fetching query request: {str(e)}")
+                return None
+
+
     async def add_sr_number(self, session_id: uuid.UUID, sr_number: str):
         async with self.SessionLocal() as session:
             # If a record for the session_id exists, update the sr_number
@@ -365,4 +382,28 @@ class DatabaseConnection:
                 return True
             except Exception as e:
                 print(f"Error adding SR number: {str(e)}")
+                return False
+
+    async def save_query_classification(self, query_id: uuid.UUID, classification: QueryClassificationResult):
+        print(f"DEBUG: {query_id}")
+        print(f"DEBUG: {classification}")
+        async with self.SessionLocal() as session:
+            try:
+                stmt = select(ChatRequestTable).where(ChatRequestTable.qid == query_id)
+                result = await session.execute(stmt)
+                existing_request = result.scalars().first()
+                if existing_request:
+                    existing_request.query_type = classification.query_type
+                    existing_request.machine_type = classification.machine_type
+                    existing_request.machine_model = classification.machine_model
+                    existing_request.machine_name = classification.machine_name
+                    existing_request.customer_name = classification.customer_name
+                    await session.commit()
+                    print(f"Classification updated successfully for query {query_id}")
+                    return True
+                else:
+                    print(f"No existing query found with id {query_id}")
+                    return False
+            except Exception as e:
+                print(f"Error updating query classification: {str(e)}")
                 return False

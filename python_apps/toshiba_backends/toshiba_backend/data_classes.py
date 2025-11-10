@@ -194,3 +194,16 @@ class SRNumberRequest(BaseModel):
     sr_number: str
 
 
+class QueryClassificationResult(BaseModel):
+    query_id: str
+    query_type: str
+    machine_type: str
+    machine_model: str
+    machine_name: str
+    customer_name: str
+
+
+class QueryClassificationRequest(BaseModel):
+    qid: uuid.UUID
+
+

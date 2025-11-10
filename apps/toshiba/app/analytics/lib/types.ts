@@ -124,6 +124,29 @@ export interface QueryInsights {
     peakUsagePeriod: string;
 }
 
+export interface QueryTypeData {
+    type: string;
+    count: number;
+    percentage: number;
+}
+
+export interface QueryClassificationMetrics {
+    query_types: QueryTypeData[];
+    _source: string;
+}
+
+export interface QueryTypeDistributionProps {
+    dateFilters?: DateFilters;
+    managerFilter?: {
+        managerId: number | null;
+        managerName: string;
+    };
+    fstFilter?: {
+        fstId: number | null;
+        fstName: string;
+    };
+}
+
 // ============ COMMON DATA TYPES ============
 
 export interface TrendData {

@@ -1,0 +1,254 @@
+.query-type-distribution {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    margin-top: 32px;
+    margin-bottom: 32px;
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #F3F4F6;
+
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .total-queries-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, rgba(255, 102, 0, 0.1), rgba(255, 102, 0, 0.05));
+            border-radius: 12px;
+            border: 2px solid rgba(255, 102, 0, 0.2);
+
+            .badge-label {
+                font-size: 14px;
+                font-weight: 500;
+                color: #6B7280;
+            }
+
+            .badge-value {
+                font-size: 18px;
+                font-weight: 700;
+                color: #FF6600;
+            }
+        }
+    }
+
+    .chart-content {
+        display: grid;
+        grid-template-columns: 450px 1fr;
+        gap: 80px;
+        align-items: center;
+
+        .pie-chart-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            
+            .pie-chart-scale {
+                transform: scale(1.4);
+                transform-origin: center;
+            }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+
+            .stat-card {
+                background: linear-gradient(135deg, #F9FAFB 0%, #FFFFFF 100%);
+                border: 1px solid #E5E7EB;
+                border-radius: 12px;
+                padding: 24px;
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+
+                &::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 3px;
+                    background: linear-gradient(90deg, var(--card-color, #FF6600), transparent);
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+
+                &:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+                    border-color: #D1D5DB;
+
+                    &::before {
+                        opacity: 1;
+                    }
+                }
+
+                .stat-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    margin-bottom: 16px;
+
+                    .stat-indicator {
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 4px;
+                        flex-shrink: 0;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                    }
+
+                    .stat-label {
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: #374151;
+                        text-transform: capitalize;
+                    }
+                }
+
+                .stat-values {
+                    display: flex;
+                    align-items: baseline;
+                    gap: 12px;
+
+                    .stat-count {
+                        font-size: 24px; 
+                        font-weight: 700;
+                        color: #111827;
+                        line-height: 1;
+                    }
+
+                    .stat-percentage {
+                        font-size: 18px;
+                        font-weight: 600;
+                        color: #FF6600;
+                        background: rgba(255, 102, 0, 0.1);
+                        padding: 6px 12px;
+                        border-radius: 6px;
+                    }
+                }
+            }
+
+            .stat-card:nth-child(1) {
+                --card-color: #FF6600;
+            }
+            .stat-card:nth-child(2) {
+                --card-color: #FF9933;
+            }
+            .stat-card:nth-child(3) {
+                --card-color: #CC5200;
+            }
+            .stat-card:nth-child(4) {
+                --card-color: #FFBB66;
+            }
+        }
+    }
+
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 80px 20px;
+        text-align: center;
+        min-height: 400px;
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #F3F4F6;
+            border-top: 5px solid #FF6600;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: #6B7280;
+            font-size: 15px;
+            margin: 0;
+            font-weight: 500;
+        }
+    }
+}
+
+// Responsive design
+@media (max-width: 1400px) {
+    .query-type-distribution {
+        .chart-content {
+            grid-template-columns: 380px 1fr;
+            gap: 60px;
+        }
+    }
+}
+
+@media (max-width: 1200px) {
+    .query-type-distribution {
+        padding: 24px;
+
+        .chart-content {
+            grid-template-columns: 1fr;
+            gap: 40px;
+
+            .pie-chart-section {
+                padding: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .query-type-distribution {
+        padding: 20px;
+
+        .section-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+
+            h2 {
+                font-size: 20px;
+            }
+
+            .total-queries-badge {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        .chart-content {
+            gap: 32px;
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+    }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
