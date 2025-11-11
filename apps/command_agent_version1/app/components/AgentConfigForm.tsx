@@ -1216,7 +1216,6 @@ function AgentConfigForm(): JSX.Element {
     const agents = nodes.map((node) => {
       const data = node.data;
 
-      console.log("Is agent?", isAgentNodeData(data), data);
       if (isAgentNodeData(data)) {
         // Build config object with agent configuration including tools/functions
         const agentConfig: Record<string, unknown> = {
@@ -1245,6 +1244,11 @@ function AgentConfigForm(): JSX.Element {
         };
       }
 
+      // Tool node
+      if (!data.tool) {
+        return null;
+      }
+
       const tool = data.tool;
       return {
         node_type: "tool" as const,
@@ -1254,7 +1258,7 @@ function AgentConfigForm(): JSX.Element {
         tags: data.tags,
         config: getToolConfigFromParameters(tool.parameters_schema, tool.name),
       };
-    });
+    }).filter((agent): agent is NonNullable<typeof agent> => agent !== null);
 
     const connections = edges.map((edge) => {
       const source = nodeById.get(edge.source)?.data;
@@ -1266,7 +1270,6 @@ function AgentConfigForm(): JSX.Element {
       const targetId = isAgentNodeData(target) ? target.agent.agent_id : target.tool.tool_id;
 
       if (!sourceId || !targetId) {
-        console.log(`Missing agent ID for connection: ${edge.source} -> ${edge.target}`);
         return null;
       }
 
@@ -1309,7 +1312,6 @@ function AgentConfigForm(): JSX.Element {
 
       const finalWorkflowName = nameOverride ?? workflowName;
       const workflowPayload = buildWorkflowPayload(finalWorkflowName);
-      console.log("Workflow payload", workflowPayload, "unsaved changes?", hasUnsavedChanges);
 
       if (!workflowData) {
         // Create new workflow
@@ -1949,10 +1951,6 @@ function AgentConfigForm(): JSX.Element {
     const activeNode = selectedNode;
     if (!activeNode || isAgentNodeData(activeNode.data)) return;
 
-    console.log("Node:", activeNode);
-    console.log("Parameters:", parameters.properties);
-    console.log("Saving stuff:", getToolConfigFromParameters(parameters));
-
     setNodes((previousNodes) => previousNodes.map((node) => {
       if (node.id !== activeNode.id) return node;
       if (isAgentNodeData(node.data)) return node;
@@ -1984,7 +1982,6 @@ function AgentConfigForm(): JSX.Element {
 
 
   function getToolConfigFromParameters(parameters?: ToolParametersSchema, toolName?: string): Record<string, unknown> {
-    console.log("Parameters", parameters);
     const mapping: Record<string, unknown> = {};
     if (!parameters) return mapping;
 
@@ -2006,10 +2003,9 @@ function AgentConfigForm(): JSX.Element {
     mapping.param_mapping = paramMapping;
 
     if (usesResponse) {
-      (mapping as Record<string, unknown>).input_mapping = { response: "$prev" };
+      mapping.input_mapping = { response: "$prev" };
     }
 
-    console.log("Mapping:", mapping);
     return mapping;
   }
 

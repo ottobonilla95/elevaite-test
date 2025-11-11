@@ -125,10 +125,10 @@ def update_workflow(
         # Shallow merge is sufficient because steps/connections replace whole arrays
         existing_config.update(sdk_update["configuration"])  # replaces steps if provided
 
-    # Build payload expected by DatabaseService.save_workflow (must nest under "configuration")
-    save_payload: Dict[str, Any] = {
-        "configuration": existing_config,
-    }
+    # Build payload for save_workflow
+    # NOTE: save_workflow stores the ENTIRE payload as the configuration field,
+    # so we need to pass the configuration dict directly, not nested under "configuration"
+    save_payload: Dict[str, Any] = existing_config.copy()
 
     # Apply top-level fields if provided
     if "name" in update_data:

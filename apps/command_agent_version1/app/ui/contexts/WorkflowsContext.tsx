@@ -98,7 +98,6 @@ export function WorkflowsProvider({
 
 	// Create workflow and refresh
 	const createWorkflowAndRefresh = useCallback(async (workflowData: WorkflowCreateRequest): Promise<WorkflowResponse> => {
-		console.log("Workflow Data (Create):", workflowData);
 		try {
 			const newWorkflow = await createWorkflow(workflowData);
 			// Optimistically update the local state
