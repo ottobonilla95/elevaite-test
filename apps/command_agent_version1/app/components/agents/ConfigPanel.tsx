@@ -186,7 +186,8 @@ const ConfigPanel = forwardRef<ConfigPanelHandle, ConfigPanelProps>(
       if (agentConfig) {
         setDeploymentType(agent.config?.deploymentType ?? "Elevaite");
         // Load model from agent.provider_config (new SDK-based config) instead of prompt
-        const modelName = agent.agent.provider_config?.model_name ?? agent.agent.system_prompt.ai_model_name ?? "gpt-4o";
+        const providerConfig = agent.agent.provider_config as { model_name?: string } | undefined;
+        const modelName = providerConfig?.model_name ?? agent.agent.system_prompt.ai_model_name ?? "gpt-4o";
         // Set provider based on the model FIRST
         const provider = getProviderForModel(modelName);
         setModelProvider(provider);
