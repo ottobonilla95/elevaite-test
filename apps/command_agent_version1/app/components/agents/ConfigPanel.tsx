@@ -180,31 +180,38 @@ const ConfigPanel = forwardRef<ConfigPanelHandle, ConfigPanelProps>(
       { id: "tools", label: "Tools & Prompts" },
     ];
 
-    // Update model provider when deployment type changes
-    useEffect(() => {
-      const providers = getModelProviders(deploymentType);
-      setModelProvider(providers[0]);
-    }, [deploymentType]);
-
-    // Update model when model provider changes
-    useEffect(() => {
-      const availableModels = getModels(deploymentType, modelProvider);
-      setModel(availableModels[0]);
-    }, [modelProvider, deploymentType]);
-
+    // Load agent configuration when agentConfig changes
+    // This must run BEFORE the other useEffects to prevent them from overriding the loaded values
     useEffect(() => {
       if (agentConfig) {
         setDeploymentType(agent.config?.deploymentType ?? "Elevaite");
         // Load model from agent.provider_config (new SDK-based config) instead of prompt
         const modelName = agent.agent.provider_config?.model_name ?? agent.agent.system_prompt.ai_model_name ?? "gpt-4o";
-        setModel(modelName);
-        // Set provider based on the model
+        // Set provider based on the model FIRST
         const provider = getProviderForModel(modelName);
         setModelProvider(provider);
+        // Then set the model (this will trigger the useEffect below, but we set it after so it takes precedence)
+        setModel(modelName);
         setOutputFormat(agent.agent.output_type.join(", "));
         setSelectedFunctions(agentConfig.selectedTools);
       }
     }, [agentConfig]);
+
+    // Update model provider when deployment type changes (only if not loading from agentConfig)
+    useEffect(() => {
+      // Skip if we're loading from agentConfig (agentConfig will set the provider)
+      if (agentConfig) return;
+      const providers = getModelProviders(deploymentType);
+      setModelProvider(providers[0]);
+    }, [deploymentType, agentConfig]);
+
+    // Update model when model provider changes (only if not loading from agentConfig)
+    useEffect(() => {
+      // Skip if we're loading from agentConfig (agentConfig will set the model)
+      if (agentConfig) return;
+      const availableModels = getModels(deploymentType, modelProvider);
+      setModel(availableModels[0]);
+    }, [modelProvider, deploymentType, agentConfig]);
 
     // Reset sidebar view when agent changes
     useEffect(() => {

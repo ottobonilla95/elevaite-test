@@ -122,6 +122,9 @@ class ResponseAdapter:
                 "collaboration_mode": "single",
                 "available_for_deployment": False,
                 "system_prompt_id": str(agent.system_prompt_id) if agent.system_prompt_id else "",
+                # SDK fields for model configuration
+                "provider_type": agent.provider_type,
+                "provider_config": agent.provider_config,
                 "system_prompt": {
                     "id": int(str(system_prompt.id).replace("-", "")[:16], 16) % (2**31) if system_prompt else 0,
                     "pid": str(system_prompt.id) if system_prompt else "",

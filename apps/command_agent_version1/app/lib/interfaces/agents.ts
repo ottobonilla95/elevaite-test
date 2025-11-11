@@ -96,6 +96,9 @@ export interface AgentResponse {
   session_id?: string | null;
   last_active?: string | null;
   system_prompt: PromptResponse;
+  // SDK fields for model configuration
+  provider_type?: string;
+  provider_config?: Record<string, unknown>;
 }
 
 export interface AgentConfigData {

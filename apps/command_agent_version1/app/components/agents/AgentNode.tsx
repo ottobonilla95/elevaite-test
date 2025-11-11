@@ -10,6 +10,7 @@ import {
   type ChatCompletionToolParam,
 } from "../../lib/interfaces";
 import { getAgentIcon, getToolIcon } from "./iconUtils";
+import { getModelDisplayName } from "./config/configUtils";
 
 interface NodeProps {
   id: string;
@@ -62,8 +63,10 @@ const AgentNode = memo(({ id, data, selected }: NodeProps) => {
 
   // Get model display name
   const getModelName = (): string => {
-    const model = config?.model ?? "Claude 3";
-    return model;
+    // Prioritize agent.provider_config.model_name (new SDK-based config) over config.model
+    const providerConfig = agent?.provider_config as { model_name?: string } | undefined;
+    const model = providerConfig?.model_name ?? config?.model ?? "Claude 3";
+    return getModelDisplayName(model);
   };
 
   // Check if we should show the model badge

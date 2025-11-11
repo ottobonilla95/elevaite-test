@@ -949,7 +949,8 @@ function AgentConfigForm(): JSX.Element {
                     onConfigure: () => { }, // This will be overwritten
                     agent: agentData,
                     config: {
-                      model: agentData.system_prompt.ai_model_name,
+                      // Load model from provider_config (new SDK-based config) instead of prompt
+                      model: (agentData.provider_config as { model_name?: string } | undefined)?.model_name ?? agentData.system_prompt.ai_model_name,
                       agentName: agentData.name,
                       deploymentType: "",
                       modelProvider: agentData.system_prompt.ai_model_provider,
@@ -961,7 +962,8 @@ function AgentConfigForm(): JSX.Element {
               },
               agent: agentData,
               config: {
-                model: agentData.system_prompt.ai_model_name,
+                // Load model from provider_config (new SDK-based config) instead of prompt
+                model: (agentData.provider_config as { model_name?: string } | undefined)?.model_name ?? agentData.system_prompt.ai_model_name,
                 agentName: agentData.name,
                 deploymentType: "",
                 modelProvider: agentData.system_prompt.ai_model_provider,
@@ -1663,7 +1665,6 @@ function AgentConfigForm(): JSX.Element {
       // Convert workflow agents to nodes
       const loadedNodes: Node[] = [];
       workflowDetails.workflow_agents.forEach((workflowAgent: WorkflowAgent) => {
-        console.log("Workflow agent:", workflowAgent);
         const agent = workflowAgent.agent;
         const nodeId = workflowAgent.node_id || workflowAgent.agent_id;
 
@@ -1704,7 +1705,8 @@ function AgentConfigForm(): JSX.Element {
                 tools: agent.functions, // Keep as ChatCompletionToolParam array
                 tags: [agent.agent_type ?? "custom"],
                 config: {
-                  model: agent.system_prompt.ai_model_name,
+                  // Load model from provider_config (new SDK-based config) instead of prompt
+                  model: (agent.provider_config as { model_name?: string } | undefined)?.model_name ?? agent.system_prompt.ai_model_name,
                   agentName: agent.name,
                   deploymentType: "",
                   modelProvider: agent.system_prompt.ai_model_provider,
@@ -1798,18 +1800,27 @@ function AgentConfigForm(): JSX.Element {
     // Update the node with the new agent data from the database
     if (selectedNode) {
       setNodes((prevNodes) =>
-        prevNodes.map((node) =>
-          node.id === selectedNode.id
-            ? {
-              ...node,
-              data: {
-                ...node.data,
-                agent: newAgent, // Update with the real agent data from DB
-                tools: newAgent.functions, // Sync tools with the new agent's functions
-              },
-            }
-            : node
-        )
+        prevNodes.map((node) => {
+          if (node.id !== selectedNode.id) return node;
+          if (!isAgentNodeData(node.data)) return node;
+
+          // Extract model from provider_config (safely handle unknown type)
+          const providerConfig = newAgent.provider_config as { model_name?: string } | undefined;
+          const modelName = providerConfig?.model_name;
+
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              agent: newAgent, // Update with the real agent data from DB
+              tools: newAgent.functions, // Sync tools with the new agent's functions
+              config: node.data.config ? {
+                ...node.data.config,
+                model: modelName ?? node.data.config.model,
+              } : undefined,
+            },
+          };
+        })
       );
     }
 
@@ -1838,12 +1849,6 @@ function AgentConfigForm(): JSX.Element {
       }
     };
 
-    console.log("=== UPDATE AGENT DEBUG ===");
-    console.log("configData.model:", configData.model);
-    console.log("tools passed to update:", tools);
-    console.log("selectedNode.data.tools:", selectedNode.data.tools);
-    console.log("==========================");
-
     const agentUpdateData: AgentUpdate = {
       name: agentName,
       agent_type: configData.agentType,
@@ -1870,18 +1875,27 @@ function AgentConfigForm(): JSX.Element {
 
     // Update the node with the updated agent data from the database
     setNodes((prevNodes) =>
-      prevNodes.map((node) =>
-        node.id === selectedNode.id
-          ? {
-            ...node,
-            data: {
-              ...node.data,
-              agent: updatedAgent, // Update with the real agent data from DB
-              tools: updatedAgent.functions, // Sync tools with the updated agent's functions
-            },
-          }
-          : node
-      )
+      prevNodes.map((node) => {
+        if (node.id !== selectedNode.id) return node;
+        if (!isAgentNodeData(node.data)) return node;
+
+        // Extract model from provider_config (safely handle unknown type)
+        const providerConfig = updatedAgent.provider_config as { model_name?: string } | undefined;
+        const modelName = providerConfig?.model_name;
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            agent: updatedAgent, // Update with the real agent data from DB
+            tools: updatedAgent.functions, // Sync tools with the updated agent's functions
+            config: node.data.config ? {
+              ...node.data.config,
+              model: modelName ?? node.data.config.model,
+            } : undefined,
+          },
+        };
+      })
     );
 
     // Agent updated successfully
@@ -1892,14 +1906,9 @@ function AgentConfigForm(): JSX.Element {
     if (!selectedNode || !isAgentNodeData(selectedNode.data)) return;
 
     try {
-      // If tools are provided in the configuration data, update them
-      const tools = selectedNode.data.tools ?? [];
-
-      console.log("=== SAVE AGENT CONFIG DEBUG ===");
-      console.log("selectedNode.data.tools:", selectedNode.data.tools);
-      console.log("tools to save:", tools);
-      console.log("configData.selectedTools:", configData.selectedTools);
-      console.log("===============================");
+      // Use tools from configData.selectedTools (from the UI) instead of selectedNode.data.tools
+      // The UI state is the source of truth for what tools the user has selected
+      const tools = configData.selectedTools ?? selectedNode.data.tools ?? [];
 
       // The name might have been updated through the inline editor
       const agentName = configData.agentName || selectedNode.data.name;
