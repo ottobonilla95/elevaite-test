@@ -23,11 +23,30 @@ def mock_session():
 
 
 @pytest.fixture
-def sample_agent():
-    """Sample agent for testing"""
+def sample_agent(session):
+    """Sample agent for testing - persisted to database"""
     now = datetime.now(timezone.utc)
     prompt_id = uuid.uuid4()
-    return Agent(
+
+    # Create and persist the prompt first
+    from workflow_core_sdk.db.models import Prompt
+
+    prompt = Prompt(
+        id=prompt_id,
+        prompt_label="test_prompt",
+        prompt="You are a helpful assistant.",
+        unique_label="test_prompt_unique",
+        app_name="test_app",
+        ai_model_provider="openai",
+        ai_model_name="gpt-4",
+        organization_id="org-123",
+        created_by="user-123",
+    )
+    session.add(prompt)
+    session.commit()
+
+    # Create and persist the agent
+    agent = Agent(
         id=uuid.uuid4(),
         name="test_agent",
         description="Test agent description",
@@ -41,6 +60,10 @@ def sample_agent():
         created_at=now,
         updated_at=now,
     )
+    session.add(agent)
+    session.commit()
+    session.refresh(agent)
+    return agent
 
 
 @pytest.fixture
@@ -541,37 +564,10 @@ class TestDetachToolFromAgent:
 class TestExecuteAgent:
     """Tests for POST /agents/{agent_id}/execute"""
 
-    @pytest.mark.skip(reason="Execute endpoint requires complex multipart form setup and AgentStep mocking")
     @patch("workflow_engine_poc.steps.ai_steps.AgentStep")
-    @patch("workflow_engine_poc.routers.agents.get_db_session")
-    def test_execute_agent_success(self, mock_get_session, mock_agent_step_class, sample_agent, sample_prompt):
+    def test_execute_agent_success(self, mock_agent_step_class, test_client, session, sample_agent, sample_prompt):
         """Test executing an agent with a query"""
-        # Mock session and database queries
-        mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
-
-        # Mock the agent query
-        mock_agent_result = MagicMock()
-        mock_agent_result.first.return_value = sample_agent
-        mock_session.exec.return_value = mock_agent_result
-
-        # Mock the prompt query (second call to exec)
-        def exec_side_effect(query):
-            # First call returns agent, second call returns prompt
-            if not hasattr(exec_side_effect, "call_count"):
-                exec_side_effect.call_count = 0
-            exec_side_effect.call_count += 1
-
-            if exec_side_effect.call_count == 1:
-                result = MagicMock()
-                result.first.return_value = sample_agent
-                return result
-            else:
-                result = MagicMock()
-                result.first.return_value = sample_prompt
-                return result
-
-        mock_session.exec.side_effect = exec_side_effect
+        import json
 
         # Mock AgentStep instance
         mock_agent_instance = AsyncMock()
@@ -579,11 +575,9 @@ class TestExecuteAgent:
         mock_agent_step_class.return_value = mock_agent_instance
 
         # Prepare multipart form data
-        import json
-
         payload_data = {"query": "What is the weather?", "context": {"location": "NYC"}}
 
-        response = client.post(
+        response = test_client.post(
             f"/agents/{sample_agent.id}/execute",
             data={"payload": json.dumps(payload_data)},
         )
@@ -593,59 +587,32 @@ class TestExecuteAgent:
         assert data["response"] == "Test response"
         assert data["status"] == "success"
 
-    @patch("workflow_engine_poc.routers.agents.get_db_session")
-    def test_execute_agent_not_found(self, mock_get_session):
+        # Verify AgentStep was called correctly
+        mock_agent_step_class.assert_called_once()
+        mock_agent_instance.execute.assert_called_once_with("What is the weather?", {"location": "NYC"})
+
+    def test_execute_agent_not_found(self, test_client):
         """Test executing a non-existent agent"""
-        mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
-
-        mock_result = MagicMock()
-        mock_result.first.return_value = None
-        mock_session.exec.return_value = mock_result
-
-        agent_id = uuid.uuid4()
         import json
 
+        agent_id = uuid.uuid4()
         payload_data = {"query": "Test query"}
 
-        response = client.post(
+        response = test_client.post(
             f"/agents/{agent_id}/execute",
             data={"payload": json.dumps(payload_data)},
         )
 
         assert response.status_code == 404
-        assert "not found" in response.json()["detail"]
+        assert "not found" in response.json()["detail"].lower()
 
-    @pytest.mark.skip(reason="Execute endpoint requires complex multipart form setup and AgentStep mocking")
-    @patch("workflow_engine_poc.steps.ai_steps.AgentStep")
-    @patch("workflow_engine_poc.routers.agents.get_db_session")
-    def test_execute_agent_missing_query(self, mock_get_session, mock_agent_step_class, sample_agent, sample_prompt):
+    def test_execute_agent_missing_query(self, test_client, session, sample_agent, sample_prompt):
         """Test executing an agent without a query"""
-        mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
-
-        # Mock both agent and prompt queries
-        def exec_side_effect(query):
-            if not hasattr(exec_side_effect, "call_count"):
-                exec_side_effect.call_count = 0
-            exec_side_effect.call_count += 1
-
-            if exec_side_effect.call_count == 1:
-                result = MagicMock()
-                result.first.return_value = sample_agent
-                return result
-            else:
-                result = MagicMock()
-                result.first.return_value = sample_prompt
-                return result
-
-        mock_session.exec.side_effect = exec_side_effect
-
         import json
 
         payload_data = {"context": {"key": "value"}}  # Missing query
 
-        response = client.post(
+        response = test_client.post(
             f"/agents/{sample_agent.id}/execute",
             data={"payload": json.dumps(payload_data)},
         )
@@ -653,18 +620,9 @@ class TestExecuteAgent:
         assert response.status_code == 400
         assert "query" in response.json()["detail"].lower()
 
-    @pytest.mark.skip(reason="Execute endpoint requires complex multipart form setup and AgentStep mocking")
-    @patch("workflow_engine_poc.routers.agents.get_db_session")
-    def test_execute_agent_missing_payload(self, mock_get_session, sample_agent):
+    def test_execute_agent_missing_payload(self, test_client, session, sample_agent):
         """Test executing an agent without payload"""
-        mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
-
-        mock_result = MagicMock()
-        mock_result.first.return_value = sample_agent
-        mock_session.exec.return_value = mock_result
-
-        response = client.post(f"/agents/{sample_agent.id}/execute")
+        response = test_client.post(f"/agents/{sample_agent.id}/execute")
 
         assert response.status_code == 400
         assert "payload" in response.json()["detail"].lower()
