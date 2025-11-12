@@ -59,6 +59,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                 retries,
                 tools,
                 tool_choice,
+                messages,
             )
         else:
             return self._generate_with_legacy_api(model_name, temperature, max_tokens, sys_msg, prompt, retries)
@@ -150,6 +151,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         retries: int,
         tools: Optional[List[Dict[str, Any]]],
         tool_choice: Optional[str],
+        messages: Optional[List[Dict[str, Any]]],
     ) -> TextGenerationResponse:
         """Generate text using Bedrock Converse API with tool support"""
 
