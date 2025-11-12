@@ -17,8 +17,8 @@ from .models.embeddings.core.interfaces import (
 class EmbeddingService:
     """Service class to handle embedding requests."""
 
-    def __init__(self, factory: ModelProviderFactory = ModelProviderFactory()):
-        self.factory = factory
+    def __init__(self, factory: Optional[ModelProviderFactory] = None):
+        self.factory = factory or ModelProviderFactory()
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def embed(self, request: EmbeddingRequest) -> EmbeddingResponse:
@@ -37,8 +37,8 @@ class EmbeddingService:
 class TextGenerationService:
     """Service class to handle text generation requests."""
 
-    def __init__(self, factory: ModelProviderFactory = ModelProviderFactory()):
-        self.factory = factory
+    def __init__(self, factory: Optional[ModelProviderFactory] = None):
+        self.factory = factory or ModelProviderFactory()
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def generate(
@@ -121,8 +121,8 @@ class TextGenerationService:
 class VisionService:
     """Service class to handle image-to-text requests."""
 
-    def __init__(self, factory: ModelProviderFactory = ModelProviderFactory()):
-        self.factory = factory
+    def __init__(self, factory: Optional[ModelProviderFactory] = None):
+        self.factory = factory or ModelProviderFactory()
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def process_images(
