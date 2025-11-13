@@ -2,6 +2,14 @@
 
 This document provides comprehensive guidelines for writing tests in the workflow-engine-poc project.
 
+## Current Test Status
+
+- **181 passing tests** (100% pass rate)
+- **18 skipped tests** (E2E tests requiring live server)
+- **49% code coverage** (2,592/5,272 lines)
+- **Test breakdown**: 13 unit, 2 integration, 152 API, 14 E2E
+- **All tests organized** with pytest markers for selective running
+
 ## Table of Contents
 
 1. [Test Organization](#test-organization)

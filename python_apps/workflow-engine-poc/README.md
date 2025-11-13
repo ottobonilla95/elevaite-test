@@ -162,7 +162,14 @@ If no providers are configured, the system gracefully falls back to simulation m
 
 ## Testing
 
-The PoC has comprehensive test coverage with unit, integration, and E2E tests.
+The PoC has comprehensive test coverage with unit, integration, API, and E2E tests.
+
+### Test Status
+
+- **181 passing tests** (100% pass rate)
+- **18 skipped tests** (E2E tests requiring live server)
+- **49% code coverage** (2,592/5,272 lines)
+- **Organized structure**: unit/, integration/, api/, e2e/
 
 ### Run Tests
 
@@ -174,8 +181,9 @@ pytest tests/ -m "not e2e" --ignore=tests/e2e/
 pytest tests/ -m "not e2e" --ignore=tests/e2e/ --cov=workflow_engine_poc --cov-report=html
 
 # Run specific test categories
-pytest tests/ -m unit          # Unit tests only
-pytest tests/ -m integration   # Integration tests only
+pytest tests/ -m unit          # Unit tests only (13 tests, ~4s)
+pytest tests/ -m integration   # Integration tests only (2 tests)
+pytest tests/ -m api           # API tests only (152 tests, ~20s)
 ```
 
 ### E2E Tests
@@ -197,7 +205,7 @@ Tests run automatically on:
 - Pushes to `main` or `testing` branches
 - Changes to `python_apps/workflow-engine-poc/**` or `packages/workflow-core-sdk/**`
 
-See [TESTING.md](TESTING.md) for detailed testing guide.
+See [tests/TESTING_GUIDELINES.md](tests/TESTING_GUIDELINES.md) for detailed testing guide.
 
 ## Development
 
