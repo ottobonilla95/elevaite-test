@@ -34,6 +34,8 @@ from tools.salesforce.csm_tools import (
     salesforce_csm_update_case
 )
 
+from tools.servicenow.agent_tools import ServiceNowAgentClient
+
 SEGMENT_NUM = 5
 
 dotenv.load_dotenv(".env.local")
@@ -44,6 +46,7 @@ WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
 KEVEL_API_KEY = os.getenv("KEVEL_API_KEY")
 KEVEL_API_BASE = os.getenv("KEVEL_API_BASE_URL", "https://api.kevel.co/v1")
+SERVICENOW_NOW_ASSIST_USER_REFERENCE = os.getenv("SERVICENOW_NOW_ASSIST_USER_REFERENCE")
 KEVEL_NETWORK_ID = 11679
 
 EXAMPLE_DATA = [
@@ -159,7 +162,31 @@ Return JSON:"""
             "error": f"Extraction failed: {str(e)}"
         })
 
+# Mitie RFQ Extractor ServiceNow Agent
+@function_schema
+def extract_rfq_from_snow_agent(rfq_text: str) -> str:
+    """
+    MITIE RFQ JSON EXTRACTOR Using ServiceNow Agent
 
+    Extracts structured JSON data from RFQ (Request for Quote) documents.
+    Identifies mandatory and optional fields for quote generation.
+
+    Args:
+        rfq_text: The RFQ document text content
+
+    Returns:
+        str: JSON string containing extracted mandatory and optional fields
+    """
+    try:
+        import asyncio
+        extracted_quote_metadata = asyncio.run(ServiceNowAgentClient().trigger_quote_extraction(rfq_text, SERVICENOW_NOW_ASSIST_USER_REFERENCE))
+        return json.dumps(extracted_quote_metadata)
+    except Exception as e:
+        return json.dumps({
+            "error": f"Quote Extraction failed"
+        })
+
+    
 @function_schema
 def calculate_mitie_quote(extracted_data: str) -> str:
     """
@@ -5182,6 +5209,7 @@ tool_store = {
     "Salesforce_CSM": Salesforce_CSM,
     # Mitie Tools
     "extract_rfq_json": extract_rfq_json,
+    "extract_rfq_from_snow_agent": extract_rfq_from_snow_agent,
     "calculate_mitie_quote": calculate_mitie_quote,
     "generate_mitie_pdf": generate_mitie_pdf,
 }
@@ -5491,6 +5519,7 @@ tool_schemas = {
     "Salesforce_CSM": Salesforce_CSM.openai_schema,
     # Mitie Tools
     "extract_rfq_json": extract_rfq_json.openai_schema,
+    "extract_rfq_from_snow_agent": extract_rfq_from_snow_agent.openai_schema,
     "calculate_mitie_quote": calculate_mitie_quote.openai_schema,
     "generate_mitie_pdf": generate_mitie_pdf.openai_schema,
     # Kevel Tools
