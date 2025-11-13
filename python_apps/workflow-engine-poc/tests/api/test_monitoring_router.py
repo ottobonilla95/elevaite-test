@@ -16,10 +16,12 @@ client = TestClient(app)
 # ========== Metrics Tests ==========
 
 
+@pytest.mark.api
 class TestGetMetrics:
     """Tests for GET /metrics"""
 
     @patch("workflow_engine_poc.routers.monitoring.monitoring.get_metrics")
+    @pytest.mark.api
     def test_get_metrics_success(self, mock_get_metrics):
         """Test getting Prometheus metrics"""
         mock_metrics_data = """# HELP workflow_executions_total Total number of workflow executions
@@ -43,6 +45,7 @@ workflow_execution_duration_seconds_count 42
         assert "workflow_execution_duration_seconds" in response.text
 
     @patch("workflow_engine_poc.routers.monitoring.monitoring.get_metrics")
+    @pytest.mark.api
     def test_get_metrics_error(self, mock_get_metrics):
         """Test metrics endpoint error handling"""
         mock_get_metrics.side_effect = Exception("Metrics collection failed")
@@ -56,10 +59,12 @@ workflow_execution_duration_seconds_count 42
 # ========== Traces Tests ==========
 
 
+@pytest.mark.api
 class TestGetTraces:
     """Tests for GET /monitoring/traces"""
 
     @patch("workflow_engine_poc.routers.monitoring.monitoring.get_traces")
+    @pytest.mark.api
     def test_get_traces_success(self, mock_get_traces):
         """Test getting trace data"""
         mock_traces = [
@@ -90,6 +95,7 @@ class TestGetTraces:
         assert data["traces"][0]["trace_id"] == "trace-1"
 
     @patch("workflow_engine_poc.routers.monitoring.monitoring.get_traces")
+    @pytest.mark.api
     def test_get_traces_with_limit(self, mock_get_traces):
         """Test getting traces with custom limit"""
         # Create 150 mock traces
@@ -107,6 +113,7 @@ class TestGetTraces:
         assert data["traces"][0]["trace_id"] == "trace-100"  # Last 50 start at index 100
 
     @patch("workflow_engine_poc.routers.monitoring.monitoring.get_traces")
+    @pytest.mark.api
     def test_get_traces_empty(self, mock_get_traces):
         """Test getting traces when none exist"""
         mock_get_traces.return_value = []
@@ -119,6 +126,7 @@ class TestGetTraces:
         assert len(data["traces"]) == 0
 
     @patch("workflow_engine_poc.routers.monitoring.monitoring.get_traces")
+    @pytest.mark.api
     def test_get_traces_error(self, mock_get_traces):
         """Test traces endpoint error handling"""
         mock_get_traces.side_effect = Exception("Trace collection failed")
@@ -132,10 +140,12 @@ class TestGetTraces:
 # ========== Monitoring Summary Tests ==========
 
 
+@pytest.mark.api
 class TestGetMonitoringSummary:
     """Tests for GET /monitoring/summary"""
 
     @patch("workflow_engine_poc.routers.monitoring.monitoring.get_monitoring_summary")
+    @pytest.mark.api
     def test_get_summary_success(self, mock_get_summary):
         """Test getting monitoring summary"""
         mock_summary = {
@@ -158,6 +168,7 @@ class TestGetMonitoringSummary:
         assert data["components"]["error_tracking"] == "active"
 
     @patch("workflow_engine_poc.routers.monitoring.monitoring.get_monitoring_summary")
+    @pytest.mark.api
     def test_get_summary_error(self, mock_get_summary):
         """Test summary endpoint error handling"""
         mock_get_summary.side_effect = Exception("Summary generation failed")
@@ -171,10 +182,12 @@ class TestGetMonitoringSummary:
 # ========== Execution Analytics Tests ==========
 
 
+@pytest.mark.api
 class TestGetExecutionAnalytics:
     """Tests for GET /analytics/executions"""
 
     @patch("workflow_engine_poc.routers.monitoring.Request")
+    @pytest.mark.api
     def test_get_execution_analytics_success(self, mock_request_class):
         """Test getting execution analytics"""
         # Mock workflow engine
@@ -215,6 +228,7 @@ class TestGetExecutionAnalytics:
         assert result["executions"][0]["execution_id"] == "exec-1"
 
     @patch("workflow_engine_poc.routers.monitoring.Request")
+    @pytest.mark.api
     def test_get_execution_analytics_with_filters(self, mock_request_class):
         """Test getting execution analytics with status filter"""
         mock_engine = AsyncMock()
@@ -245,10 +259,12 @@ class TestGetExecutionAnalytics:
 # ========== Error Analytics Tests ==========
 
 
+@pytest.mark.api
 class TestGetErrorAnalytics:
     """Tests for GET /analytics/errors"""
 
     @patch("workflow_engine_poc.routers.monitoring.error_handler.get_error_statistics")
+    @pytest.mark.api
     def test_get_error_analytics_all(self, mock_get_stats):
         """Test getting all error analytics"""
         mock_stats = {
@@ -270,6 +286,7 @@ class TestGetErrorAnalytics:
         assert "workflow_engine" in data["errors_by_component"]
 
     @patch("workflow_engine_poc.routers.monitoring.error_handler.get_error_statistics")
+    @pytest.mark.api
     def test_get_error_analytics_by_component(self, mock_get_stats):
         """Test getting error analytics for specific component"""
         mock_stats = {
@@ -292,6 +309,7 @@ class TestGetErrorAnalytics:
         assert data["errors"][0]["error"] == "Error 1"
 
     @patch("workflow_engine_poc.routers.monitoring.error_handler.get_error_statistics")
+    @pytest.mark.api
     def test_get_error_analytics_component_not_found(self, mock_get_stats):
         """Test getting error analytics for non-existent component"""
         mock_stats = {"errors_by_component": {}}
@@ -306,6 +324,7 @@ class TestGetErrorAnalytics:
         assert data["errors"] == []
 
     @patch("workflow_engine_poc.routers.monitoring.error_handler.get_error_statistics")
+    @pytest.mark.api
     def test_get_error_analytics_error(self, mock_get_stats):
         """Test error analytics endpoint error handling"""
         mock_get_stats.side_effect = Exception("Error stats collection failed")

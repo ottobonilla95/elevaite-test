@@ -23,6 +23,7 @@ from workflow_engine_poc.error_handling import (
 )
 
 
+@pytest.mark.unit
 async def test_retry_mechanisms():
     """Test retry mechanisms with different strategies"""
 
@@ -96,6 +97,7 @@ async def test_retry_mechanisms():
         print(f"   ✅ Retry exhaustion handled correctly: {e}")
 
 
+@pytest.mark.unit
 async def test_circuit_breaker():
     """Test circuit breaker functionality"""
 
@@ -142,6 +144,7 @@ async def test_circuit_breaker():
         print(f"   ✅ Circuit breaker correctly blocked execution: {e}")
 
 
+@pytest.mark.unit
 async def test_error_classification():
     """Test error classification and statistics"""
 
@@ -178,6 +181,7 @@ async def test_error_classification():
     print(f"   Severity counts: {stats.get('severity_counts', {})}")
 
 
+@pytest.mark.unit
 async def test_retry_strategies():
     """Test different retry strategies"""
 
@@ -233,6 +237,7 @@ async def test_retry_strategies():
         attempt_times.clear()
 
 
+@pytest.mark.unit
 async def test_workflow_error_integration():
     """Test error handling integration with workflow execution"""
 

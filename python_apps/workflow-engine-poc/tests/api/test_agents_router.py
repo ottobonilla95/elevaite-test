@@ -103,12 +103,14 @@ def sample_prompt():
 # ========== Agent CRUD Tests ==========
 
 
+@pytest.mark.api
 class TestCreateAgent:
     """Tests for POST /agents/"""
 
     @patch("workflow_engine_poc.routers.agents.AgentsService.create_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_create_agent_success(self, mock_guard, mock_get_session, mock_create, mock_session, sample_agent):
         """Test creating an agent successfully"""
         mock_guard.return_value = lambda: "user-123"
@@ -138,6 +140,7 @@ class TestCreateAgent:
     @patch("workflow_engine_poc.routers.agents.AgentsService.create_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_create_agent_duplicate(self, mock_guard, mock_get_session, mock_create, mock_session):
         """Test creating a duplicate agent"""
         mock_guard.return_value = lambda: "user-123"
@@ -159,6 +162,7 @@ class TestCreateAgent:
 
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_create_agent_invalid_provider_config(self, mock_guard, mock_get_session, mock_session):
         """Test creating an agent with invalid provider config"""
         mock_guard.return_value = lambda: "user-123"
@@ -178,12 +182,14 @@ class TestCreateAgent:
         assert "Unknown provider_type" in response.json()["detail"]
 
 
+@pytest.mark.api
 class TestListAgents:
     """Tests for GET /agents/"""
 
     @patch("workflow_engine_poc.routers.agents.AgentsService.list_agents")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_agents_success(self, mock_guard, mock_get_session, mock_list, mock_session, sample_agent):
         """Test listing agents"""
         mock_guard.return_value = lambda: "user-123"
@@ -200,6 +206,7 @@ class TestListAgents:
     @patch("workflow_engine_poc.routers.agents.AgentsService.list_agents")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_agents_with_filters(self, mock_guard, mock_get_session, mock_list, mock_session, sample_agent):
         """Test listing agents with query filters"""
         mock_guard.return_value = lambda: "user-123"
@@ -221,6 +228,7 @@ class TestListAgents:
     @patch("workflow_engine_poc.routers.agents.AgentsService.list_agents")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_agents_with_tag_filter(self, mock_guard, mock_get_session, mock_list, mock_session, sample_agent):
         """Test listing agents with tag filter"""
         mock_guard.return_value = lambda: "user-123"
@@ -252,6 +260,7 @@ class TestListAgents:
     @patch("workflow_engine_poc.routers.agents.AgentsService.list_agents")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_agents_pagination(self, mock_guard, mock_get_session, mock_list, mock_session, sample_agent):
         """Test listing agents with pagination"""
         mock_guard.return_value = lambda: "user-123"
@@ -267,12 +276,14 @@ class TestListAgents:
         assert call_args.offset == 5
 
 
+@pytest.mark.api
 class TestGetAgent:
     """Tests for GET /agents/{agent_id}"""
 
     @patch("workflow_engine_poc.routers.agents.AgentsService.get_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_get_agent_success(self, mock_guard, mock_get_session, mock_get, mock_session, sample_agent):
         """Test getting an agent by ID"""
         mock_guard.return_value = lambda: "user-123"
@@ -289,6 +300,7 @@ class TestGetAgent:
     @patch("workflow_engine_poc.routers.agents.AgentsService.get_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_get_agent_not_found(self, mock_guard, mock_get_session, mock_get, mock_session):
         """Test getting a non-existent agent"""
         mock_guard.return_value = lambda: "user-123"
@@ -302,12 +314,14 @@ class TestGetAgent:
         assert "not found" in response.json()["detail"]
 
 
+@pytest.mark.api
 class TestUpdateAgent:
     """Tests for PATCH /agents/{agent_id}"""
 
     @patch("workflow_engine_poc.routers.agents.AgentsService.update_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_update_agent_success(self, mock_guard, mock_get_session, mock_update, mock_session, sample_agent):
         """Test updating an agent"""
         mock_guard.return_value = lambda: "user-123"
@@ -327,6 +341,7 @@ class TestUpdateAgent:
     @patch("workflow_engine_poc.routers.agents.AgentsService.update_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_update_agent_not_found(self, mock_guard, mock_get_session, mock_update, mock_session):
         """Test updating a non-existent agent"""
         mock_guard.return_value = lambda: "user-123"
@@ -342,12 +357,14 @@ class TestUpdateAgent:
         assert "not found" in response.json()["detail"]
 
 
+@pytest.mark.api
 class TestDeleteAgent:
     """Tests for DELETE /agents/{agent_id}"""
 
     @patch("workflow_engine_poc.routers.agents.AgentsService.delete_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_delete_agent_success(self, mock_guard, mock_get_session, mock_delete, mock_session, sample_agent):
         """Test deleting an agent"""
         mock_guard.return_value = lambda: "user-123"
@@ -363,6 +380,7 @@ class TestDeleteAgent:
     @patch("workflow_engine_poc.routers.agents.AgentsService.delete_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_delete_agent_not_found(self, mock_guard, mock_get_session, mock_delete, mock_session):
         """Test deleting a non-existent agent"""
         mock_guard.return_value = lambda: "user-123"
@@ -379,12 +397,14 @@ class TestDeleteAgent:
 # ========== Agent Tool Binding Tests ==========
 
 
+@pytest.mark.api
 class TestListAgentTools:
     """Tests for GET /agents/{agent_id}/tools"""
 
     @patch("workflow_engine_poc.routers.agents.AgentsService.list_agent_tools")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_agent_tools_success(self, mock_guard, mock_get_session, mock_list, mock_session, sample_tool_binding):
         """Test listing tools for an agent"""
         mock_guard.return_value = lambda: "user-123"
@@ -402,6 +422,7 @@ class TestListAgentTools:
     @patch("workflow_engine_poc.routers.agents.AgentsService.list_agent_tools")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_agent_tools_empty(self, mock_guard, mock_get_session, mock_list, mock_session):
         """Test listing tools for an agent with no tools"""
         mock_guard.return_value = lambda: "user-123"
@@ -416,12 +437,14 @@ class TestListAgentTools:
         assert len(data) == 0
 
 
+@pytest.mark.api
 class TestAttachToolToAgent:
     """Tests for POST /agents/{agent_id}/tools"""
 
     @patch("workflow_engine_poc.routers.agents.AgentsService.attach_tool_to_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_attach_tool_success(self, mock_guard, mock_get_session, mock_attach, mock_session, sample_tool_binding):
         """Test attaching a tool to an agent"""
         mock_guard.return_value = lambda: "user-123"
@@ -444,6 +467,7 @@ class TestAttachToolToAgent:
     @patch("workflow_engine_poc.routers.agents.AgentsService.attach_tool_to_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_attach_tool_agent_not_found(self, mock_guard, mock_get_session, mock_attach, mock_session):
         """Test attaching a tool to a non-existent agent"""
         mock_guard.return_value = lambda: "user-123"
@@ -461,6 +485,7 @@ class TestAttachToolToAgent:
     @patch("workflow_engine_poc.routers.agents.AgentsService.attach_tool_to_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_attach_tool_missing_identifier(self, mock_guard, mock_get_session, mock_attach, mock_session):
         """Test attaching a tool without tool_id or local_tool_name"""
         mock_guard.return_value = lambda: "user-123"
@@ -476,12 +501,14 @@ class TestAttachToolToAgent:
         assert "Provide tool_id or local_tool_name" in response.json()["detail"]
 
 
+@pytest.mark.api
 class TestUpdateAgentToolBinding:
     """Tests for PATCH /agents/{agent_id}/tools/{binding_id}"""
 
     @patch("workflow_engine_poc.routers.agents.AgentsService.update_agent_tool_binding")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_update_binding_success(self, mock_guard, mock_get_session, mock_update, mock_session, sample_tool_binding):
         """Test updating a tool binding"""
         mock_guard.return_value = lambda: "user-123"
@@ -503,6 +530,7 @@ class TestUpdateAgentToolBinding:
     @patch("workflow_engine_poc.routers.agents.AgentsService.update_agent_tool_binding")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_update_binding_not_found(self, mock_guard, mock_get_session, mock_update, mock_session):
         """Test updating a non-existent binding"""
         mock_guard.return_value = lambda: "user-123"
@@ -519,12 +547,14 @@ class TestUpdateAgentToolBinding:
         assert "not found" in response.json()["detail"]
 
 
+@pytest.mark.api
 class TestDetachToolFromAgent:
     """Tests for DELETE /agents/{agent_id}/tools/{binding_id}"""
 
     @patch("workflow_engine_poc.routers.agents.AgentsService.detach_tool_from_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_detach_tool_success(self, mock_guard, mock_get_session, mock_detach, mock_session):
         """Test detaching a tool from an agent"""
         mock_guard.return_value = lambda: "user-123"
@@ -543,6 +573,7 @@ class TestDetachToolFromAgent:
     @patch("workflow_engine_poc.routers.agents.AgentsService.detach_tool_from_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
+    @pytest.mark.api
     def test_detach_tool_not_found(self, mock_guard, mock_get_session, mock_detach, mock_session):
         """Test detaching a non-existent binding"""
         mock_guard.return_value = lambda: "user-123"
@@ -561,10 +592,12 @@ class TestDetachToolFromAgent:
 # ========== Agent Execution Tests ==========
 
 
+@pytest.mark.api
 class TestExecuteAgent:
     """Tests for POST /agents/{agent_id}/execute"""
 
     @patch("workflow_engine_poc.steps.ai_steps.AgentStep")
+    @pytest.mark.api
     def test_execute_agent_success(self, mock_agent_step_class, test_client, session, sample_agent, sample_prompt):
         """Test executing an agent with a query"""
         import json
@@ -591,6 +624,7 @@ class TestExecuteAgent:
         mock_agent_step_class.assert_called_once()
         mock_agent_instance.execute.assert_called_once_with("What is the weather?", {"location": "NYC"})
 
+    @pytest.mark.api
     def test_execute_agent_not_found(self, test_client):
         """Test executing a non-existent agent"""
         import json
@@ -606,6 +640,7 @@ class TestExecuteAgent:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
+    @pytest.mark.api
     def test_execute_agent_missing_query(self, test_client, session, sample_agent, sample_prompt):
         """Test executing an agent without a query"""
         import json
@@ -620,6 +655,7 @@ class TestExecuteAgent:
         assert response.status_code == 400
         assert "query" in response.json()["detail"].lower()
 
+    @pytest.mark.api
     def test_execute_agent_missing_payload(self, test_client, session, sample_agent):
         """Test executing an agent without payload"""
         response = test_client.post(f"/agents/{sample_agent.id}/execute")

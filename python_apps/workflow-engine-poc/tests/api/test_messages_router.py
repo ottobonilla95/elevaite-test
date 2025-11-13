@@ -77,6 +77,7 @@ def mock_execution_context():
     return ctx
 
 
+@pytest.mark.api
 class TestListStepMessages:
     """Tests for GET /executions/{execution_id}/steps/{step_id}/messages endpoint"""
 
@@ -128,6 +129,7 @@ class TestListStepMessages:
             assert call_kwargs["limit"] == 2
             assert call_kwargs["offset"] == 0
 
+    @pytest.mark.api
     def test_list_messages_execution_not_found(self, authenticated_client: TestClient, sample_execution_id, sample_step_id):
         """Test listing messages when execution doesn't exist"""
         with (
@@ -190,6 +192,7 @@ class TestListStepMessages:
             assert len(data) == 3
 
 
+@pytest.mark.api
 class TestCreateStepMessage:
     """Tests for POST /executions/{execution_id}/steps/{step_id}/messages endpoint"""
 
@@ -257,6 +260,7 @@ class TestCreateStepMessage:
             assert resume_call[1]["execution_id"] == sample_execution_id
             assert resume_call[1]["step_id"] == sample_step_id
 
+    @pytest.mark.api
     def test_create_message_execution_not_found(self, authenticated_client: TestClient, sample_execution_id, sample_step_id):
         """Test creating message when execution doesn't exist"""
         message_body = {

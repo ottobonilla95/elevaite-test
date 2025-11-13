@@ -50,12 +50,14 @@ def sample_prompt():
     )
 
 
+@pytest.mark.api
 class TestCreatePrompt:
     """Tests for POST /prompts/"""
 
     @patch("workflow_engine_poc.routers.prompts.PromptsService.create_prompt")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_create_prompt_success(self, mock_guard, mock_get_session, mock_create, mock_session, sample_prompt):
         """Test successful prompt creation"""
         mock_guard.return_value = lambda: "user-123"
@@ -88,6 +90,7 @@ class TestCreatePrompt:
     @patch("workflow_engine_poc.routers.prompts.PromptsService.create_prompt")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_create_prompt_duplicate_unique_label(self, mock_guard, mock_get_session, mock_create, mock_session):
         """Test creating prompt with duplicate unique_label raises 409"""
         mock_guard.return_value = lambda: "user-123"
@@ -109,12 +112,14 @@ class TestCreatePrompt:
         assert "unique_label" in response.json()["detail"]
 
 
+@pytest.mark.api
 class TestListPrompts:
     """Tests for GET /prompts/"""
 
     @patch("workflow_engine_poc.routers.prompts.PromptsService.list_prompts")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_prompts_no_filters(self, mock_guard, mock_get_session, mock_list, mock_session, sample_prompt):
         """Test listing prompts without filters"""
         mock_guard.return_value = lambda: "user-123"
@@ -138,6 +143,7 @@ class TestListPrompts:
     @patch("workflow_engine_poc.routers.prompts.PromptsService.list_prompts")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_prompts_with_filters(self, mock_guard, mock_get_session, mock_list, mock_session, sample_prompt):
         """Test listing prompts with various filters"""
         mock_guard.return_value = lambda: "user-123"
@@ -175,6 +181,7 @@ class TestListPrompts:
     @patch("workflow_engine_poc.routers.prompts.PromptsService.list_prompts")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_prompts_empty_results(self, mock_guard, mock_get_session, mock_list, mock_session):
         """Test listing prompts returns empty list when no matches"""
         mock_guard.return_value = lambda: "user-123"
@@ -189,6 +196,7 @@ class TestListPrompts:
     @patch("workflow_engine_poc.routers.prompts.PromptsService.list_prompts")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_prompts_pagination(self, mock_guard, mock_get_session, mock_list, mock_session, sample_prompt):
         """Test pagination parameters"""
         mock_guard.return_value = lambda: "user-123"
@@ -204,12 +212,14 @@ class TestListPrompts:
         assert query.offset == 20
 
 
+@pytest.mark.api
 class TestGetPrompt:
     """Tests for GET /prompts/{prompt_id}"""
 
     @patch("workflow_engine_poc.routers.prompts.PromptsService.get_prompt")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_get_prompt_success(self, mock_guard, mock_get_session, mock_get, mock_session, sample_prompt):
         """Test successfully retrieving a prompt"""
         mock_guard.return_value = lambda: "user-123"
@@ -230,6 +240,7 @@ class TestGetPrompt:
     @patch("workflow_engine_poc.routers.prompts.PromptsService.get_prompt")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_get_prompt_not_found(self, mock_guard, mock_get_session, mock_get, mock_session):
         """Test getting non-existent prompt returns 404"""
         mock_guard.return_value = lambda: "user-123"
@@ -243,12 +254,14 @@ class TestGetPrompt:
         assert "not found" in response.json()["detail"].lower()
 
 
+@pytest.mark.api
 class TestUpdatePrompt:
     """Tests for PATCH /prompts/{prompt_id}"""
 
     @patch("workflow_engine_poc.routers.prompts.PromptsService.update_prompt")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_update_prompt_success(self, mock_guard, mock_get_session, mock_update, mock_session, sample_prompt):
         """Test successfully updating a prompt"""
         mock_guard.return_value = lambda: "user-123"
@@ -270,6 +283,7 @@ class TestUpdatePrompt:
     @patch("workflow_engine_poc.routers.prompts.PromptsService.update_prompt")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_update_prompt_not_found(self, mock_guard, mock_get_session, mock_update, mock_session):
         """Test updating non-existent prompt returns 404"""
         mock_guard.return_value = lambda: "user-123"
@@ -284,12 +298,14 @@ class TestUpdatePrompt:
         assert "not found" in response.json()["detail"].lower()
 
 
+@pytest.mark.api
 class TestDeletePrompt:
     """Tests for DELETE /prompts/{prompt_id}"""
 
     @patch("workflow_engine_poc.routers.prompts.PromptsService.delete_prompt")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_delete_prompt_success(self, mock_guard, mock_get_session, mock_delete, mock_session, sample_prompt):
         """Test successfully deleting a prompt"""
         mock_guard.return_value = lambda: "user-123"
@@ -308,6 +324,7 @@ class TestDeletePrompt:
     @patch("workflow_engine_poc.routers.prompts.PromptsService.delete_prompt")
     @patch("workflow_engine_poc.routers.prompts.get_db_session")
     @patch("workflow_engine_poc.routers.prompts.api_key_or_user_guard")
+    @pytest.mark.api
     def test_delete_prompt_not_found(self, mock_guard, mock_get_session, mock_delete, mock_session):
         """Test deleting non-existent prompt returns 404"""
         mock_guard.return_value = lambda: "user-123"

@@ -48,9 +48,11 @@ def mock_workflow_config():
     }
 
 
+@pytest.mark.api
 class TestUploadFile:
     """Tests for POST /files/upload endpoint"""
 
+    @pytest.mark.api
     def test_upload_file_success(self, authenticated_client: TestClient, sample_text_file, tmp_path):
         """Test successfully uploading a file"""
         with patch("workflow_engine_poc.routers.files.Path") as mock_path_class:
@@ -75,6 +77,7 @@ class TestUploadFile:
                 assert data["file_size"] > 0
                 assert "upload_timestamp" in data
 
+    @pytest.mark.api
     def test_upload_file_with_different_extensions(self, authenticated_client: TestClient, tmp_path):
         """Test uploading files with different extensions"""
         test_files = [
@@ -104,6 +107,7 @@ class TestUploadFile:
                     assert data["filename"] == filename
                     assert data["file_size"] == len(content)
 
+    @pytest.mark.api
     def test_upload_large_file(self, authenticated_client: TestClient, tmp_path):
         """Test uploading a large file"""
         # Create a 5MB mock file
@@ -126,6 +130,7 @@ class TestUploadFile:
                 data = response.json()
                 assert data["file_size"] == 5 * 1024 * 1024
 
+    @pytest.mark.api
     def test_upload_file_with_special_characters_in_name(self, authenticated_client: TestClient, tmp_path):
         """Test uploading file with special characters in filename"""
         special_filenames = [
@@ -153,6 +158,7 @@ class TestUploadFile:
                     assert response.status_code == 200
                     assert response.json()["filename"] == filename
 
+    @pytest.mark.api
     def test_upload_file_with_auto_process_false(self, authenticated_client: TestClient, sample_text_file, tmp_path):
         """Test uploading file with auto_process=False"""
         with patch("workflow_engine_poc.routers.files.Path") as mock_path_class:
@@ -236,6 +242,7 @@ class TestUploadFile:
                 # File should still upload successfully, just no auto-processing
                 assert "auto_processing" not in data
 
+    @pytest.mark.api
     def test_upload_file_without_workflow_id(self, authenticated_client: TestClient, sample_text_file, tmp_path):
         """Test auto-process without workflow_id"""
         with patch("workflow_engine_poc.routers.files.Path") as mock_path_class:
@@ -255,6 +262,7 @@ class TestUploadFile:
                 data = response.json()
                 assert "auto_processing" not in data
 
+    @pytest.mark.api
     def test_upload_file_creates_directory(self, authenticated_client: TestClient, sample_text_file, tmp_path):
         """Test that upload creates directory if it doesn't exist"""
         with patch("workflow_engine_poc.routers.files.Path") as mock_path_class:
@@ -272,6 +280,7 @@ class TestUploadFile:
                 # Verify mkdir was called with exist_ok=True
                 mock_upload_dir.mkdir.assert_called_once_with(exist_ok=True)
 
+    @pytest.mark.api
     def test_upload_file_error_handling(self, authenticated_client: TestClient, sample_text_file):
         """Test error handling when file upload fails"""
         with patch("workflow_engine_poc.routers.files.Path") as mock_path_class:
@@ -288,6 +297,7 @@ class TestUploadFile:
             assert response.status_code == 500
             assert "Disk full" in response.json()["detail"]
 
+    @pytest.mark.api
     def test_upload_empty_file(self, authenticated_client: TestClient, tmp_path):
         """Test uploading an empty file"""
         empty_file = io.BytesIO(b"")

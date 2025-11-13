@@ -59,9 +59,11 @@ def multiple_approvals(sample_approval_data):
     return approvals
 
 
+@pytest.mark.api
 class TestListApprovals:
     """Tests for GET /approvals endpoint"""
 
+    @pytest.mark.api
     def test_list_all_approvals(self, authenticated_client: TestClient, multiple_approvals):
         """Test listing all approval requests"""
         with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
@@ -75,6 +77,7 @@ class TestListApprovals:
             assert all("id" in item for item in data)
             mock_list.assert_called_once()
 
+    @pytest.mark.api
     def test_list_approvals_with_execution_id_filter(self, authenticated_client: TestClient, sample_approval_data):
         """Test filtering approvals by execution_id"""
         execution_id = sample_approval_data["execution_id"]
@@ -92,6 +95,7 @@ class TestListApprovals:
             call_kwargs = mock_list.call_args[1]
             assert call_kwargs["execution_id"] == execution_id
 
+    @pytest.mark.api
     def test_list_approvals_with_status_filter(self, authenticated_client: TestClient, multiple_approvals):
         """Test filtering approvals by status"""
         approved_only = [a for a in multiple_approvals if a["status"] == ApprovalStatus.APPROVED]
@@ -109,6 +113,7 @@ class TestListApprovals:
             call_kwargs = mock_list.call_args[1]
             assert call_kwargs["status"] == "approved"
 
+    @pytest.mark.api
     def test_list_approvals_with_pagination(self, authenticated_client: TestClient, multiple_approvals):
         """Test pagination parameters"""
         with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
@@ -124,6 +129,7 @@ class TestListApprovals:
             assert call_kwargs["limit"] == 2
             assert call_kwargs["offset"] == 0
 
+    @pytest.mark.api
     def test_list_approvals_empty_result(self, authenticated_client: TestClient):
         """Test listing when no approvals exist"""
         with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
@@ -135,9 +141,11 @@ class TestListApprovals:
             assert response.json() == []
 
 
+@pytest.mark.api
 class TestGetApproval:
     """Tests for GET /approvals/{approval_id} endpoint"""
 
+    @pytest.mark.api
     def test_get_approval_success(self, authenticated_client: TestClient, sample_approval_data):
         """Test getting a specific approval request"""
         approval_id = sample_approval_data["id"]
@@ -154,6 +162,7 @@ class TestGetApproval:
             assert data["prompt"] == "Please approve this action"
             mock_get.assert_called_once_with(mock_get.call_args[0][0], approval_id)
 
+    @pytest.mark.api
     def test_get_approval_not_found(self, authenticated_client: TestClient):
         """Test getting non-existent approval returns 404"""
         approval_id = str(uuid.uuid4())
@@ -167,9 +176,11 @@ class TestGetApproval:
             assert "not found" in response.json()["detail"].lower()
 
 
+@pytest.mark.api
 class TestApproveRequest:
     """Tests for POST /approvals/{approval_id}/approve endpoint"""
 
+    @pytest.mark.api
     def test_approve_request_success_local_backend(self, authenticated_client: TestClient, sample_approval_data):
         """Test approving a request with local backend"""
         approval_id = sample_approval_data["id"]
@@ -206,6 +217,7 @@ class TestApproveRequest:
             # Verify workflow engine resume was called
             mock_resume.assert_called_once()
 
+    @pytest.mark.api
     def test_approve_request_success_dbos_backend(self, authenticated_client: TestClient, sample_approval_data):
         """Test approving a request with DBOS backend"""
         approval_id = sample_approval_data["id"]
@@ -232,6 +244,7 @@ class TestApproveRequest:
             # Verify DB update was called
             mock_update.assert_called_once()
 
+    @pytest.mark.api
     def test_approve_request_not_found(self, authenticated_client: TestClient):
         """Test approving non-existent request returns 404"""
         approval_id = str(uuid.uuid4())
@@ -244,6 +257,7 @@ class TestApproveRequest:
 
             assert response.status_code == 404
 
+    @pytest.mark.api
     def test_approve_request_with_empty_payload(self, authenticated_client: TestClient, sample_approval_data):
         """Test approving with minimal decision body"""
         approval_id = sample_approval_data["id"]
@@ -261,9 +275,11 @@ class TestApproveRequest:
             assert response.status_code == 200
 
 
+@pytest.mark.api
 class TestDenyRequest:
     """Tests for POST /approvals/{approval_id}/deny endpoint"""
 
+    @pytest.mark.api
     def test_deny_request_success_local_backend(self, authenticated_client: TestClient, sample_approval_data):
         """Test denying a request with local backend"""
         approval_id = sample_approval_data["id"]
@@ -300,6 +316,7 @@ class TestDenyRequest:
             # Verify workflow engine resume was called
             mock_resume.assert_called_once()
 
+    @pytest.mark.api
     def test_deny_request_success_dbos_backend(self, authenticated_client: TestClient, sample_approval_data):
         """Test denying a request with DBOS backend"""
         approval_id = sample_approval_data["id"]
@@ -320,6 +337,7 @@ class TestDenyRequest:
             assert data["status"] == "ok"
             assert data["backend"] == "dbos"
 
+    @pytest.mark.api
     def test_deny_request_not_found(self, authenticated_client: TestClient):
         """Test denying non-existent request returns 404"""
         approval_id = str(uuid.uuid4())

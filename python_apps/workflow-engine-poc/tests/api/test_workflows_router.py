@@ -65,12 +65,14 @@ def sample_workflow_config():
 # ========== List Workflows Tests ==========
 
 
+@pytest.mark.api
 class TestListWorkflows:
     """Tests for GET /workflows/"""
 
     @patch("workflow_engine_poc.routers.workflows.WorkflowsService.list_workflows_entities")
     @patch("workflow_engine_poc.routers.workflows.get_db_session")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_workflows_success(self, mock_guard, mock_get_session, mock_list, mock_session, sample_workflow):
         """Test listing all workflows"""
         mock_guard.return_value = lambda: "user-123"
@@ -88,6 +90,7 @@ class TestListWorkflows:
     @patch("workflow_engine_poc.routers.workflows.WorkflowsService.list_workflows_entities")
     @patch("workflow_engine_poc.routers.workflows.get_db_session")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_workflows_with_pagination(self, mock_guard, mock_get_session, mock_list, mock_session):
         """Test listing workflows with pagination"""
         mock_guard.return_value = lambda: "user-123"
@@ -103,6 +106,7 @@ class TestListWorkflows:
     @patch("workflow_engine_poc.routers.workflows.WorkflowsService.list_workflows_entities")
     @patch("workflow_engine_poc.routers.workflows.get_db_session")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_workflows_empty(self, mock_guard, mock_get_session, mock_list, mock_session):
         """Test listing workflows when none exist"""
         mock_guard.return_value = lambda: "user-123"
@@ -118,6 +122,7 @@ class TestListWorkflows:
     @patch("workflow_engine_poc.routers.workflows.WorkflowsService.list_workflows_entities")
     @patch("workflow_engine_poc.routers.workflows.get_db_session")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_list_workflows_error(self, mock_guard, mock_get_session, mock_list, mock_session):
         """Test list workflows error handling"""
         mock_guard.return_value = lambda: "user-123"
@@ -133,12 +138,14 @@ class TestListWorkflows:
 # ========== Get Workflow Tests ==========
 
 
+@pytest.mark.api
 class TestGetWorkflow:
     """Tests for GET /workflows/{workflow_id}"""
 
     @patch("workflow_engine_poc.routers.workflows.WorkflowsService.get_workflow_entity")
     @patch("workflow_engine_poc.routers.workflows.get_db_session")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_get_workflow_success(self, mock_guard, mock_get_session, mock_get, mock_session, sample_workflow):
         """Test getting a workflow by ID"""
         mock_guard.return_value = lambda: "user-123"
@@ -156,6 +163,7 @@ class TestGetWorkflow:
     @patch("workflow_engine_poc.routers.workflows.WorkflowsService.get_workflow_entity")
     @patch("workflow_engine_poc.routers.workflows.get_db_session")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_get_workflow_not_found(self, mock_guard, mock_get_session, mock_get, mock_session):
         """Test getting a non-existent workflow"""
         mock_guard.return_value = lambda: "user-123"
@@ -172,6 +180,7 @@ class TestGetWorkflow:
 # ========== Create Workflow Tests ==========
 
 
+@pytest.mark.api
 class TestCreateWorkflow:
     """Tests for POST /workflows/"""
 
@@ -195,6 +204,7 @@ class TestCreateWorkflow:
     @patch("workflow_engine_poc.routers.workflows.WorkflowsService.create_workflow")
     @patch("workflow_engine_poc.routers.workflows.get_db_session")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_create_workflow_duplicate(self, mock_guard, mock_get_session, mock_create, mock_session):
         """Test creating a workflow with duplicate name"""
         mock_guard.return_value = lambda: "user-123"
@@ -214,6 +224,7 @@ class TestCreateWorkflow:
 
     @patch("workflow_engine_poc.routers.workflows.get_db_session")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_create_workflow_invalid_config(self, mock_guard, mock_get_session, mock_session):
         """Test creating a workflow with invalid configuration"""
         mock_guard.return_value = lambda: "user-123"
@@ -230,12 +241,14 @@ class TestCreateWorkflow:
 # ========== Delete Workflow Tests ==========
 
 
+@pytest.mark.api
 class TestDeleteWorkflow:
     """Tests for DELETE /workflows/{workflow_id}"""
 
     @patch("workflow_engine_poc.routers.workflows.WorkflowsService.delete_workflow")
     @patch("workflow_engine_poc.routers.workflows.get_db_session")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_delete_workflow_success(self, mock_guard, mock_get_session, mock_delete, mock_session):
         """Test deleting a workflow"""
         mock_guard.return_value = lambda: "user-123"
@@ -253,6 +266,7 @@ class TestDeleteWorkflow:
     @patch("workflow_engine_poc.routers.workflows.WorkflowsService.delete_workflow")
     @patch("workflow_engine_poc.routers.workflows.get_db_session")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_delete_workflow_not_found(self, mock_guard, mock_get_session, mock_delete, mock_session):
         """Test deleting a non-existent workflow"""
         mock_guard.return_value = lambda: "user-123"
@@ -269,11 +283,13 @@ class TestDeleteWorkflow:
 # ========== Validate Workflow Tests ==========
 
 
+@pytest.mark.api
 class TestValidateWorkflow:
     """Tests for POST /workflows/validate"""
 
     @patch("workflow_engine_poc.routers.workflows.Request")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_validate_workflow_success(self, mock_guard, mock_request_class, sample_workflow_config):
         """Test validating a valid workflow configuration"""
         mock_guard.return_value = lambda: "user-123"
@@ -307,6 +323,7 @@ class TestValidateWorkflow:
 
     @patch("workflow_engine_poc.routers.workflows.Request")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_validate_workflow_with_errors(self, mock_guard, mock_request_class):
         """Test validating an invalid workflow configuration"""
         mock_guard.return_value = lambda: "user-123"
@@ -349,12 +366,14 @@ class TestValidateWorkflow:
 # ========== Execute Workflow Tests ==========
 
 
+@pytest.mark.api
 class TestExecuteWorkflow:
     """Tests for POST /workflows/{workflow_id}/execute"""
 
     @pytest.mark.skip(reason="Execute endpoint requires complex workflow engine setup and async execution mocking")
     @patch("workflow_engine_poc.routers.workflows.Request")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_execute_workflow_success(self, mock_guard, mock_request_class):
         """Test executing a workflow"""
         mock_guard.return_value = lambda: "user-123"
@@ -366,6 +385,7 @@ class TestExecuteWorkflow:
     @pytest.mark.skip(reason="Execute endpoint requires complex workflow engine setup")
     @patch("workflow_engine_poc.routers.workflows.Request")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_execute_workflow_with_backend(self, mock_guard, mock_request_class):
         """Test executing a workflow with specific backend"""
         mock_guard.return_value = lambda: "user-123"
@@ -375,12 +395,14 @@ class TestExecuteWorkflow:
 # ========== Stream Workflow Tests ==========
 
 
+@pytest.mark.api
 class TestStreamWorkflow:
     """Tests for GET /workflows/{workflow_id}/stream"""
 
     @pytest.mark.skip(reason="Stream endpoint requires SSE setup and async streaming mocking")
     @patch("workflow_engine_poc.routers.workflows.Request")
     @patch("workflow_engine_poc.routers.workflows.api_key_or_user_guard")
+    @pytest.mark.api
     def test_stream_workflow_execution(self, mock_guard, mock_request_class):
         """Test streaming workflow execution updates"""
         mock_guard.return_value = lambda: "user-123"

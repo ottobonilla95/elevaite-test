@@ -56,9 +56,11 @@ def registered_steps_list():
     ]
 
 
+@pytest.mark.api
 class TestRegisterStep:
     """Tests for POST /steps/register endpoint"""
 
+    @pytest.mark.api
     def test_register_step_success(self, authenticated_client: TestClient, sample_step_config):
         """Test successfully registering a new step"""
         with patch.object(
@@ -74,6 +76,7 @@ class TestRegisterStep:
             assert data["step_type"] == "custom_processor"
             mock_register.assert_called_once_with(sample_step_config)
 
+    @pytest.mark.api
     def test_register_step_missing_required_field(self, authenticated_client: TestClient):
         """Test registering step with missing required field"""
         incomplete_config = {
@@ -92,6 +95,7 @@ class TestRegisterStep:
             assert response.status_code == 500
             assert "Missing required field" in response.json()["detail"]
 
+    @pytest.mark.api
     def test_register_step_duplicate_type(self, authenticated_client: TestClient, sample_step_config):
         """Test registering step with duplicate step_type"""
         with patch.object(
@@ -104,6 +108,7 @@ class TestRegisterStep:
             assert response.status_code == 500
             assert "already registered" in response.json()["detail"]
 
+    @pytest.mark.api
     def test_register_step_invalid_execution_type(self, authenticated_client: TestClient):
         """Test registering step with invalid execution_type"""
         invalid_config = {
@@ -122,6 +127,7 @@ class TestRegisterStep:
 
             assert response.status_code == 500
 
+    @pytest.mark.api
     def test_register_step_with_rpc_endpoint(self, authenticated_client: TestClient):
         """Test registering RPC step with endpoint"""
         rpc_config = {
@@ -142,6 +148,7 @@ class TestRegisterStep:
             assert response.status_code == 200
             assert response.json()["step_type"] == "rpc_processor"
 
+    @pytest.mark.api
     def test_register_step_with_rest_api(self, authenticated_client: TestClient):
         """Test registering REST API step"""
         rest_config = {
@@ -164,9 +171,11 @@ class TestRegisterStep:
             assert response.json()["step_type"] == "rest_api_call"
 
 
+@pytest.mark.api
 class TestListRegisteredSteps:
     """Tests for GET /steps endpoint"""
 
+    @pytest.mark.api
     def test_list_steps_success(self, authenticated_client: TestClient, registered_steps_list):
         """Test listing all registered steps"""
         with patch.object(
@@ -185,6 +194,7 @@ class TestListRegisteredSteps:
             assert data["steps"][0]["step_type"] == "trigger"
             mock_list.assert_called_once()
 
+    @pytest.mark.api
     def test_list_steps_empty(self, authenticated_client: TestClient):
         """Test listing when no steps are registered"""
         with patch.object(
@@ -199,6 +209,7 @@ class TestListRegisteredSteps:
             assert data["steps"] == []
             assert data["total"] == 0
 
+    @pytest.mark.api
     def test_list_steps_error_handling(self, authenticated_client: TestClient):
         """Test error handling when listing steps fails"""
         with patch.object(
@@ -211,6 +222,7 @@ class TestListRegisteredSteps:
             assert response.status_code == 500
             assert "Database connection failed" in response.json()["detail"]
 
+    @pytest.mark.api
     def test_list_steps_includes_all_types(self, authenticated_client: TestClient):
         """Test that list includes local, RPC, and REST steps"""
         mixed_steps = [
@@ -235,9 +247,11 @@ class TestListRegisteredSteps:
             assert "rest" in execution_types
 
 
+@pytest.mark.api
 class TestGetStepInfo:
     """Tests for GET /steps/{step_type} endpoint"""
 
+    @pytest.mark.api
     def test_get_step_info_success(self, authenticated_client: TestClient):
         """Test getting information about a specific step"""
         step_info = {
@@ -266,6 +280,7 @@ class TestGetStepInfo:
             assert "parameters" in data
             mock_get.assert_called_once_with("custom_processor")
 
+    @pytest.mark.api
     def test_get_step_info_not_found(self, authenticated_client: TestClient):
         """Test getting info for non-existent step type"""
         with patch.object(
@@ -278,6 +293,7 @@ class TestGetStepInfo:
             assert response.status_code == 404
             assert "not found" in response.json()["detail"].lower()
 
+    @pytest.mark.api
     def test_get_step_info_builtin_step(self, authenticated_client: TestClient):
         """Test getting info for built-in step type"""
         builtin_step = {
@@ -300,6 +316,7 @@ class TestGetStepInfo:
             assert data["step_type"] == "trigger"
             assert data["execution_type"] == "local"
 
+    @pytest.mark.api
     def test_get_step_info_error_handling(self, authenticated_client: TestClient):
         """Test error handling when getting step info fails"""
         with patch.object(
@@ -312,6 +329,7 @@ class TestGetStepInfo:
             assert response.status_code == 500
             assert "Internal error" in response.json()["detail"]
 
+    @pytest.mark.api
     def test_get_step_info_with_special_characters(self, authenticated_client: TestClient):
         """Test getting step info with special characters in step_type"""
         step_info = {

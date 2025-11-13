@@ -7,6 +7,7 @@ expression evaluation, and complex conditional logic.
 
 import asyncio
 from typing import Dict, Any
+import pytest
 
 from workflow_engine_poc.condition_evaluator import (
     condition_evaluator,
@@ -20,6 +21,7 @@ from workflow_engine_poc.workflow_engine import WorkflowEngine
 from workflow_engine_poc.step_registry import StepRegistry
 
 
+@pytest.mark.unit
 async def test_condition_evaluator():
     """Test the condition evaluator with various conditions"""
 
@@ -87,6 +89,7 @@ async def test_condition_evaluator():
     print(f"   ✅ OR expression: {result} (expected True)")
 
 
+@pytest.mark.unit
 async def test_conditional_workflow():
     """Test conditional execution in a workflow"""
 
@@ -187,9 +190,7 @@ async def test_conditional_workflow():
     # Debug: Check step conditions and results
     print(f"   Debug - Step results:")
     for step_id, step_result in execution_context.step_results.items():
-        print(
-            f"     {step_id}: {step_result.status.value} - {step_result.error_message or 'No error'}"
-        )
+        print(f"     {step_id}: {step_result.status.value} - {step_result.error_message or 'No error'}")
 
     # Check initial step output
     initial_output = execution_context.step_results.get("initial_step")
@@ -205,9 +206,7 @@ async def test_conditional_workflow():
     ]
     expected_skipped = ["failure_step"]
 
-    if set(executed_steps) == set(expected_executed) and set(skipped_steps) == set(
-        expected_skipped
-    ):
+    if set(executed_steps) == set(expected_executed) and set(skipped_steps) == set(expected_skipped):
         print("   ✅ Conditional execution worked as expected!")
     else:
         print("   ❌ Conditional execution did not work as expected")
@@ -217,6 +216,7 @@ async def test_conditional_workflow():
         print(f"     Actual skipped: {skipped_steps}")
 
 
+@pytest.mark.unit
 async def test_complex_conditions():
     """Test complex conditional expressions"""
 
@@ -332,16 +332,8 @@ async def test_complex_conditions():
     # Expected: data_step, production_check, and feature_check should execute
     # error_alert should be skipped (error rate is 0.02 < 0.05 and user_count is 150 > 50)
 
-    executed_count = sum(
-        1
-        for result in execution_context.step_results.values()
-        if result.status.value == "completed"
-    )
-    skipped_count = sum(
-        1
-        for result in execution_context.step_results.values()
-        if result.status.value == "skipped"
-    )
+    executed_count = sum(1 for result in execution_context.step_results.values() if result.status.value == "completed")
+    skipped_count = sum(1 for result in execution_context.step_results.values() if result.status.value == "skipped")
 
     print(f"   Total executed: {executed_count}, skipped: {skipped_count}")
 

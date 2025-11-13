@@ -258,6 +258,7 @@ async def test_streaming_nonexistent_workflow():
         assert response.status_code == 404
 
 
+@pytest.mark.e2e
 def test_streaming_headers():
     """Test that streaming endpoints return correct SSE headers"""
     # Create a simple workflow

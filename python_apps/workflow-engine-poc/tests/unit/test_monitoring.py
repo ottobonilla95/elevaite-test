@@ -8,6 +8,7 @@ for production monitoring and debugging of workflow executions.
 import asyncio
 import time
 from typing import Dict, Any
+import pytest
 
 from workflow_engine_poc.monitoring import monitoring, MetricData, TraceData
 from workflow_engine_poc.execution_context import ExecutionContext, UserContext
@@ -15,6 +16,7 @@ from workflow_engine_poc.workflow_engine import WorkflowEngine
 from workflow_engine_poc.step_registry import StepRegistry
 
 
+@pytest.mark.unit
 async def test_monitoring_system():
     """Test the monitoring system components"""
 
@@ -52,6 +54,7 @@ async def test_monitoring_system():
     print(f"   Recorded errors in metrics")
 
 
+@pytest.mark.unit
 async def test_workflow_tracing():
     """Test workflow execution tracing"""
 
@@ -129,6 +132,7 @@ async def test_workflow_tracing():
     print(f"   Completed steps: {summary.get('completed_steps', 0)}")
 
 
+@pytest.mark.unit
 async def test_step_tracing():
     """Test individual step tracing"""
 
@@ -188,6 +192,7 @@ async def test_step_tracing():
             print(f"     ❌ Failed: {e}")
 
 
+@pytest.mark.unit
 async def test_monitoring_api_endpoints():
     """Test monitoring API endpoints"""
 
@@ -251,6 +256,7 @@ async def test_monitoring_api_endpoints():
         print(f"   Monitoring summary: {len(health.get('monitoring', {}))}")
 
 
+@pytest.mark.unit
 async def test_performance_monitoring():
     """Test performance monitoring with multiple workflows"""
 
