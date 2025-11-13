@@ -24,6 +24,7 @@ from ..db.models import (
     Prompt,
 )
 from ..services.agents_service import AgentsService, AgentsListQuery
+from ..schemas import AgentToolBindingCreate, AgentToolBindingUpdate
 
 from rbac_sdk import (
     HDR_API_KEY,
@@ -219,7 +220,7 @@ async def list_agent_tools(
 @router.post("/{agent_id}/tools", response_model=AgentToolBinding, dependencies=[Depends(api_key_or_user_guard("edit_agent"))])
 async def attach_tool_to_agent(
     agent_id: str,
-    body: Dict[str, Any],
+    body: AgentToolBindingCreate,
     session: Session = Depends(get_db_session),
     # RBAC headers for Swagger UI testing
     api_key: Optional[str] = Security(api_key_header),
@@ -232,10 +233,10 @@ async def attach_tool_to_agent(
         return AgentsService.attach_tool_to_agent(
             session,
             agent_id,
-            tool_id=body.get("tool_id"),
-            local_tool_name=body.get("local_tool_name"),
-            override_parameters=body.get("override_parameters", {}),
-            is_active=bool(body.get("is_active", True)),
+            tool_id=body.tool_id,
+            local_tool_name=body.local_tool_name,
+            override_parameters=body.override_parameters or {},
+            is_active=body.is_active,
         )
     except ValueError as ve:
         msg = str(ve)
@@ -255,7 +256,7 @@ async def attach_tool_to_agent(
 async def update_agent_tool_binding(
     agent_id: str,
     binding_id: str,
-    body: Dict[str, Any],
+    body: AgentToolBindingUpdate,
     session: Session = Depends(get_db_session),
     # RBAC headers for Swagger UI testing
     api_key: Optional[str] = Security(api_key_header),
@@ -265,7 +266,7 @@ async def update_agent_tool_binding(
     account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ):
     try:
-        return AgentsService.update_agent_tool_binding(session, agent_id, binding_id, body)
+        return AgentsService.update_agent_tool_binding(session, agent_id, binding_id, body.model_dump(exclude_unset=True))
     except ValueError as ve:
         msg = str(ve)
         if msg in {"Binding not found"}:

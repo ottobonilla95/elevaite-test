@@ -23,6 +23,7 @@ from ..db.models import (
 from ..tools.registry import tool_registry
 from ..services.tools_service import ToolsService
 from ..util import api_key_or_user_guard
+from ..schemas import ToolStubUpdate
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 
@@ -410,11 +411,11 @@ async def get_tool(
 @router.patch("/{tool_name}")
 async def update_tool_stub(
     tool_name: str,
-    body: Dict[str, Any],
+    body: ToolStubUpdate,
     _principal: str = Depends(api_key_or_user_guard("edit_tool")),
 ):
     """Stub for updating a tool."""
-    return {"message": "Not implemented yet", "tool_name": tool_name, "request": body}
+    return {"message": "Not implemented yet", "tool_name": tool_name, "request": body.model_dump(exclude_unset=True)}
 
 
 @router.delete("/{tool_name}")

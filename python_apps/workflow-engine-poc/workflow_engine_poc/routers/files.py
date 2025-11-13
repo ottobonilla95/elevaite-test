@@ -10,13 +10,14 @@ from datetime import datetime
 
 from ..execution_context import ExecutionContext, UserContext
 from ..util import api_key_or_user_guard
+from ..schemas import FileUploadResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"])
 
 
-@router.post("/upload")
+@router.post("/upload", response_model=FileUploadResponse)
 async def upload_file(
     file: UploadFile = File(...),
     workflow_id: Optional[str] = Form(None),

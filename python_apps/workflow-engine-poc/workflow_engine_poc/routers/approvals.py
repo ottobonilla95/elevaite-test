@@ -5,7 +5,7 @@ Approvals API router: list, get, approve, deny
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
@@ -13,21 +13,16 @@ from sqlmodel import Session
 
 from ..db.database import get_db_session
 from ..services.approvals_service import ApprovalsService
-from ..db.models import ApprovalStatus
+from ..db.models import ApprovalStatus, ApprovalRequestRead
 from ..workflow_engine import WorkflowEngine
 from ..util import api_key_or_user_guard
+from ..schemas import ApprovalDecisionRequest, ApprovalDecisionResponse
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
 
 
-class DecisionBody(BaseModel):
-    payload: Optional[Dict[str, Any]] = None
-    decided_by: Optional[str] = None
-    comment: Optional[str] = None
-
-
-@router.get("/")
-@router.get("")
+@router.get("/", response_model=List[ApprovalRequestRead])
+@router.get("", response_model=List[ApprovalRequestRead])
 async def list_approvals(
     execution_id: Optional[str] = None,
     status: Optional[str] = None,
@@ -41,7 +36,7 @@ async def list_approvals(
     )
 
 
-@router.get("/{approval_id}")
+@router.get("/{approval_id}", response_model=ApprovalRequestRead)
 async def get_approval(
     approval_id: str,
     session: Session = Depends(get_db_session),
@@ -53,7 +48,7 @@ async def get_approval(
     return rec
 
 
-def _decision_output(decision: str, body: DecisionBody) -> Dict[str, Any]:
+def _decision_output(decision: str, body: ApprovalDecisionRequest) -> Dict[str, Any]:
     return {
         "decision": decision,
         "payload": body.payload or {},
@@ -63,10 +58,10 @@ def _decision_output(decision: str, body: DecisionBody) -> Dict[str, Any]:
     }
 
 
-@router.post("/{approval_id}/approve")
+@router.post("/{approval_id}/approve", response_model=ApprovalDecisionResponse)
 async def approve(
     approval_id: str,
-    body: DecisionBody,
+    body: ApprovalDecisionRequest,
     request: Request,
     session: Session = Depends(get_db_session),
     _principal: str = Depends(api_key_or_user_guard("approve_request")),
@@ -96,18 +91,18 @@ async def approve(
     if backend == "dbos":
         # No direct DBOS event signaling from the API. The DBOS step now polls the database
         # for this approval decision. We've already updated the DB record above.
-        return {"status": "ok", "backend": backend}
+        return ApprovalDecisionResponse(status="ok", backend=backend)
     else:
         # Resume local engine
         engine: WorkflowEngine = request.app.state.workflow_engine
         await engine.resume_execution(execution_id, step_id, _decision_output("approved", body))
-        return {"status": "ok", "backend": backend}
+        return ApprovalDecisionResponse(status="ok", backend=backend)
 
 
-@router.post("/{approval_id}/deny")
+@router.post("/{approval_id}/deny", response_model=ApprovalDecisionResponse)
 async def deny(
     approval_id: str,
-    body: DecisionBody,
+    body: ApprovalDecisionRequest,
     request: Request,
     session: Session = Depends(get_db_session),
     _principal: str = Depends(api_key_or_user_guard("deny_request")),
@@ -134,8 +129,8 @@ async def deny(
 
     if backend == "dbos":
         # DBOS workflow now polls the database for the decision; nothing to signal here
-        return {"status": "ok", "backend": backend}
+        return ApprovalDecisionResponse(status="ok", backend=backend)
     else:
         engine: WorkflowEngine = request.app.state.workflow_engine
         await engine.resume_execution(execution_id, step_id, _decision_output("denied", body))
-        return {"status": "ok", "backend": backend}
+        return ApprovalDecisionResponse(status="ok", backend=backend)
