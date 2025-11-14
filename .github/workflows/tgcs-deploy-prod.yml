@@ -1,43 +1,40 @@
-name: Deploy to Testing (EKS)
+name: TGCS - Deploy to Production
 
 on:
-  push:
-    branches: [ testing ]
+  # Prod: Manual trigger only - but always from our release branch
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: testing-deploy-${{ github.sha }}
-  cancel-in-progress: true
+  # don't allow concurrent builds to env
+  group: tgcs-deploy-prod
+  cancel-in-progress: false
 
 jobs:
   build-and-push-all:
     name: Build & Push ALL images
     runs-on: ubuntu-latest
-    outputs:
-      ui_tag:            ${{ steps.main_tags.outputs.ui_tag }}
-      api_tag:           ${{ steps.main_tags.outputs.api_tag }}
-      analytics_api_tag: ${{ steps.main_tags.outputs.analytics_api_tag }}
-      auth_tag:          ${{ steps.main_tags.outputs.auth_tag }}
-      retr_power_tag:    ${{ steps.build_retrievers.outputs.retr_power_tag }}
-      retr_sql_tag:      ${{ steps.build_retrievers.outputs.retr_sql_tag }}
-      retr_tgcs_tag:     ${{ steps.build_retrievers.outputs.retr_tgcs_tag }}
-      retr_topgun_tag:   ${{ steps.build_retrievers.outputs.retr_topgun_tag }}
-      retr_video_tag:    ${{ steps.build_retrievers.outputs.retr_video_tag }}
     env:
       ECR_REGISTRY: ${{ secrets.TGCS_ECR_REGISTRY }}
-      TAG: testing-${{ github.sha }}
+      # using run ID because can be run multiple times against same git commit
+      TAG: prod-${{ github.run_id }}
+    outputs:
+      tag: ${{ steps.set_tags.outputs.tag }}
     steps:
+      # always checkout from release branch
       - uses: actions/checkout@v4
+        with:
+          ref: tgcs-release
 
       - uses: docker/setup-buildx-action@v3
 
       - uses: aws-actions/configure-aws-credentials@v3
         with:
-          aws-access-key-id: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.STAGE_AWS_REGION }}
+          aws-access-key-id: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.PROD_AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v1
 
@@ -46,9 +43,9 @@ jobs:
           IMAGE="${ECR_REGISTRY}/elevaite-toshiba-ui"
           docker build \
             --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
-            --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs-testing.iopex.ai/auth-api \
-            --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs-testing.iopex.ai/api/core/ \
-            --build-arg NEXT_PUBLIC_API_URL=https://tgcs-testing.iopex.ai \
+            --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs.iopex.ai/auth-api \
+            --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs.iopex.ai/api/core/ \
+            --build-arg NEXT_PUBLIC_API_URL=https://tgcs.iopex.ai \
             --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED="email,biometric" \
             --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
             -f apps/toshiba/Dockerfile \
@@ -132,7 +129,7 @@ jobs:
     needs: build-and-push-all
     uses: iopexses/elev8s/.github/workflows/reusable-dep-to-env.yml@main
     with:
-      environment: testing
+      environment: prod
       toshiba_ui_tag:            ${{ needs.build-and-push-all.outputs.ui_tag }}
       toshiba_api_tag:           ${{ needs.build-and-push-all.outputs.api_tag }}
       toshiba_analytics_api_tag: ${{ needs.build-and-push-all.outputs.analytics_api_tag }}
@@ -144,8 +141,11 @@ jobs:
       retr_topgun_tag:           ${{ needs.build-and-push-all.outputs.retr_topgun_tag }}
       retr_video_tag:            ${{ needs.build-and-push-all.outputs.retr_video_tag }}
     secrets:
+      PROD_AWS_ACCESS_KEY_ID:      ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+      PROD_AWS_SECRET_ACCESS_KEY:  ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+      PROD_AWS_REGION:             ${{ secrets.PROD_AWS_REGION }}
+      PROD_EKS_CLUSTER_NAME:       ${{ secrets.PROD_EKS_CLUSTER_NAME }}
       STAGE_AWS_ACCESS_KEY_ID:     ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
       STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
       STAGE_AWS_REGION:            ${{ secrets.STAGE_AWS_REGION }}
-      STAGE_EKS_CLUSTER_NAME:      ${{ secrets.STAGE_EKS_CLUSTER_NAME }}
       ELEV8S_READ_TOKEN:           ${{ secrets.ELEV8S_READ_TOKEN }}

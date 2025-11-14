@@ -1,13 +1,14 @@
-name: PR Preview - Build, Push, Deploy
+name: TGCS - Deploy to PR Preview
 
 on:
+  # Automatic deploy on pull-request to main or release branch
   pull_request:
-    types: [opened, synchronize, reopened]
-    branches:
-      - testing
+    types: [ opened, synchronize, reopened ]
+    branches: [ tgcs-main, tgcs-release ]
 
 concurrency:
-  group: pr-review-${{ github.event.pull_request.number }}
+  # don't allow concurrent builds to same PR env, but separate PRs are allowed
+  group: tgcs-pr-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
@@ -18,18 +19,18 @@ jobs:
   check-changes:
     runs-on: self-hosted
     outputs:
-      toshiba_ui_changed: ${{ steps.filter.outputs.ui }}
-      toshiba_backend_changed: ${{ steps.filter.outputs.backend }}
-      toshiba_analytics_backend_changed: ${{ steps.filter.outputs.analytics_backend }}
-      toshiba_auth_changed: ${{ steps.filter.outputs.auth }}
-      toshiba_data_schema_changed: ${{ steps.filter.outputs.toshiba_data_schema }}
-      toshiba_sr_analytics_schema_changed: ${{ steps.filter.outputs.sr_analytics_schema }}
-      should_deploy: ${{ steps.set.outputs.should_deploy }}
+      toshiba_ui_changed:                  ${{ steps.detect_changes.outputs.ui }}
+      toshiba_backend_changed:             ${{ steps.detect_changes.outputs.backend }}
+      toshiba_analytics_backend_changed:   ${{ steps.detect_changes.outputs.analytics_backend }}
+      toshiba_auth_changed:                ${{ steps.detect_changes.outputs.auth }}
+      toshiba_data_schema_changed:         ${{ steps.detect_changes.outputs.toshiba_data_schema }}
+      toshiba_sr_analytics_schema_changed: ${{ steps.detect_changes.outputs.sr_analytics_schema }}
+      should_deploy:                       ${{ steps.decision.outputs.should_deploy }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Paths Filter
-        id: filter
+        id: detect_changes
         uses: dorny/paths-filter@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -48,14 +49,14 @@ jobs:
               - 'python_apps/toshiba_backends/sr_analytics_schema/**'
 
       - name: Decide deploy
-        id: set
+        id: decision
         run: |
-          if [[ "${{ steps.filter.outputs.ui }}" == "true" || \
-            "${{ steps.filter.outputs.backend }}" == "true" || \
-            "${{ steps.filter.outputs.analytics_backend }}" == "true" || \
-            "${{ steps.filter.outputs.toshiba_data_schema }}" == "true" || \
-            "${{ steps.filter.outputs.sr_analytics_schema }}" == "true" || \
-            "${{ steps.filter.outputs.auth }}" == "true" ]]; then
+          if [[ "${{ steps.detect_changes.outputs.ui }}" == "true" || \
+            "${{ steps.detect_changes.outputs.backend }}" == "true" || \
+            "${{ steps.detect_changes.outputs.analytics_backend }}" == "true" || \
+            "${{ steps.detect_changes.outputs.toshiba_data_schema }}" == "true" || \
+            "${{ steps.detect_changes.outputs.sr_analytics_schema }}" == "true" || \
+            "${{ steps.detect_changes.outputs.auth }}" == "true" ]]; then
             echo "should_deploy=true" >> $GITHUB_OUTPUT
           else
             echo "should_deploy=false" >> $GITHUB_OUTPUT
@@ -66,10 +67,11 @@ jobs:
     needs: check-changes
     runs-on: self-hosted
     outputs:
-      toshiba_ui_tag: ${{ steps.set_tags.outputs.ui_tag }}
-      toshiba_backend_tag: ${{ steps.set_tags.outputs.backend_tag }}
+      toshiba_ui_tag:                ${{ steps.set_tags.outputs.ui_tag }}
+      toshiba_backend_tag:           ${{ steps.set_tags.outputs.backend_tag }}
       toshiba_analytics_backend_tag: ${{ steps.set_tags.outputs.analytics_backend_tag }}
-      toshiba_auth_tag: ${{ steps.set_tags.outputs.auth_tag }}
+      toshiba_auth_tag:              ${{ steps.set_tags.outputs.auth_tag }}
+      # note: retrievers not built so not calculating tags for them
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
@@ -200,10 +202,10 @@ jobs:
       host_domain: dev.iopex.ai
       tls_secret_name: wildcard-cert-latest
       tls_secret_namespace: default
-      toshiba_ui_tag: ${{ needs.build-and-push.outputs.toshiba_ui_tag }}
-      toshiba_api_tag: ${{ needs.build-and-push.outputs.toshiba_backend_tag }}
+      toshiba_ui_tag:            ${{ needs.build-and-push.outputs.toshiba_ui_tag }}
+      toshiba_api_tag:           ${{ needs.build-and-push.outputs.toshiba_backend_tag }}
       toshiba_analytics_api_tag: ${{ needs.build-and-push.outputs.toshiba_analytics_backend_tag }}
-      toshiba_auth_tag: ${{ needs.build-and-push.outputs.toshiba_auth_tag }}
+      toshiba_auth_tag:          ${{ needs.build-and-push.outputs.toshiba_auth_tag }}
     secrets:
       KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
       ELEV8S_READ_TOKEN: ${{ secrets.ELEV8S_READ_TOKEN }}
