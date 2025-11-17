@@ -87,9 +87,26 @@ class ToolRegistry:
             )
         return out
 
-    # Placeholder for future MCP provider. For now we rely on DB persistence of MCP tools if any.
     def _load_mcp(self, session: Session) -> Dict[str, UnifiedTool]:
-        return {}
+        """Load MCP tools from database."""
+        # Query for tools with tool_type="mcp" and execution_type="api"
+        records = session.exec(select(DBTool).where(DBTool.tool_type == "mcp", DBTool.execution_type == "api")).all()
+
+        out: Dict[str, UnifiedTool] = {}
+        for r in records:
+            uri = f"mcp://{r.mcp_server_id}/{r.remote_name or r.name}"
+            out[r.name] = UnifiedTool(
+                name=r.name,
+                description=r.description,
+                parameters_schema=r.parameters_schema or {"type": "object", "properties": {}, "required": []},
+                return_schema=r.return_schema,
+                execution_type=r.execution_type or "api",
+                version=r.version or "1.0.0",
+                source="mcp",
+                uri=uri,
+                db_id=r.id,
+            )
+        return out
 
     # -------- Public API --------
     def get_unified_tools(self, session: Session) -> List[UnifiedTool]:
