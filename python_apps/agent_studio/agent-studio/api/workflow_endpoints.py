@@ -214,7 +214,9 @@ async def execute_workflow(
     # This fixes workflows created before the callable agent pattern was implemented
     from adapters.request_adapter import RequestAdapter
 
-    workflow_config_for_execution = RequestAdapter.migrate_legacy_workflow_config(workflow_config_for_execution)
+    logger.info(f"Before migration: {len(workflow_config_for_execution.get('steps', []))} steps")
+    workflow_config_for_execution = RequestAdapter.migrate_legacy_workflow_config(workflow_config_for_execution, db)
+    logger.info(f"After migration: {len(workflow_config_for_execution.get('steps', []))} steps")
 
     # Build execution order from connections/dependencies and expand "$prev" based on graph (non-streaming)
     try:
@@ -447,7 +449,7 @@ async def execute_workflow_async(
     # This fixes workflows created before the callable agent pattern was implemented
     from adapters.request_adapter import RequestAdapter
 
-    workflow_config_for_execution = RequestAdapter.migrate_legacy_workflow_config(workflow_config_for_execution)
+    workflow_config_for_execution = RequestAdapter.migrate_legacy_workflow_config(workflow_config_for_execution, db)
 
     # Build user context
     from workflow_core_sdk.execution.context_impl import UserContext
@@ -548,7 +550,7 @@ async def execute_workflow_stream(
     # This fixes workflows created before the callable agent pattern was implemented
     from adapters.request_adapter import RequestAdapter
 
-    workflow_config_for_execution = RequestAdapter.migrate_legacy_workflow_config(workflow_config_for_execution)
+    workflow_config_for_execution = RequestAdapter.migrate_legacy_workflow_config(workflow_config_for_execution, db)
 
     # Enable streaming for all agent steps in the workflow
     # AND fetch agent configuration from database if config is empty
@@ -666,6 +668,12 @@ async def execute_workflow_stream(
 
                                 # Merge with existing functions (e.g., agent tools from RequestAdapter)
                                 existing_functions = step_config.get("functions", [])
+                                logger.info(f"Existing functions before merge: {len(existing_functions)}")
+                                for func in existing_functions:
+                                    func_name = func.get("function", {}).get("name")
+                                    agent_id_in_func = func.get("function", {}).get("agent_id")
+                                    logger.info(f"  - Function: {func_name}, agent_id: {agent_id_in_func}")
+
                                 if existing_functions:
                                     # Add DB tools to existing functions (agent tools take precedence)
                                     step_config["functions"] = existing_functions + functions

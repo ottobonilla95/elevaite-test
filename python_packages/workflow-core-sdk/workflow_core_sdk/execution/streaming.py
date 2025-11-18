@@ -96,20 +96,20 @@ class StreamManager:
     async def emit_execution_event(self, event: StreamEvent) -> None:
         """Emit an event to all streams listening to this execution"""
         execution_id = event.execution_id
-        logger.info(f"=== EMIT_EXECUTION_EVENT: type={event.type}, execution_id={execution_id} ===")
+        logger.debug(f"Emit event: type={event.type}, execution_id={execution_id}")
         if execution_id not in self.execution_streams:
-            logger.warning(f"=== NO STREAMS REGISTERED FOR EXECUTION {execution_id} ===")
+            logger.debug(f"No streams registered for execution {execution_id}")
             return
 
         sse_data = event.to_sse()
         dead_queues = set()
         queue_count = len(self.execution_streams[execution_id])
-        logger.info(f"=== ADDING EVENT TO {queue_count} QUEUE(S) ===")
+        logger.debug(f"Adding event to {queue_count} queue(s)")
 
         for queue in self.execution_streams[execution_id]:
             try:
                 queue.put_nowait(sse_data)
-                logger.info(f"=== EVENT ADDED TO QUEUE (qsize={queue.qsize()}) ===")
+                logger.debug(f"Event added to queue (qsize={queue.qsize()})")
             except asyncio.QueueFull:
                 logger.warning(f"Stream queue full for execution {execution_id}")
                 dead_queues.add(queue)

@@ -20,7 +20,7 @@ class RequestAdapter:
     """Adapts Agent Studio API requests to SDK format"""
 
     @staticmethod
-    def migrate_legacy_workflow_config(workflow_config: Dict[str, Any]) -> Dict[str, Any]:
+    def migrate_legacy_workflow_config(workflow_config: Dict[str, Any], db: Optional[Any] = None) -> Dict[str, Any]:
         """
         Migrate legacy workflow configurations to use callable agent pattern.
 
@@ -35,18 +35,33 @@ class RequestAdapter:
 
         Args:
             workflow_config: Workflow configuration dict (may be modified in-place)
+            db: Optional database session for fetching agent metadata
 
         Returns:
             The migrated workflow configuration
         """
-        config = workflow_config.get("configuration", {})
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Handle both formats: workflow_config might be the full workflow dict or just the config
+        if "configuration" in workflow_config:
+            config = workflow_config.get("configuration", {})
+        else:
+            # workflow_config IS the configuration
+            config = workflow_config
+
         if not config:
+            logger.info("No configuration found, skipping migration")
             return workflow_config
 
         steps = config.get("steps", [])
         connections = config.get("connections", [])
 
+        logger.info(f"Migration check: {len(steps)} steps, {len(connections)} connections")
+
         if not steps or not connections:
+            logger.info("No steps or connections, skipping migration")
             return workflow_config
 
         # Build step map
@@ -65,10 +80,16 @@ class RequestAdapter:
             target_step = step_by_id.get(target_id)
 
             if not source_step or not target_step:
+                logger.debug(f"Connection {source_id} -> {target_id}: steps not found")
                 continue
 
             # Check if both are agent_execution steps
-            if source_step.get("step_type") == "agent_execution" and target_step.get("step_type") == "agent_execution":
+            source_type = source_step.get("step_type")
+            target_type = target_step.get("step_type")
+            logger.debug(f"Connection {source_id} ({source_type}) -> {target_id} ({target_type})")
+
+            if source_type == "agent_execution" and target_type == "agent_execution":
+                logger.info(f"Found agent-to-agent connection: {source_id} -> {target_id}")
                 target_agent_ids.add(target_id)
 
                 # Add target as callable function to source
@@ -83,12 +104,50 @@ class RequestAdapter:
                 )
 
                 if not existing_func:
+                    # Generate a valid function name (OpenAI requires ^[a-zA-Z0-9_-]+$)
+                    # Try to get agent metadata from database for better naming
+                    agent_type = target_step.get("config", {}).get("agent_type")
+                    step_name = target_step.get("name")
+                    agent_name_from_db = None
+
+                    # Try to fetch agent from database if we have a session
+                    if db:
+                        try:
+                            from workflow_core_sdk.services.agents_service import AgentsService
+
+                            db_agent = AgentsService.get_agent(db, target_id)
+                            if db_agent:
+                                agent_name_from_db = db_agent.name
+                                logger.debug(f"Fetched agent name from DB: {agent_name_from_db}")
+                        except Exception as e:
+                            logger.warning(f"Could not fetch agent {target_id} from database: {e}")
+
+                    logger.debug(
+                        f"Target step {target_id}: agent_type={agent_type}, step_name={step_name}, db_name={agent_name_from_db}"
+                    )
+
+                    # Determine function name with priority: agent_type > db_name > step_name > step_id
+                    if agent_type:
+                        func_name = agent_type
+                    elif agent_name_from_db:
+                        # Sanitize the DB name
+                        func_name = "".join(c if c.isalnum() or c in "_-" else "_" for c in agent_name_from_db)
+                        if func_name and not (func_name[0].isalpha() or func_name[0] == "_"):
+                            func_name = f"agent_{func_name}"
+                    elif step_name:
+                        # Sanitize the step name
+                        func_name = "".join(c if c.isalnum() or c in "_-" else "_" for c in step_name)
+                        if func_name and not (func_name[0].isalpha() or func_name[0] == "_"):
+                            func_name = f"agent_{func_name}"
+                    else:
+                        # Last resort: use step_id
+                        func_name = f"agent_{target_id}"
+
                     # Add target agent as callable function
                     agent_tool = {
                         "type": "function",
                         "function": {
-                            "name": target_step.get("config", {}).get("agent_type")
-                            or target_step.get("name", f"agent_{target_id}"),
+                            "name": func_name,
                             "description": f"Call the {target_step.get('name', 'agent')} to help with the task",
                             "parameters": {
                                 "type": "object",
@@ -104,15 +163,18 @@ class RequestAdapter:
                         },
                     }
                     source_step["config"]["functions"].append(agent_tool)
+                    logger.info(f"Added callable function '{func_name}' for agent {target_id}")
 
         # Remove target agents from steps and store in callable_agents
         if target_agent_ids:
+            logger.info(f"Migrating {len(target_agent_ids)} target agents to callable_agents")
             callable_agents = []
             new_steps = []
 
             for step in steps:
                 step_id = step.get("step_id")
                 if step_id in target_agent_ids:
+                    logger.info(f"Converting step {step_id} to callable agent")
                     # Convert step to callable agent metadata
                     callable_agent = {
                         "agent_id": step_id,
@@ -128,6 +190,9 @@ class RequestAdapter:
 
             config["steps"] = new_steps
             config["callable_agents"] = callable_agents
+            logger.info(f"Migration complete: {len(new_steps)} steps, {len(callable_agents)} callable agents")
+        else:
+            logger.info("No agent-to-agent connections found, no migration needed")
 
         return workflow_config
 
@@ -377,12 +442,24 @@ class RequestAdapter:
                             # Get target agent info
                             target_agent = agent_map.get(target_id)
                             if target_agent:
+                                # Generate a valid function name (OpenAI requires ^[a-zA-Z0-9_-]+$)
+                                # Prefer agent_type, fallback to sanitized name or step_id
+                                agent_type = target_agent.get("agent_type")
+                                if agent_type:
+                                    func_name = agent_type
+                                else:
+                                    # Sanitize the name: replace spaces and invalid chars with underscores
+                                    raw_name = target_agent.get("name", f"agent_{target_id}")
+                                    func_name = "".join(c if c.isalnum() or c in "_-" else "_" for c in raw_name)
+                                    # Ensure it starts with a letter or underscore
+                                    if func_name and not (func_name[0].isalpha() or func_name[0] == "_"):
+                                        func_name = f"agent_{func_name}"
+
                                 # Add target agent as a callable function
                                 agent_tool = {
                                     "type": "function",
                                     "function": {
-                                        "name": target_agent.get("agent_type")
-                                        or target_agent.get("name", f"agent_{target_id}"),
+                                        "name": func_name,
                                         "description": target_agent.get(
                                             "description", f"Call the {target_agent.get('name', 'agent')} to help with the task"
                                         ),
