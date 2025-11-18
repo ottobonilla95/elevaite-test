@@ -133,35 +133,11 @@ class RequestAdapter:
         agents = as_config.get("agents", [])
         connections = as_config.get("connections", [])
 
-        # Build a map of agent_id -> agent for quick lookup
+        # Build a map of agent_id -> agent for quick lookup (needed for callable agent pattern)
         agent_map = {agent.get("agent_id") or agent.get("node_id"): agent for agent in agents}
 
-        # Identify which agents are targets of agent-to-agent connections (should be callable tools, not separate steps)
-        # Agents that are targets of tool-to-agent connections should still be created as steps
-        target_agent_ids = set()
-        for connection in connections:
-            source_id = connection.get("source_agent_id")
-            target_id = connection.get("target_agent_id")
-            if source_id and target_id:
-                source_agent = agent_map.get(source_id)
-                target_agent = agent_map.get(target_id)
-
-                if not source_agent or not target_agent:
-                    continue
-
-                # Only mark as target if source is an agent (not a tool) and target is an agent (not a tool)
-                # Check node_type first (preferred), fall back to agent_type for backward compatibility
-                source_node_type = source_agent.get("node_type") or (
-                    "tool" if source_agent.get("agent_type") == "tool" else "agent"
-                )
-                target_node_type = target_agent.get("node_type") or (
-                    "tool" if target_agent.get("agent_type") == "tool" else "agent"
-                )
-
-                if source_node_type != "tool" and target_node_type != "tool":
-                    target_agent_ids.add(target_id)
-
-        # Convert agents to steps, including tool nodes
+        # Convert ALL agents to steps (including targets) so they show up in the UI
+        # We'll also add target agents as callable functions to source agents below
         for agent in agents:
             agent_id = agent.get("agent_id") or agent.get("node_id")
 
@@ -212,10 +188,7 @@ class RequestAdapter:
                 sdk_steps.append(step)
                 continue
 
-            # Skip agents that are targets of connections (they're tools, not steps)
-            if agent_id in target_agent_ids:
-                continue
-
+            # Create agent execution step (all agents become steps now)
             step = {
                 "step_id": agent_id,
                 "step_type": "agent_execution",
@@ -233,70 +206,79 @@ class RequestAdapter:
             sdk_steps.append(step)
 
         # Build dependencies and input mappings from connections
+        # Also add target agents as callable functions for agent-to-agent communication
         for connection in connections:
             source_id = connection.get("source_agent_id")
             target_id = connection.get("target_agent_id")
 
             if source_id and target_id:
-                # Find target step and add source as dependency
-                for step in sdk_steps:
-                    if step["step_id"] == target_id:
-                        # Add dependency
-                        if source_id not in step["dependencies"]:
-                            step["dependencies"].append(source_id)
+                # Determine if this is an agent-to-agent connection or agent-to-tool connection
+                source_node_type = None
+                target_node_type = None
 
-                        # Set up input_mapping to pass source output to target
-                        # This is needed for both tool steps and agent steps
-                        if step["step_type"] == "tool_execution":
-                            # Pass the entire source step output as input_data
-                            step["input_mapping"][source_id] = source_id
-                        elif step["step_type"] == "agent_execution":
-                            # For agent steps, also pass the source output
-                            # This allows agents to receive tool results or previous agent outputs
-                            step["input_mapping"][source_id] = source_id
+                # Find the node types
+                for agent in agents:
+                    agent_id = agent.get("agent_id") or agent.get("node_id")
+                    if agent_id == source_id:
+                        source_node_type = agent.get("node_type") or ("tool" if agent.get("agent_type") == "tool" else "agent")
+                    if agent_id == target_id:
+                        target_node_type = agent.get("node_type") or ("tool" if agent.get("agent_type") == "tool" else "agent")
 
-                # For agent steps, add connected agents as tools (only for agent-to-agent connections)
-                # Skip if source is a tool step - tool steps don't call other steps as functions
-                source_step = next((s for s in sdk_steps if s["step_id"] == source_id), None)
-                if source_step and source_step["step_type"] == "agent_execution":
-                    # Ensure config exists
-                    if "config" not in source_step:
-                        source_step["config"] = {}
-                    if "functions" not in source_step["config"]:
-                        source_step["config"]["functions"] = []
+                # For agent-to-agent connections, add target as a callable function to source
+                if source_node_type == "agent" and target_node_type == "agent":
+                    # Find source step and add target agent as a callable function
+                    for step in sdk_steps:
+                        if step["step_id"] == source_id and step["step_type"] == "agent_execution":
+                            # Ensure config exists
+                            if "config" not in step:
+                                step["config"] = {}
+                            if "functions" not in step["config"]:
+                                step["config"]["functions"] = []
 
-                    # Get target agent info
-                    target_agent = agent_map.get(target_id)
-                    if target_agent:
-                        # Check node_type first (preferred), fall back to agent_type for backward compatibility
-                        target_node_type = target_agent.get("node_type") or (
-                            "tool" if target_agent.get("agent_type") == "tool" else "agent"
-                        )
-
-                        if target_node_type != "tool":
-                            # Add target agent as a tool/function (only for agent-to-agent connections)
-                            agent_tool = {
-                                "type": "function",
-                                "function": {
-                                    "name": target_agent.get("agent_type") or target_agent.get("name", f"agent_{target_id}"),
-                                    "description": target_agent.get(
-                                        "description", f"Call the {target_agent.get('name', 'agent')} to help with the task"
-                                    ),
-                                    "parameters": {
-                                        "type": "object",
-                                        "properties": {
-                                            "query": {
-                                                "type": "string",
-                                                "description": "The query or request to send to the agent",
-                                            }
+                            # Get target agent info
+                            target_agent = agent_map.get(target_id)
+                            if target_agent:
+                                # Add target agent as a callable function
+                                agent_tool = {
+                                    "type": "function",
+                                    "function": {
+                                        "name": target_agent.get("agent_type")
+                                        or target_agent.get("name", f"agent_{target_id}"),
+                                        "description": target_agent.get(
+                                            "description", f"Call the {target_agent.get('name', 'agent')} to help with the task"
+                                        ),
+                                        "parameters": {
+                                            "type": "object",
+                                            "properties": {
+                                                "query": {
+                                                    "type": "string",
+                                                    "description": "The query or request to send to the agent",
+                                                }
+                                            },
+                                            "required": ["query"],
                                         },
-                                        "required": ["query"],
+                                        # Store agent_id for execution
+                                        "agent_id": target_id,
                                     },
-                                    # Store agent_id for execution
-                                    "agent_id": target_id,
-                                },
-                            }
-                            source_step["config"]["functions"].append(agent_tool)
+                                }
+                                step["config"]["functions"].append(agent_tool)
+                            break
+                else:
+                    # For tool connections, add dependencies and input mappings
+                    for step in sdk_steps:
+                        if step["step_id"] == target_id:
+                            # Add dependency
+                            if source_id not in step["dependencies"]:
+                                step["dependencies"].append(source_id)
+
+                            # Set up input_mapping to pass source output to target
+                            if step["step_type"] == "tool_execution":
+                                # Pass the entire source step output as input_data
+                                step["input_mapping"][source_id] = source_id
+                            elif step["step_type"] == "agent_execution":
+                                # For agent steps, also pass the source output
+                                step["input_mapping"][source_id] = source_id
+                            break
 
         # Add other steps from configuration
         other_steps = as_config.get("steps", [])
