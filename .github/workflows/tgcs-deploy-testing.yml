@@ -1,3 +1,7 @@
+# IMPORTANT:
+# This workflow should never be called on the develop branch.
+# However, GitHub requires that we retain a skeleton in place because it determines the UI access based on the primary branch.
+
 name: TGCS - Deploy to Testing
 
 on:
@@ -16,125 +20,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-push-all:
-    name: Build & Push ALL images
+  wrong-workflow-branch:
     runs-on: ubuntu-latest
-    env:
-      ECR_REGISTRY: ${{ secrets.TGCS_ECR_REGISTRY }}
-      # using run ID because can be run multiple times against same git commit
-      TAG: testing-${{ github.run_id }}
-      #TAG: testing-${{ github.sha }}
-    outputs:
-      tag: ${{ steps.set_tags.outputs.tag }}
     steps:
-      # always checkout from main branch
-      - uses: actions/checkout@v4
-        with:
-          ref: tgcs-main
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: aws-actions/configure-aws-credentials@v3
-        with:
-          aws-access-key-id: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.STAGE_AWS_REGION }}
-
-      - uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Set tags
-        id: set_tags
+      - name: Block execution on non-tgcs branches
         run: |
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-
-      - name: Build UI
-        run: |
-          IMAGE="${ECR_REGISTRY}/elevaite-toshiba-ui"
-          docker build \
-            --build-arg NEXT_PUBLIC_AUTH_TENANT_ID=toshiba \
-            --build-arg NEXT_PUBLIC_AUTH_API_URL=https://tgcs-testing.iopex.ai/auth-api \
-            --build-arg NEXT_PUBLIC_BACKEND_URL=https://tgcs-testing.iopex.ai/api/core/ \
-            --build-arg NEXT_PUBLIC_API_URL=https://tgcs-testing.iopex.ai \
-            --build-arg NEXT_PUBLIC_MFA_METHODS_ENABLED="email,biometric" \
-            --build-arg NEXT_PUBLIC_MFA_ALLOW_DISABLE_ALL=false \
-            -f apps/toshiba/Dockerfile \
-            -t "${IMAGE}:${TAG}" \
-            .
-          docker push "${IMAGE}:${TAG}"
-
-      - name: Build API
-        run: |
-          IMAGE="${ECR_REGISTRY}/elevaite-toshiba-backend"
-          docker build \
-            -f python_apps/toshiba_backends/toshiba_backend/Dockerfile \
-            -t "${IMAGE}:${TAG}" \
-            python_apps/toshiba_backends/toshiba_backend
-          docker push "${IMAGE}:${TAG}"
-
-      - name: Build Analytics API
-        run: |
-          IMAGE="${ECR_REGISTRY}/elevaite-toshiba-analytics-backend"
-          docker build \
-            -f python_apps/toshiba_backends/analytics_backend/Dockerfile \
-            -t "${IMAGE}:${TAG}" \
-            python_apps/toshiba_backends/analytics_backend
-          docker push "${IMAGE}:${TAG}"
-
-      # Note: this is not a running service, just a container to hold the code and push to ECR
-      - name: Build Toshiba Data Schema image
-        run: |
-          IMAGE="${ECR_REGISTRY}/elevaite-toshiba-data-schema"
-          docker build \
-            -f python_apps/toshiba_backends/toshiba_data_schema/Dockerfile \
-            -t "${IMAGE}:${TAG}" \
-            python_apps/toshiba_backends/toshiba_data_schema
-          docker push "${IMAGE}:${TAG}"
-
-      - name: Build Auth
-        run: |
-          IMAGE="${ECR_REGISTRY}/elevaite-auth-api"
-          docker build \
-            -f python_apps/auth_api/Dockerfile \
-            -t "${IMAGE}:${TAG}" \
-            .
-          docker push "${IMAGE}:${TAG}"
-
-      - name: Build ALL retrievers
-        id: build_retrievers
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          for dir in python_apps/toshiba_backends/*retriever*; do
-            [[ -f "$dir/Dockerfile" ]] || continue
-            base="$(basename "$dir")"
-            case "$base" in
-              top_gun_retriever) repo="elevaite-toshiba-topgun-retriever" ;;
-              *)                 repo="elevaite-toshiba-${base//_/-}" ;;
-            esac
-
-            IMAGE="${ECR_REGISTRY}/${repo}"
-            echo ">> Building ${IMAGE}:${TAG} from ${dir}"
-            docker build -f "${dir}/Dockerfile" -t "${IMAGE}:${TAG}" "${dir}"
-            docker push "${IMAGE}:${TAG}"
-          done
-
-  deploy:
-    needs: build-and-push-all
-    uses: iopexses/elev8s/.github/workflows/reusable-dep-to-env.yml@main
-    with:
-      environment: testing
-      toshiba_ui_tag:            ${{ needs.build-and-push-all.outputs.tag }}
-      toshiba_api_tag:           ${{ needs.build-and-push-all.outputs.tag }}
-      toshiba_analytics_api_tag: ${{ needs.build-and-push-all.outputs.tag }}
-      toshiba_auth_tag:          ${{ needs.build-and-push-all.outputs.tag }}
-      retr_power_tag:            ${{ needs.build-and-push-all.outputs.tag }}
-      retr_sql_tag:              ${{ needs.build-and-push-all.outputs.tag }}
-      retr_tgcs_tag:             ${{ needs.build-and-push-all.outputs.tag }}
-      retr_topgun_tag:           ${{ needs.build-and-push-all.outputs.tag }}
-      retr_video_tag:            ${{ needs.build-and-push-all.outputs.tag }}
-    secrets:
-      STAGE_AWS_ACCESS_KEY_ID:     ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
-      STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
-      STAGE_AWS_REGION:            ${{ secrets.STAGE_AWS_REGION }}
-      STAGE_EKS_CLUSTER_NAME:      ${{ secrets.STAGE_EKS_CLUSTER_NAME }}
-      ELEV8S_READ_TOKEN:           ${{ secrets.ELEV8S_READ_TOKEN }}
+          # Issue special GitHub error message that appears as an Annotation on the failed workflow.
+          echo "::error::❌ WRONG BRANCH SELECTED. Only run TGCS workflows from TGCS branches (tgcs-main, tgcs-release, or feature branches)."
+          exit 1

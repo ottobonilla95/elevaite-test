@@ -1,6 +1,11 @@
 # This pipeline provides pre-built images for all application components in order to speed up PR builds.
 # PR builds only need to build the components that have changed within the PR.
 #
+# IMPORTANT:
+#  Only the version of this workflow on the 'develop' branch takes any effect because scheduled workflows always
+#  run from the primary branch.
+#  Thus, unlike all the other TGCS workflows, this one needs to be kept correct and up-to-date on the develop branch.
+#
 # TODO confirm that only the 'testing' env_name instances are used and avoid building the rest.
 # Note: the retrievers might also be used by main Elevaite.
 # Need to check for usages of the 'latest' tags in Elevaite deployments.

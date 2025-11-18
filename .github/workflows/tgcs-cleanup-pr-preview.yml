@@ -1,3 +1,7 @@
+# IMPORTANT:
+# This workflow should never be called on the develop branch.
+# However, GitHub requires that we retain a skeleton in place because it determines the UI access based on the primary branch.
+
 name: TGCS - Cleanup PR Preview
 
 on:
@@ -13,49 +17,11 @@ on:
         required: true
 
 jobs:
-  cleanup-preview:
-    uses: iopexses/elev8s/.github/workflows/reusable-cleanup-preview.yml@main
-    with:
-      pr_number: ${{ github.event.pull_request.number || inputs.pull_request_number }}
-    secrets:
-      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
-
-  deactivate-deployment:
-    needs: cleanup-preview
+  wrong-workflow-branch:
     runs-on: ubuntu-latest
-    permissions:
-      deployments: write
-    env:
-      ENV_NAME: PR-${{ github.event.pull_request.number }}-testing
     steps:
-      - name: Deactivate latest deployments for this PR env
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const envName = process.env.ENV_NAME;
-
-            const { data: deployments } = await github.request(
-              'GET /repos/{owner}/{repo}/deployments',
-              {owner, repo, environment: envName, per_page: 1 }
-            );
-
-            if (!deployments.length) {
-              core.info(`No deployment found for environment ${envName}`);
-              return;
-            }
-
-            const deployment_id = deployments[0].id;
-
-            await github.request(
-              'POST /repos/{owner}/{repo}/deployments/{deployment_id}/statuses',
-              {
-                owner, repo, deployment_id,
-                state: 'inactive',
-                description: 'Preview cleaned up; environment deactivated'
-              }
-            );
-
-            core.info(`Deployment ${deployment_id} marked as inactive for ${envName}.`);
+      - name: Block execution on non-tgcs branches
+        run: |
+          # Issue special GitHub error message that appears as an Annotation on the failed workflow.
+          echo "::error::❌ WRONG BRANCH SELECTED. Only run TGCS workflows from TGCS branches (tgcs-main, tgcs-release, or feature branches)."
+          exit 1
