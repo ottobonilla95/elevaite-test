@@ -335,6 +335,7 @@ class ResponseAdapter:
         # Convert configuration
         sdk_config = wf_dict.get("configuration", {})
         sdk_steps = sdk_config.get("steps", [])
+        callable_agents_metadata = sdk_config.get("callable_agents", [])
 
         # Separate agent steps from other steps
         # Support both "agent" (migrated) and "agent_execution" (new) step types
@@ -411,6 +412,14 @@ class ResponseAdapter:
             # Avoid duplicates (connections might be in both dependencies and connections array)
             if connection not in connections:
                 connections.append(connection)
+
+        # Add callable agents (targets of agent-to-agent connections) to agents array
+        # These were stored separately in the configuration so they show up in the UI
+        for callable_agent in callable_agents_metadata:
+            # Only add if not already in agents array (avoid duplicates)
+            agent_id = callable_agent.get("agent_id") or callable_agent.get("node_id")
+            if not any(a.get("agent_id") == agent_id for a in agents):
+                agents.append(callable_agent)
 
         # Build Agent Studio configuration
         as_response["configuration"] = {

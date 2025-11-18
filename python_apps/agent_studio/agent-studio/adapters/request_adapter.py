@@ -136,10 +136,37 @@ class RequestAdapter:
         # Build a map of agent_id -> agent for quick lookup (needed for callable agent pattern)
         agent_map = {agent.get("agent_id") or agent.get("node_id"): agent for agent in agents}
 
-        # Convert ALL agents to steps (including targets) so they show up in the UI
-        # We'll also add target agents as callable functions to source agents below
+        # Identify which agents are targets of agent-to-agent connections
+        # These will be added as callable functions, not as separate steps
+        target_agent_ids = set()
+        for connection in connections:
+            source_id = connection.get("source_agent_id")
+            target_id = connection.get("target_agent_id")
+
+            if source_id and target_id:
+                # Check if both are agents (not tools)
+                source_agent = agent_map.get(source_id)
+                target_agent = agent_map.get(target_id)
+
+                if source_agent and target_agent:
+                    source_node_type = source_agent.get("node_type") or (
+                        "tool" if source_agent.get("agent_type") == "tool" else "agent"
+                    )
+                    target_node_type = target_agent.get("node_type") or (
+                        "tool" if target_agent.get("agent_type") == "tool" else "agent"
+                    )
+
+                    # If both are agents, mark target as callable (not a step)
+                    if source_node_type == "agent" and target_node_type == "agent":
+                        target_agent_ids.add(target_id)
+
+        # Convert agents to steps, but skip target agents (they'll be callable functions)
         for agent in agents:
             agent_id = agent.get("agent_id") or agent.get("node_id")
+
+            # Skip agents that are targets of agent-to-agent connections
+            if agent_id in target_agent_ids:
+                continue
 
             # Determine node type: check node_type first (preferred), fall back to agent_type for backward compatibility
             node_type = agent.get("node_type") or ("tool" if agent.get("agent_type") == "tool" else "agent")
@@ -286,6 +313,17 @@ class RequestAdapter:
 
         # Build SDK configuration with steps
         sdk_config = {"steps": sdk_steps}
+
+        # Store callable agents metadata so the UI can retrieve them
+        # These are agents that are targets of agent-to-agent connections
+        callable_agents = []
+        for agent_id in target_agent_ids:
+            agent = agent_map.get(agent_id)
+            if agent:
+                callable_agents.append(agent)
+
+        if callable_agents:
+            sdk_config["callable_agents"] = callable_agents
 
         # Preserve connections array for UI metadata (convert AS format to SDK format)
         if connections:
