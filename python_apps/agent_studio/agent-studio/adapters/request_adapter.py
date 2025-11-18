@@ -12,12 +12,124 @@ Node Type Discrimination:
 - Backward compatibility: Falls back to checking `agent_type == "tool"` if `node_type` is not present
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Set
 from uuid import UUID
 
 
 class RequestAdapter:
     """Adapts Agent Studio API requests to SDK format"""
+
+    @staticmethod
+    def migrate_legacy_workflow_config(workflow_config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Migrate legacy workflow configurations to use callable agent pattern.
+
+        This fixes workflows created before the callable agent pattern was implemented,
+        where both source and target agents were created as steps, causing both to execute.
+
+        The fix:
+        1. Identifies agent-to-agent connections
+        2. Removes target agents from steps array
+        3. Stores them in callable_agents metadata
+        4. Adds them as callable functions to source agents
+
+        Args:
+            workflow_config: Workflow configuration dict (may be modified in-place)
+
+        Returns:
+            The migrated workflow configuration
+        """
+        config = workflow_config.get("configuration", {})
+        if not config:
+            return workflow_config
+
+        steps = config.get("steps", [])
+        connections = config.get("connections", [])
+
+        if not steps or not connections:
+            return workflow_config
+
+        # Build step map
+        step_by_id = {s.get("step_id"): s for s in steps if s.get("step_id")}
+
+        # Identify agent-to-agent connections
+        target_agent_ids: Set[str] = set()
+        for conn in connections:
+            source_id = conn.get("source_step_id")
+            target_id = conn.get("target_step_id")
+
+            if not source_id or not target_id:
+                continue
+
+            source_step = step_by_id.get(source_id)
+            target_step = step_by_id.get(target_id)
+
+            if not source_step or not target_step:
+                continue
+
+            # Check if both are agent_execution steps
+            if source_step.get("step_type") == "agent_execution" and target_step.get("step_type") == "agent_execution":
+                target_agent_ids.add(target_id)
+
+                # Add target as callable function to source
+                if "config" not in source_step:
+                    source_step["config"] = {}
+                if "functions" not in source_step["config"]:
+                    source_step["config"]["functions"] = []
+
+                # Check if function already exists
+                existing_func = next(
+                    (f for f in source_step["config"]["functions"] if f.get("function", {}).get("agent_id") == target_id), None
+                )
+
+                if not existing_func:
+                    # Add target agent as callable function
+                    agent_tool = {
+                        "type": "function",
+                        "function": {
+                            "name": target_step.get("config", {}).get("agent_type")
+                            or target_step.get("name", f"agent_{target_id}"),
+                            "description": f"Call the {target_step.get('name', 'agent')} to help with the task",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "The query or request to send to the agent",
+                                    }
+                                },
+                                "required": ["query"],
+                            },
+                            "agent_id": target_id,
+                        },
+                    }
+                    source_step["config"]["functions"].append(agent_tool)
+
+        # Remove target agents from steps and store in callable_agents
+        if target_agent_ids:
+            callable_agents = []
+            new_steps = []
+
+            for step in steps:
+                step_id = step.get("step_id")
+                if step_id in target_agent_ids:
+                    # Convert step to callable agent metadata
+                    callable_agent = {
+                        "agent_id": step_id,
+                        "node_id": step_id,
+                        "name": step.get("name", "Agent"),
+                        "agent_type": step.get("config", {}).get("agent_type"),
+                        "node_type": "agent",
+                        "config": step.get("config", {}),
+                    }
+                    callable_agents.append(callable_agent)
+                else:
+                    new_steps.append(step)
+
+            config["steps"] = new_steps
+            config["callable_agents"] = callable_agents
+
+        return workflow_config
 
     @staticmethod
     def adapt_workflow_execute_request(as_request: Dict[str, Any]) -> Dict[str, Any]:

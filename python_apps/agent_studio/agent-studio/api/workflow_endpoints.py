@@ -210,6 +210,12 @@ async def execute_workflow(
     workflow_config_for_execution["workflow_id"] = str(workflow_id)
     workflow_config_for_execution["name"] = sdk_workflow.name
 
+    # Migrate legacy workflows to use callable agent pattern
+    # This fixes workflows created before the callable agent pattern was implemented
+    from adapters.request_adapter import RequestAdapter
+
+    workflow_config_for_execution = RequestAdapter.migrate_legacy_workflow_config(workflow_config_for_execution)
+
     # Build execution order from connections/dependencies and expand "$prev" based on graph (non-streaming)
     try:
         steps_list = workflow_config_for_execution.get("steps") or []
@@ -437,6 +443,12 @@ async def execute_workflow_async(
     workflow_config_for_execution["workflow_id"] = str(workflow_id)
     workflow_config_for_execution["name"] = sdk_workflow.name
 
+    # Migrate legacy workflows to use callable agent pattern
+    # This fixes workflows created before the callable agent pattern was implemented
+    from adapters.request_adapter import RequestAdapter
+
+    workflow_config_for_execution = RequestAdapter.migrate_legacy_workflow_config(workflow_config_for_execution)
+
     # Build user context
     from workflow_core_sdk.execution.context_impl import UserContext
 
@@ -531,6 +543,12 @@ async def execute_workflow_stream(
     workflow_config_for_execution = sdk_workflow.configuration.copy() if sdk_workflow.configuration else {}
     workflow_config_for_execution["workflow_id"] = str(workflow_id)
     workflow_config_for_execution["name"] = sdk_workflow.name
+
+    # Migrate legacy workflows to use callable agent pattern
+    # This fixes workflows created before the callable agent pattern was implemented
+    from adapters.request_adapter import RequestAdapter
+
+    workflow_config_for_execution = RequestAdapter.migrate_legacy_workflow_config(workflow_config_for_execution)
 
     # Enable streaming for all agent steps in the workflow
     # AND fetch agent configuration from database if config is empty
