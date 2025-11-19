@@ -180,10 +180,14 @@ def extract_rfq_from_snow_agent(rfq_text: str) -> str:
     try:
         import asyncio
         extracted_quote_metadata = asyncio.run(ServiceNowAgentClient().trigger_quote_extraction(rfq_text, SERVICENOW_NOW_ASSIST_USER_REFERENCE))
-        return json.dumps(extracted_quote_metadata)
+        if "model_output" in extracted_quote_metadata:
+            quote_specs = extracted_quote_metadata["model_output"]
+        else:
+            quote_specs = extracted_quote_metadata
+        return json.dumps(quote_specs)   
     except Exception as e:
         return json.dumps({
-            "error": f"Quote Extraction failed"
+            "error": f"Quote Extraction failed {e}"
         })
 
     
