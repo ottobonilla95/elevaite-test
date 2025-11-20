@@ -144,6 +144,9 @@ export function ToolsConfigPanel({ toolNode, ...props }: ToolsConfigPanelProps):
         const trimmedValue = value.trim();
         const effectiveType: "integer" | "number" | "string" = isUsingResponse ? "string" : type;
 
+        // When using response mapping, empty values are allowed (to reference the whole response)
+        if (isUsingResponse && trimmedValue === "") return undefined;
+
         if (!required && trimmedValue === "") return undefined;
         if (required && trimmedValue === "") return "This field is required.";
 
@@ -315,15 +318,15 @@ export function ToolsConfigPanel({ toolNode, ...props }: ToolsConfigPanelProps):
                                         <CommonInput
                                             field={key}
                                             label={parameter.title ?? (parameter.description ?? key)}
-                                            required={requiredSet.has(key)}
+                                            required={requiredSet.has(key) && !parameter.isUsingResponse}
                                             errorMessage={parameter.isEdited ? parameter.error : undefined}
                                             placeholder={
-                                                parameter.isUsingResponse ? "response_parameter_name"
+                                                parameter.isUsingResponse ? "field_name (or leave empty for whole response)"
                                                     : parameter.type === "integer" ? "e.g., 12345"
                                                         : parameter.type === "number" ? "e.g., 123.45"
                                                             : "e.g., Static text"
                                             }
-                                            info={`Expected input type:\n${parameter.isUsingResponse ? "string (response variable reference)" : parameter.type}`}
+                                            info={`Expected input type:\n${parameter.isUsingResponse ? "string (response variable reference)\nLeave empty to use the entire response" : parameter.type}`}
                                             onChange={(value, field) => { handleParameterChange(field ?? key, value); }}
                                             controlledValue={parameter.value !== undefined ? String(parameter.value) : ""}
                                             disabled={!props.isToolEditing}
@@ -331,7 +334,7 @@ export function ToolsConfigPanel({ toolNode, ...props }: ToolsConfigPanelProps):
                                         />
                                         <div className={["parameter-input-details", props.isToolEditing ? "editing" : ""].filter(Boolean).join(" ")}>
                                             <div className="result-checkbox"
-                                                title={`Link to connected tool's or agent's response.\nUse a response reference to utilize its value.\nE.g., If you expect agent_id.response.parameter_name\nYou can use "parameter_name" as the value when you use the link.`}>
+                                                title={`Link to connected tool's or agent's response.\n\nLeave empty to use the entire response.\nOr specify a field name to use a specific field.\n\nE.g., If the response is {result: "value"},\nuse "result" to access just "value".`}>
                                                 <ElevaiteIcons.SVGConnect />
                                                 <CommonCheckbox
                                                     checked={Boolean(parameter.isUsingResponse)}
