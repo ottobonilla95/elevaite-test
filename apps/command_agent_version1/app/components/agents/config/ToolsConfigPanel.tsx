@@ -70,6 +70,22 @@ export function ToolsConfigPanel({ toolNode, ...props }: ToolsConfigPanelProps):
         if (typeof nodeConfig.tool_description === "string") merged.tool_description = nodeConfig.tool_description;
         if (typeof nodeConfig.tool_defaultName === "string") merged.tool_defaultName = nodeConfig.tool_defaultName;
 
+        // First, apply static_params (static values)
+        const staticParams = nodeConfig.static_params;
+        if (staticParams && typeof staticParams === "object" && !Array.isArray(staticParams)) {
+            for (const [key, value] of Object.entries(staticParams as Record<string, unknown>)) {
+                const prop = merged.properties[key];
+                if (prop) {
+                    merged.properties[key] = {
+                        ...prop,
+                        value: typeof value === "number" || typeof value === "string" ? value : String(value),
+                        isUsingResponse: false,
+                    };
+                }
+            }
+        }
+
+        // Then, apply param_mapping (dynamic mappings from previous steps)
         const parameterMapping = nodeConfig.param_mapping;
         if (parameterMapping && typeof parameterMapping === "object" && !Array.isArray(parameterMapping)) {
             const entries = Object.entries(parameterMapping as Record<string, unknown>);
@@ -98,6 +114,7 @@ export function ToolsConfigPanel({ toolNode, ...props }: ToolsConfigPanelProps):
                             isUsingResponse: true,
                         };
                     } else {
+                        // Non-response mapping in param_mapping (shouldn't happen with new code, but handle for backwards compatibility)
                         merged.properties[key] = {
                             ...prop,
                             value: typeof mapped === "number" || typeof mapped === "string" ? mapped : String(mapped),

@@ -1990,7 +1990,9 @@ function AgentConfigForm(): JSX.Element {
     if (parameters.tool_description) mapping.step_description = parameters.tool_description;
 
     const paramMapping: Record<string, unknown> = {};
+    const staticParams: Record<string, unknown> = {};
     let usesResponse = false;
+
     for (const [key, value] of Object.entries(parameters.properties)) {
       if (value.isUsingResponse) {
         usesResponse = true;
@@ -1999,10 +2001,13 @@ function AgentConfigForm(): JSX.Element {
         // Otherwise use "response.fieldName" to reference a specific field
         paramMapping[key] = v !== undefined && String(v).trim() !== "" ? `response.${String(v)}` : "response";
       } else {
-        paramMapping[key] = value.value;
+        // Static values go to static_params
+        staticParams[key] = value.value;
       }
     }
+
     mapping.param_mapping = paramMapping;
+    mapping.static_params = staticParams;
 
     if (usesResponse) {
       mapping.input_mapping = { response: "$prev" };
