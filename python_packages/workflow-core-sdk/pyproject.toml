@@ -29,14 +29,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-workspace = ["llm-gateway", "elevaite-ingestion", "elevaite-logger"]
 dev = ["pytest>=7.4.3", "pytest-asyncio>=0.21.1"]
-
-[tool.uv.sources]
-llm-gateway = { workspace = true }
-elevaite-ingestion = { workspace = true }
-db-core = { workspace = true }
-elevaite-logger = { workspace = true }
 
 [tool.hatch.version]
 path = "workflow_core_sdk/__init__.py"
