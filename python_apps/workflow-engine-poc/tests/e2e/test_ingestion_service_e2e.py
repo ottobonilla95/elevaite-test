@@ -10,13 +10,14 @@ Tests the complete flow of:
 
 Prerequisites:
 - Ingestion service running on port 8001 (default)
-- Workflow engine PoC running on port 8002 (default) or set WORKFLOW_API_URL
+- Workflow engine PoC running on port 8000 (default) or set WORKFLOW_API_URL
+- Workflow engine MUST have INGESTION_SERVICE_URL=http://localhost:8001 set
 - Both services connected to their databases
 - DBOS configured for both services
 
 Environment Variables:
 - TEST_INGESTION_SERVICE=1 (required to run this test)
-- WORKFLOW_API_URL (default: http://localhost:8002)
+- WORKFLOW_API_URL (default: http://localhost:8000)
 - INGESTION_API_URL (default: http://localhost:8001)
 """
 
@@ -47,8 +48,7 @@ async def test_ingestion_service_workflow_e2e():
     - Final workflow success
     """
     # Use real HTTP client to connect to running services
-    # Note: Port 8000 is typically Agent Studio, port 8002 is workflow-engine-poc
-    workflow_api_url = os.getenv("WORKFLOW_API_URL", "http://localhost:8002")
+    workflow_api_url = os.getenv("WORKFLOW_API_URL", "http://localhost:8000")
     ingestion_api_url = os.getenv("INGESTION_API_URL", "http://localhost:8001")
 
     # Define workflow with ingestion step
