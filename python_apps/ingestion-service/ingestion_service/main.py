@@ -36,9 +36,9 @@ async def lifespan(app: FastAPI):
     init_db()
     logger.info("Database initialized")
 
-    # Initialize DBOS
+    # Initialize DBOS (synchronous call)
     try:
-        await DBOS.launch()
+        DBOS.launch()
         logger.info("DBOS initialized")
     except Exception as e:
         logger.error(f"Failed to initialize DBOS: {e}")
@@ -169,4 +169,3 @@ async def get_ingestion_job(
         updated_at=job.updated_at,
         completed_at=job.completed_at,
     )
-
