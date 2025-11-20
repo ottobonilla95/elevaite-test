@@ -1995,7 +1995,9 @@ function AgentConfigForm(): JSX.Element {
       if (value.isUsingResponse) {
         usesResponse = true;
         const v = value.value;
-        paramMapping[key] = v !== undefined && String(v).trim() !== "" ? `response.${String(v)}` : undefined;
+        // If value is empty, use "response" to reference the whole response
+        // Otherwise use "response.fieldName" to reference a specific field
+        paramMapping[key] = v !== undefined && String(v).trim() !== "" ? `response.${String(v)}` : "response";
       } else {
         paramMapping[key] = value.value;
       }

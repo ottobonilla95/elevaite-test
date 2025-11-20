@@ -77,11 +77,24 @@ export function ToolsConfigPanel({ toolNode, ...props }: ToolsConfigPanelProps):
                 for (const [key, mapped] of entries) {
                     const prop = merged.properties[key];
 
-                    if (typeof mapped === "string" && (mapped.startsWith("response.") || mapped.startsWith("$prev.response."))) {
-                        const sliceFrom = mapped.startsWith("$prev.response.") ? "$prev.response.".length : "response.".length;
+                    if (typeof mapped === "string" && (mapped === "response" || mapped === "$prev" || mapped.startsWith("response.") || mapped.startsWith("$prev.response."))) {
+                        // Handle response mapping
+                        let fieldValue = "";
+
+                        if (mapped === "response" || mapped === "$prev") {
+                            // Using the whole response - leave value empty
+                            fieldValue = "";
+                        } else if (mapped.startsWith("$prev.response.")) {
+                            // Extract field name after "$prev.response."
+                            fieldValue = mapped.slice("$prev.response.".length);
+                        } else if (mapped.startsWith("response.")) {
+                            // Extract field name after "response."
+                            fieldValue = mapped.slice("response.".length);
+                        }
+
                         merged.properties[key] = {
                             ...prop,
-                            value: mapped.slice(sliceFrom),
+                            value: fieldValue,
                             isUsingResponse: true,
                         };
                     } else {
