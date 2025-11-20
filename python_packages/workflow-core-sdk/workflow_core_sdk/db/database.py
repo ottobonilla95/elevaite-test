@@ -16,12 +16,12 @@ from contextlib import contextmanager
 # Priority order:
 # 1. SQLALCHEMY_DATABASE_URL (standard across all apps)
 # 2. WORKFLOW_ENGINE_DATABASE_URL (workflow-engine-poc specific)
-# 3. Default to workflow_engine database
+# 3. Default to agent_studio_sdk database
 DATABASE_URL = os.getenv(
     "SQLALCHEMY_DATABASE_URL",
     os.getenv(
         "WORKFLOW_ENGINE_DATABASE_URL",
-        "postgresql://elevaite:elevaite@localhost:5433/agent_studio",
+        "postgresql://elevaite:elevaite@localhost:5433/agent_studio_sdk",
     ),
 )
 

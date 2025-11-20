@@ -20,15 +20,13 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
     "SQLALCHEMY_DATABASE_URL",
     os.getenv(
         "AGENT_STUDIO_DATABASE_URL",
-        "postgresql://elevaite:elevaite@localhost:5433/agent_studio",
+        "postgresql://elevaite:elevaite@localhost:5433/agent_studio_sdk",
     ),
 )
 
 # Validate database URL is set
 if not SQLALCHEMY_DATABASE_URL:
-    raise RuntimeError(
-        "Database URL not configured. Set SQLALCHEMY_DATABASE_URL environment variable."
-    )
+    raise RuntimeError("Database URL not configured. Set SQLALCHEMY_DATABASE_URL environment variable.")
 
 # Create engine with connection pooling - fail hard if connection fails
 try:
@@ -42,6 +40,7 @@ try:
 
     # Test the connection immediately
     from sqlalchemy import text
+
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
 

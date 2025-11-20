@@ -48,8 +48,40 @@ def create_workflow(workflow: schemas.WorkflowCreate, db: Session = Depends(get_
     # Adapt request from AS to SDK format
     sdk_workflow_data = RequestAdapter.adapt_workflow_create_request(workflow.model_dump())
 
-    # Create workflow via SDK
-    sdk_workflow = WorkflowsService.create_workflow(db, sdk_workflow_data)
+    # IMPORTANT: save_workflow stores the entire payload as configuration
+    # So we need to flatten the structure: extract configuration and merge with top-level fields
+    # This matches what the update endpoint does
+    config = sdk_workflow_data.get("configuration", {})
+    save_payload = config.copy()
+
+    # Add top-level fields to the payload
+    if "name" in sdk_workflow_data:
+        save_payload["name"] = sdk_workflow_data["name"]
+    if "description" in sdk_workflow_data:
+        save_payload["description"] = sdk_workflow_data["description"]
+    if "version" in sdk_workflow_data:
+        save_payload["version"] = sdk_workflow_data["version"]
+    if "tags" in sdk_workflow_data:
+        save_payload["tags"] = sdk_workflow_data["tags"]
+    if "created_by" in sdk_workflow_data:
+        save_payload["created_by"] = sdk_workflow_data["created_by"]
+    if "editable" in sdk_workflow_data:
+        save_payload["editable"] = sdk_workflow_data["editable"]
+    if "status" in sdk_workflow_data:
+        save_payload["status"] = sdk_workflow_data["status"]
+
+    # Create workflow via SDK using the flattened payload
+    from workflow_core_sdk.db.service import DatabaseService
+    import uuid as uuid_module
+
+    db_service = DatabaseService()
+    wf_id = str(uuid_module.uuid4())
+    db_service.save_workflow(db, wf_id, save_payload)
+
+    # Get the created workflow
+    sdk_workflow = WorkflowsService.get_workflow_entity(db, wf_id)
+    if not sdk_workflow:
+        raise RuntimeError("Failed to retrieve saved workflow entity")
 
     # Adapt response to Agent Studio format (pass db for agent data lookup)
     as_response = ResponseAdapter.adapt_workflow_response(sdk_workflow, db)

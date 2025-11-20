@@ -172,11 +172,20 @@ def create_agent(agent: schemas.AgentCreate, db: Session = Depends(get_db)):
     # Convert AS AgentCreate to SDK format
     agent_data = agent.model_dump()
 
+    # Validate that the system prompt exists before creating the agent
+    system_prompt_id = agent_data.get("system_prompt_id")
+    if system_prompt_id:
+        system_prompt = PromptsService.get_prompt(db, str(system_prompt_id))
+        if not system_prompt:
+            raise HTTPException(
+                status_code=400, detail=f"System prompt {system_prompt_id} not found. Please create the prompt first."
+            )
+
     # Add required SDK fields that AS doesn't have
     if "provider_type" not in agent_data or agent_data["provider_type"] is None:
         agent_data["provider_type"] = "openai"  # Default to OpenAI
 
-    if "provider_config" not in agent_data:
+    if "provider_config" not in agent_data or agent_data["provider_config"] is None:
         agent_data["provider_config"] = {}
 
     # Store AS-specific fields in provider_config for later retrieval
@@ -295,7 +304,17 @@ def list_agents(
     sdk_agents = AgentsService.list_agents(db, query)
 
     # Convert to response format using adapter
-    return [sdk_agent_to_response(agent, db) for agent in sdk_agents]
+    # Use error handling to skip agents that fail conversion (e.g., missing prompts)
+    result = []
+    for agent in sdk_agents:
+        try:
+            result.append(sdk_agent_to_response(agent, db))
+        except Exception as e:
+            # Log the error but continue processing other agents
+            print(f"Warning: Failed to convert agent {agent.id} ({agent.name}): {e}")
+            continue
+
+    return result
 
 
 @router.get("/{agent_id}", response_model=schemas.AgentResponse)
