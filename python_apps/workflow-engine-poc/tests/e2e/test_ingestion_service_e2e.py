@@ -10,15 +10,24 @@ Tests the complete flow of:
 
 Prerequisites:
 - Ingestion service running on port 8001 (default)
-- Workflow engine PoC running on port 8000 (default) or set WORKFLOW_API_URL
+- Workflow engine PoC running on port 8006 (default) or set WORKFLOW_API_URL
 - Workflow engine MUST have INGESTION_SERVICE_URL=http://localhost:8001 set
+- Workflow engine MUST have RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL=true for E2E testing
 - Both services connected to their databases
 - DBOS configured for both services
 
+Start Workflow Engine for E2E Testing:
+    INGESTION_SERVICE_URL=http://localhost:8001 \\
+    RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL=true \\
+    uvicorn workflow_engine_poc.main:app --host 0.0.0.0 --port 8006 --reload
+
 Environment Variables:
 - TEST_INGESTION_SERVICE=1 (required to run this test)
-- WORKFLOW_API_URL (default: http://localhost:8000)
+- WORKFLOW_API_URL (default: http://localhost:8006)
 - INGESTION_API_URL (default: http://localhost:8001)
+
+Usage:
+    TEST_INGESTION_SERVICE=1 pytest tests/e2e/test_ingestion_service_e2e.py -v -s
 """
 
 import os
@@ -48,21 +57,29 @@ async def test_ingestion_service_workflow_e2e():
     - Final workflow success
     """
     # Use real HTTP client to connect to running services
-    workflow_api_url = os.getenv("WORKFLOW_API_URL", "http://localhost:8000")
+    workflow_api_url = os.getenv("WORKFLOW_API_URL", "http://localhost:8006")
     ingestion_api_url = os.getenv("INGESTION_API_URL", "http://localhost:8001")
 
-    # Define workflow with ingestion step
-    # Agent Studio API supports direct 'steps' in configuration
+    # Define workflow with trigger and ingestion step
+    # Workflow-engine-poc requires a trigger step and configuration wrapper
     workflow_config = {
         "name": "E2E Ingestion Test",
         "description": "Test workflow with ingestion service integration",
         "configuration": {
             "steps": [
                 {
+                    "step_id": "trigger",
+                    "step_type": "trigger",
+                    "name": "Webhook Trigger",
+                    "dependencies": [],
+                    "parameters": {"kind": "webhook"},
+                    "config": {},
+                },
+                {
                     "step_id": "ingest",
                     "step_type": "ingestion",
                     "name": "Ingest Documents",
-                    "dependencies": [],
+                    "dependencies": ["trigger"],
                     "config": {
                         "ingestion_config": {
                             "source_type": "local",
@@ -73,27 +90,37 @@ async def test_ingestion_service_workflow_e2e():
                         },
                         "tenant_id": "test-tenant-123",
                     },
-                }
+                },
             ],
         },
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    # Set up authentication headers (required for RBAC)
+    # For E2E tests, we need all required RBAC headers
+    headers = {
+        "X-elevAIte-UserId": "test-user-123",
+        "X-elevAIte-OrganizationId": "test-org-456",
+        "X-elevAIte-AccountId": "test-account-789",
+        "X-elevAIte-ProjectId": "test-project-789",
+    }
+
+    async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
         # Step 1: Create workflow
         print("\n=== Step 1: Creating workflow ===")
         create_response = await client.post(f"{workflow_api_url}/api/workflows/", json=workflow_config)
         assert create_response.status_code == 200, f"Failed to create workflow: {create_response.text}"
 
         workflow_data = create_response.json()
-        # Agent Studio returns both id (int) and workflow_id (UUID)
-        # Use workflow_id (UUID) for execution endpoint
-        workflow_id = workflow_data["workflow_id"]
+        # Use workflow_id (UUID) for execution, not id (integer)
+        workflow_id = workflow_data.get("workflow_id")
+        assert workflow_id, f"No workflow_id in response: {workflow_data}"
         print(f"Created workflow: {workflow_id}")
 
-        # Step 2: Execute workflow
+        # Step 2: Execute workflow with local backend
         print("\n=== Step 2: Executing workflow ===")
         execute_response = await client.post(
-            f"{workflow_api_url}/api/workflows/{workflow_id}/execute", json={"trigger_data": {"message": "Start ingestion"}}
+            f"{workflow_api_url}/api/workflows/{workflow_id}/execute",
+            json={"backend": "local", "trigger": {"kind": "webhook", "data": {"message": "Start ingestion"}}, "wait": True},
         )
         assert execute_response.status_code == 200, f"Failed to execute workflow: {execute_response.text}"
 
