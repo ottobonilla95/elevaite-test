@@ -480,7 +480,7 @@ class RequestAdapter:
                                 step["config"]["functions"].append(agent_tool)
                             break
                 else:
-                    # For tool connections, add dependencies and input mappings
+                    # For tool and agent connections, add dependencies and input mappings
                     for step in sdk_steps:
                         if step["step_id"] == target_id:
                             # Add dependency
@@ -488,12 +488,21 @@ class RequestAdapter:
                                 step["dependencies"].append(source_id)
 
                             # Set up input_mapping to pass source output to target
+                            # Use proper alias-to-path mapping format
                             if step["step_type"] == "tool_execution":
-                                # Pass the entire source step output as input_data
-                                step["input_mapping"][source_id] = source_id
+                                # For tool steps, check if config already has input_mapping
+                                # If not, create a default one that maps the previous step's response
+                                if "input_mapping" not in step["config"] or not step["config"]["input_mapping"]:
+                                    step["config"]["input_mapping"] = {}
+                                # Only add if not already present (don't override frontend-provided mappings)
+                                if "response" not in step["config"]["input_mapping"]:
+                                    step["config"]["input_mapping"]["response"] = "$prev"
                             elif step["step_type"] == "agent_execution":
-                                # For agent steps, also pass the source output
-                                step["input_mapping"][source_id] = source_id
+                                # For agent steps, pass the source output as input
+                                if "input_mapping" not in step["config"] or not step["config"]["input_mapping"]:
+                                    step["config"]["input_mapping"] = {}
+                                if "input" not in step["config"]["input_mapping"]:
+                                    step["config"]["input_mapping"]["input"] = "$prev"
                             break
 
         # Add other steps from configuration
