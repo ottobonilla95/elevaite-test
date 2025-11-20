@@ -13,6 +13,7 @@ This package contains all step implementations organized by domain:
 - merge_steps: Merge node for combining multiple inputs
 - tool_steps: Tool execution
 - human_steps: Human approval/interaction
+- ingestion_steps: Ingestion service integration
 
 Each module contains related step functions that can be registered
 with the step registry for workflow execution.
@@ -48,4 +49,6 @@ __all__ = [
     "tool_execution_step",
     # Human steps
     "human_approval_step",
+    # Ingestion steps
+    "ingestion_step",
 ]

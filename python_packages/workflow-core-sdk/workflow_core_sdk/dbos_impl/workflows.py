@@ -294,6 +294,54 @@ async def dbos_execute_workflow_durable(
                     # Event received -> loop to re-execute this step with updated DB messages
                     continue
 
+                # Handle ingesting status (for ingestion service integration)
+                if status_lower == "ingesting":
+                    # Emit step-level ingesting event (but do NOT mark execution as WAITING)
+                    try:
+                        step_ingesting_evt = create_step_event(
+                            execution_id=execution_id,
+                            step_id=step_id,
+                            step_status="ingesting",
+                            workflow_id=workflow_id,
+                            output_data=res.get("output_data"),
+                        )
+                        await stream_manager.emit_execution_event(step_ingesting_evt)
+                        await stream_manager.emit_workflow_event(step_ingesting_evt)
+                    except Exception:
+                        pass
+
+                    # Get callback_topic from output_data
+                    output_data = res.get("output_data", {})
+                    callback_topic = output_data.get("callback_topic")
+
+                    if not callback_topic:
+                        # Fallback: compute callback_topic if not in output_data
+                        callback_topic = make_decision_topic(execution_id, step_id, suffix="ingestion_done")
+
+                    # Block on DBOS event for ingestion completion
+                    try:
+                        from dbos import DBOS as _DBOS
+
+                        payload = None
+                        wid = cast(str, _DBOS.workflow_id)
+                        adapter.logger.info(
+                            f"DBOS ingesting: exec={execution_id} wf_id={wid} step={step_id} topic={callback_topic}"
+                        )
+                        while payload is None:
+                            payload = await _DBOS.recv_async(topic=callback_topic, timeout_seconds=3600)
+                        adapter.logger.info(
+                            f"DBOS ingestion event received for step={step_id} execution={execution_id}: {bool(payload)}"
+                        )
+                    except Exception as _ev_err:
+                        adapter.logger.warning(f"DBOS recv_async failed for ingestion: {_ev_err}; retrying in 1s")
+                        import asyncio as _asyncio
+
+                        await _asyncio.sleep(1)
+                        continue
+
+                    # Event received -> loop to re-execute this step (should now return success=True)
+                    continue
+
                 # Otherwise, emit error event for failed step
                 error_msg = "Unknown error"
                 try:

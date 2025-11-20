@@ -735,4 +735,29 @@ class StepRegistry:
             }
         )
 
+        # Register ingestion step (elevaite_ingestion service integration)
+        await self.register_step(
+            {
+                "step_type": "ingestion",
+                "name": "Ingestion",
+                "description": "Executes an ingestion job via the ingestion service with durable execution",
+                "function_reference": "workflow_core_sdk.steps.ingestion_steps.ingestion_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "ingestion_config": {
+                            "type": "object",
+                            "description": "Configuration for elevaite_ingestion pipeline",
+                        },
+                        "tenant_id": {
+                            "type": "string",
+                            "description": "Tenant/organization identifier",
+                        },
+                    },
+                    "required": ["ingestion_config"],
+                },
+            }
+        )
+
         logger.info("Built-in steps registered successfully")

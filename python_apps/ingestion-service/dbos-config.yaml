@@ -1,0 +1,13 @@
+database:
+  hostname: ${DBOS_DATABASE_HOST:-localhost}
+  port: ${DBOS_DATABASE_PORT:-5432}
+  username: ${DBOS_DATABASE_USER:-postgres}
+  password: ${DBOS_DATABASE_PASSWORD}
+  app_db_name: ${DBOS_DATABASE_NAME:-ingestion_db}
+  sys_db_name: ${DBOS_SYS_DATABASE_NAME:-dbos_sys}
+  connectionTimeoutMillis: 3000
+  app_db_client: knex
+
+env:
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
