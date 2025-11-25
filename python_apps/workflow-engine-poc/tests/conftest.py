@@ -28,11 +28,13 @@ def anyio_backend():
 
 
 # Set test environment variables before importing app
-os.environ["TESTING"] = "true"
-os.environ["ENVIRONMENT"] = "test"
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
-os.environ["OTEL_SDK_DISABLED"] = "true"
-os.environ["SKIP_EXTERNAL_SERVICES"] = "true"
+# Skip TESTING flag for E2E tests (they use real running servers with DBOS)
+if not os.getenv("TEST_INGESTION_SERVICE"):
+    os.environ["TESTING"] = "true"
+    os.environ["ENVIRONMENT"] = "test"
+    os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+    os.environ["OTEL_SDK_DISABLED"] = "true"
+    os.environ["SKIP_EXTERNAL_SERVICES"] = "true"
 
 # Import RBAC SDK constants first
 from rbac_sdk import (
@@ -496,26 +498,28 @@ def setup_test_environment():
     # Store original environment
     original_env = os.environ.copy()
 
-    # Set test environment variables
-    test_env = {
-        "TESTING": "true",
-        "ENVIRONMENT": "test",
-        "DATABASE_URL": "sqlite:///:memory:",
-        "OTEL_SDK_DISABLED": "true",
-        "SKIP_EXTERNAL_SERVICES": "true",
-        "OPENAI_API_KEY": "sk-test-mock-key",
-        "ANTHROPIC_API_KEY": "sk-ant-test-mock-key",
-        "REDIS_HOST": "localhost",
-        "REDIS_PORT": "6379",
-    }
+    # Set test environment variables (skip for E2E tests)
+    if not os.getenv("TEST_INGESTION_SERVICE"):
+        test_env = {
+            "TESTING": "true",
+            "ENVIRONMENT": "test",
+            "DATABASE_URL": "sqlite:///:memory:",
+            "OTEL_SDK_DISABLED": "true",
+            "SKIP_EXTERNAL_SERVICES": "true",
+            "OPENAI_API_KEY": "sk-test-mock-key",
+            "ANTHROPIC_API_KEY": "sk-ant-test-mock-key",
+            "REDIS_HOST": "localhost",
+            "REDIS_PORT": "6379",
+        }
 
-    os.environ.update(test_env)
+        os.environ.update(test_env)
 
     yield
 
-    # Restore original environment
-    os.environ.clear()
-    os.environ.update(original_env)
+    # Restore original environment (only if we modified it)
+    if not os.getenv("TEST_INGESTION_SERVICE"):
+        os.environ.clear()
+        os.environ.update(original_env)
 
 
 @pytest.fixture(autouse=True)
