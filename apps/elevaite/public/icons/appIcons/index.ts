@@ -35,5 +35,6 @@ export const ApplicationIcons = {
     campaignBuilder: { src: (campaignBuilder as SvgType).src, alt: "Campaign Builder" },
     analytics: { src: (analytics as SvgType).src, alt: "Analytics Dashboard" },
     campaignOptimization: { src: (campaignOptimization as SvgType).src, alt: "Campaign Optimization" },    
+    contentIntelligence: { src: (insights  as SvgType).src, alt: "Content Intelligence" },
   },
 };
