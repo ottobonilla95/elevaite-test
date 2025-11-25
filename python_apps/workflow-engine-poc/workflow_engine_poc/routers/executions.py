@@ -5,10 +5,10 @@ Execution status and results endpoints
 import asyncio
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Request, HTTPException, Depends, Security, Header
+from fastapi import APIRouter, Request, HTTPException, Depends, Security, Header, Body
 from fastapi.responses import StreamingResponse
 from fastapi.security.api_key import APIKeyHeader
-from typing import Optional
+from typing import Optional, Dict, Any
 from sqlmodel import Session
 from workflow_core_sdk.db.database import get_db_session
 from workflow_core_sdk.services.executions_service import ExecutionsService
@@ -61,7 +61,14 @@ async def get_execution_status(
         execution_context = await workflow_engine.get_execution_context(execution_id)
 
         if execution_context:
-            return execution_context.get_execution_summary()
+            summary = execution_context.get_execution_summary()
+            # For backwards compatibility, expose both flattened fields and nested
+            # summary, and include step_io_data so clients can inspect step outputs.
+            return {
+                **summary,
+                "execution_summary": summary,
+                "step_io_data": execution_context.step_io_data,
+            }
 
         # Fallback to DB record
         details = ExecutionsService.get_execution(session, execution_id)
@@ -90,19 +97,74 @@ async def get_execution_status(
             except Exception:
                 pass
 
-        return {
+        # Build execution summary from DB record and any stored metadata summary (e.g., DBOS)
+        metadata = details.get("metadata") or {}
+        summary_meta: Dict[str, Any] = {}
+        if isinstance(metadata, dict):
+            raw_summary = metadata.get("summary") or {}
+            if isinstance(raw_summary, dict) and raw_summary:
+                summary_meta = raw_summary
+
+        # Fallback: derive a minimal summary from persisted step_io_data if we have none
+        step_io_from_db = details.get("step_io_data") or {}
+        if (not summary_meta or not summary_meta.get("total_steps")) and isinstance(step_io_from_db, dict) and step_io_from_db:
+            # Treat each non-internal key as a step; this is a heuristic but ensures
+            # DBOS-backed executions surface a non-zero step count even if metadata
+            # summary was not persisted for some reason.
+            visible_keys = [k for k in step_io_from_db.keys() if not str(k).endswith("_raw")]
+            total_steps_fallback = len(visible_keys) if visible_keys else len(step_io_from_db)
+            completed_steps_fallback = (
+                total_steps_fallback if status_str == "completed" else summary_meta.get("completed_steps", 0)
+            )
+            summary_meta = {
+                **summary_meta,
+                "total_steps": total_steps_fallback,
+                "steps_executed": summary_meta.get("steps_executed", total_steps_fallback),
+                "completed_steps": completed_steps_fallback,
+                "failed_steps": summary_meta.get("failed_steps", 0),
+            }
+
+        # Log for debugging what we are about to return from the DB fallback path
+        try:
+            logger.info(
+                "Execution status DB fallback for %s: status=%s total_steps=%s completed_steps=%s step_io_keys=%s",
+                execution_id,
+                status_str,
+                summary_meta.get("total_steps"),
+                summary_meta.get("completed_steps"),
+                list(step_io_from_db.keys()) if isinstance(step_io_from_db, dict) else None,
+            )
+        except Exception:
+            # Logging must never break the endpoint
+            pass
+
+        execution_summary = {
             "execution_id": details.get("execution_id"),
             "workflow_id": details.get("workflow_id"),
             "status": status_str,
             "current_step": None,
-            "completed_steps": None,
-            "failed_steps": None,
+            "completed_steps": summary_meta.get("completed_steps"),
+            "failed_steps": summary_meta.get("failed_steps"),
             "pending_steps": None,
-            "total_steps": None,
+            "total_steps": summary_meta.get("total_steps"),
             "started_at": details.get("started_at"),
             "completed_at": details.get("completed_at"),
+            "error_message": details.get("error_message"),
             "analytics_ids": None,
-            "user_context": {"user_id": details.get("user_id"), "session_id": details.get("session_id")},
+            "execution_time_seconds": details.get("execution_time_seconds"),
+            "user_context": {
+                "user_id": details.get("user_id"),
+                "session_id": details.get("session_id"),
+            },
+        }
+
+        # Keep top-level summary fields for backwards compatibility and also expose
+        # nested execution_summary and step_io_data from the DB record.
+        return {
+            **execution_summary,
+            "execution_summary": execution_summary,
+            "step_io_data": step_io_from_db,
+            "execution_metadata": metadata,
         }
 
     except HTTPException:
@@ -304,3 +366,75 @@ async def stream_execution_updates(
 
 
 # New SQLModel-based execution endpoints
+
+
+@router.post("/{execution_id}/steps/{step_id}/callback")
+async def step_callback(
+    execution_id: str,
+    step_id: str,
+    callback_data: Dict[str, Any] = Body(...),
+    session: Session = Depends(get_db_session),
+):
+    """
+    Receive callback from external services (e.g., ingestion service) when a step completes.
+
+    This endpoint is called by external services to notify the workflow engine that
+    an asynchronous step has completed. For DBOS workflows, this sends a message to
+    the workflow instance to resume execution.
+
+    Args:
+        execution_id: The execution ID
+        step_id: The step ID that completed
+        callback_data: Callback payload (job_id, status, result_summary or error_message)
+    """
+    try:
+        logger.info(f"Received callback for execution {execution_id}, step {step_id}: {callback_data}")
+
+        # Get execution from database to determine backend
+        from ..db.service import DatabaseService
+
+        db_service = DatabaseService()
+        execution = db_service.get_execution(session, execution_id)
+
+        if not execution:
+            raise HTTPException(status_code=404, detail=f"Execution {execution_id} not found")
+
+        # Get backend from execution metadata
+        metadata = execution.get("metadata", {})
+        backend = metadata.get("backend", "local")
+
+        if backend == "dbos":
+            # For DBOS workflows, send a message to the workflow instance
+            try:
+                from dbos import DBOS as _DBOS
+
+                # Get DBOS workflow ID from execution metadata
+                dbos_workflow_id = metadata.get("dbos_workflow_id")
+                if not dbos_workflow_id:
+                    raise HTTPException(
+                        status_code=400, detail=f"DBOS workflow ID not found in execution metadata for {execution_id}"
+                    )
+
+                # Send message to DBOS workflow
+                callback_topic = f"wf:{execution_id}:{step_id}:ingestion_done"
+                logger.info(f"Sending DBOS message to workflow {dbos_workflow_id} on topic {callback_topic}")
+                _DBOS.send(destination_id=dbos_workflow_id, message=callback_data, topic=callback_topic)
+                logger.info(f"DBOS message sent successfully")
+
+                return {"status": "ok", "message": "Callback received and forwarded to DBOS workflow"}
+            except Exception as e:
+                logger.error(f"Failed to send DBOS message: {e}", exc_info=True)
+                raise HTTPException(status_code=500, detail=f"Failed to forward callback to DBOS: {str(e)}")
+        else:
+            # For local backend, resume execution directly
+            # TODO: Implement local backend callback handling if needed
+            logger.warning(
+                f"Callback received for local backend execution {execution_id}, but local callback handling is not implemented yet"
+            )
+            return {"status": "ok", "message": "Callback received (local backend handling not implemented)"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to process callback for {execution_id}/{step_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

@@ -33,7 +33,7 @@ def api_key_or_user_guard(action: str) -> Callable[[Request], Awaitable[None]]:
             account_header=HDR_ACCOUNT_ID,
             org_header=HDR_ORG_ID,
         ),
-        principal_resolver=principal_resolvers.api_key_or_user(),
+        principal_resolver=principal_resolvers.api_key_or_user(allow_insecure_apikey_as_principal=allow_insecure),
     )
 
 

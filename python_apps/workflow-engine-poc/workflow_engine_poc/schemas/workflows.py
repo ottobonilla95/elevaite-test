@@ -217,7 +217,9 @@ class ExecutionRequest(BaseModel):
     input_data: Dict[str, Any] = Field(default_factory=dict)
     metadata: Dict[str, Any] = Field(default_factory=dict)
     trigger: Optional[TriggerPayload] = None
+    backend: Optional[BackendEnum] = None
     execution_backend: Optional[BackendEnum] = None
+    wait: Optional[bool] = False
 
     model_config = {
         "json_schema_extra": {

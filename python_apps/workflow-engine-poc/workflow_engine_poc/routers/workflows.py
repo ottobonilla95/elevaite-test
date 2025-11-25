@@ -125,6 +125,7 @@ async def execute_workflow_by_id(
         # Parse incoming body
         content_type = request.headers.get("content-type", "").lower()
         body_data: Dict[str, Any] = {}
+        raw_json: Dict[str, Any] = {}
         if payload is not None or files is not None or "multipart/form-data" in content_type:
             # Multipart path
             import json
@@ -132,26 +133,42 @@ async def execute_workflow_by_id(
             if payload is None:
                 raise HTTPException(status_code=400, detail="Missing 'payload' form field")
             try:
-                body_data = json.loads(payload)
+                raw_json = json.loads(payload)
+                body_data = raw_json
             except Exception:
                 raise HTTPException(status_code=400, detail="Invalid JSON in 'payload' form field")
         else:
             # JSON path
             parsed = await request.json()
+            raw_json = parsed if isinstance(parsed, dict) else {}
             try:
                 # Validate into our documented schema; continue using dict for existing engine usage
                 _req_model = ExecutionRequest.model_validate(parsed)
                 body_data = _req_model.model_dump()
             except Exception:
                 # Fall back to raw dict for backward-compat
-                body_data = parsed
+                body_data = raw_json
 
         user_id = body_data.get("user_id")
         session_id_val = body_data.get("session_id")
         organization_id = body_data.get("organization_id")
         input_data = body_data.get("input_data", {})
         metadata = body_data.get("metadata", {})
-        wait = bool(body_data.get("wait", False))
+
+        # Prefer explicit wait flag from the original JSON body when present
+        wait_raw: Any = None
+        if isinstance(body_data, dict) and "wait" in body_data:
+            wait_raw = body_data.get("wait")
+        elif isinstance(raw_json, dict) and "wait" in raw_json:
+            wait_raw = raw_json.get("wait")
+        wait = bool(wait_raw) if wait_raw is not None else False
+        logger.info(
+            "Execute workflow request parsed: raw_keys=%s body_keys=%s wait_raw=%r wait=%r",
+            list(raw_json.keys()) if isinstance(raw_json, dict) else type(raw_json),
+            list(body_data.keys()) if isinstance(body_data, dict) else type(body_data),
+            wait_raw,
+            wait,
+        )
 
         # Extract trigger config from workflow (enforce presence)
         steps = workflow.get("steps", [])

@@ -6,7 +6,7 @@ Includes full multitenancy support with tenant administration.
 """
 
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
@@ -212,18 +212,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# OpenTelemetry instrumentation
-try:
-    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+FastAPIInstrumentor.instrument_app(app)  # OTEL
 
-    FastAPIInstrumentor.instrument_app(app)
-    logger.info("✅ OpenTelemetry instrumentation enabled")
-except Exception as e:
-    logger.warning(f"OpenTelemetry instrumentation failed: {e}")
-
-# Mount all PoC routers (using SDK services underneath)
-# No /api/ prefix - consistent with main.py
-logger.info("Mounting PoC routers (powered by SDK services)...")
+# Include all routers at root (backwards-compat)
 app.include_router(health)
 app.include_router(workflows)
 app.include_router(executions)
@@ -235,10 +226,21 @@ app.include_router(files)
 app.include_router(messages)
 app.include_router(prompts)
 app.include_router(approvals)
-app.include_router(monitoring_router)
-app.include_router(tenant_admin_router, prefix="/admin")
-logger.info("✅ All routers mounted")
 
+# Also expose the same routes under /api for clients expecting that prefix
+api_router = APIRouter(prefix="/api")
+api_router.include_router(health)
+api_router.include_router(workflows)
+api_router.include_router(executions)
+api_router.include_router(steps)
+api_router.include_router(files)
+api_router.include_router(monitoring_router)
+api_router.include_router(agents)
+api_router.include_router(tools)
+api_router.include_router(prompts)
+api_router.include_router(messages)
+api_router.include_router(approvals)
+app.include_router(api_router)
 
 # Initialize DBOS context if available (skip in test mode)
 if not os.getenv("TESTING"):
