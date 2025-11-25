@@ -46,6 +46,8 @@ async def dbos_execute_step_durable(
         execution_id=execution_context_data["execution_id"],
     )
     execution_context.step_io_data = execution_context_data.get("step_io_data", {})
+    # Restore metadata (including dbos_workflow_id)
+    execution_context.metadata.update(execution_context_data.get("metadata", {}))
 
     # Execute using registry
     # Mark that this invocation is running under DBOS backend
@@ -59,11 +61,21 @@ async def dbos_execute_step_durable(
 
     execution_context.step_io_data[step_config.get("step_id", "unknown")] = step_result.output_data
 
+    # Derive a human-readable status for DBOS based primarily on the step output payload.
+    # This allows domain-specific statuses like "ingesting" to propagate through, while
+    # still falling back to the enum name when no explicit status is provided.
+    if isinstance(step_result.output_data, dict) and "status" in step_result.output_data:
+        status_val = str(step_result.output_data.get("status") or "").lower()
+    else:
+        status_val = (
+            getattr(step_result.status, "name", "").lower()
+            if hasattr(step_result.status, "name")
+            else ("completed" if step_result.execution_time_ms is not None else "unknown")
+        )
+
     return {
         "success": step_result.status == StepStatus.COMPLETED,
-        "status": getattr(step_result.status, "name", "").lower()
-        if hasattr(step_result.status, "name")
-        else ("completed" if step_result.execution_time_ms is not None else "unknown"),
+        "status": status_val,
         "output_data": step_result.output_data,
         "error": step_result.error_message,
         "execution_time": step_result.execution_time_ms,

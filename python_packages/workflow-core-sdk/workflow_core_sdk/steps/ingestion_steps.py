@@ -55,9 +55,15 @@ async def ingestion_step(
     step_id = step_config.get("step_id", "ingestion")
 
     # Check if this is a re-entry (job already created)
-    prior_output = execution_context.step_io_data.get(step_id, {})
-    ingestion_job_id = prior_output.get("ingestion_job_id")
-    callback_topic = prior_output.get("callback_topic")
+    # For DBOS-backed execution, step_io_data[step_id] contains the full
+    # step output dict, with the actual job info nested under "output_data".
+    prior_output = execution_context.step_io_data.get(step_id, {}) or {}
+    job_info = prior_output
+    if isinstance(prior_output, dict) and isinstance(prior_output.get("output_data"), dict):
+        job_info = prior_output["output_data"]
+
+    ingestion_job_id = job_info.get("ingestion_job_id")
+    callback_topic = job_info.get("callback_topic")
 
     if ingestion_job_id:
         # Second execution - job already created, check completion
@@ -81,6 +87,9 @@ async def ingestion_step(
         ingestion_config = config.get("ingestion_config", {})
         tenant_id = config.get("tenant_id")
 
+        # Get DBOS workflow ID from execution metadata (if running under DBOS backend)
+        dbos_workflow_id = execution_context.metadata.get("dbos_workflow_id")
+
         job_request = {
             "config": ingestion_config,
             "metadata": {
@@ -88,6 +97,7 @@ async def ingestion_step(
                 "execution_id": execution_context.execution_id,
                 "step_id": step_id,
                 "callback_topic": callback_topic,
+                "dbos_workflow_id": dbos_workflow_id,  # For DBOS.send() destination_id
             },
         }
 
@@ -202,4 +212,3 @@ async def _check_job_completion(job_id: str, callback_topic: Optional[str]) -> D
             "error": error_msg,
             "output_data": {"ingestion_job_id": job_id},
         }
-

@@ -52,6 +52,7 @@ async def dbos_execute_workflow_durable(
         "user_context": user_context_data or {},
         "step_io_data": {"trigger_raw": trigger_data},
         "started_at": datetime.now().isoformat(),
+        "metadata": {},  # Will be populated with dbos_workflow_id below
     }
 
     # Emit workflow start event
@@ -97,6 +98,10 @@ async def dbos_execute_workflow_durable(
             if meta.get("dbos_workflow_id") != dbos_wfid:
                 meta["dbos_workflow_id"] = dbos_wfid
                 _dbs.update_execution(_s, execution_id, {"execution_metadata": meta})
+
+            # Add dbos_workflow_id to execution_context_data so steps can access it
+            execution_context_data["metadata"]["dbos_workflow_id"] = dbos_wfid
+
             logger.info(f"DBOS workflow_id recorded at start: exec={execution_id} wf_id={dbos_wfid}")
         finally:
             try:
@@ -164,6 +169,9 @@ async def dbos_execute_workflow_durable(
                     input_data=input_data,
                     execution_context_data=execution_context_data,
                 )
+                adapter.logger.info(
+                    f"Step {step_id} executed, result: success={res.get('success')}, status={res.get('status')}"
+                )
                 step_results[step_id] = res
                 execution_context_data["step_io_data"][step_id] = res.get("output_data")
 
@@ -190,6 +198,8 @@ async def dbos_execute_workflow_durable(
 
                 # Not success -> either waiting or failed
                 status_lower = str(res.get("status") or "").lower()
+                adapter.logger.info(f"Step {step_id} returned status: {status_lower}, success: {res.get('success')}")
+                adapter.logger.info(f"DEBUG: Checking status_lower='{status_lower}' against 'waiting', 'ingesting', etc.")
                 if status_lower == "waiting":
                     # Emit explicit status=waiting so clients/DB reflect paused state
                     try:
@@ -310,36 +320,18 @@ async def dbos_execute_workflow_durable(
                     except Exception:
                         pass
 
-                    # Get callback_topic from output_data
-                    output_data = res.get("output_data", {})
-                    callback_topic = output_data.get("callback_topic")
+                    # Poll for ingestion completion instead of waiting for DBOS event
+                    # This allows cross-service communication without shared DBOS database
+                    import asyncio as _asyncio
 
-                    if not callback_topic:
-                        # Fallback: compute callback_topic if not in output_data
-                        callback_topic = make_decision_topic(execution_id, step_id, suffix="ingestion_done")
+                    adapter.logger.info(f"Polling for ingestion completion: exec={execution_id} step={step_id}")
 
-                    # Block on DBOS event for ingestion completion
-                    try:
-                        from dbos import DBOS as _DBOS
+                    # Sleep for a short time before re-checking (durable sleep)
+                    from dbos import DBOS as _DBOS
 
-                        payload = None
-                        wid = cast(str, _DBOS.workflow_id)
-                        adapter.logger.info(
-                            f"DBOS ingesting: exec={execution_id} wf_id={wid} step={step_id} topic={callback_topic}"
-                        )
-                        while payload is None:
-                            payload = await _DBOS.recv_async(topic=callback_topic, timeout_seconds=3600)
-                        adapter.logger.info(
-                            f"DBOS ingestion event received for step={step_id} execution={execution_id}: {bool(payload)}"
-                        )
-                    except Exception as _ev_err:
-                        adapter.logger.warning(f"DBOS recv_async failed for ingestion: {_ev_err}; retrying in 1s")
-                        import asyncio as _asyncio
+                    await _DBOS.sleep_async(2)  # Poll every 2 seconds
 
-                        await _asyncio.sleep(1)
-                        continue
-
-                    # Event received -> loop to re-execute this step (should now return success=True)
+                    # Loop to re-execute this step (should check job status and return success=True when done)
                     continue
 
                 # Otherwise, emit error event for failed step

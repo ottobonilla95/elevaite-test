@@ -142,8 +142,10 @@ class StepRegistry:
                         result.execution_time_ms = execution_time_ms
                     return result
 
-                # If the step returned a dict indicating WAITING, map to a WAITING StepResult
-                if isinstance(result, dict) and str(result.get("status", "")).lower() == "waiting":
+                # If the step returned a dict indicating WAITING or INGESTING, map to a WAITING StepResult
+                # (INGESTING is treated as WAITING since both mean "not complete yet, poll for completion")
+                status_lower = str(result.get("status", "")).lower() if isinstance(result, dict) else ""
+                if status_lower in ("waiting", "ingesting"):
                     return StepResult(
                         step_id=step_id,
                         status=StepStatus.WAITING,
