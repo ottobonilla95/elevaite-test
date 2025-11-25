@@ -32,8 +32,15 @@ async def check_access_async(
 
     Returns:
         True if allowed, False otherwise.
-        Fails closed: network errors/timeouts/invalid user_id return False.
+        Fails closed: network errors/timeouts return False.
+
+    Environment Variables:
+        RBAC_SDK_BYPASS_AUTHZ: If set to "true", "1", or "yes", always returns True (for E2E testing only).
     """
+    # Bypass mode for E2E testing (NOT for production)
+    if os.getenv("RBAC_SDK_BYPASS_AUTHZ", "").lower() in ("true", "1", "yes"):
+        return True
+
     # Convert user_id to int - Auth API requires integer user IDs
     try:
         user_id_int = int(user_id)
