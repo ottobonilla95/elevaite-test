@@ -79,6 +79,12 @@ class IngestionJob(SQLModel, table=True):
         description="Workflow step ID that triggered this job",
     )
 
+    dbos_workflow_id: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="DBOS workflow ID for sending completion events (destination_id)",
+    )
+
     job_type: Optional[str] = Field(
         default="BULK_DATASET",
         max_length=100,
@@ -113,9 +119,7 @@ class IngestionJob(SQLModel, table=True):
 class CreateJobRequest(SQLModel):
     """Request model for creating an ingestion job"""
 
-    config: Dict[str, Any] = Field(
-        description="Ingestion configuration matching elevaite_ingestion schema"
-    )
+    config: Dict[str, Any] = Field(description="Ingestion configuration matching elevaite_ingestion schema")
 
     metadata: Optional[Dict[str, Any]] = Field(
         default=None,
@@ -133,4 +137,3 @@ class JobResponse(SQLModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-

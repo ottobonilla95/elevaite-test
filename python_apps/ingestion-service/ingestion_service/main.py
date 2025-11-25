@@ -13,11 +13,7 @@ from typing import Dict, Any
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
-from dbos import DBOS
-
-from .models import IngestionJob, CreateJobRequest, JobResponse, JobStatus
-from .database import get_session, init_db
-from .workflows import run_ingestion_job
+from dbos import DBOS, DBOSConfig
 
 # Configure logging
 logging.basicConfig(
@@ -25,6 +21,23 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Early DBOS initialization (before importing workflows with decorators)
+try:
+    from .database import DATABASE_URL
+
+    _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or DATABASE_URL
+    _app_name = os.getenv("DBOS_APPLICATION_NAME") or "ingestion-service"
+    _cfg = DBOSConfig(database_url=_dbos_db_url, name=_app_name)
+    DBOS(config=_cfg)
+    logger.info(f"✅ DBOS pre-initialized for {_app_name}")
+except Exception as e:
+    logger.warning(f"DBOS pre-init failed: {e}")
+
+# Import workflows AFTER DBOS is initialized
+from .models import IngestionJob, CreateJobRequest, JobResponse, JobStatus
+from .database import get_session, init_db
+from .workflows import run_ingestion_job
 
 
 @asynccontextmanager
@@ -92,6 +105,7 @@ async def create_ingestion_job(
         execution_id = metadata.get("execution_id")
         step_id = metadata.get("step_id")
         callback_topic = metadata.get("callback_topic")
+        dbos_workflow_id = metadata.get("dbos_workflow_id")
 
         # Create job record
         job = IngestionJob(
@@ -101,6 +115,7 @@ async def create_ingestion_job(
             tenant_id=tenant_id,
             execution_id=execution_id,
             step_id=step_id,
+            dbos_workflow_id=dbos_workflow_id,
         )
 
         session.add(job)
