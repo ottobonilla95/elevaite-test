@@ -18,28 +18,27 @@ from .database import engine
 logger = logging.getLogger(__name__)
 
 
-@DBOS.workflow()
-async def run_ingestion_job(job_id: str) -> Dict[str, Any]:
+async def _run_ingestion_job_impl(job_id: str, db_engine=None) -> Dict[str, Any]:
     """
-    DBOS workflow that executes an ingestion job.
+    Core implementation of the ingestion job workflow.
 
-    This workflow:
-    1. Loads the job from the database
-    2. Updates status to RUNNING
-    3. Executes the elevaite_ingestion pipeline
-    4. Updates status to SUCCEEDED or FAILED
-    5. Sends completion event on callback_topic if configured
+    This function contains the actual business logic and can be tested directly
+    without DBOS initialization. The DBOS-decorated wrapper calls this function.
 
     Args:
         job_id: UUID of the ingestion job
+        db_engine: Optional database engine override (for testing)
 
     Returns:
         Dict with job_id, status, and optional error_message or result_summary
     """
+    # Use provided engine or default
+    _engine = db_engine or engine
+
     logger.info(f"Starting ingestion workflow for job {job_id}")
 
     # Load job from database
-    with Session(engine) as session:
+    with Session(_engine) as session:
         job = session.get(IngestionJob, uuid_module.UUID(job_id))
         if not job:
             error_msg = f"Job {job_id} not found"
@@ -64,7 +63,7 @@ async def run_ingestion_job(job_id: str) -> Dict[str, Any]:
         result_summary = await execute_ingestion_pipeline(config)
 
         # Update job status to SUCCEEDED
-        with Session(engine) as session:
+        with Session(_engine) as session:
             job = session.get(IngestionJob, uuid_module.UUID(job_id))
             if job:
                 job.status = JobStatus.SUCCEEDED
@@ -77,13 +76,17 @@ async def run_ingestion_job(job_id: str) -> Dict[str, Any]:
         logger.info(f"Job {job_id} completed successfully")
 
         # Send completion event if callback_topic is configured
+        # Event send failures should not affect the job result
         if callback_topic:
             event_payload = {
                 "job_id": job_id,
                 "status": "SUCCEEDED",
                 "result_summary": result_summary,
             }
-            await send_completion_event(callback_topic, dbos_workflow_id, event_payload)
+            try:
+                await send_completion_event(callback_topic, dbos_workflow_id, event_payload)
+            except Exception as event_error:
+                logger.error(f"Failed to send completion event for job {job_id}: {event_error}")
 
         return {
             "job_id": job_id,
@@ -96,7 +99,7 @@ async def run_ingestion_job(job_id: str) -> Dict[str, Any]:
         logger.error(f"Job {job_id} failed: {error_message}", exc_info=True)
 
         # Update job status to FAILED
-        with Session(engine) as session:
+        with Session(_engine) as session:
             job = session.get(IngestionJob, uuid_module.UUID(job_id))
             if job:
                 job.status = JobStatus.FAILED
@@ -107,19 +110,44 @@ async def run_ingestion_job(job_id: str) -> Dict[str, Any]:
                 session.commit()
 
         # Send failure event if callback_topic is configured
+        # Event send failures should not affect the job result
         if callback_topic:
             event_payload = {
                 "job_id": job_id,
                 "status": "FAILED",
                 "error_message": error_message,
             }
-            await send_completion_event(callback_topic, dbos_workflow_id, event_payload)
+            try:
+                await send_completion_event(callback_topic, dbos_workflow_id, event_payload)
+            except Exception as event_error:
+                logger.error(f"Failed to send failure event for job {job_id}: {event_error}")
 
         return {
             "job_id": job_id,
             "status": "FAILED",
             "error_message": error_message,
         }
+
+
+@DBOS.workflow()
+async def run_ingestion_job(job_id: str) -> Dict[str, Any]:
+    """
+    DBOS workflow that executes an ingestion job.
+
+    This workflow:
+    1. Loads the job from the database
+    2. Updates status to RUNNING
+    3. Executes the elevaite_ingestion pipeline
+    4. Updates status to SUCCEEDED or FAILED
+    5. Sends completion event on callback_topic if configured
+
+    Args:
+        job_id: UUID of the ingestion job
+
+    Returns:
+        Dict with job_id, status, and optional error_message or result_summary
+    """
+    return await _run_ingestion_job_impl(job_id)
 
 
 async def execute_ingestion_pipeline(config: Dict[str, Any]) -> Dict[str, Any]:

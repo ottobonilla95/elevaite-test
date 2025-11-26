@@ -186,8 +186,8 @@ class TestJobResponse:
         )
 
         response = JobResponse(
-            job_id=str(job.id),
-            status=job.status.value,
+            job_id=job.id,
+            status=job.status,
             result_summary=job.result_summary,
             error_message=job.error_message,
             created_at=job.created_at,
@@ -195,21 +195,24 @@ class TestJobResponse:
             completed_at=job.completed_at,
         )
 
-        assert response.job_id == str(job_id)
-        assert response.status == "SUCCEEDED"
+        assert response.job_id == job_id
+        assert response.status == JobStatus.SUCCEEDED
         assert response.result_summary["files_processed"] == 10
         assert response.created_at == now
         assert response.completed_at == now
 
     def test_response_for_failed_job(self):
         """Test response for failed job includes error"""
+        job_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+
         response = JobResponse(
-            job_id=str(uuid.uuid4()),
-            status="FAILED",
+            job_id=job_id,
+            status=JobStatus.FAILED,
             error_message="Pipeline error",
+            created_at=now,
         )
 
-        assert response.status == "FAILED"
+        assert response.status == JobStatus.FAILED
         assert response.error_message == "Pipeline error"
         assert response.result_summary is None
-
