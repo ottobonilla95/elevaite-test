@@ -28,6 +28,11 @@ dev = [
 requires = ["setuptools>=68.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+
+[tool.setuptools.packages.find]
+include = ["ingestion_service*"]
+exclude = ["alembic*"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
@@ -42,4 +47,3 @@ target-version = ["py311"]
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-

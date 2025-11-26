@@ -26,3 +26,6 @@ exclude = [
 	"python_apps/ingestion_demo",
 	"python_apps/rbac",
 ]
+
+[tool.uv.sources]
+"elevaite-ingestion" = { workspace = true }
