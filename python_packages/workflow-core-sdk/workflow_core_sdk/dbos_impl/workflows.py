@@ -20,6 +20,67 @@ from .messaging import make_decision_topic
 logger = logging.getLogger(__name__)
 
 
+def _persist_execution_status(
+    execution_id: str,
+    status: str,
+    steps: list,
+    step_results: Dict[str, Any],
+    error_message: Optional[str] = None,
+) -> None:
+    """
+    Persist execution status to database.
+    This ensures async workflows (wait=False) have their final status recorded.
+    """
+    try:
+        from ..db.service import DatabaseService as _DBSvc
+        from ..db.database import get_db_session as _get_db_sess
+
+        logger.info(f"Persisting DBOS workflow status: exec={execution_id} status={status}")
+
+        _dbs = _DBSvc()
+        # Use get_db_session which returns a session directly (not a generator)
+        session = _get_db_sess()
+        try:
+            completed_count = sum(1 for sr in step_results.values() if isinstance(sr, dict) and sr.get("success") is True)
+            failed_count = sum(1 for sr in step_results.values() if isinstance(sr, dict) and sr.get("success") is False)
+            step_io_data = {}
+            for sid, sres in step_results.items():
+                if isinstance(sres, dict) and "output_data" in sres:
+                    step_io_data[sid] = sres["output_data"]
+
+            update_payload: Dict[str, Any] = {
+                "status": status,
+                "step_io_data": step_io_data,
+                "output_data": {"success": status == _ExecStatus.COMPLETED.value, "error": error_message},
+                "execution_metadata": {
+                    "backend": "dbos",
+                    "summary": {
+                        "total_steps": len(steps),
+                        "steps_executed": len(step_results),
+                        "completed_steps": completed_count,
+                        "failed_steps": failed_count,
+                    },
+                },
+            }
+            if error_message:
+                update_payload["error_message"] = error_message
+            if status == _ExecStatus.COMPLETED.value:
+                update_payload["completed_at"] = datetime.now().isoformat() + "Z"
+
+            result = _dbs.update_execution(session, execution_id, update_payload)
+            logger.info(f"DBOS workflow status persisted: exec={execution_id} status={status} result={result}")
+        except Exception as inner_err:
+            logger.warning(f"Error in persist for exec={execution_id}: {inner_err}", exc_info=True)
+            raise
+        finally:
+            try:
+                session.close()
+            except Exception:
+                pass
+    except Exception as persist_err:
+        logger.warning(f"Failed to persist DBOS workflow status for exec={execution_id}: {persist_err}", exc_info=True)
+
+
 class DBOSWorkflowResult(TypedDict, total=False):
     success: bool | None
     execution_id: str
@@ -385,6 +446,14 @@ async def dbos_execute_workflow_durable(
         await stream_manager.emit_workflow_event(completion_event)
     except Exception:
         pass
+
+    # Persist final completion status to database
+    # This ensures async workflows (wait=False) have their final status recorded
+    logger.info(
+        f"DBOS workflow completed, persisting status: exec={execution_id} steps={len(steps)} results={len(step_results)}"
+    )
+    _persist_execution_status(execution_id, _ExecStatus.COMPLETED.value, steps, step_results)
+    logger.info(f"DBOS workflow status persistence complete: exec={execution_id}")
 
     return {
         "success": True,
