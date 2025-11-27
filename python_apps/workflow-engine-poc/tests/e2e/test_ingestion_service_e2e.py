@@ -40,6 +40,78 @@ from unittest.mock import patch, AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
+# Common test configuration
+WORKFLOW_API_URL = os.getenv("WORKFLOW_API_URL", "http://localhost:8006")
+INGESTION_API_URL = os.getenv("INGESTION_API_URL", "http://localhost:8001")
+
+# RBAC headers for E2E tests
+E2E_HEADERS = {
+    "X-elevAIte-apikey": "test-api-key-e2e",
+    "X-elevAIte-OrganizationId": "test-org-456",
+    "X-elevAIte-AccountId": "test-account-789",
+    "X-elevAIte-ProjectId": "test-project-789",
+}
+
+
+async def poll_execution_status(client: httpx.AsyncClient, execution_id: str, max_wait: float = 15.0) -> dict:
+    """Helper to poll execution status until completion or timeout."""
+    poll_interval = 0.5
+    elapsed = 0
+    status_data = {}
+
+    while elapsed < max_wait:
+        status_response = await client.get(f"{WORKFLOW_API_URL}/api/executions/{execution_id}")
+        assert status_response.status_code == 200
+        status_data = status_response.json()
+
+        final_status = status_data.get("status")
+        if final_status in ["completed", "failed", "error"]:
+            break
+
+        await asyncio.sleep(poll_interval)
+        elapsed += poll_interval
+
+    return status_data
+
+
+async def create_and_execute_workflow(
+    client: httpx.AsyncClient,
+    workflow_config: dict,
+    trigger_data: dict = None,
+    wait: bool = True,
+) -> tuple[str, str, dict]:
+    """Helper to create and execute a workflow, returns (workflow_id, execution_id, execution_response)."""
+    # Create workflow
+    create_response = await client.post(f"{WORKFLOW_API_URL}/api/workflows/", json=workflow_config)
+    assert create_response.status_code == 200, f"Failed to create workflow: {create_response.text}"
+
+    workflow_data = create_response.json()
+    workflow_id = workflow_data.get("id")
+    assert workflow_id, f"No id in response: {workflow_data}"
+
+    # Execute workflow
+    execute_payload = {
+        "execution_backend": "dbos",
+        "trigger": trigger_data or {"kind": "webhook", "data": {}},
+        "wait": wait,
+    }
+    execute_response = await client.post(
+        f"{WORKFLOW_API_URL}/api/workflows/{workflow_id}/execute",
+        json=execute_payload,
+    )
+    assert execute_response.status_code == 200, f"Failed to execute workflow: {execute_response.text}"
+
+    execution_data = execute_response.json()
+    execution_id = execution_data.get("execution_id") or execution_data.get("id") or execution_data.get("workflow_execution_id")
+    assert execution_id, f"No execution ID in response: {execution_data}"
+
+    return workflow_id, execution_id, execution_data
+
+
+# =============================================================================
+# BASIC INGESTION TESTS
+# =============================================================================
+
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(
@@ -272,3 +344,436 @@ async def test_ingestion_step_with_mocked_service():
         assert len(ingestion_steps) == 1, "Should have one ingestion step"
 
         print("Test PASSED: Workflow with ingestion step created successfully")
+
+
+# =============================================================================
+# MULTI-STEP WORKFLOW TESTS
+# =============================================================================
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+)
+async def test_multi_step_workflow_with_data_processing():
+    """
+    Test workflow: trigger -> data_input -> ingestion -> data_processing
+
+    This tests that data flows correctly through multiple steps and
+    that ingestion can use data from previous steps.
+    """
+    print("\n" + "=" * 60)
+    print("TEST: Multi-step workflow with data processing")
+    print("=" * 60)
+
+    workflow_config = {
+        "name": "Multi-Step Ingestion Pipeline",
+        "description": "Tests data flow through trigger -> data -> ingest -> process",
+        "steps": [
+            {
+                "step_id": "trigger",
+                "step_type": "trigger",
+                "name": "Webhook Trigger",
+                "dependencies": [],
+                "parameters": {"kind": "webhook"},
+                "config": {},
+            },
+            {
+                "step_id": "prepare_config",
+                "step_type": "data_input",
+                "name": "Prepare Ingestion Config",
+                "dependencies": ["trigger"],
+                "config": {
+                    "data": {
+                        "source_type": "local",
+                        "file_paths": ["/tmp/multi_step_test.pdf"],
+                        "metadata": {"pipeline": "multi-step", "version": "1.0"},
+                    }
+                },
+            },
+            {
+                "step_id": "ingest",
+                "step_type": "ingestion",
+                "name": "Ingest Documents",
+                "dependencies": ["prepare_config"],
+                "config": {
+                    "ingestion_config": {
+                        "source_type": "local",
+                        "file_paths": ["/tmp/multi_step_test.pdf"],
+                        "chunking": {"strategy": "fixed", "chunk_size": 256},
+                    },
+                    "tenant_id": "multi-step-test",
+                },
+            },
+            {
+                "step_id": "process_result",
+                "step_type": "data_processing",
+                "name": "Process Ingestion Result",
+                "dependencies": ["ingest"],
+                "config": {
+                    "operation": "transform",
+                    "transform_expression": "{'ingestion_complete': True, 'job_id': input_data.get('output_data', {}).get('ingestion_job_id', 'unknown')}",
+                },
+            },
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=30.0, headers=E2E_HEADERS) as client:
+        workflow_id, execution_id, exec_data = await create_and_execute_workflow(
+            client, workflow_config, {"kind": "webhook", "data": {"source": "e2e_test"}}
+        )
+        print(f"Created workflow: {workflow_id}, execution: {execution_id}")
+
+        # Poll for completion
+        status_data = await poll_execution_status(client, execution_id)
+        final_status = status_data.get("status")
+
+        print(f"\nFinal status: {final_status}")
+        step_io = status_data.get("step_io_data", {})
+        print(f"Steps executed: {list(step_io.keys())}")
+
+        assert final_status == "completed", f"Expected completed, got {final_status}"
+        assert "ingest" in step_io, "Ingestion step was not executed"
+        assert "process_result" in step_io, "Data processing step was not executed"
+
+        print("\n✅ Multi-step workflow completed successfully")
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+)
+async def test_parallel_ingestion_steps():
+    """
+    Test workflow with two parallel ingestion steps.
+
+    Both ingestion steps depend only on the trigger, so they should
+    execute concurrently (subject to execution_pattern).
+    """
+    print("\n" + "=" * 60)
+    print("TEST: Parallel ingestion steps")
+    print("=" * 60)
+
+    workflow_config = {
+        "name": "Parallel Ingestion Test",
+        "description": "Two ingestion steps running in parallel",
+        "execution_pattern": "parallel",
+        "steps": [
+            {
+                "step_id": "trigger",
+                "step_type": "trigger",
+                "name": "Webhook Trigger",
+                "dependencies": [],
+                "parameters": {"kind": "webhook"},
+            },
+            {
+                "step_id": "ingest_docs",
+                "step_type": "ingestion",
+                "name": "Ingest Documents",
+                "dependencies": ["trigger"],
+                "config": {
+                    "ingestion_config": {
+                        "source_type": "local",
+                        "file_paths": ["/tmp/docs_a.pdf"],
+                    },
+                    "tenant_id": "parallel-test-docs",
+                },
+            },
+            {
+                "step_id": "ingest_images",
+                "step_type": "ingestion",
+                "name": "Ingest Images",
+                "dependencies": ["trigger"],
+                "config": {
+                    "ingestion_config": {
+                        "source_type": "local",
+                        "file_paths": ["/tmp/images_b.pdf"],
+                    },
+                    "tenant_id": "parallel-test-images",
+                },
+            },
+            {
+                "step_id": "merge_results",
+                "step_type": "data_merge",
+                "name": "Merge Ingestion Results",
+                "dependencies": ["ingest_docs", "ingest_images"],
+                "config": {
+                    "merge_strategy": "combine",
+                },
+            },
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=60.0, headers=E2E_HEADERS) as client:
+        workflow_id, execution_id, exec_data = await create_and_execute_workflow(client, workflow_config)
+        print(f"Created workflow: {workflow_id}, execution: {execution_id}")
+
+        # Poll for completion (longer timeout for parallel)
+        status_data = await poll_execution_status(client, execution_id, max_wait=30.0)
+        final_status = status_data.get("status")
+
+        step_io = status_data.get("step_io_data", {})
+        print(f"\nFinal status: {final_status}")
+        print(f"Steps executed: {list(step_io.keys())}")
+
+        assert final_status == "completed", f"Expected completed, got {final_status}"
+        assert "ingest_docs" in step_io, "First ingestion step was not executed"
+        assert "ingest_images" in step_io, "Second ingestion step was not executed"
+        assert "merge_results" in step_io, "Merge step was not executed"
+
+        print("\n✅ Parallel ingestion workflow completed successfully")
+
+
+# =============================================================================
+# CONCURRENT EXECUTION TESTS
+# =============================================================================
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+)
+async def test_concurrent_workflow_executions():
+    """
+    Test running multiple workflow executions concurrently.
+
+    This tests that the ingestion service can handle multiple
+    simultaneous requests from different workflow executions.
+    """
+    print("\n" + "=" * 60)
+    print("TEST: Concurrent workflow executions")
+    print("=" * 60)
+
+    # Create a simple ingestion workflow template
+    def make_workflow(index: int) -> dict:
+        return {
+            "name": f"Concurrent Ingestion Test #{index}",
+            "steps": [
+                {
+                    "step_id": "trigger",
+                    "step_type": "trigger",
+                    "name": "Webhook Trigger",
+                    "dependencies": [],
+                    "parameters": {"kind": "webhook"},
+                },
+                {
+                    "step_id": "ingest",
+                    "step_type": "ingestion",
+                    "name": f"Ingest #{index}",
+                    "dependencies": ["trigger"],
+                    "config": {
+                        "ingestion_config": {
+                            "source_type": "local",
+                            "file_paths": [f"/tmp/concurrent_{index}.pdf"],
+                        },
+                        "tenant_id": f"concurrent-test-{index}",
+                    },
+                },
+            ],
+        }
+
+    num_concurrent = 3
+
+    async with httpx.AsyncClient(timeout=60.0, headers=E2E_HEADERS) as client:
+        # Start all workflows concurrently
+        print(f"\nStarting {num_concurrent} concurrent workflow executions...")
+
+        async def run_workflow(index: int) -> tuple[str, str, dict]:
+            workflow_config = make_workflow(index)
+            return await create_and_execute_workflow(client, workflow_config, wait=False)
+
+        # Launch all workflows
+        tasks = [run_workflow(i) for i in range(num_concurrent)]
+        results = await asyncio.gather(*tasks)
+
+        execution_ids = [r[1] for r in results]
+        print(f"Started executions: {execution_ids}")
+
+        # Poll all executions for completion
+        print("\nWaiting for all executions to complete...")
+
+        async def wait_for_completion(exec_id: str) -> dict:
+            return await poll_execution_status(client, exec_id, max_wait=30.0)
+
+        poll_tasks = [wait_for_completion(eid) for eid in execution_ids]
+        final_statuses = await asyncio.gather(*poll_tasks)
+
+        # Verify all completed
+        all_completed = True
+        for i, status_data in enumerate(final_statuses):
+            final_status = status_data.get("status")
+            print(f"  Execution {i + 1}: {final_status}")
+            if final_status != "completed":
+                all_completed = False
+
+        assert all_completed, "Not all concurrent executions completed successfully"
+        print(f"\n✅ All {num_concurrent} concurrent workflows completed successfully")
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running services")
+async def test_async_workflow_without_ingestion():
+    """
+    Test that wait=False works correctly for simple workflows without ingestion steps.
+
+    This verifies that the DBOS workflow status persistence fix works correctly
+    for workflows that don't require external callbacks.
+    """
+    print("\n" + "=" * 60)
+    print("TEST: Async workflow execution (wait=False) without ingestion")
+    print("=" * 60)
+
+    # Simple workflow with just trigger + data processing (no ingestion)
+    workflow_config = {
+        "name": "Async Simple Workflow Test",
+        "description": "Test wait=False with simple workflow",
+        "steps": [
+            {
+                "step_id": "trigger",
+                "step_type": "trigger",
+                "name": "Webhook Trigger",
+                "dependencies": [],
+                "parameters": {"kind": "webhook"},
+            },
+            {
+                "step_id": "process",
+                "step_type": "data_processing",
+                "name": "Process Data",
+                "dependencies": ["trigger"],
+                "config": {
+                    "operation": "transform",
+                    "transform_type": "uppercase",
+                },
+            },
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=30.0, headers=E2E_HEADERS) as client:
+        # Execute with wait=False
+        print("\nExecuting workflow with wait=False...")
+        workflow_id, execution_id, exec_response = await create_and_execute_workflow(
+            client,
+            workflow_config,
+            trigger_data={"kind": "webhook", "data": {"message": "async test"}},
+            wait=False,
+        )
+
+        print(f"Workflow ID: {workflow_id}")
+        print(f"Execution ID: {execution_id}")
+        print(f"Initial response: {exec_response}")
+
+        # The response should return immediately with running status
+        initial_status = exec_response.get("status")
+        print(f"Initial status: {initial_status}")
+
+        # Poll for completion - simple workflows should complete quickly
+        print("\nPolling for completion...")
+        status_data = await poll_execution_status(client, execution_id, max_wait=10.0)
+
+        final_status = status_data.get("status")
+        print(f"Final status: {final_status}")
+
+        # Verify workflow completed
+        assert final_status == "completed", f"Expected 'completed', got '{final_status}'"
+        print("\n✅ Async workflow (wait=False) completed successfully")
+
+
+# =============================================================================
+# INGESTION SERVICE HEALTH TESTS
+# =============================================================================
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+)
+async def test_ingestion_service_health():
+    """
+    Test that the ingestion service is healthy and responding.
+    """
+    print("\n" + "=" * 60)
+    print("TEST: Ingestion service health check")
+    print("=" * 60)
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(f"{INGESTION_API_URL}/health")
+
+        print(f"Health endpoint status: {response.status_code}")
+        print(f"Response: {response.json()}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data.get("status") == "healthy"
+
+        print("\n✅ Ingestion service is healthy")
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+)
+async def test_direct_ingestion_job_creation():
+    """
+    Test creating an ingestion job directly via the ingestion service API.
+
+    This bypasses the workflow engine to verify the ingestion service
+    works correctly in isolation.
+    """
+    print("\n" + "=" * 60)
+    print("TEST: Direct ingestion job creation")
+    print("=" * 60)
+
+    job_request = {
+        "config": {
+            "source_type": "local",
+            "file_paths": ["/tmp/direct_test.pdf"],
+            "chunking": {"strategy": "fixed", "chunk_size": 512},
+        },
+        "metadata": {
+            "tenant_id": "direct-api-test",
+            "execution_id": str(uuid.uuid4()),
+            "step_id": "direct-step",
+        },
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        # Create job
+        print("\nCreating ingestion job...")
+        create_response = await client.post(
+            f"{INGESTION_API_URL}/ingestion/jobs",
+            json=job_request,
+        )
+
+        assert create_response.status_code == 200, f"Failed to create job: {create_response.text}"
+        job_data = create_response.json()
+        job_id = job_data.get("job_id")
+
+        print(f"Created job: {job_id}")
+        print(f"Initial status: {job_data.get('status')}")
+
+        # Poll for completion
+        print("\nPolling for job completion...")
+        max_wait = 15.0
+        poll_interval = 0.5
+        elapsed = 0
+        final_status = None
+
+        while elapsed < max_wait:
+            status_response = await client.get(f"{INGESTION_API_URL}/ingestion/jobs/{job_id}")
+            assert status_response.status_code == 200
+            status_data = status_response.json()
+            final_status = status_data.get("status")
+
+            print(f"  [{elapsed:.1f}s] Status: {final_status}")
+
+            if final_status in ["SUCCEEDED", "FAILED"]:
+                break
+
+            await asyncio.sleep(poll_interval)
+            elapsed += poll_interval
+
+        # The job may succeed or fail depending on whether the file exists
+        # We just want to verify the API flow works
+        assert final_status in ["SUCCEEDED", "FAILED", "PENDING", "RUNNING"], f"Unexpected status: {final_status}"
+
+        print(f"\n✅ Direct ingestion job completed with status: {final_status}")
