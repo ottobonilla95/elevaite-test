@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Dict, Any, Optional
 import importlib
 import logging
+import time
 from datetime import datetime
 
 from sqlmodel import Session, select
@@ -110,6 +111,21 @@ async def tool_execution_step(
         raise Exception(f"Tool not found or unsupported: name={resolved_name} id={tool_id}")
 
     # Build call params from mapping + static
+    # First, build an extended input_data that includes trigger data from execution context
+    extended_input_data = dict(input_data) if input_data else {}
+
+    # Add trigger data if available in step_io_data
+    # This allows param_mapping paths like "trigger.current_message" or "trigger.messages"
+    if hasattr(execution_context, "step_io_data"):
+        trigger_data = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+        if trigger_data and "trigger" not in extended_input_data:
+            extended_input_data["trigger"] = trigger_data
+
+        # Also make step_io_data accessible for direct references to other steps
+        for step_id_key, step_output in execution_context.step_io_data.items():
+            if step_id_key not in extended_input_data:
+                extended_input_data[step_id_key] = step_output
+
     def extract_from_path(data: Any, path: str) -> Any:
         """
         Resolve a dot-path against input_data with a couple of conveniences:
@@ -152,9 +168,80 @@ async def tool_execution_step(
 
     params = dict(static_params)
     for pname, spath in param_mapping.items():
-        val = extract_from_path(input_data, spath)
+        val = extract_from_path(extended_input_data, spath)
         if val is not None:
             params[pname] = val
+
+    # Get tool parameter names for spreading logic
+    tool_param_names: set = set()
+    if func is not None:
+        try:
+            import inspect
+
+            sig = inspect.signature(func)
+            tool_param_names = set(sig.parameters.keys())
+        except Exception:
+            pass
+
+    # Special case: if param_mapping is empty but input_data has trigger data,
+    # try to extract params from trigger.current_message
+    # This handles the UI case where "use response" toggle is set but no explicit param_mapping
+    if not params and tool_param_names:
+        trigger_source = None
+        # Check input_data for trigger mapping (e.g., input_mapping: {response: "trigger"})
+        if input_data:
+            for ikey, ival in input_data.items():
+                if isinstance(ival, dict) and "current_message" in ival:
+                    trigger_source = ival.get("current_message")
+                    break
+        # Also check extended_input_data.trigger.current_message
+        if not trigger_source and "trigger" in extended_input_data:
+            trigger_data = extended_input_data["trigger"]
+            if isinstance(trigger_data, dict):
+                trigger_source = trigger_data.get("current_message")
+
+        if trigger_source:
+            # Try to parse as JSON and spread properties
+            if isinstance(trigger_source, str):
+                try:
+                    parsed = json.loads(trigger_source)
+                    if isinstance(parsed, dict):
+                        for inner_key, inner_val in parsed.items():
+                            if inner_key in tool_param_names:
+                                params[inner_key] = inner_val
+                except (json.JSONDecodeError, ValueError):
+                    pass
+            elif isinstance(trigger_source, dict):
+                for inner_key, inner_val in trigger_source.items():
+                    if inner_key in tool_param_names:
+                        params[inner_key] = inner_val
+
+    # Special case: if trigger.current_message was mapped but the tool doesn't have that param,
+    # and the value is a dict, spread the dict properties as individual params.
+    # This handles the UI case where "use response" is toggled and user sends JSON like {"a": 42, "b": 69}
+    if params and tool_param_names:
+        # Find params that don't match any tool parameter
+        unmatched = {k: v for k, v in params.items() if k not in tool_param_names}
+        for unmapped_key, unmapped_val in unmatched.items():
+            # If the value is a dict, spread its properties as individual params
+            if isinstance(unmapped_val, dict):
+                for inner_key, inner_val in unmapped_val.items():
+                    if inner_key in tool_param_names and inner_key not in params:
+                        params[inner_key] = inner_val
+                # Remove the unmatched key
+                del params[unmapped_key]
+            # If the value is a JSON string, try parsing and spreading
+            elif isinstance(unmapped_val, str):
+                try:
+                    parsed = json.loads(unmapped_val)
+                    if isinstance(parsed, dict):
+                        for inner_key, inner_val in parsed.items():
+                            if inner_key in tool_param_names and inner_key not in params:
+                                params[inner_key] = inner_val
+                        # Remove the unmatched key
+                        del params[unmapped_key]
+                except (json.JSONDecodeError, ValueError):
+                    pass
 
     # Best-effort type coercion based on the tool function signature
     try:
@@ -183,22 +270,27 @@ async def tool_execution_step(
     except Exception:
         pass
 
-    # Emit tool execution start event
+    # Emit tool_call event (same format as agent executions for frontend consistency)
     step_id = step_config.get("step_id", "unknown")
+    start_time = time.time()
     try:
-        start_event = create_step_event(
+        tool_call_event = create_step_event(
             execution_id=execution_context.execution_id,
             step_id=step_id,
             step_status="running",
             workflow_id=execution_context.workflow_id,
             step_type="tool_execution",
-            output_data={"tool_name": resolved_name, "params": params, "message": f"Executing tool: {resolved_name}"},
+            output_data={
+                "event_type": "tool_call",
+                "tool_name": resolved_name,
+                "arguments": params,
+            },
         )
-        await stream_manager.emit_execution_event(start_event)
+        await stream_manager.emit_execution_event(tool_call_event)
         if execution_context.workflow_id:
-            await stream_manager.emit_workflow_event(start_event)
+            await stream_manager.emit_workflow_event(tool_call_event)
     except Exception as e:
-        logger.debug(f"Failed to emit tool start event: {e}")
+        logger.debug(f"Failed to emit tool_call event: {e}")
 
     # Execute tool
     try:
@@ -250,25 +342,29 @@ async def tool_execution_step(
             "params": params,
         }
 
-    # Emit tool completion event
+    # Emit tool_response event (same format as agent executions for frontend consistency)
+    # Note: Use step_status="running" so this is treated as an intermediate update,
+    # not the final step completion (which is emitted by the engine with the return value)
+    duration_ms = int((time.time() - start_time) * 1000)
     try:
-        complete_event = create_step_event(
+        tool_response_event = create_step_event(
             execution_id=execution_context.execution_id,
             step_id=step_id,
-            step_status="completed",
+            step_status="running",
             workflow_id=execution_context.workflow_id,
             step_type="tool_execution",
             output_data={
+                "event_type": "tool_response",
                 "tool_name": resolved_name,
                 "result": result,
-                "message": f"Tool {resolved_name} completed successfully",
+                "duration_ms": duration_ms,
             },
         )
-        await stream_manager.emit_execution_event(complete_event)
+        await stream_manager.emit_execution_event(tool_response_event)
         if execution_context.workflow_id:
-            await stream_manager.emit_workflow_event(complete_event)
+            await stream_manager.emit_workflow_event(tool_response_event)
     except Exception as e:
-        logger.debug(f"Failed to emit tool completion event: {e}")
+        logger.debug(f"Failed to emit tool_response event: {e}")
 
     return {
         "success": True,
@@ -337,6 +433,20 @@ async def _execute_mcp_tool(
         "auth_config": mcp_server.auth_config or {},
     }
 
+    # Build extended input_data that includes trigger data from execution context
+    # This allows param_mapping paths like "trigger.current_message" or "trigger.messages"
+    extended_input_data = dict(input_data) if input_data else {}
+
+    if hasattr(execution_context, "step_io_data"):
+        trigger_data = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+        if trigger_data and "trigger" not in extended_input_data:
+            extended_input_data["trigger"] = trigger_data
+
+        # Also make step_io_data accessible for direct references to other steps
+        for step_id_key, step_output in execution_context.step_io_data.items():
+            if step_id_key not in extended_input_data:
+                extended_input_data[step_id_key] = step_output
+
     # Build parameters using the same logic as local tools
     def extract_from_path(data: Any, path: str) -> Any:
         """Extract value from nested data using dot notation."""
@@ -373,32 +483,33 @@ async def _execute_mcp_tool(
 
     # Apply mapped params (can override static)
     for param_name, path in param_mapping.items():
-        val = extract_from_path(input_data, path)
+        val = extract_from_path(extended_input_data, path)
         if val is not None:
             params[param_name] = val
 
-    # Emit tool execution start event
+    # Emit tool_call event (same format as agent executions for frontend consistency)
+    start_time = time.time()
     try:
-        start_event = create_step_event(
+        tool_call_event = create_step_event(
             execution_id=execution_context.execution_id,
             step_id=step_id,
             step_status="running",
             workflow_id=execution_context.workflow_id,
             step_type="tool_execution",
             output_data={
+                "event_type": "tool_call",
                 "tool_name": tool_name,
                 "tool_type": "mcp",
                 "remote_name": remote_name,
                 "server": mcp_server.name,
-                "params": params,
-                "message": f"Executing MCP tool: {remote_name} on {mcp_server.name}",
+                "arguments": params,
             },
         )
-        await stream_manager.emit_execution_event(start_event)
+        await stream_manager.emit_execution_event(tool_call_event)
         if execution_context.workflow_id:
-            await stream_manager.emit_workflow_event(start_event)
+            await stream_manager.emit_workflow_event(tool_call_event)
     except Exception as e:
-        logger.debug(f"Failed to emit MCP tool start event: {e}")
+        logger.debug(f"Failed to emit MCP tool_call event: {e}")
 
     # Execute tool via MCP client
     try:
@@ -409,28 +520,32 @@ async def _execute_mcp_tool(
             execution_id=execution_context.execution_id,
         )
 
-        # Emit tool completion event
+        # Emit tool_response event (same format as agent executions for frontend consistency)
+        # Note: Use step_status="running" so this is treated as an intermediate update,
+        # not the final step completion (which is emitted by the engine with the return value)
+        duration_ms = int((time.time() - start_time) * 1000)
         try:
-            complete_event = create_step_event(
+            tool_response_event = create_step_event(
                 execution_id=execution_context.execution_id,
                 step_id=step_id,
-                step_status="completed",
+                step_status="running",
                 workflow_id=execution_context.workflow_id,
                 step_type="tool_execution",
                 output_data={
+                    "event_type": "tool_response",
                     "tool_name": tool_name,
                     "tool_type": "mcp",
                     "remote_name": remote_name,
                     "server": mcp_server.name,
                     "result": result,
-                    "message": f"MCP tool {remote_name} completed successfully",
+                    "duration_ms": duration_ms,
                 },
             )
-            await stream_manager.emit_execution_event(complete_event)
+            await stream_manager.emit_execution_event(tool_response_event)
             if execution_context.workflow_id:
-                await stream_manager.emit_workflow_event(complete_event)
+                await stream_manager.emit_workflow_event(tool_response_event)
         except Exception as e:
-            logger.debug(f"Failed to emit MCP tool completion event: {e}")
+            logger.debug(f"Failed to emit MCP tool_response event: {e}")
 
         return {
             "success": True,
