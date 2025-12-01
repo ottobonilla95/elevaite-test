@@ -21,6 +21,10 @@ if (!ELEVAITE_HOMEPAGE)
 const useSecureCookies = NEXTAUTH_URL_INTERNAL.startsWith("https://");
 const cookiePrefix = useSecureCookies ? "__Secure-" : "";
 const hostName = getDomainWithoutSubdomain(NEXTAUTH_URL_INTERNAL);
+// Environment-specific cookie prefix to prevent staging/prod cookie overlap
+const envCookiePrefix = process.env.AUTH_COOKIE_PREFIX
+  ? `${process.env.AUTH_COOKIE_PREFIX}.`
+  : "";
 
 type LaxType = "lax";
 
@@ -28,7 +32,7 @@ const LAX: LaxType = "lax";
 
 const cookies = {
   sessionToken: {
-    name: `${cookiePrefix}authjs.session-token`,
+    name: `${cookiePrefix}${envCookiePrefix}elevaite.session-token`,
     options: {
       httpOnly: true,
       sameSite: LAX,
@@ -38,7 +42,7 @@ const cookies = {
     },
   },
   pkceCodeVerifier: {
-    name: `${cookiePrefix}authjs.pkce-code-verifier`,
+    name: `${cookiePrefix}${envCookiePrefix}elevaite.pkce-code-verifier`,
     options: {
       httpOnly: false,
       sameSite: LAX,
