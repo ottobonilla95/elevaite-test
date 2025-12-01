@@ -234,8 +234,18 @@ async def execute_workflow(
     if not sdk_workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # Create execution context
-    execution_id = str(uuid.uuid4())
+    # Create execution in database first (so it can be queried)
+    execution_id = ExecutionsService.create_execution(
+        db,
+        {
+            "workflow_id": str(workflow_id),
+            "user_id": execution_request.get("user_id"),
+            "session_id": execution_request.get("session_id"),
+            "organization_id": execution_request.get("organization_id"),
+            "input_data": execution_request.get("input_data", {}),
+            "metadata": execution_request.get("metadata", {}),
+        },
+    )
 
     # Build workflow config with workflow_id for execution context
     workflow_config_for_execution = sdk_workflow.configuration.copy() if sdk_workflow.configuration else {}
@@ -349,6 +359,14 @@ async def execute_workflow(
 
             s["config"]["previous_step_id"] = unique_dep
 
+            # Check if unique_dep is a trigger step (for special handling of $prev.response)
+            # Also check if there's NO unique_dep but step uses $prev - assume trigger data
+            prev_is_trigger = False
+            if unique_dep and unique_dep in step_by_id:
+                prev_step = step_by_id[unique_dep]
+                prev_step_type = prev_step.get("step_type", "")
+                prev_is_trigger = prev_step_type == "trigger"
+
             # Normalize param_mapping and input_mapping
             imap = s.get("input_mapping") or s["config"].get("input_mapping") or {}
             pmap = s["config"].get("param_mapping")
@@ -358,7 +376,15 @@ async def execute_workflow(
                 new_pmap = {}
                 for k, v in pmap.items():
                     if isinstance(v, str):
-                        if v.startswith("$prev.response."):
+                        # PATCH: If previous step is trigger OR no previous step exists,
+                        # $prev.response -> trigger.current_message (assume runtime trigger data)
+                        if (prev_is_trigger or unique_dep is None) and v in ("$prev.response", "response"):
+                            new_pmap[k] = "trigger.current_message"
+                            logger.info(
+                                f"Step {sid}: patched param_mapping '{k}': '{v}' -> 'trigger.current_message' "
+                                f"(prev_is_trigger={prev_is_trigger}, unique_dep={unique_dep})"
+                            )
+                        elif v.startswith("$prev.response."):
                             need_response_alias = True
                             parts = v.split(".", 2)
                             new_pmap[k] = f"response.{parts[2]}" if len(parts) > 2 else "response"
@@ -370,6 +396,7 @@ async def execute_workflow(
                     else:
                         new_pmap[k] = v
                 s["config"]["param_mapping"] = new_pmap
+                # Don't create response alias if we patched to use trigger.current_message
                 if need_response_alias and "response" not in imap:
                     imap["response"] = "$prev"
 
@@ -377,18 +404,30 @@ async def execute_workflow(
             if isinstance(imap, dict):
                 new_imap = {}
                 for k, v in imap.items():
-                    if isinstance(v, str) and unique_dep:
-                        if v == "$prev":
+                    if isinstance(v, str):
+                        # PATCH: If previous step is trigger OR no previous step exists,
+                        # use "trigger" directly so tool step can access trigger.current_message
+                        if (prev_is_trigger or unique_dep is None) and v in ("$prev", "$prev.response"):
+                            new_imap[k] = "trigger"
+                            logger.info(
+                                f"Step {sid}: patched input_mapping '{k}': '{v}' -> 'trigger' "
+                                f"(prev_is_trigger={prev_is_trigger}, unique_dep={unique_dep})"
+                            )
+                        elif unique_dep and v == "$prev":
                             new_imap[k] = unique_dep
-                        elif v.startswith("$prev."):
+                        elif unique_dep and v.startswith("$prev."):
                             new_imap[k] = f"{unique_dep}.{v.split('.', 1)[1]}"
                         else:
                             new_imap[k] = v
                     else:
                         new_imap[k] = v
                 s["input_mapping"] = new_imap
+                logger.info(
+                    f"Step {sid}: input_mapping expanded from {imap} to {new_imap} (unique_dep={unique_dep}, incoming={incoming.get(sid, [])})"
+                )
             else:
                 s["input_mapping"] = imap or {}
+                logger.info(f"Step {sid}: input_mapping set to {imap or {}} (not a dict)")
     except Exception as _e:
         logger.debug(f"Graph-based mapping preparation (sync) skipped: {_e}")
 
@@ -409,6 +448,9 @@ async def execute_workflow(
     )
 
     try:
+        # Update status to running before execution
+        ExecutionsService.update_execution(db, execution_id, {"status": "running"})
+
         # Execute workflow synchronously
         await workflow_engine.execute_workflow(execution_context)
 
@@ -423,18 +465,46 @@ async def execute_workflow(
                 "execution_time_ms": result.execution_time_ms,
             }
 
+        # Determine final status
+        final_status = (
+            execution_context.status.value if hasattr(execution_context.status, "value") else str(execution_context.status)
+        )
+
+        # Update execution in database with final results
+        ExecutionsService.update_execution(
+            db,
+            execution_id,
+            {
+                "status": final_status,
+                "output_data": execution_context.step_io_data,
+                "step_io_data": execution_context.step_io_data,
+                "completed_at": datetime.now(timezone.utc),
+            },
+        )
+
         # Return response
         return {
             "execution_id": execution_id,
-            "status": execution_context.status.value
-            if hasattr(execution_context.status, "value")
-            else str(execution_context.status),
+            "status": final_status,
             "step_results": step_results,
             "step_io_data": execution_context.step_io_data,
             "global_variables": execution_context.global_variables,
             "execution_summary": execution_context.get_execution_summary(),
         }
     except Exception as e:
+        # Update execution as failed in database
+        try:
+            ExecutionsService.update_execution(
+                db,
+                execution_id,
+                {
+                    "status": "failed",
+                    "error_message": str(e),
+                    "completed_at": datetime.now(timezone.utc),
+                },
+            )
+        except Exception:
+            logger.error(f"Failed to update execution {execution_id} as failed: {e}")
         raise HTTPException(status_code=500, detail=f"Workflow execution failed: {str(e)}")
 
 
@@ -469,8 +539,18 @@ async def execute_workflow_async(
     if not sdk_workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # Create execution context
-    execution_id = str(uuid.uuid4())
+    # Create execution in database first (so it can be queried)
+    execution_id = ExecutionsService.create_execution(
+        db,
+        {
+            "workflow_id": str(workflow_id),
+            "user_id": execution_request.get("user_id"),
+            "session_id": execution_request.get("session_id"),
+            "organization_id": execution_request.get("organization_id"),
+            "input_data": execution_request.get("input_data", {}),
+            "metadata": execution_request.get("metadata", {}),
+        },
+    )
 
     # Build workflow config with workflow_id for execution context
     workflow_config_for_execution = sdk_workflow.configuration.copy() if sdk_workflow.configuration else {}
@@ -499,12 +579,64 @@ async def execute_workflow_async(
         workflow_engine=workflow_engine,
     )
 
-    # Execute workflow in background
+    # Execute workflow in background with database updates
     async def run_workflow():
+        from workflow_core_sdk.db.database import get_db_session
+
         try:
-            await workflow_engine.execute_workflow(execution_context)
+            # Get a fresh session for the background task
+            bg_session = get_db_session()
+            try:
+                # Update status to running
+                ExecutionsService.update_execution(bg_session, execution_id, {"status": "running"})
+
+                await workflow_engine.execute_workflow(execution_context)
+
+                # Determine final status
+                final_status = (
+                    execution_context.status.value
+                    if hasattr(execution_context.status, "value")
+                    else str(execution_context.status)
+                )
+
+                # Update execution with final results
+                ExecutionsService.update_execution(
+                    bg_session,
+                    execution_id,
+                    {
+                        "status": final_status,
+                        "output_data": execution_context.step_io_data,
+                        "step_io_data": execution_context.step_io_data,
+                        "completed_at": datetime.now(timezone.utc),
+                    },
+                )
+            finally:
+                try:
+                    bg_session.close()
+                except Exception:
+                    pass
         except Exception as e:
             execution_context.fail_execution(str(e))
+            # Try to update execution as failed
+            try:
+                bg_session = get_db_session()
+                try:
+                    ExecutionsService.update_execution(
+                        bg_session,
+                        execution_id,
+                        {
+                            "status": "failed",
+                            "error_message": str(e),
+                            "completed_at": datetime.now(timezone.utc),
+                        },
+                    )
+                finally:
+                    try:
+                        bg_session.close()
+                    except Exception:
+                        pass
+            except Exception:
+                logger.error(f"Failed to update execution {execution_id} as failed: {e}")
 
     # Start execution as background task
     asyncio.create_task(run_workflow())
@@ -830,6 +962,14 @@ async def execute_workflow_stream(
 
             s["config"]["previous_step_id"] = unique_dep
 
+            # Check if unique_dep is a trigger step (for special handling of $prev.response)
+            # Also check if there's NO unique_dep but step uses $prev - assume trigger data
+            prev_is_trigger = False
+            if unique_dep and unique_dep in step_by_id:
+                prev_step = step_by_id[unique_dep]
+                prev_step_type = prev_step.get("step_type", "")
+                prev_is_trigger = prev_step_type == "trigger"
+
             # Normalize/expand mappings
             imap = s.get("input_mapping") or s["config"].get("input_mapping") or {}
             pmap = s["config"].get("param_mapping")
@@ -839,7 +979,15 @@ async def execute_workflow_stream(
                 new_pmap = {}
                 for k, v in pmap.items():
                     if isinstance(v, str):
-                        if v.startswith("$prev.response."):
+                        # PATCH: If previous step is trigger OR no previous step exists,
+                        # $prev.response -> trigger.current_message (assume runtime trigger data)
+                        if (prev_is_trigger or unique_dep is None) and v in ("$prev.response", "response"):
+                            new_pmap[k] = "trigger.current_message"
+                            logger.info(
+                                f"Step {sid}: patched param_mapping '{k}': '{v}' -> 'trigger.current_message' "
+                                f"(prev_is_trigger={prev_is_trigger}, unique_dep={unique_dep})"
+                            )
+                        elif v.startswith("$prev.response."):
                             need_response_alias = True
                             parts = v.split(".", 2)
                             new_pmap[k] = f"response.{parts[2]}" if len(parts) > 2 else "response"
@@ -851,24 +999,37 @@ async def execute_workflow_stream(
                     else:
                         new_pmap[k] = v
                 s["config"]["param_mapping"] = new_pmap
+                # Don't create response alias if we patched to use trigger.current_message
                 if need_response_alias and "response" not in imap:
                     imap["response"] = "$prev"
 
             if isinstance(imap, dict):
                 new_imap = {}
                 for k, v in imap.items():
-                    if isinstance(v, str) and unique_dep:
-                        if v == "$prev":
+                    if isinstance(v, str):
+                        # PATCH: If previous step is trigger OR no previous step exists,
+                        # use "trigger" directly so tool step can access trigger.current_message
+                        if (prev_is_trigger or unique_dep is None) and v in ("$prev", "$prev.response"):
+                            new_imap[k] = "trigger"
+                            logger.info(
+                                f"Step {sid}: patched input_mapping '{k}': '{v}' -> 'trigger' "
+                                f"(prev_is_trigger={prev_is_trigger}, unique_dep={unique_dep})"
+                            )
+                        elif unique_dep and v == "$prev":
                             new_imap[k] = unique_dep
-                        elif v.startswith("$prev."):
+                        elif unique_dep and v.startswith("$prev."):
                             new_imap[k] = f"{unique_dep}.{v.split('.', 1)[1]}"
                         else:
                             new_imap[k] = v
                     else:
                         new_imap[k] = v
                 s["input_mapping"] = new_imap
+                logger.info(
+                    f"Step {sid}: input_mapping expanded from {imap} to {new_imap} (unique_dep={unique_dep}, incoming={incoming.get(sid, [])})"
+                )
             else:
                 s["input_mapping"] = imap or {}
+                logger.info(f"Step {sid}: input_mapping set to {imap or {}} (not a dict)")
     except Exception as _e:
         logger.debug(f"Graph-based mapping preparation (stream) skipped: {_e}")
 
@@ -949,13 +1110,69 @@ async def execute_workflow_stream(
 
             # Start workflow execution in background
             async def run_workflow():
+                from workflow_core_sdk.db.database import get_db_session
+
                 try:
                     logger.info("Starting workflow execution in background")
+                    # Update status to running
+                    bg_session = get_db_session()
+                    try:
+                        ExecutionsService.update_execution(bg_session, execution_id, {"status": "running"})
+                    finally:
+                        try:
+                            bg_session.close()
+                        except Exception:
+                            pass
+
                     await workflow_engine.execute_workflow(execution_context)
                     logger.info("Workflow execution completed")
+
+                    # Update execution with final results
+                    bg_session = get_db_session()
+                    try:
+                        final_status = (
+                            execution_context.status.value
+                            if hasattr(execution_context.status, "value")
+                            else str(execution_context.status)
+                        )
+                        ExecutionsService.update_execution(
+                            bg_session,
+                            execution_id,
+                            {
+                                "status": final_status,
+                                "output_data": execution_context.step_io_data,
+                                "step_io_data": execution_context.step_io_data,
+                                "completed_at": datetime.now(timezone.utc),
+                            },
+                        )
+                    finally:
+                        try:
+                            bg_session.close()
+                        except Exception:
+                            pass
                 except Exception as e:
                     logger.error(f"Workflow execution failed: {e}", exc_info=True)
                     execution_context.fail_execution(str(e))
+                    # Update execution as failed
+                    try:
+                        bg_session = get_db_session()
+                        try:
+                            ExecutionsService.update_execution(
+                                bg_session,
+                                execution_id,
+                                {
+                                    "status": "failed",
+                                    "error_message": str(e),
+                                    "completed_at": datetime.now(timezone.utc),
+                                },
+                            )
+                        finally:
+                            try:
+                                bg_session.close()
+                            except Exception:
+                                pass
+                    except Exception:
+                        logger.error(f"Failed to update execution {execution_id} as failed")
 
             # Start execution as background task
             asyncio.create_task(run_workflow())
