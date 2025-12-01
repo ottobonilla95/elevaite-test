@@ -12,10 +12,13 @@ The execution context is the heart of the workflow engine. It:
 
 import uuid
 import asyncio
+import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Set, TYPE_CHECKING
 from dataclasses import dataclass, field
 from workflow_core_sdk.models import ExecutionStatus, StepStatus
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from .workflow_engine import WorkflowEngine
@@ -217,9 +220,16 @@ class ExecutionContext:
         """
         step_config = self.get_step_config(step_id)
         if not step_config:
+            logger.debug(f"get_step_input_data({step_id}): no step_config found")
             return {}
 
-        input_mapping = step_config.get("input_mapping", {})
+        # Read input_mapping from top-level first, then fall back to config.input_mapping
+        # The streaming endpoint writes expanded mappings to top-level, but workflows
+        # stored in DB may have the original $prev references in config.input_mapping
+        input_mapping = step_config.get("input_mapping") or step_config.get("config", {}).get("input_mapping") or {}
+        logger.info(
+            f"get_step_input_data({step_id}): input_mapping={input_mapping}, available_step_io_data_keys={list(self.step_io_data.keys())}"
+        )
         input_data = {}
 
         # Process input mappings
@@ -231,20 +241,32 @@ class ExecutionContext:
                     source_data = self.step_io_data[source_step_id]
                     if isinstance(source_data, dict) and field_name in source_data:
                         input_data[input_key] = source_data[field_name]
+                        logger.debug(f"  Mapped {input_key} <- {source_spec} (field found)")
                     else:
                         # If field doesn't exist, use the whole source data
                         input_data[input_key] = source_data
+                        logger.debug(f"  Mapped {input_key} <- {source_spec} (field not found, using whole data)")
+                else:
+                    logger.warning(
+                        f"  Could not map {input_key} <- {source_spec}: source step '{source_step_id}' not in step_io_data"
+                    )
             elif isinstance(source_spec, str) and source_spec in self.step_io_data:
                 # Direct step reference
                 input_data[input_key] = self.step_io_data[source_spec]
+                logger.debug(f"  Mapped {input_key} <- {source_spec} (direct step reference)")
             elif isinstance(source_spec, str) and source_spec in self.global_variables:
                 # Global variable reference
                 input_data[input_key] = self.global_variables[source_spec]
+                logger.debug(f"  Mapped {input_key} <- {source_spec} (global variable)")
+            else:
+                logger.warning(f"  Could not map {input_key} <- {source_spec}: not found in step_io_data or global_variables")
 
         # Add any direct input_data from step config
         if "input_data" in step_config:
             input_data.update(step_config["input_data"])
+            logger.debug(f"  Added direct input_data from step config")
 
+        logger.info(f"get_step_input_data({step_id}): resolved input_data keys={list(input_data.keys())}")
         return input_data
 
     def store_step_result(self, step_result: StepResult) -> None:

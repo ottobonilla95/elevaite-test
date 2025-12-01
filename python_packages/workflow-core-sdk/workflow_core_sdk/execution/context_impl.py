@@ -222,7 +222,10 @@ class ExecutionContext:
         if not step_config:
             return {}
 
-        input_mapping = step_config.get("input_mapping", {})
+        # Read input_mapping from top-level first, then fall back to config.input_mapping
+        # The streaming endpoint writes expanded mappings to top-level, but workflows
+        # stored in DB may have the original $prev references in config.input_mapping
+        input_mapping = step_config.get("input_mapping") or step_config.get("config", {}).get("input_mapping") or {}
         input_data = {}
 
         # Process input mappings

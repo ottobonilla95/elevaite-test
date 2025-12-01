@@ -489,20 +489,17 @@ class RequestAdapter:
 
                             # Set up input_mapping to pass source output to target
                             # Use proper alias-to-path mapping format
+                            # Write to top-level input_mapping (not config.input_mapping)
+                            # to ensure ExecutionContext.get_step_input_data() can read it
                             if step["step_type"] == "tool_execution":
-                                # For tool steps, check if config already has input_mapping
-                                # If not, create a default one that maps the previous step's response
-                                if "input_mapping" not in step["config"] or not step["config"]["input_mapping"]:
-                                    step["config"]["input_mapping"] = {}
+                                # For tool steps, create a default mapping for previous step's response
                                 # Only add if not already present (don't override frontend-provided mappings)
-                                if "response" not in step["config"]["input_mapping"]:
-                                    step["config"]["input_mapping"]["response"] = "$prev"
+                                if "response" not in step["input_mapping"]:
+                                    step["input_mapping"]["response"] = "$prev"
                             elif step["step_type"] == "agent_execution":
                                 # For agent steps, pass the source output as input
-                                if "input_mapping" not in step["config"] or not step["config"]["input_mapping"]:
-                                    step["config"]["input_mapping"] = {}
-                                if "input" not in step["config"]["input_mapping"]:
-                                    step["config"]["input_mapping"]["input"] = "$prev"
+                                if "input" not in step["input_mapping"]:
+                                    step["input_mapping"]["input"] = "$prev"
                             break
 
         # Add other steps from configuration
