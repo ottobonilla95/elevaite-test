@@ -1,19 +1,47 @@
 import os
 import sys
 import json
+from typing import Optional, Callable
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from elevaite_ingestion.config.pipeline_config import PipelineConfig
+
+# Legacy imports for backward compatibility
 from elevaite_ingestion.config.aws_config import AWS_CONFIG
 from elevaite_ingestion.config.embedder_config import EMBEDDER_CONFIG, get_embedder
 from elevaite_ingestion.utils.logger import get_logger
 from elevaite_ingestion.utils.s3_utils import list_s3_files, fetch_json_from_s3, save_json_to_s3
-from elevaite_ingestion.embedding_factory.openai_embedder import get_embedding
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 load_dotenv()
 logger = get_logger(__name__)
 
 
-def process_single_chunk(chunk_key, input_s3_bucket, output_s3_prefix):
+def _get_embedding_function(config: Optional[PipelineConfig] = None) -> Callable:
+    """Get the embedding function based on configuration.
+
+    Args:
+        config: Optional PipelineConfig object
+
+    Returns:
+        Embedding function
+    """
+    # Import here to avoid import-time side effects (OPENAI_API_KEY check)
+    from elevaite_ingestion.embedding_factory.openai_embedder import get_embedding
+
+    return get_embedding
+
+
+def process_single_chunk(chunk_key, input_s3_bucket, output_s3_prefix, get_embedding_fn: Callable, model: Optional[str] = None):
+    """Process a single chunk and generate embeddings.
+
+    Args:
+        chunk_key: S3 key for the chunk
+        input_s3_bucket: S3 bucket name
+        output_s3_prefix: Output prefix for embeddings
+        get_embedding_fn: Function to generate embeddings
+        model: Optional embedding model name
+    """
     try:
         chunk_data = fetch_json_from_s3(input_s3_bucket, chunk_key)
         if not chunk_data or "chunk_text" not in chunk_data:
@@ -27,7 +55,7 @@ def process_single_chunk(chunk_key, input_s3_bucket, output_s3_prefix):
         start_paragraph = chunk_data.get("start_paragraph", "UNKNOWN")
         end_paragraph = chunk_data.get("end_paragraph", "UNKNOWN")
 
-        embedding_vector = get_embedding(chunk_content + contextual_header)
+        embedding_vector = get_embedding_fn(chunk_content + contextual_header, model=model)
 
         embedding_output = {
             "chunk_id": chunk_id,
@@ -58,9 +86,29 @@ def process_single_chunk(chunk_key, input_s3_bucket, output_s3_prefix):
         return {"input": f"s3://{input_s3_bucket}/{chunk_key}", "status": f"Failed - {e}"}
 
 
-def execute_embedding_stage():
-    embedder = get_embedder()
-    input_s3_bucket = AWS_CONFIG["intermediate_bucket"]
+def execute_embedding_stage(config: Optional[PipelineConfig] = None) -> dict:
+    """Execute the embedding stage.
+
+    Args:
+        config: Optional PipelineConfig object. Falls back to global config if not provided.
+
+    Returns:
+        Dictionary with pipeline execution status.
+    """
+    # Get embedding function (lazy import to avoid import-time side effects)
+    get_embedding_fn = _get_embedding_function(config)
+
+    # Use provided config or fall back to global config
+    if config:
+        input_s3_bucket = config.aws.intermediate_bucket
+        embedding_provider = config.embedder.provider
+        embedding_model = config.embedder.model
+    else:
+        embedder = get_embedder()
+        input_s3_bucket = AWS_CONFIG["intermediate_bucket"]
+        embedding_provider = EMBEDDER_CONFIG["provider"]
+        embedding_model = EMBEDDER_CONFIG["model"]
+
     output_s3_prefix = "embeddings_output/"
 
     logger.info("🔹 Listing chunked files from S3...")
@@ -74,8 +122,8 @@ def execute_embedding_stage():
         "STAGE_4: GET_EMBEDDING": {
             "INPUT": f"s3://{input_s3_bucket}/chunked_output/",
             "OUTPUT": f"s3://{input_s3_bucket}/{output_s3_prefix}",
-            "EMBEDDING_MODEL_PROVIDER": EMBEDDER_CONFIG["provider"],
-            "EMBEDDING_MODEL_NAME": EMBEDDER_CONFIG["model"],
+            "EMBEDDING_MODEL_PROVIDER": embedding_provider,
+            "EMBEDDING_MODEL_NAME": embedding_model,
             "TOTAL_FILES": len(chunk_files),
             "EVENT_DETAILS": [],
             "STATUS": "Failed",
@@ -87,7 +135,10 @@ def execute_embedding_stage():
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
-            executor.submit(process_single_chunk, chunk_file, input_s3_bucket, output_s3_prefix) for chunk_file in chunk_files
+            executor.submit(
+                process_single_chunk, chunk_file, input_s3_bucket, output_s3_prefix, get_embedding_fn, embedding_model
+            )
+            for chunk_file in chunk_files
         ]
         for future in as_completed(futures):
             results.append(future.result())

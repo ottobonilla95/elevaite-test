@@ -1,12 +1,17 @@
 import os
 import json
+from typing import Optional
+from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from elevaite_ingestion.config.pipeline_config import PipelineConfig
+
+# Legacy imports for backward compatibility
 from elevaite_ingestion.config.vector_db_config import VECTOR_DB_CONFIG
 from elevaite_ingestion.config.aws_config import AWS_CONFIG
 from elevaite_ingestion.utils.logger import get_logger
 from elevaite_ingestion.vectorstore.vectordb_factory import VectorDBFactory
 from elevaite_ingestion.utils.s3_utils import list_s3_files, fetch_json_from_s3
-from dotenv import load_dotenv
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 load_dotenv()
 logger = get_logger(__name__)
@@ -76,12 +81,26 @@ def process_single_embedding_file(embedding_file, input_s3_bucket, vector_db_cli
         return {"input": f"s3://{input_s3_bucket}/{embedding_file}", "status": f"Failed - {e}"}
 
 
-def execute_vector_db_stage():
-    input_s3_bucket = AWS_CONFIG["intermediate_bucket"]
+def execute_vector_db_stage(config: Optional[PipelineConfig] = None) -> dict:
+    """Execute the vector database stage.
+
+    Args:
+        config: Optional PipelineConfig object. Falls back to global config if not provided.
+
+    Returns:
+        Dictionary with pipeline execution status.
+    """
     embeddings_s3_prefix = "embeddings_output/"
 
-    vector_db_type = VECTOR_DB_CONFIG["vector_db"]
-    vector_db_settings = VECTOR_DB_CONFIG.get(vector_db_type, {})
+    # Use provided config or fall back to global config
+    if config:
+        input_s3_bucket = config.aws.intermediate_bucket
+        vector_db_type = config.vector_db.vector_db
+        vector_db_settings = config.vector_db.settings
+    else:
+        input_s3_bucket = AWS_CONFIG["intermediate_bucket"]
+        vector_db_type = VECTOR_DB_CONFIG["vector_db"]
+        vector_db_settings = VECTOR_DB_CONFIG.get(vector_db_type, {})
 
     vector_db_client = VectorDBFactory.get_client(vector_db_type, **vector_db_settings)
 

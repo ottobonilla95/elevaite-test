@@ -4,7 +4,12 @@ import json
 import boto3
 import importlib
 import asyncio
+from typing import Optional
 from dotenv import load_dotenv
+
+from elevaite_ingestion.config.pipeline_config import PipelineConfig
+
+# Legacy imports for backward compatibility
 from elevaite_ingestion.config.chunker_config import CHUNKER_CONFIG
 from elevaite_ingestion.config.aws_config import AWS_CONFIG
 from elevaite_ingestion.utils.logger import get_logger
@@ -28,8 +33,22 @@ def create_s3_folder(bucket_name, folder_name):
         logger.error(f"❌ Failed to create S3 folder {folder_name}. Error: {e}")
 
 
-def load_chunking_function():
-    chunking_strategy = CHUNKER_CONFIG["chunk_strategy"]
+def load_chunking_function(config: Optional[PipelineConfig] = None):
+    """Load the chunking function based on configuration.
+
+    Args:
+        config: Optional PipelineConfig object
+
+    Returns:
+        Tuple of (chunk_function, chunking_params)
+    """
+    # Use provided config or fall back to global config
+    if config:
+        chunking_strategy = config.chunker.chunk_strategy
+        chunking_settings = config.chunker.settings
+    else:
+        chunking_strategy = CHUNKER_CONFIG["chunk_strategy"]
+        chunking_settings = None  # Will use settings from available_chunkers
 
     if chunking_strategy not in CHUNKER_CONFIG["available_chunkers"]:
         raise ValueError(
@@ -41,11 +60,14 @@ def load_chunking_function():
     module_name = chunker_info["import_path"]
     function_name = chunker_info["function_name"]
 
+    # Use provided settings or default from chunker config
+    settings = chunking_settings if chunking_settings else chunker_info["settings"]
+
     try:
         module = importlib.import_module(module_name)
         chunk_text_func = getattr(module, function_name)
         logger.info(f"📦 Using chunking strategy: {chunking_strategy} ({module_name}.{function_name})")
-        return chunk_text_func, chunker_info["settings"]
+        return chunk_text_func, settings
     except (ImportError, AttributeError) as e:
         raise ImportError(f"❌ Failed to load chunking function '{function_name}' from '{module_name}'. Error: {e}")
 
@@ -106,11 +128,26 @@ async def process_single_file(file_key, chunk_text, chunking_params, output_s3_b
     return event_result
 
 
-async def execute_chunking_stage(parsed_files, stage_2_status):
+async def execute_chunking_stage(parsed_files, stage_2_status, config: Optional[PipelineConfig] = None):
+    """Execute the chunking stage.
+
+    Args:
+        parsed_files: List of parsed file keys
+        stage_2_status: Status from parsing stage
+        config: Optional PipelineConfig object
+    """
     mode = os.getenv("MODE", "s3")
-    output_s3_bucket = AWS_CONFIG["intermediate_bucket"]
+
+    # Use provided config or fall back to global config
+    if config:
+        output_s3_bucket = config.aws.intermediate_bucket
+        chunking_strategy = config.chunker.chunk_strategy
+    else:
+        output_s3_bucket = AWS_CONFIG["intermediate_bucket"]
+        chunking_strategy = CHUNKER_CONFIG["chunk_strategy"]
+
     output_s3_prefix = "chunked_output/"
-    chunk_text, chunking_params = load_chunking_function()
+    chunk_text, chunking_params = load_chunking_function(config=config)
 
     create_s3_folder(output_s3_bucket, output_s3_prefix)
 
@@ -119,7 +156,7 @@ async def execute_chunking_stage(parsed_files, stage_2_status):
             "DATA_SOURCE": mode,
             "INPUT_BUCKET_URL": stage_2_status["STAGE_2: PARSING"]["OUTPUT"],
             "OUTPUT_BUCKET_URL": f"s3://{output_s3_bucket}/{output_s3_prefix}",
-            "CHUNKING_STRATEGY": CHUNKER_CONFIG["chunk_strategy"],
+            "CHUNKING_STRATEGY": chunking_strategy,
             "TOTAL_FILES": len(parsed_files),
             "EVENT_DETAILS": [],
             "STATUS": "Failed",

@@ -4,7 +4,12 @@ import time
 import json
 import boto3
 import asyncio
+from typing import Optional
 from dotenv import load_dotenv
+
+from elevaite_ingestion.config.pipeline_config import PipelineConfig
+
+# Legacy imports for backward compatibility
 from elevaite_ingestion.config.load_config import LOADING_CONFIG
 from elevaite_ingestion.config.aws_config import AWS_CONFIG
 from elevaite_ingestion.utils.logger import get_logger
@@ -43,10 +48,24 @@ def fetch_parsed_json_from_s3(bucket_name, file_key):
         return None
 
 
-async def execute_chunking_pipeline():
-    source_type = LOADING_CONFIG["default_source"]
-    input_bucket = AWS_CONFIG["intermediate_bucket"]
-    intermediate_bucket = AWS_CONFIG["intermediate_bucket"]
+async def execute_chunking_pipeline(config: Optional[PipelineConfig] = None) -> dict:
+    """Execute the chunking pipeline.
+
+    Args:
+        config: Optional PipelineConfig object. Falls back to global config if not provided.
+
+    Returns:
+        Dictionary with pipeline execution status.
+    """
+    # Use provided config or fall back to legacy global config
+    if config:
+        source_type = "s3"  # Chunking only supports S3 mode
+        intermediate_bucket = config.aws.intermediate_bucket
+    else:
+        source_type = LOADING_CONFIG["default_source"]
+        intermediate_bucket = AWS_CONFIG["intermediate_bucket"]
+
+    input_bucket = intermediate_bucket  # Input comes from parsing output
 
     if source_type != "s3":
         logger.error("This script is designed for S3 mode only.")
@@ -80,7 +99,7 @@ async def execute_chunking_pipeline():
         )
 
     logger.info("Starting STAGE_3: CHUNKING...")
-    stage_3_status = await execute_chunking_stage(parsed_files, stage_2_status)
+    stage_3_status = await execute_chunking_stage(parsed_files, stage_2_status, config=config)
 
     pipeline_status = {**stage_3_status}
 

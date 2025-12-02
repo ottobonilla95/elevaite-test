@@ -1,7 +1,11 @@
 import os
 import json
 import time
+from typing import Optional
 
+from elevaite_ingestion.config.pipeline_config import PipelineConfig
+
+# Legacy imports for backward compatibility
 from elevaite_ingestion.config.aws_config import AWS_CONFIG
 from elevaite_ingestion.config.parser_config import PARSER_CONFIG
 from elevaite_ingestion.stage.parse_stage.parse_pipeline import main_parse
@@ -18,16 +22,32 @@ def ensure_directory_exists(directory):
         logger.info(f"Created directory: {directory}")
 
 
-def execute_pipeline(mode=None):
+def execute_pipeline(mode: Optional[str] = None, config: Optional[PipelineConfig] = None) -> dict:
     """
     Executes the parsing pipeline & logs status.
 
     Args:
-        mode (str, optional): Processing mode ('s3' or 'local'). Defaults to config mode.
-    """
+        mode: Processing mode ('s3' or 'local'). Defaults to config mode.
+        config: PipelineConfig object. If provided, uses this instead of global config.
 
-    mode = mode or PARSER_CONFIG.get("mode", "s3")
-    parsing_mode = PARSER_CONFIG.get("parsing_mode", "auto_parser")
+    Returns:
+        Dictionary with pipeline execution status.
+    """
+    # Use provided config or fall back to legacy global config
+    if config:
+        mode = mode or config.parser.mode
+        parsing_mode = config.parser.parsing_mode
+        input_bucket = config.aws.input_bucket
+        intermediate_bucket = config.aws.intermediate_bucket
+        input_dir = config.parser.input_directory
+        output_dir = config.parser.output_directory
+    else:
+        mode = mode or PARSER_CONFIG.get("mode", "s3")
+        parsing_mode = PARSER_CONFIG.get("parsing_mode", "auto_parser")
+        input_bucket = AWS_CONFIG.get("input_bucket", "")
+        intermediate_bucket = AWS_CONFIG.get("intermediate_bucket", "")
+        input_dir = PARSER_CONFIG.get("local", {}).get("input_directory")
+        output_dir = PARSER_CONFIG.get("local", {}).get("output_parsed_directory")
 
     if mode not in ["s3", "local"]:
         mode = input("Select mode (s3/local): ").strip().lower()
@@ -46,15 +66,16 @@ def execute_pipeline(mode=None):
     }
 
     if mode == "local":
-        input_dir = PARSER_CONFIG["local"]["input_directory"]
-        output_dir = PARSER_CONFIG["local"]["output_parsed_directory"]
+        if not input_dir or not output_dir:
+            logger.error("Local mode requires input_directory and output_directory")
+            return {"error": "Missing local directories configuration"}
 
         ensure_directory_exists(input_dir)
         ensure_directory_exists(output_dir)
 
         logger.info(f"📌 Running {parsing_mode} mode for local files...")
 
-        markdown_files, structured_data = main_parse()
+        markdown_files, structured_data = main_parse(config=config)
 
         event_details = []
         for file in markdown_files:
@@ -77,9 +98,6 @@ def execute_pipeline(mode=None):
         )
 
     elif mode == "s3":
-        input_bucket = AWS_CONFIG["input_bucket"]
-        intermediate_bucket = AWS_CONFIG["intermediate_bucket"]
-
         logger.info(f"📌 Running {parsing_mode} mode for S3 files...")
 
         try:

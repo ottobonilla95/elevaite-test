@@ -2,7 +2,10 @@ import os
 import sys
 import json
 import time
+from typing import Optional
 from dotenv import load_dotenv
+
+from elevaite_ingestion.config.pipeline_config import PipelineConfig
 from elevaite_ingestion.utils.logger import get_logger
 from elevaite_ingestion.stage.embed_stage.embed_pipeline import execute_embedding_stage
 
@@ -10,11 +13,18 @@ load_dotenv()
 logger = get_logger(__name__)
 
 
-def execute_embedding_pipeline():
-    """Runs STAGE_4: GET_EMBEDDING."""
+def execute_embedding_pipeline(config: Optional[PipelineConfig] = None) -> dict:
+    """Runs STAGE_4: GET_EMBEDDING.
+
+    Args:
+        config: Optional PipelineConfig object. Falls back to global config if not provided.
+
+    Returns:
+        Dictionary with pipeline execution status.
+    """
     logger.info("🚀 Starting STAGE_4: GET_EMBEDDING...")
 
-    stage_4_status = execute_embedding_stage()
+    stage_4_status = execute_embedding_stage(config=config)
 
     json_output = json.dumps(stage_4_status, indent=4)
     script_dir = os.path.dirname(__file__)
@@ -23,6 +33,8 @@ def execute_embedding_pipeline():
         json_file.write(json_output)
 
     logger.info(f"📌 Final Pipeline Execution Summary:\n{json_output}")
+
+    return stage_4_status
 
 
 if __name__ == "__main__":

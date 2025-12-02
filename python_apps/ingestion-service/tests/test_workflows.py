@@ -14,24 +14,90 @@ from ingestion_service.models import IngestionJob, JobStatus
 
 
 class TestExecuteIngestionPipeline:
-    """Tests for execute_ingestion_pipeline function"""
+    """Tests for execute_ingestion_pipeline function.
+
+    These tests mock the elevaite_ingestion stage functions to avoid
+    requiring real AWS credentials and external services.
+    """
 
     @pytest.mark.asyncio
-    async def test_execute_pipeline_placeholder(self):
-        """Test that pipeline execution placeholder returns expected structure"""
+    async def test_execute_pipeline_returns_expected_structure(self):
+        """Test that pipeline execution returns expected structure when stages succeed"""
+        import sys
+
         config = {
-            "source": "s3",
-            "bucket": "test-bucket",
-            "files": ["doc1.pdf", "doc2.pdf"],
+            "mode": "s3",
+            "aws": {"input_bucket": "test-bucket", "intermediate_bucket": "test-intermediate"},
         }
 
-        result = await execute_ingestion_pipeline(config)
+        # Create mock stage results
+        mock_parse_result = {"STAGE_2: PARSING": {"STATUS": "Completed", "TOTAL_FILES": 5}}
+        mock_chunk_result = {"STAGE_3: CHUNKING": {"STATUS": "Completed", "TOTAL_CHUNKS": 50}}
+        mock_embed_result = {"STAGE_4: EMBEDDING": {"STATUS": "Completed", "TOTAL_EMBEDDINGS": 50}}
+        mock_vectordb_result = {"STAGE_5: VECTORSTORE": {"STATUS": "Completed", "INDEX_ID": "test-index"}}
 
-        # The placeholder implementation returns zeros
+        # Create mock modules
+        mock_parse_module = MagicMock()
+        mock_parse_module.execute_pipeline = MagicMock(return_value=mock_parse_result)
+
+        mock_chunk_module = MagicMock()
+        mock_chunk_module.execute_chunking_pipeline = AsyncMock(return_value=mock_chunk_result)
+
+        mock_embed_module = MagicMock()
+        mock_embed_module.execute_embedding_pipeline = MagicMock(return_value=mock_embed_result)
+
+        mock_vectordb_module = MagicMock()
+        mock_vectordb_module.execute_vector_db_pipeline = MagicMock(return_value=mock_vectordb_result)
+
+        # Patch sys.modules to inject our mocks
+        with patch.dict(
+            sys.modules,
+            {
+                "elevaite_ingestion.stage.parse_stage.parse_main": mock_parse_module,
+                "elevaite_ingestion.stage.chunk_stage.chunk_main": mock_chunk_module,
+                "elevaite_ingestion.stage.embed_stage.embed_main": mock_embed_module,
+                "elevaite_ingestion.stage.vectorstore_stage.vectordb_main": mock_vectordb_module,
+            },
+        ):
+            with patch("ingestion_service.workflows._build_pipeline_config"):
+                result = await execute_ingestion_pipeline(config)
+
+        # Verify the result structure
         assert "files_processed" in result
         assert "chunks_created" in result
         assert "embeddings_generated" in result
         assert "index_ids" in result
+        assert "stages" in result
+
+        # Verify extracted values
+        assert result["files_processed"] == 5
+        assert result["chunks_created"] == 50
+        assert result["embeddings_generated"] == 50
+        assert "test-index" in result["index_ids"]
+
+    @pytest.mark.asyncio
+    async def test_execute_pipeline_handles_stage_failure(self):
+        """Test that pipeline raises exception when a stage fails"""
+        import sys
+
+        config = {"mode": "s3"}
+
+        # Create mock parse result that indicates failure
+        mock_parse_result = {"STAGE_2: PARSING": {"STATUS": "Failed", "TOTAL_FILES": 0}}
+        mock_parse_module = MagicMock()
+        mock_parse_module.execute_pipeline = MagicMock(return_value=mock_parse_result)
+
+        with patch.dict(
+            sys.modules,
+            {
+                "elevaite_ingestion.stage.parse_stage.parse_main": mock_parse_module,
+            },
+        ):
+            with patch("ingestion_service.workflows._build_pipeline_config"):
+                with pytest.raises(Exception) as exc_info:
+                    await execute_ingestion_pipeline(config)
+
+                assert "Parsing stage failed" in str(exc_info.value)
 
 
 class TestSendCompletionEvent:

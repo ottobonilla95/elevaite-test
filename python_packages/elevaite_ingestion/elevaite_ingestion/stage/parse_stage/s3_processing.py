@@ -2,11 +2,11 @@ import os
 import json
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Optional
 
 import boto3
 from dotenv import load_dotenv
 
-from elevaite_ingestion.stage.parse_stage.parse_pipeline import process_file
 from elevaite_ingestion.utils.logger import get_logger
 
 load_dotenv()
@@ -22,7 +22,18 @@ def list_s3_files(bucket_name):
     return [obj["Key"] for obj in response["Contents"]]
 
 
-def process_single_s3_file(file_key, input_bucket, intermediate_bucket):
+def process_single_s3_file(file_key, input_bucket, intermediate_bucket, config=None):
+    """Process a single S3 file.
+
+    Args:
+        file_key: S3 object key
+        input_bucket: Source bucket name
+        intermediate_bucket: Destination bucket name
+        config: Optional PipelineConfig object
+    """
+    # Import here to avoid circular imports
+    from elevaite_ingestion.stage.parse_stage.parse_pipeline import process_file
+
     try:
         original_filename = os.path.basename(file_key)
         response = s3_client.get_object(Bucket=input_bucket, Key=file_key)
@@ -32,7 +43,9 @@ def process_single_s3_file(file_key, input_bucket, intermediate_bucket):
             tmp_file.write(file_stream)
             tmp_file_path = tmp_file.name
 
-        md_path, structured_data = process_file(tmp_file_path, output_dir="/tmp", original_filename=original_filename)
+        md_path, structured_data = process_file(
+            tmp_file_path, output_dir="/tmp", original_filename=original_filename, config=config
+        )
 
         if md_path:
             structured_data["filename"] = original_filename
@@ -55,8 +68,14 @@ def process_single_s3_file(file_key, input_bucket, intermediate_bucket):
         return {"input_key": file_key, "output_key": None, "status": f"Failed - {e}"}
 
 
-def process_s3_files(input_bucket, intermediate_bucket):
-    """Processes files from S3 and uploads parsed content back to S3."""
+def process_s3_files(input_bucket, intermediate_bucket, config=None):
+    """Processes files from S3 and uploads parsed content back to S3.
+
+    Args:
+        input_bucket: Source S3 bucket name
+        intermediate_bucket: Destination S3 bucket name
+        config: Optional PipelineConfig object
+    """
     file_keys = list_s3_files(input_bucket)
     if not file_keys:
         logger.info("No files found in the input bucket.")
@@ -67,7 +86,8 @@ def process_s3_files(input_bucket, intermediate_bucket):
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
-            executor.submit(process_single_s3_file, file_key, input_bucket, intermediate_bucket) for file_key in file_keys
+            executor.submit(process_single_s3_file, file_key, input_bucket, intermediate_bucket, config)
+            for file_key in file_keys
         ]
         for future in as_completed(futures):
             event_status.append(future.result())

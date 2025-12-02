@@ -150,35 +150,163 @@ async def run_ingestion_job(job_id: str) -> Dict[str, Any]:
     return await _run_ingestion_job_impl(job_id)
 
 
+def _build_pipeline_config(config: Dict[str, Any]):
+    """
+    Build a PipelineConfig object from the job configuration dictionary.
+
+    Args:
+        config: Job configuration dictionary
+
+    Returns:
+        PipelineConfig object for passing to pipeline stages
+    """
+    from elevaite_ingestion.config.pipeline_config import PipelineConfig
+
+    return PipelineConfig.from_dict(config)
+
+
 async def execute_ingestion_pipeline(config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Execute the elevaite_ingestion pipeline with the given configuration.
 
-    This is a placeholder that will invoke the actual ingestion pipeline.
-    The implementation will depend on how elevaite_ingestion exposes its API.
+    The pipeline runs the following stages sequentially:
+    1. PARSING - Parse documents into structured format
+    2. CHUNKING - Split parsed content into chunks
+    3. EMBEDDING - Generate embeddings for chunks
+    4. VECTOR_DB - Store embeddings in vector database
 
     Args:
-        config: Ingestion configuration
+        config: Ingestion configuration containing:
+            - mode: 's3' or 'local'
+            - aws: AWS config (input_bucket, intermediate_bucket)
+            - embedding: provider, model configuration
+            - vector_db: target vector database configuration
 
     Returns:
         Summary of ingestion results
     """
-    # TODO: Implement actual ingestion pipeline invocation
-    # For now, this is a placeholder that simulates the pipeline
+    import asyncio
+
     logger.info(f"Executing ingestion pipeline with config: {config}")
 
-    # The actual implementation would call into elevaite_ingestion
-    # For example:
-    # from elevaite_ingestion.ingest_main import main as run_ingestion
-    # result = await run_ingestion(config)
+    # Build PipelineConfig from the job configuration
+    pipeline_config = _build_pipeline_config(config)
 
-    # Placeholder result
-    return {
+    # Track results from each stage
+    mode = config.get("mode", "s3")
+    pipeline_results = {
+        "stages": {},
         "files_processed": 0,
         "chunks_created": 0,
         "embeddings_generated": 0,
         "index_ids": [],
     }
+
+    try:
+        # Stage 1: PARSING
+        logger.info("Starting STAGE_2: PARSING...")
+        try:
+            from elevaite_ingestion.stage.parse_stage.parse_main import execute_pipeline as execute_parsing
+
+            # Run in thread pool since it's sync
+            loop = asyncio.get_event_loop()
+            parse_result = await loop.run_in_executor(None, lambda: execute_parsing(mode=mode, config=pipeline_config))
+
+            pipeline_results["stages"]["PARSING"] = parse_result
+
+            # Extract file count
+            parsing_status = parse_result.get("STAGE_2: PARSING", {})
+            pipeline_results["files_processed"] = parsing_status.get("TOTAL_FILES", 0)
+
+            if parsing_status.get("STATUS") == "Failed":
+                raise Exception(f"Parsing stage failed: {parsing_status}")
+
+            logger.info(f"PARSING completed: {parsing_status.get('TOTAL_FILES', 0)} files processed")
+
+        except (ImportError, ValueError) as e:
+            logger.warning(f"Could not import/configure parsing module: {e}")
+            pipeline_results["stages"]["PARSING"] = {"STATUS": "Skipped", "reason": str(e)}
+
+        # Stage 2: CHUNKING
+        logger.info("Starting STAGE_3: CHUNKING...")
+        try:
+            from elevaite_ingestion.stage.chunk_stage.chunk_main import execute_chunking_pipeline
+
+            chunk_result = await execute_chunking_pipeline(config=pipeline_config)
+            pipeline_results["stages"]["CHUNKING"] = chunk_result
+
+            # Extract chunk count from the result
+            chunking_status = chunk_result.get("STAGE_3: CHUNKING", {})
+            if isinstance(chunking_status, dict):
+                chunks = chunking_status.get("TOTAL_CHUNKS", 0)
+                pipeline_results["chunks_created"] = chunks
+
+            logger.info(f"CHUNKING completed: {pipeline_results['chunks_created']} chunks created")
+
+        except (ImportError, ValueError) as e:
+            logger.warning(f"Could not import/configure chunking module: {e}")
+            pipeline_results["stages"]["CHUNKING"] = {"STATUS": "Skipped", "reason": str(e)}
+
+        # Stage 3: EMBEDDING
+        logger.info("Starting STAGE_4: EMBEDDING...")
+        try:
+            from elevaite_ingestion.stage.embed_stage.embed_main import execute_embedding_pipeline
+
+            # Run in thread pool since it's sync
+            loop = asyncio.get_event_loop()
+            embed_result = await loop.run_in_executor(None, lambda: execute_embedding_pipeline(config=pipeline_config))
+
+            pipeline_results["stages"]["EMBEDDING"] = embed_result
+
+            # Extract embedding count
+            if isinstance(embed_result, dict):
+                embed_status = embed_result.get("STAGE_4: EMBEDDING", {})
+                pipeline_results["embeddings_generated"] = embed_status.get("TOTAL_EMBEDDINGS", 0)
+
+            logger.info(f"EMBEDDING completed: {pipeline_results['embeddings_generated']} embeddings generated")
+
+        except (ImportError, ValueError) as e:
+            logger.warning(f"Could not import/configure embedding module: {e}")
+            pipeline_results["stages"]["EMBEDDING"] = {"STATUS": "Skipped", "reason": str(e)}
+
+        # Stage 4: VECTOR_DB
+        logger.info("Starting STAGE_5: VECTOR_DB...")
+        try:
+            from elevaite_ingestion.stage.vectorstore_stage.vectordb_main import execute_vector_db_pipeline
+
+            # Run in thread pool since it's sync
+            loop = asyncio.get_event_loop()
+            vectordb_result = await loop.run_in_executor(None, lambda: execute_vector_db_pipeline(config=pipeline_config))
+
+            pipeline_results["stages"]["VECTOR_DB"] = vectordb_result
+
+            # Extract index IDs
+            if isinstance(vectordb_result, dict):
+                vectordb_status = vectordb_result.get("STAGE_5: VECTORSTORE", {})
+                if isinstance(vectordb_status, dict):
+                    index_id = vectordb_status.get("INDEX_ID") or vectordb_status.get("COLLECTION_NAME")
+                    if index_id:
+                        pipeline_results["index_ids"].append(index_id)
+
+            logger.info(f"VECTOR_DB completed: indexes={pipeline_results['index_ids']}")
+
+        except (ImportError, ValueError) as e:
+            logger.warning(f"Could not import/configure vectordb module: {e}")
+            pipeline_results["stages"]["VECTOR_DB"] = {"STATUS": "Skipped", "reason": str(e)}
+
+        logger.info(f"Pipeline completed successfully: {pipeline_results}")
+
+        return {
+            "files_processed": pipeline_results["files_processed"],
+            "chunks_created": pipeline_results["chunks_created"],
+            "embeddings_generated": pipeline_results["embeddings_generated"],
+            "index_ids": pipeline_results["index_ids"],
+            "stages": pipeline_results["stages"],
+        }
+
+    except Exception as e:
+        logger.error(f"Pipeline execution failed: {e}", exc_info=True)
+        raise
 
 
 async def send_completion_event(callback_topic: str, dbos_workflow_id: Optional[str], event_payload: Dict[str, Any]) -> None:
