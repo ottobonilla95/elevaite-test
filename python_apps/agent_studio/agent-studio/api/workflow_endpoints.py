@@ -447,6 +447,42 @@ async def execute_workflow(
         workflow_engine=workflow_engine,
     )
 
+    # Pass query and chat_history to the execution context as trigger data
+    # This is required for interactive agent steps to proceed (they wait for user input otherwise)
+    query = execution_request.get("query")
+    if query:
+        # Normalize chat history coming from various frontends
+        def _normalize_history(raw_history: list) -> list:
+            """Normalize chat history to [{role, content}, ...] format."""
+            normalized = []
+            for item in raw_history or []:
+                if isinstance(item, dict):
+                    # Handle different frontend formats
+                    if "role" in item and "content" in item:
+                        normalized.append({"role": item["role"], "content": item["content"]})
+                    elif "actor" in item and "content" in item:
+                        role = "assistant" if item["actor"] == "bot" else "user"
+                        normalized.append({"role": role, "content": item["content"]})
+                    elif "isBot" in item and "text" in item:
+                        role = "assistant" if item["isBot"] else "user"
+                        normalized.append({"role": role, "content": item["text"]})
+            return normalized
+
+        raw_history = execution_request.get("chat_history", [])
+        normalized_history = _normalize_history(raw_history)
+
+        # Build messages array: history + current query
+        messages = normalized_history.copy()
+        messages.append({"role": "user", "content": query})
+
+        # Set trigger data in execution context
+        execution_context.step_io_data["trigger"] = {
+            "current_message": query,
+            "messages": messages,
+            "chat_history": normalized_history,
+        }
+        logger.info(f"Added trigger data with query: {query[:50]}... (history={len(normalized_history)})")
+
     try:
         # Update status to running before execution
         ExecutionsService.update_execution(db, execution_id, {"status": "running"})
@@ -578,6 +614,56 @@ async def execute_workflow_async(
         execution_id=execution_id,
         workflow_engine=workflow_engine,
     )
+
+    # Pass query and chat_history to the execution context as trigger data
+    # This is required for interactive agent steps to proceed (they wait for user input otherwise)
+    query = execution_request.get("query")
+    if query:
+
+        def _normalize_history(raw_history: Optional[List[Dict[str, Any]]], current_query: str) -> List[Dict[str, str]]:
+            normalized: List[Dict[str, str]] = []
+            if not raw_history:
+                return normalized
+            for item in raw_history:
+                try:
+                    role = None
+                    content = None
+                    if isinstance(item, dict):
+                        if "role" in item and "content" in item:
+                            role = str(item.get("role"))
+                            content = str(item.get("content"))
+                        elif "actor" in item and "content" in item:
+                            actor = str(item.get("actor"))
+                            role = "assistant" if actor.lower() in ("bot", "assistant", "model") else "user"
+                            content = str(item.get("content"))
+                        elif ("isBot" in item or "is_bot" in item) and "text" in item:
+                            is_bot = bool(item.get("isBot") if "isBot" in item else item.get("is_bot"))
+                            role = "assistant" if is_bot else "user"
+                            content = str(item.get("text"))
+                    if role and content:
+                        normalized.append({"role": role, "content": content})
+                except Exception:
+                    # Skip malformed entries safely
+                    continue
+            # Drop trailing duplicate of current query if present (common in UIs that include the in-flight message)
+            if normalized and normalized[-1].get("role") == "user" and normalized[-1].get("content") == current_query:
+                normalized = normalized[:-1]
+            return normalized
+
+        # Build trigger data
+        raw_chat_history = execution_request.get("chat_history", [])
+        history = _normalize_history(raw_chat_history, query)
+        messages = history + [{"role": "user", "content": query}]
+        trigger_data = {
+            "current_message": query,
+            "messages": messages,
+        }
+        if history:
+            trigger_data["chat_history"] = history
+
+        # Store trigger data in step_io_data for agent steps to access
+        execution_context.step_io_data["trigger"] = trigger_data
+        logger.info(f"Added trigger data with query: {query[:50] if len(query) > 50 else query}... (history={len(history)})")
 
     # Execute workflow in background with database updates
     async def run_workflow():
