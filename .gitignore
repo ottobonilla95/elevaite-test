@@ -79,10 +79,7 @@ __pycache__/
 
 # Ingestion
 python_packages/elevaite_ingestion/python
-python_packages/elevaite_ingestion/stage/parse_stage/stage_2_status.json
-python_packages/elevaite_ingestion/stage/chunk_stage/stage_3_status.json
-python_packages/elevaite_ingestion/stage/embed_stage/stage_4_status.json
-python_packages/elevaite_ingestion/stage/vectorstore_stage/stage_5_status.json
+python_packages/elevaite_ingestion/**/stage_*_status.json
 python_packages/elevaite_ingestion/config/logs/pipeline.log
 
 uploads
