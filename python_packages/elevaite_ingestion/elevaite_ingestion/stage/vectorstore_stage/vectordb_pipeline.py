@@ -61,7 +61,8 @@ def process_single_embedding_file(embedding_file, input_s3_bucket, vector_db_cli
 
         elif vector_db_type == "qdrant":
             collection_name = vector_db_settings["collection_name"]
-            vector_size = 1536
+            # Get vector size from the actual embedding dimension
+            vector_size = len(chunk_embedding)
             vector_db_client.ensure_collection(collection_name, vector_size=vector_size)
 
             vector_db_client.upsert_vectors(
