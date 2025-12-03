@@ -4,6 +4,12 @@ Ingestion Service FastAPI Application
 
 from __future__ import annotations
 
+# Load environment variables FIRST, before any other imports
+# This ensures AWS_ENDPOINT_URL is set before boto3 clients are created
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import logging
 import os
 import uuid as uuid_module
