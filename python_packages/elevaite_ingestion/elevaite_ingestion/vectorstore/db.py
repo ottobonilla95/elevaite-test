@@ -1,10 +1,12 @@
 import os
 import time
+import threading
 from pinecone import Pinecone, ServerlessSpec
 from chromadb import PersistentClient
 from chromadb.config import Settings
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
+from qdrant_client.http.exceptions import UnexpectedResponse
 
 
 class PineconeClient:
@@ -45,20 +47,44 @@ class ChromaClient:
 
 
 class QdrantClientWrapper:
+    # Lock to prevent race conditions when creating collections
+    _collection_locks: dict[str, threading.Lock] = {}
+    _global_lock = threading.Lock()
+
     def __init__(self, host: str, port: int):
         self.client = QdrantClient(url=host, port=port)
 
+    def _get_collection_lock(self, collection_name: str) -> threading.Lock:
+        """Get or create a lock for a specific collection."""
+        with self._global_lock:
+            if collection_name not in self._collection_locks:
+                self._collection_locks[collection_name] = threading.Lock()
+            return self._collection_locks[collection_name]
+
     def ensure_collection(self, collection_name: str, vector_size: int = 1536, distance: "models.Distance" = None):
-        """Check if the collection exists, create it if it doesn't."""
-        existing_collections = self.client.get_collections().collections
-        if not any(collection.name == collection_name for collection in existing_collections):
-            self.client.create_collection(
-                collection_name=collection_name,
-                vectors_config=models.VectorParams(size=vector_size, distance=distance or models.Distance.COSINE),
-            )
-            print(f"✅ Created collection '{collection_name}' with vector size {vector_size}.")
-        else:
-            print(f"✅ Collection '{collection_name}' already exists.")
+        """Check if the collection exists, create it if it doesn't.
+
+        Thread-safe: uses locking to prevent race conditions when multiple threads
+        try to create the same collection simultaneously.
+        """
+        lock = self._get_collection_lock(collection_name)
+        with lock:
+            existing_collections = self.client.get_collections().collections
+            if not any(collection.name == collection_name for collection in existing_collections):
+                try:
+                    self.client.create_collection(
+                        collection_name=collection_name,
+                        vectors_config=models.VectorParams(size=vector_size, distance=distance or models.Distance.COSINE),
+                    )
+                    print(f"✅ Created collection '{collection_name}' with vector size {vector_size}.")
+                except UnexpectedResponse as e:
+                    # Handle race condition: collection was created by another process
+                    if e.status_code == 409:
+                        print(f"✅ Collection '{collection_name}' already exists (created by another process).")
+                    else:
+                        raise
+            else:
+                print(f"✅ Collection '{collection_name}' already exists.")
 
     def upsert_vectors(self, collection_name: str, vectors: list):
         """

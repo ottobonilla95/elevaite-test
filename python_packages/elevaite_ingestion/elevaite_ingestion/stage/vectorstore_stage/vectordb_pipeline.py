@@ -105,7 +105,10 @@ def execute_vector_db_stage(config: Optional[PipelineConfig] = None) -> dict:
     vector_db_client = VectorDBFactory.get_client(vector_db_type, **vector_db_settings)
 
     logger.info("🔹 Listing embedding files from S3...")
-    embedding_files = list_s3_files(input_s3_bucket, embeddings_s3_prefix)
+    all_files = list_s3_files(input_s3_bucket, embeddings_s3_prefix)
+
+    # Filter out non-embedding files (e.g., stage_4_output.json summary file)
+    embedding_files = [f for f in all_files if not f.endswith("stage_4_output.json")]
 
     if not embedding_files:
         logger.warning("⚠️ No embeddings found in S3. Aborting STAGE_5.")
