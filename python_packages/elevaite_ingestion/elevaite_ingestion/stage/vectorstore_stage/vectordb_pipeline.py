@@ -50,11 +50,13 @@ def process_single_embedding_file(embedding_file, input_s3_bucket, vector_db_cli
 
         elif vector_db_type == "chroma":
             collection = vector_db_client.init_collection(vector_db_settings["collection_name"])
+            # Chroma doesn't support list values in metadata, convert to JSON strings
+            chroma_metadata = {k: json.dumps(v) if isinstance(v, list) else v for k, v in metadata.items()}
             vector_db_client.add(
                 collection=collection,
                 documents=[chunk_content],
                 embeddings=[chunk_embedding],
-                metadatas=[metadata],
+                metadatas=[chroma_metadata],
                 ids=[f"{filename}_chunk_{chunk_id}"],
             )
             logger.info(f"✅ Upserted {filename} - Chunk {chunk_id} into Chroma.")
