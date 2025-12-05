@@ -74,6 +74,14 @@ from .approvals import (
     ApprovalRequestRead,
     ApprovalStatus,
 )
+from .a2a_agents import (
+    A2AAgent,
+    A2AAgentBase,
+    A2AAgentCreate,
+    A2AAgentRead,
+    A2AAgentUpdate,
+    A2AAgentSkill,
+)
 
 __all__ = [
     # Base model
@@ -120,4 +128,11 @@ __all__ = [
     "ApprovalRequestBase",
     "ApprovalRequestRead",
     "ApprovalStatus",
+    # A2A Agents
+    "A2AAgent",
+    "A2AAgentBase",
+    "A2AAgentCreate",
+    "A2AAgentRead",
+    "A2AAgentUpdate",
+    "A2AAgentSkill",
 ]
