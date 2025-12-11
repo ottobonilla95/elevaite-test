@@ -13,7 +13,9 @@ from uuid import UUID
 import uuid
 import asyncio
 import logging
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, status, Request
+import json
+from pathlib import Path
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, status, Request, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session
 
@@ -206,15 +208,21 @@ def delete_workflow(workflow_id: uuid.UUID, db: Session = Depends(get_db)):
 @router.post("/{workflow_id}/execute")
 async def execute_workflow(
     workflow_id: uuid.UUID,
-    execution_request: Dict[str, Any],
-    background_tasks: BackgroundTasks,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    # Form data parameters (for multipart/form-data requests with file)
+    payload: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
 ):
     """
     Execute a workflow synchronously (with timeout).
 
     ✅ MIGRATED TO SDK - Uses SDK's WorkflowEngine for execution.
+
+    Supports both JSON and multipart/form-data requests:
+    - JSON: Send request body with query, chat_history, runtime_overrides, etc.
+    - Multipart: Send 'payload' field with JSON string + optional 'file' attachment
 
     Note: This is a simplified synchronous execution. For streaming, use /{workflow_id}/stream
     """
@@ -233,6 +241,63 @@ async def execute_workflow(
 
     if not sdk_workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Parse request body based on content type
+    content_type = request.headers.get("content-type", "").lower()
+    execution_request: Dict[str, Any] = {}
+
+    if payload is not None or file is not None or "multipart/form-data" in content_type:
+        # Multipart/form-data path
+        if payload is None:
+            raise HTTPException(status_code=400, detail="Missing 'payload' form field")
+        try:
+            execution_request = json.loads(payload)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON in 'payload' form field: {e}")
+    else:
+        # JSON path (backwards compatible)
+        try:
+            execution_request = await request.json()
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON body: {e}")
+
+    # Handle file attachment if present
+    attachment = None
+    if file is not None:
+        try:
+            # Create uploads directory if it doesn't exist
+            upload_root = Path("uploads/workflows")
+            upload_root.mkdir(parents=True, exist_ok=True)
+
+            # Create a unique directory for this execution
+            run_dir = upload_root / str(uuid.uuid4())
+            run_dir.mkdir(exist_ok=True)
+
+            # Read and save the file
+            mime = file.content_type or "application/octet-stream"
+            content = await file.read()
+            size = len(content)
+            dest = run_dir / (file.filename or "upload.bin")
+
+            with open(dest, "wb") as f:
+                f.write(content)
+
+            attachment = {
+                "name": file.filename,
+                "mime": mime,
+                "size_bytes": size,
+                "path": str(dest),
+            }
+
+            # Flag audio files for potential transcription
+            if mime.startswith("audio/"):
+                attachment["needs_transcription"] = True
+
+            logger.info(f"File uploaded: {file.filename} ({size} bytes) -> {dest}")
+
+        except Exception as e:
+            logger.error(f"Failed to save uploaded file: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {e}")
 
     # Create execution in database first (so it can be queried)
     execution_id = ExecutionsService.create_execution(
@@ -377,11 +442,18 @@ async def execute_workflow(
                 for k, v in pmap.items():
                     if isinstance(v, str):
                         # PATCH: If previous step is trigger OR no previous step exists,
-                        # $prev.response -> trigger.current_message (assume runtime trigger data)
-                        if (prev_is_trigger or unique_dep is None) and v in ("$prev.response", "response"):
+                        # $prev or $prev.response -> trigger.current_message
+                        # $prev.attachment -> trigger.attachment
+                        if (prev_is_trigger or unique_dep is None) and v in ("$prev", "$prev.response", "response"):
                             new_pmap[k] = "trigger.current_message"
                             logger.info(
                                 f"Step {sid}: patched param_mapping '{k}': '{v}' -> 'trigger.current_message' "
+                                f"(prev_is_trigger={prev_is_trigger}, unique_dep={unique_dep})"
+                            )
+                        elif (prev_is_trigger or unique_dep is None) and v == "$prev.attachment":
+                            new_pmap[k] = "trigger.attachment"
+                            logger.info(
+                                f"Step {sid}: patched param_mapping '{k}': '{v}' -> 'trigger.attachment' "
                                 f"(prev_is_trigger={prev_is_trigger}, unique_dep={unique_dep})"
                             )
                         elif v.startswith("$prev.response."):
@@ -476,12 +548,18 @@ async def execute_workflow(
         messages.append({"role": "user", "content": query})
 
         # Set trigger data in execution context
-        execution_context.step_io_data["trigger"] = {
+        trigger_data = {
             "current_message": query,
             "messages": messages,
             "chat_history": normalized_history,
         }
-        logger.info(f"Added trigger data with query: {query[:50]}... (history={len(normalized_history)})")
+        # Add file attachment to trigger data if present
+        if attachment:
+            trigger_data["attachment"] = attachment
+        execution_context.step_io_data["trigger"] = trigger_data
+        logger.info(
+            f"Added trigger data with query: {query[:50]}... (history={len(normalized_history)}, attachment={attachment is not None})"
+        )
 
     try:
         # Update status to running before execution
@@ -547,15 +625,21 @@ async def execute_workflow(
 @router.post("/{workflow_id}/execute/async", status_code=status.HTTP_202_ACCEPTED)
 async def execute_workflow_async(
     workflow_id: uuid.UUID,
-    execution_request: Dict[str, Any],
-    background_tasks: BackgroundTasks,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    # Form data parameters (for multipart/form-data requests with file)
+    payload: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
 ):
     """
     Execute a workflow asynchronously in the background.
 
     ✅ MIGRATED TO SDK - Uses SDK's WorkflowEngine for async execution.
+
+    Supports both JSON and multipart/form-data requests:
+    - JSON: Send request body with query, chat_history, runtime_overrides, etc.
+    - Multipart: Send 'payload' field with JSON string + optional 'file' attachment
 
     Returns immediately with execution_id. Use GET /api/executions/{execution_id} to check status.
     """
@@ -574,6 +658,63 @@ async def execute_workflow_async(
 
     if not sdk_workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
+
+    # Parse request body based on content type
+    content_type = request.headers.get("content-type", "").lower()
+    execution_request: Dict[str, Any] = {}
+
+    if payload is not None or file is not None or "multipart/form-data" in content_type:
+        # Multipart/form-data path
+        if payload is None:
+            raise HTTPException(status_code=400, detail="Missing 'payload' form field")
+        try:
+            execution_request = json.loads(payload)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON in 'payload' form field: {e}")
+    else:
+        # JSON path (backwards compatible)
+        try:
+            execution_request = await request.json()
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON body: {e}")
+
+    # Handle file attachment if present
+    attachment = None
+    if file is not None:
+        try:
+            # Create uploads directory if it doesn't exist
+            upload_root = Path("uploads/workflows")
+            upload_root.mkdir(parents=True, exist_ok=True)
+
+            # Create a unique directory for this execution
+            run_dir = upload_root / str(uuid.uuid4())
+            run_dir.mkdir(exist_ok=True)
+
+            # Read and save the file
+            mime = file.content_type or "application/octet-stream"
+            content = await file.read()
+            size = len(content)
+            dest = run_dir / (file.filename or "upload.bin")
+
+            with open(dest, "wb") as f:
+                f.write(content)
+
+            attachment = {
+                "name": file.filename,
+                "mime": mime,
+                "size_bytes": size,
+                "path": str(dest),
+            }
+
+            # Flag audio files for potential transcription
+            if mime.startswith("audio/"):
+                attachment["needs_transcription"] = True
+
+            logger.info(f"File uploaded: {file.filename} ({size} bytes) -> {dest}")
+
+        except Exception as e:
+            logger.error(f"Failed to save uploaded file: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {e}")
 
     # Create execution in database first (so it can be queried)
     execution_id = ExecutionsService.create_execution(
@@ -660,10 +801,15 @@ async def execute_workflow_async(
         }
         if history:
             trigger_data["chat_history"] = history
+        # Add file attachment to trigger data if present
+        if attachment:
+            trigger_data["attachment"] = attachment
 
         # Store trigger data in step_io_data for agent steps to access
         execution_context.step_io_data["trigger"] = trigger_data
-        logger.info(f"Added trigger data with query: {query[:50] if len(query) > 50 else query}... (history={len(history)})")
+        logger.info(
+            f"Added trigger data with query: {query[:50] if len(query) > 50 else query}... (history={len(history)}, attachment={attachment is not None})"
+        )
 
     # Execute workflow in background with database updates
     async def run_workflow():
@@ -738,15 +884,23 @@ async def execute_workflow_async(
 @router.post("/{workflow_id}/stream")
 async def execute_workflow_stream(
     workflow_id: uuid.UUID,
-    execution_request: schemas.WorkflowStreamExecutionRequest,
     request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    # Form data parameters (for multipart/form-data requests with file)
+    payload: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
 ):
     """
     Execute a workflow with streaming response.
 
     ✅ MIGRATED TO SDK - Uses SDK's WorkflowEngine with streaming support.
+
+    Supports both JSON and multipart/form-data requests:
+    - JSON: Send request body with query, chat_history, runtime_overrides, etc.
+    - Multipart: Send 'payload' field with JSON string + optional 'file' attachment
+
+    File attachments are saved and made available to tools/agents via trigger data.
     """
     from workflow_core_sdk.execution.context_impl import ExecutionContext
     from workflow_core_sdk.execution.streaming import stream_manager, create_sse_stream, get_sse_headers, create_status_event
@@ -765,17 +919,79 @@ async def execute_workflow_stream(
     if not sdk_workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
 
-    # Extract user context from request
-    user_id = execution_request.user_id if hasattr(execution_request, "user_id") else None
-    session_id = execution_request.session_id if hasattr(execution_request, "session_id") else None
-    organization_id = execution_request.organization_id if hasattr(execution_request, "organization_id") else None
+    # Parse request body based on content type
+    content_type = request.headers.get("content-type", "").lower()
+    body_data: Dict[str, Any] = {}
+
+    if payload is not None or file is not None or "multipart/form-data" in content_type:
+        # Multipart/form-data path
+        if payload is None:
+            raise HTTPException(status_code=400, detail="Missing 'payload' form field")
+        try:
+            body_data = json.loads(payload)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON in 'payload' form field: {e}")
+    else:
+        # JSON path (backwards compatible)
+        try:
+            body_data = await request.json()
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON body: {e}")
+
+    # Handle file attachment if present
+    attachment = None
+    if file is not None:
+        try:
+            # Create uploads directory if it doesn't exist
+            upload_root = Path("uploads/workflows")
+            upload_root.mkdir(parents=True, exist_ok=True)
+
+            # Create a unique directory for this execution
+            run_dir = upload_root / str(uuid.uuid4())
+            run_dir.mkdir(exist_ok=True)
+
+            # Read and save the file
+            mime = file.content_type or "application/octet-stream"
+            content = await file.read()
+            size = len(content)
+            dest = run_dir / (file.filename or "upload.bin")
+
+            with open(dest, "wb") as f:
+                f.write(content)
+
+            attachment = {
+                "name": file.filename,
+                "mime": mime,
+                "size_bytes": size,
+                "path": str(dest),
+            }
+
+            # Flag audio files for potential transcription
+            if mime.startswith("audio/"):
+                attachment["needs_transcription"] = True
+
+            logger.info(f"File uploaded: {file.filename} ({size} bytes) -> {dest}")
+
+        except Exception as e:
+            logger.error(f"Failed to save uploaded file: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {e}")
+
+    # Extract fields from body_data
+    query = body_data.get("query", "")
+    chat_history = body_data.get("chat_history")
+    runtime_overrides = body_data.get("runtime_overrides", {})
+    user_id = body_data.get("user_id")
+    session_id = body_data.get("session_id")
+    organization_id = body_data.get("organization_id")
 
     # Prepare input data for persistence
     input_data = {}
-    if hasattr(execution_request, "query") and execution_request.query:
-        input_data["query"] = execution_request.query
-    if hasattr(execution_request, "chat_history") and execution_request.chat_history:
-        input_data["chat_history"] = execution_request.chat_history
+    if query:
+        input_data["query"] = query
+    if chat_history:
+        input_data["chat_history"] = chat_history
+    if attachment:
+        input_data["attachment"] = attachment
 
     # Persist execution to database BEFORE starting execution
     execution_id = WorkflowsService.create_execution(
@@ -841,7 +1057,12 @@ async def execute_workflow_stream(
 
                                 # Merge agent configuration into step config
                                 step_config["system_prompt"] = system_prompt.prompt
-                                step_config["model"] = system_prompt.ai_model_name or "gpt-4o-mini"
+
+                                # Model precedence: agent's provider_config.model_name > prompt's ai_model_name > default
+                                agent_provider_config = sdk_agent.provider_config or {}
+                                step_config["model"] = (
+                                    agent_provider_config.get("model_name") or system_prompt.ai_model_name or "gpt-4o-mini"
+                                )
 
                                 # Extract temperature from hyper_parameters
                                 if system_prompt.hyper_parameters and "temperature" in system_prompt.hyper_parameters:
@@ -1066,11 +1287,18 @@ async def execute_workflow_stream(
                 for k, v in pmap.items():
                     if isinstance(v, str):
                         # PATCH: If previous step is trigger OR no previous step exists,
-                        # $prev.response -> trigger.current_message (assume runtime trigger data)
-                        if (prev_is_trigger or unique_dep is None) and v in ("$prev.response", "response"):
+                        # $prev or $prev.response -> trigger.current_message
+                        # $prev.attachment -> trigger.attachment
+                        if (prev_is_trigger or unique_dep is None) and v in ("$prev", "$prev.response", "response"):
                             new_pmap[k] = "trigger.current_message"
                             logger.info(
                                 f"Step {sid}: patched param_mapping '{k}': '{v}' -> 'trigger.current_message' "
+                                f"(prev_is_trigger={prev_is_trigger}, unique_dep={unique_dep})"
+                            )
+                        elif (prev_is_trigger or unique_dep is None) and v == "$prev.attachment":
+                            new_pmap[k] = "trigger.attachment"
+                            logger.info(
+                                f"Step {sid}: patched param_mapping '{k}': '{v}' -> 'trigger.attachment' "
                                 f"(prev_is_trigger={prev_is_trigger}, unique_dep={unique_dep})"
                             )
                         elif v.startswith("$prev.response."):
@@ -1123,8 +1351,8 @@ async def execute_workflow_stream(
     from workflow_core_sdk.execution.context_impl import UserContext
 
     user_context = UserContext(
-        user_id=execution_request.user_id,
-        session_id=execution_request.session_id,
+        user_id=user_id,
+        session_id=session_id,
     )
 
     # Create execution context
@@ -1138,7 +1366,7 @@ async def execute_workflow_stream(
     # Pass query and chat_history to the execution context as trigger data
     # Normalize chat history coming from various frontends (actor/role/isBot formats),
     # drop any trailing duplicate of the current user query, and build LLM-ready messages.
-    if execution_request.query:
+    if query:
 
         def _normalize_history(raw_history: Optional[List[Dict[str, Any]]], current_query: str) -> List[Dict[str, str]]:
             normalized: List[Dict[str, str]] = []
@@ -1171,18 +1399,24 @@ async def execute_workflow_stream(
             return normalized
 
         # Build trigger data
-        history = _normalize_history(execution_request.chat_history, execution_request.query)
-        messages = history + [{"role": "user", "content": execution_request.query}]
+        history = _normalize_history(chat_history, query)
+        messages = history + [{"role": "user", "content": query}]
         trigger_data = {
-            "current_message": execution_request.query,
+            "current_message": query,
             "messages": messages,
         }
         if history:
             trigger_data["chat_history"] = history
 
+        # Add file attachment to trigger data if present
+        if attachment:
+            trigger_data["attachment"] = attachment
+
         # Store trigger data in step_io_data for agent steps to access
         execution_context.step_io_data["trigger"] = trigger_data
-        logger.info(f"Added trigger data with query: {execution_request.query[:50]}... (history={len(history)})")
+        logger.info(
+            f"Added trigger data with query: {query[:50]}... (history={len(history)}, attachment={attachment is not None})"
+        )
 
     # Create a queue for streaming
     queue = asyncio.Queue(maxsize=1000)

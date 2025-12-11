@@ -19,6 +19,7 @@ class BaseTextGenerationProvider(ABC):
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
+        files: Optional[List[str]] = None,
     ) -> TextGenerationResponse:
         """
         Abstract method to generate text based on a given prompt and configuration.
@@ -32,6 +33,7 @@ class BaseTextGenerationProvider(ABC):
         :param config: Additional configuration options as a dictionary, e.g., {'role': assistant }. Defaults to {}.
         :param tools: List of tool/function definitions available to the model. Defaults to None.
         :param tool_choice: How the model should choose tools ('auto', 'none', or specific tool name). Defaults to None.
+        :param files: List of file paths to upload for file search. Only supported by OpenAI provider. Defaults to None.
         :return: A `TextGenerationResponse` containing:
                  - 'text': The generated text as a string.
                  - 'tokens_in': Number of input tokens.
@@ -55,10 +57,13 @@ class BaseTextGenerationProvider(ABC):
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
+        files: Optional[List[str]] = None,
     ) -> Iterable[Dict[str, Any]]:
         """Optional streaming interface. Default raises NotImplementedError.
         Yields dict events: {"type": "delta", "text": str} ... and a final
         {"type": "final", "response": TextGenerationResponse.model_dump()}.
+
+        :param files: List of file paths to upload for file search. Only supported by OpenAI provider. Defaults to None.
         """
         raise NotImplementedError("Streaming not implemented for this provider")
 

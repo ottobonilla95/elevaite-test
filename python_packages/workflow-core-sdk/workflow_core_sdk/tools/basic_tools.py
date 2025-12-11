@@ -249,6 +249,14 @@ try:
 except Exception:
     pass
 
+try:
+    from .storage_tools import STORAGE_TOOL_STORE, STORAGE_TOOL_SCHEMAS
+
+    BASIC_TOOL_STORE.update(STORAGE_TOOL_STORE)
+    BASIC_TOOL_SCHEMAS.update(STORAGE_TOOL_SCHEMAS)
+except Exception:
+    pass
+
 # Note: Additional tools from agent-studio are registered at runtime
 # by the agent-studio API during startup (see main.py lifespan function)
 

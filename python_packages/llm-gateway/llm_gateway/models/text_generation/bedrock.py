@@ -31,7 +31,11 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
+        response_format: Optional[Dict[str, Any]] = None,
+        files: Optional[List[str]] = None,
     ) -> TextGenerationResponse:
+        if files:
+            raise NotImplementedError("File search is only supported by the OpenAI provider")
         model_name = model_name or "anthropic.claude-instant-v1"
         temperature = temperature if temperature is not None else 0.5
 

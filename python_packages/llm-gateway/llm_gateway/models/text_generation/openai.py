@@ -2,16 +2,220 @@ import logging
 import time
 import json
 from typing import Dict, Any, Optional, List, Iterable
-import openai
+from openai import OpenAI
 
 from .core.base import BaseTextGenerationProvider
 from .core.interfaces import TextGenerationResponse, ToolCall
 
 
 class OpenAITextGenerationProvider(BaseTextGenerationProvider):
+    """
+    OpenAI provider using the Responses API (preferred over Chat Completions).
+
+    The Responses API provides:
+    - Built-in tools: file_search, web_search, code_interpreter
+    - Conversation state via previous_response_id
+    - Better performance with reasoning models (GPT-5, etc.)
+    """
+
     def __init__(self, api_key: str):
-        openai.api_key = api_key
-        self.client = openai
+        self.client = OpenAI(api_key=api_key)
+        self._vector_store_cache: Dict[str, str] = {}  # file_path -> vector_store_id
+
+    def _convert_messages_to_responses_input(
+        self,
+        messages: List[Dict[str, Any]],
+        sys_msg: str,
+        prompt: str,
+    ) -> tuple[str, str]:
+        """
+        Convert Chat Completions style messages to Responses API format.
+
+        Returns:
+            tuple of (instructions, input_text)
+        """
+        instructions = ""
+        input_parts = []
+
+        if messages and len(messages) > 0:
+            for msg in messages:
+                msg_role = msg.get("role", "user")
+                content = msg.get("content", "")
+                if msg_role == "system":
+                    instructions = content
+                elif msg_role == "user":
+                    input_parts.append(content)
+                elif msg_role == "assistant":
+                    # For multi-turn, we'd use previous_response_id in production
+                    # For now, include assistant context in input
+                    input_parts.append(f"[Previous response: {content}]")
+        else:
+            # Fall back to sys_msg and prompt
+            instructions = sys_msg
+            input_parts.append(prompt)
+
+        return instructions, "\n".join(input_parts)
+
+    def _convert_tools_to_responses_format(
+        self,
+        tools: Optional[List[Dict[str, Any]]],
+        config: Optional[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Convert Chat Completions tools to Responses API format.
+        Also handles built-in tools like file_search.
+        """
+        responses_tools = []
+        config = config or {}
+
+        # Check for built-in file_search tool configuration
+        file_search_config = config.get("file_search")
+        if file_search_config:
+            vector_store_ids = file_search_config.get("vector_store_ids", [])
+            if vector_store_ids:
+                responses_tools.append(
+                    {
+                        "type": "file_search",
+                        "vector_store_ids": vector_store_ids,
+                        "max_num_results": file_search_config.get("max_num_results", 5),
+                    }
+                )
+
+        # Convert function tools
+        if tools:
+            for tool in tools:
+                if tool.get("type") == "function":
+                    # Function tools stay the same format
+                    responses_tools.append(tool)
+                elif tool.get("type") in ("file_search", "web_search", "code_interpreter"):
+                    # Built-in tools
+                    responses_tools.append(tool)
+
+        return responses_tools
+
+    def _extract_response_content(self, response) -> tuple[str, List[ToolCall], str]:
+        """
+        Extract content, tool calls, and finish reason from Responses API output.
+        """
+        text_content = ""
+        tool_calls = []
+        finish_reason = "stop"
+
+        # The response.output is a list of output items
+        for item in response.output:
+            item_type = getattr(item, "type", None)
+
+            if item_type == "message":
+                # Extract text from message content
+                for content_item in getattr(item, "content", []):
+                    content_type = getattr(content_item, "type", None)
+                    if content_type == "output_text":
+                        text_content += getattr(content_item, "text", "")
+                    elif content_type == "refusal":
+                        text_content += f"[Refusal: {getattr(content_item, 'refusal', '')}]"
+
+            elif item_type == "function_call":
+                # Extract function/tool call
+                try:
+                    arguments = json.loads(item.arguments) if isinstance(item.arguments, str) else item.arguments
+                except json.JSONDecodeError:
+                    arguments = {"raw": item.arguments}
+
+                tool_calls.append(
+                    ToolCall(
+                        id=getattr(item, "call_id", item.id) if hasattr(item, "call_id") else item.id,
+                        name=item.name,
+                        arguments=arguments,
+                    )
+                )
+                finish_reason = "tool_calls"
+
+            elif item_type == "file_search_call":
+                # Built-in file search was invoked
+                # The results are in the annotations of the message
+                logging.debug(f"File search performed with query: {getattr(item, 'queries', [])}")
+
+        return text_content.strip(), tool_calls, finish_reason
+
+    def _prepare_files_for_search(self, files: List[str], timeout_seconds: int = 60) -> str:
+        """
+        Upload files to a vector store for file search and wait for indexing.
+
+        Args:
+            files: List of file paths to upload
+            timeout_seconds: Maximum time to wait for file indexing
+
+        Returns:
+            Vector store ID
+        """
+        import os
+
+        # Create a vector store with a unique name
+        file_names = [os.path.basename(f) for f in files]
+        store_name = f"file_search_{file_names[0][:20]}_{int(time.time())}"
+        vector_store_id = self.create_vector_store(store_name)
+
+        # Upload each file
+        file_ids = []
+        for file_path in files:
+            try:
+                file_id = self.upload_file_to_vector_store(vector_store_id, file_path)
+                file_ids.append(file_id)
+            except Exception as e:
+                logging.error(f"Failed to upload file {file_path}: {e}")
+                # Clean up the vector store on failure
+                self.delete_vector_store(vector_store_id)
+                raise RuntimeError(f"Failed to upload file {file_path}: {e}")
+
+        # Wait for all files to be indexed in the vector store
+        self._wait_for_vector_store_ready(vector_store_id, timeout_seconds)
+
+        return vector_store_id
+
+    def _wait_for_vector_store_ready(self, vector_store_id: str, timeout_seconds: int = 60) -> None:
+        """
+        Wait for a vector store to finish processing all files.
+
+        Args:
+            vector_store_id: The vector store ID to check
+            timeout_seconds: Maximum time to wait
+        """
+        start_time = time.time()
+        poll_interval = 1.0  # Start with 1 second
+
+        while True:
+            elapsed = time.time() - start_time
+            if elapsed > timeout_seconds:
+                logging.warning(f"Timeout waiting for vector store {vector_store_id} to be ready after {timeout_seconds}s")
+                break
+
+            # Check vector store status
+            try:
+                vs = self.client.vector_stores.retrieve(vector_store_id)
+                file_counts = vs.file_counts
+
+                # Check if all files are processed
+                in_progress = file_counts.in_progress
+                completed = file_counts.completed
+                failed = file_counts.failed
+                total = file_counts.total
+
+                logging.debug(
+                    f"Vector store {vector_store_id} status: {completed}/{total} completed, {in_progress} in progress, {failed} failed"
+                )
+
+                if in_progress == 0:
+                    # All files have been processed (either completed or failed)
+                    if failed > 0:
+                        logging.warning(f"Vector store {vector_store_id}: {failed} file(s) failed to process")
+                    break
+
+            except Exception as e:
+                logging.warning(f"Error checking vector store status: {e}")
+
+            # Wait before next poll (with exponential backoff, capped at 5 seconds)
+            time.sleep(poll_interval)
+            poll_interval = min(poll_interval * 1.5, 5.0)
 
     def generate_text(
         self,
@@ -26,106 +230,101 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
+        files: Optional[List[str]] = None,
     ) -> TextGenerationResponse:
         model_name = model_name or "gpt-4o"
-        temperature = temperature or 0.5
+        temperature = temperature if temperature is not None else 0.5
         max_tokens = max_tokens or 100
         prompt = prompt or ""
         sys_msg = sys_msg or ""
         retries = retries or 5
         config = config or {}
-        role = config.get("role", "system")
+
+        # Handle file uploads for file_search
+        vector_store_id = None
+        if files:
+            vector_store_id = self._prepare_files_for_search(files)
+            logging.debug(f"Created vector store {vector_store_id} for {len(files)} file(s)")
 
         for attempt in range(retries):
             tokens_in = -1
             tokens_out = -1
             try:
                 start_time = time.time()
-                if model_name.startswith("gpt-"):
-                    # Prepare the API call parameters; prefer explicit messages if provided
-                    api_params = {
-                        "model": model_name,
-                        "messages": (
-                            messages
-                            if isinstance(messages, list) and len(messages) > 0
-                            else [
-                                {"role": role, "content": sys_msg},
-                                {"role": "user", "content": prompt},
-                            ]
-                        ),
-                        "temperature": temperature,
-                        "max_tokens": max_tokens,
+
+                # Convert messages to Responses API format
+                instructions, input_text = self._convert_messages_to_responses_input(messages or [], sys_msg, prompt)
+
+                # If we have a vector store from file uploads, add it to config for tool conversion
+                effective_config = config.copy()
+                if vector_store_id:
+                    effective_config["file_search"] = {
+                        "vector_store_ids": [vector_store_id],
+                        "max_num_results": config.get("file_search", {}).get("max_num_results", 10),
                     }
 
-                    # Add tools if provided
-                    if tools:
-                        api_params["tools"] = tools
-                        if tool_choice:
-                            api_params["tool_choice"] = tool_choice
+                # Convert tools to Responses API format
+                responses_tools = self._convert_tools_to_responses_format(tools, effective_config)
 
-                    # Add response_format if provided (for JSON mode, structured outputs, etc.)
-                    if response_format:
-                        api_params["response_format"] = response_format
-                        logging.info(f"🔧 Using response_format: {response_format}")
-                    else:
-                        logging.info("⚠️  No response_format provided")
+                # Build API params for Responses API
+                api_params: Dict[str, Any] = {
+                    "model": model_name,
+                    "input": input_text,
+                }
 
-                    response = self.client.chat.completions.create(**api_params)
-                    latency = time.time() - start_time
-                    if response.usage:
-                        tokens_in = response.usage.prompt_tokens
-                        tokens_out = response.usage.completion_tokens
+                # Add instructions if present
+                if instructions:
+                    api_params["instructions"] = instructions
 
-                    message = response.choices[0].message
-                    message_content = message.content or ""
-                    finish_reason = response.choices[0].finish_reason
+                # Add temperature (some models like o1 and gpt-5 don't support it)
+                if not model_name.startswith("o1") and not model_name.startswith("gpt-5"):
+                    api_params["temperature"] = temperature
 
-                    # Extract tool calls if present
-                    tool_calls = []
-                    if hasattr(message, "tool_calls") and message.tool_calls:
-                        for tool_call in message.tool_calls:
-                            try:
-                                arguments = json.loads(tool_call.function.arguments)
-                            except json.JSONDecodeError:
-                                # If arguments can't be parsed as JSON, store as string
-                                arguments = {"raw": tool_call.function.arguments}
+                # Add max tokens
+                if max_tokens:
+                    api_params["max_output_tokens"] = max_tokens
 
-                            tool_calls.append(
-                                ToolCall(
-                                    id=tool_call.id,
-                                    name=tool_call.function.name,
-                                    arguments=arguments,
-                                )
-                            )
+                # Add tools if present
+                if responses_tools:
+                    api_params["tools"] = responses_tools
+                    if tool_choice:
+                        api_params["tool_choice"] = tool_choice
 
-                    return TextGenerationResponse(
-                        text=message_content.strip(),
-                        tokens_in=tokens_in,
-                        tokens_out=tokens_out,
-                        latency=latency,
-                        tool_calls=tool_calls if tool_calls else None,
-                        finish_reason=finish_reason,
-                    )
+                # Add response format if provided (for JSON mode)
+                if response_format:
+                    # Responses API uses text.format for structured output
+                    fmt_type = response_format.get("type")
+                    if fmt_type == "json_object":
+                        api_params["text"] = {"format": {"type": "json_object"}}
+                    elif fmt_type == "json_schema":
+                        api_params["text"] = {
+                            "format": {
+                                "type": "json_schema",
+                                "json_schema": response_format.get("json_schema", {}),
+                            }
+                        }
+                    logging.debug(f"Using response format: {response_format}")
 
-                else:
-                    response = self.client.completions.create(
-                        model=model_name,
-                        prompt=prompt,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                    )
-                    latency = time.time() - start_time
+                logging.debug(f"Responses API params: {api_params}")
+                response = self.client.responses.create(**api_params)
+                latency = time.time() - start_time
 
-                    if response.usage:
-                        tokens_in = response.usage.prompt_tokens
-                        tokens_out = response.usage.completion_tokens
+                # Extract usage
+                if hasattr(response, "usage") and response.usage:
+                    tokens_in = getattr(response.usage, "input_tokens", -1)
+                    tokens_out = getattr(response.usage, "output_tokens", -1)
 
-                    return TextGenerationResponse(
-                        text=response.choices[0].text.strip(),
-                        tokens_in=tokens_in,
-                        tokens_out=tokens_out,
-                        latency=latency,
-                    )
+                # Extract content and tool calls
+                text_content, tool_calls, finish_reason = self._extract_response_content(response)
+
+                return TextGenerationResponse(
+                    text=text_content,
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                    latency=latency,
+                    tool_calls=tool_calls if tool_calls else None,
+                    finish_reason=finish_reason,
+                )
 
             except Exception as e:
                 logging.warning(f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
@@ -133,7 +332,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     raise RuntimeError(f"Text generation failed after {retries} attempts: {e}")
                 time.sleep((2**attempt) * 0.5)
 
-        raise Exception
+        raise RuntimeError("Text generation failed unexpectedly")
 
     def stream_text(
         self,
@@ -148,102 +347,161 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
+        files: Optional[List[str]] = None,
     ) -> Iterable[Dict[str, Any]]:
+        """Stream text using the Responses API with streaming enabled."""
         model_name = model_name or "gpt-4o"
-        temperature = temperature or 0.5
+        temperature = temperature if temperature is not None else 0.5
         max_tokens = max_tokens or 100
         prompt = prompt or ""
         sys_msg = sys_msg or ""
         retries = retries or 5
         config = config or {}
-        role = config.get("role", "system")
+
+        # Handle file uploads for file_search
+        vector_store_id = None
+        if files:
+            vector_store_id = self._prepare_files_for_search(files)
+            logging.debug(f"Created vector store {vector_store_id} for streaming with {len(files)} file(s)")
 
         for attempt in range(retries):
             try:
-                if model_name.startswith("gpt-"):
-                    api_params = {
-                        "model": model_name,
-                        "messages": (
-                            messages
-                            if isinstance(messages, list) and len(messages) > 0
-                            else [
-                                {"role": role, "content": sys_msg},
-                                {"role": "user", "content": prompt},
-                            ]
-                        ),
-                        "temperature": temperature,
-                        "max_tokens": max_tokens,
-                        "stream": True,
+                # Convert messages to Responses API format
+                instructions, input_text = self._convert_messages_to_responses_input(messages or [], sys_msg, prompt)
+
+                # If we have a vector store from file uploads, add it to config for tool conversion
+                effective_config = config.copy()
+                if vector_store_id:
+                    effective_config["file_search"] = {
+                        "vector_store_ids": [vector_store_id],
+                        "max_num_results": config.get("file_search", {}).get("max_num_results", 10),
                     }
-                    if tools:
-                        api_params["tools"] = tools
-                        if tool_choice:
-                            api_params["tool_choice"] = tool_choice
 
-                    # Add response_format if provided (for JSON mode, structured outputs, etc.)
-                    if response_format:
-                        api_params["response_format"] = response_format
+                # Convert tools to Responses API format
+                responses_tools = self._convert_tools_to_responses_format(tools, effective_config)
 
-                    full_text = ""
-                    tool_calls_collected = []
-                    finish_reason = None
-                    start_time = time.time()
-                    stream = self.client.chat.completions.create(**api_params)
+                # Build API params for Responses API streaming
+                api_params: Dict[str, Any] = {
+                    "model": model_name,
+                    "input": input_text,
+                    "stream": True,
+                }
 
-                    for chunk in stream:
-                        try:
-                            ch = chunk.choices[0]
-                        except Exception:
-                            continue
+                # Add instructions if present
+                if instructions:
+                    api_params["instructions"] = instructions
 
-                        delta = getattr(ch, "delta", None)
+                # Add temperature (some models like o1 don't support it)
+                if not model_name.startswith("o1") and not model_name.startswith("gpt-5"):
+                    api_params["temperature"] = temperature
 
-                        # Handle content streaming
-                        if delta and getattr(delta, "content", None):
-                            text = delta.content
-                            full_text += text
-                            yield {"type": "delta", "text": text}
+                # Add max tokens
+                if max_tokens:
+                    api_params["max_output_tokens"] = max_tokens
 
-                        # Handle tool calls deltas (collected incrementally)
-                        if delta and getattr(delta, "tool_calls", None):
-                            for i, tool_call_delta in enumerate(delta.tool_calls):
-                                # Extend tool_calls list if needed
-                                while len(tool_calls_collected) <= i:
-                                    tool_calls_collected.append(
-                                        {"id": "", "type": "function", "function": {"name": "", "arguments": ""}}
-                                    )
+                # Add tools if present
+                if responses_tools:
+                    api_params["tools"] = responses_tools
+                    if tool_choice:
+                        api_params["tool_choice"] = tool_choice
 
-                                # Update tool call data incrementally
-                                if tool_call_delta.id:
-                                    tool_calls_collected[i]["id"] = tool_call_delta.id
-                                if tool_call_delta.function:
-                                    if tool_call_delta.function.name:
-                                        tool_calls_collected[i]["function"]["name"] = tool_call_delta.function.name
-                                    if tool_call_delta.function.arguments:
-                                        # Concatenate arguments (they come in chunks)
-                                        tool_calls_collected[i]["function"]["arguments"] += tool_call_delta.function.arguments
+                # Add response format if provided (for JSON mode)
+                if response_format:
+                    fmt_type = response_format.get("type")
+                    if fmt_type == "json_object":
+                        api_params["text"] = {"format": {"type": "json_object"}}
+                    elif fmt_type == "json_schema":
+                        api_params["text"] = {
+                            "format": {
+                                "type": "json_schema",
+                                "json_schema": response_format.get("json_schema", {}),
+                            }
+                        }
 
-                        # Check for finish reason
-                        if getattr(ch, "finish_reason", None):
-                            finish_reason = ch.finish_reason
-                            break
+                full_text = ""
+                tool_calls_collected: List[Dict[str, Any]] = []
+                finish_reason = None
+                tokens_in = -1
+                tokens_out = -1
+                start_time = time.time()
 
-                    latency = time.time() - start_time
-                    # Usage not available during streaming in standard SDK; set -1
-                    response = TextGenerationResponse(text=full_text.strip(), tokens_in=-1, tokens_out=-1, latency=latency)
+                # Create streaming response
+                with self.client.responses.create(**api_params) as stream:
+                    for event in stream:
+                        event_type = getattr(event, "type", "")
 
-                    # Include tool calls in final response if present
-                    final_data = {"type": "final", "response": response.model_dump()}
-                    if tool_calls_collected:
-                        final_data["tool_calls"] = tool_calls_collected
-                    if finish_reason:
-                        final_data["finish_reason"] = finish_reason
+                        # Handle text delta events
+                        if event_type == "response.output_text.delta":
+                            delta_text = getattr(event, "delta", "")
+                            if delta_text:
+                                full_text += delta_text
+                                yield {"type": "delta", "text": delta_text}
 
-                    yield final_data
-                    return
-                else:
-                    # Legacy completions streaming could be added similarly if needed
-                    raise NotImplementedError("Streaming not supported for this model endpoint")
+                        # Handle function call events
+                        elif event_type == "response.function_call_arguments.delta":
+                            # Function arguments streaming
+                            call_id = getattr(event, "call_id", "")
+                            delta_args = getattr(event, "delta", "")
+                            # Find or create the tool call entry
+                            existing = next((tc for tc in tool_calls_collected if tc.get("id") == call_id), None)
+                            if existing:
+                                existing["function"]["arguments"] += delta_args
+                            else:
+                                tool_calls_collected.append(
+                                    {"id": call_id, "type": "function", "function": {"name": "", "arguments": delta_args}}
+                                )
+
+                        elif event_type == "response.function_call_arguments.done":
+                            # Function call complete
+                            call_id = getattr(event, "call_id", "")
+                            name = getattr(event, "name", "")
+                            arguments = getattr(event, "arguments", "")
+                            existing = next((tc for tc in tool_calls_collected if tc.get("id") == call_id), None)
+                            if existing:
+                                existing["function"]["name"] = name
+                                existing["function"]["arguments"] = arguments
+                            else:
+                                tool_calls_collected.append(
+                                    {"id": call_id, "type": "function", "function": {"name": name, "arguments": arguments}}
+                                )
+                            finish_reason = "tool_calls"
+
+                        # Handle file search events
+                        elif event_type == "response.file_search_call.searching":
+                            logging.debug(f"File search in progress: {getattr(event, 'queries', [])}")
+
+                        elif event_type == "response.file_search_call.completed":
+                            logging.debug("File search completed")
+
+                        # Handle completion events
+                        elif event_type == "response.completed":
+                            response_obj = getattr(event, "response", None)
+                            if response_obj:
+                                usage = getattr(response_obj, "usage", None)
+                                if usage:
+                                    tokens_in = getattr(usage, "input_tokens", -1)
+                                    tokens_out = getattr(usage, "output_tokens", -1)
+                            if not finish_reason:
+                                finish_reason = "stop"
+
+                latency = time.time() - start_time
+                response = TextGenerationResponse(
+                    text=full_text.strip(),
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                    latency=latency,
+                )
+
+                # Include tool calls in final response if present
+                final_data: Dict[str, Any] = {"type": "final", "response": response.model_dump()}
+                if tool_calls_collected:
+                    final_data["tool_calls"] = tool_calls_collected
+                if finish_reason:
+                    final_data["finish_reason"] = finish_reason
+
+                yield final_data
+                return
+
             except Exception as e:
                 logging.warning(f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
                 if attempt == retries - 1:
@@ -261,3 +519,98 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         except AssertionError as e:
             logging.error(f"OpenAI Provider Validation Failed: {e}")
             return False
+
+    # ==================== File Search / Vector Store Methods ====================
+
+    def create_vector_store(self, name: str) -> str:
+        """
+        Create a new vector store for file search.
+
+        Args:
+            name: Name for the vector store
+
+        Returns:
+            The vector store ID
+        """
+        vector_store = self.client.vector_stores.create(name=name)
+        logging.debug(f"Created vector store: {vector_store.id} ({name})")
+        return vector_store.id
+
+    def upload_file_to_vector_store(
+        self,
+        vector_store_id: str,
+        file_path: str,
+    ) -> str:
+        """
+        Upload a file to a vector store for file search.
+
+        Args:
+            vector_store_id: The vector store ID to upload to
+            file_path: Path to the file to upload
+
+        Returns:
+            The file ID
+        """
+        with open(file_path, "rb") as f:
+            file_obj = self.client.files.create(file=f, purpose="assistants")
+
+        # Add file to vector store
+        self.client.vector_stores.files.create(
+            vector_store_id=vector_store_id,
+            file_id=file_obj.id,
+        )
+
+        logging.debug(f"Uploaded file {file_path} to vector store {vector_store_id}")
+        self._vector_store_cache[file_path] = vector_store_id
+        return file_obj.id
+
+    def create_vector_store_with_file(
+        self,
+        name: str,
+        file_path: str,
+    ) -> tuple[str, str]:
+        """
+        Create a vector store and upload a file to it in one operation.
+
+        Args:
+            name: Name for the vector store
+            file_path: Path to the file to upload
+
+        Returns:
+            Tuple of (vector_store_id, file_id)
+        """
+        vector_store_id = self.create_vector_store(name)
+        file_id = self.upload_file_to_vector_store(vector_store_id, file_path)
+        return vector_store_id, file_id
+
+    def delete_vector_store(self, vector_store_id: str) -> bool:
+        """
+        Delete a vector store.
+
+        Args:
+            vector_store_id: The vector store ID to delete
+
+        Returns:
+            True if deleted successfully
+        """
+        try:
+            self.client.vector_stores.delete(vector_store_id)
+            # Remove from cache
+            self._vector_store_cache = {k: v for k, v in self._vector_store_cache.items() if v != vector_store_id}
+            logging.debug(f"Deleted vector store: {vector_store_id}")
+            return True
+        except Exception as e:
+            logging.error(f"Failed to delete vector store {vector_store_id}: {e}")
+            return False
+
+    def get_vector_store_for_file(self, file_path: str) -> Optional[str]:
+        """
+        Get the vector store ID for a previously uploaded file.
+
+        Args:
+            file_path: Path to the file
+
+        Returns:
+            Vector store ID if found, None otherwise
+        """
+        return self._vector_store_cache.get(file_path)

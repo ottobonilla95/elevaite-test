@@ -54,6 +54,7 @@ class TextGenerationService:
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
+        files: Optional[List[str]] = None,
     ) -> TextGenerationResponse:
         provider = self.factory.get_provider(config["type"])
 
@@ -72,6 +73,7 @@ class TextGenerationService:
                 tool_choice=tool_choice,
                 messages=messages,
                 response_format=response_format,
+                files=files,
             )
         except Exception as e:
             error_msg = f"Error in text generation for provider {config['type']}: {str(e)}"
@@ -91,6 +93,7 @@ class TextGenerationService:
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
+        files: Optional[List[str]] = None,
     ):
         """Yield streaming events from the provider. Events are dicts like:
         {"type": "delta", "text": "..."} and a final {"type": "final", "response": {...}}.
@@ -111,6 +114,7 @@ class TextGenerationService:
                 tool_choice=tool_choice,
                 messages=messages,
                 response_format=response_format,
+                files=files,
             )
         except Exception as e:
             error_msg = f"Error in text generation streaming for provider {config['type']}: {str(e)}"
@@ -215,6 +219,9 @@ class UniversalService:
                     temperature=kwargs.get("temperature"),
                     tools=kwargs.get("tools"),
                     tool_choice=kwargs.get("tool_choice"),
+                    messages=kwargs.get("messages"),
+                    response_format=kwargs.get("response_format"),
+                    files=kwargs.get("files"),
                 )
 
             elif request_type == RequestType.VISION:

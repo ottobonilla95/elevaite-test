@@ -9,25 +9,54 @@ from llm_gateway.models.vision.openai import OpenAIVisionProvider
 from llm_gateway.models.embeddings.core.interfaces import EmbeddingInfo, EmbeddingType
 
 
+def _create_responses_api_mock(text_content="", tool_calls=None, tokens_in=10, tokens_out=5):
+    """Helper to create a mock Responses API response."""
+    mock_response = Mock()
+    mock_response.output = []
+
+    # Add message output if there's text content
+    if text_content:
+        mock_message = Mock()
+        mock_message.type = "message"
+        mock_content = Mock()
+        mock_content.type = "output_text"
+        mock_content.text = text_content
+        mock_message.content = [mock_content]
+        mock_response.output.append(mock_message)
+
+    # Add function call outputs if there are tool calls
+    if tool_calls:
+        for tc in tool_calls:
+            mock_func_call = Mock()
+            mock_func_call.type = "function_call"
+            mock_func_call.id = tc.get("id", "call_123")
+            mock_func_call.call_id = tc.get("id", "call_123")
+            mock_func_call.name = tc.get("name", "unknown")
+            mock_func_call.arguments = tc.get("arguments", "{}")
+            mock_response.output.append(mock_func_call)
+
+    # Add usage
+    mock_response.usage = Mock()
+    mock_response.usage.input_tokens = tokens_in
+    mock_response.usage.output_tokens = tokens_out
+
+    return mock_response
+
+
 class TestOpenAITextGenerationProvider:
-    """Unit tests for OpenAITextGenerationProvider"""
+    """Unit tests for OpenAITextGenerationProvider (Responses API)"""
 
     def test_generate_text_success(self):
-        """Test successful text generation"""
-        # Create mock response
-        mock_response = Mock()
-        mock_response.choices = [Mock()]
-        mock_response.choices[0].message = Mock()
-        mock_response.choices[0].message.content = "This is a test response"
-        mock_response.choices[0].message.tool_calls = None
-        mock_response.choices[0].finish_reason = "stop"
-        mock_response.usage = Mock()
-        mock_response.usage.prompt_tokens = 10
-        mock_response.usage.completion_tokens = 5
+        """Test successful text generation with Responses API"""
+        mock_response = _create_responses_api_mock(
+            text_content="This is a test response",
+            tokens_in=10,
+            tokens_out=5,
+        )
 
         provider = OpenAITextGenerationProvider(api_key="test-key")
-        # Mock the client's chat.completions.create method
-        provider.client.chat.completions.create = Mock(return_value=mock_response)
+        # Mock the client's responses.create method
+        provider.client.responses.create = Mock(return_value=mock_response)
 
         result = provider.generate_text(
             model_name="gpt-4o",
@@ -47,27 +76,16 @@ class TestOpenAITextGenerationProvider:
         assert result.tool_calls is None
 
     def test_generate_text_with_tools(self):
-        """Test text generation with tool calls"""
-        # Create mock tool call
-        mock_tool_call = Mock()
-        mock_tool_call.id = "call_123"
-        mock_tool_call.function = Mock()
-        mock_tool_call.function.name = "get_weather"
-        mock_tool_call.function.arguments = '{"location": "NYC"}'
-
-        # Create mock response
-        mock_response = Mock()
-        mock_response.choices = [Mock()]
-        mock_response.choices[0].message = Mock()
-        mock_response.choices[0].message.content = None
-        mock_response.choices[0].message.tool_calls = [mock_tool_call]
-        mock_response.choices[0].finish_reason = "tool_calls"
-        mock_response.usage = Mock()
-        mock_response.usage.prompt_tokens = 20
-        mock_response.usage.completion_tokens = 10
+        """Test text generation with tool calls using Responses API"""
+        mock_response = _create_responses_api_mock(
+            text_content="",
+            tool_calls=[{"id": "call_123", "name": "get_weather", "arguments": '{"location": "NYC"}'}],
+            tokens_in=20,
+            tokens_out=10,
+        )
 
         provider = OpenAITextGenerationProvider(api_key="test-key")
-        provider.client.chat.completions.create = Mock(return_value=mock_response)
+        provider.client.responses.create = Mock(return_value=mock_response)
 
         result = provider.generate_text(
             model_name="gpt-4o",
@@ -100,19 +118,15 @@ class TestOpenAITextGenerationProvider:
         assert result.finish_reason == "tool_calls"
 
     def test_generate_text_with_messages(self):
-        """Test text generation with message history"""
-        mock_response = Mock()
-        mock_response.choices = [Mock()]
-        mock_response.choices[0].message = Mock()
-        mock_response.choices[0].message.content = "I remember our previous conversation"
-        mock_response.choices[0].message.tool_calls = None
-        mock_response.choices[0].finish_reason = "stop"
-        mock_response.usage = Mock()
-        mock_response.usage.prompt_tokens = 30
-        mock_response.usage.completion_tokens = 8
+        """Test text generation with message history using Responses API"""
+        mock_response = _create_responses_api_mock(
+            text_content="I remember our previous conversation",
+            tokens_in=30,
+            tokens_out=8,
+        )
 
         provider = OpenAITextGenerationProvider(api_key="test-key")
-        provider.client.chat.completions.create = Mock(return_value=mock_response)
+        provider.client.responses.create = Mock(return_value=mock_response)
 
         result = provider.generate_text(
             model_name="gpt-4o",
@@ -136,7 +150,7 @@ class TestOpenAITextGenerationProvider:
     def test_generate_text_api_error(self):
         """Test handling of API errors"""
         provider = OpenAITextGenerationProvider(api_key="test-key")
-        provider.client.chat.completions.create = Mock(side_effect=Exception("API Error"))
+        provider.client.responses.create = Mock(side_effect=Exception("API Error"))
 
         with pytest.raises(RuntimeError, match="Text generation failed after 1 attempts"):
             provider.generate_text(
@@ -150,32 +164,30 @@ class TestOpenAITextGenerationProvider:
             )
 
     def test_stream_text_success(self):
-        """Test successful streaming text generation"""
-        # Create mock stream chunks
-        mock_chunk1 = Mock()
-        mock_chunk1.choices = [Mock()]
-        mock_chunk1.choices[0].delta = Mock()
-        mock_chunk1.choices[0].delta.content = "Hello"
-        mock_chunk1.choices[0].delta.role = "assistant"
-        mock_chunk1.choices[0].delta.tool_calls = None  # Important: must be None, not a Mock
-        mock_chunk1.choices[0].finish_reason = None
+        """Test successful streaming text generation with Responses API"""
+        # Create mock stream events for Responses API
+        mock_event1 = Mock()
+        mock_event1.type = "response.output_text.delta"
+        mock_event1.delta = "Hello"
 
-        mock_chunk2 = Mock()
-        mock_chunk2.choices = [Mock()]
-        mock_chunk2.choices[0].delta = Mock()
-        mock_chunk2.choices[0].delta.content = " world"
-        mock_chunk2.choices[0].delta.tool_calls = None
-        mock_chunk2.choices[0].finish_reason = None
+        mock_event2 = Mock()
+        mock_event2.type = "response.output_text.delta"
+        mock_event2.delta = " world"
 
-        mock_chunk3 = Mock()
-        mock_chunk3.choices = [Mock()]
-        mock_chunk3.choices[0].delta = Mock()
-        mock_chunk3.choices[0].delta.content = None
-        mock_chunk3.choices[0].delta.tool_calls = None
-        mock_chunk3.choices[0].finish_reason = "stop"
+        mock_event3 = Mock()
+        mock_event3.type = "response.completed"
+        mock_event3.response = Mock()
+        mock_event3.response.usage = Mock()
+        mock_event3.response.usage.input_tokens = 10
+        mock_event3.response.usage.output_tokens = 5
+
+        # Create a context manager mock for streaming
+        mock_stream = Mock()
+        mock_stream.__enter__ = Mock(return_value=iter([mock_event1, mock_event2, mock_event3]))
+        mock_stream.__exit__ = Mock(return_value=False)
 
         provider = OpenAITextGenerationProvider(api_key="test-key")
-        provider.client.chat.completions.create = Mock(return_value=iter([mock_chunk1, mock_chunk2, mock_chunk3]))
+        provider.client.responses.create = Mock(return_value=mock_stream)
 
         stream = provider.stream_text(
             model_name="gpt-4o",
@@ -191,7 +203,93 @@ class TestOpenAITextGenerationProvider:
         assert len(chunks) > 0
         # Verify we got some delta chunks
         delta_chunks = [c for c in chunks if c.get("type") == "delta"]
-        assert len(delta_chunks) > 0
+        assert len(delta_chunks) == 2
+        assert delta_chunks[0]["text"] == "Hello"
+        assert delta_chunks[1]["text"] == " world"
+
+    def test_generate_text_with_file_search_config(self):
+        """Test text generation with file_search tool configuration"""
+        mock_response = _create_responses_api_mock(
+            text_content="Based on the document, the answer is...",
+            tokens_in=50,
+            tokens_out=20,
+        )
+
+        provider = OpenAITextGenerationProvider(api_key="test-key")
+        provider.client.responses.create = Mock(return_value=mock_response)
+
+        result = provider.generate_text(
+            model_name="gpt-4o",
+            temperature=0.7,
+            max_tokens=100,
+            sys_msg="You are a helpful assistant",
+            prompt="What does the document say?",
+            retries=1,
+            config={
+                "file_search": {
+                    "vector_store_ids": ["vs_123"],
+                    "max_num_results": 5,
+                }
+            },
+        )
+
+        assert result.text == "Based on the document, the answer is..."
+        # Verify file_search tool was included in the API call
+        call_args = provider.client.responses.create.call_args
+        assert "tools" in call_args.kwargs
+        tools = call_args.kwargs["tools"]
+        file_search_tool = next((t for t in tools if t.get("type") == "file_search"), None)
+        assert file_search_tool is not None
+        assert file_search_tool["vector_store_ids"] == ["vs_123"]
+
+    def test_generate_text_with_files_parameter(self, tmp_path):
+        """Test text generation with files parameter (auto file search)"""
+        # Create a temporary test file
+        test_file = tmp_path / "test_document.txt"
+        test_file.write_text("This is test content for the document.")
+
+        mock_response = _create_responses_api_mock(
+            text_content="Based on the document, it says test content.",
+            tokens_in=60,
+            tokens_out=25,
+        )
+
+        # Mock vector store and file creation
+        mock_vector_store = Mock()
+        mock_vector_store.id = "vs_auto_123"
+
+        mock_file = Mock()
+        mock_file.id = "file_123"
+
+        provider = OpenAITextGenerationProvider(api_key="test-key")
+        provider.client.responses.create = Mock(return_value=mock_response)
+        provider.client.vector_stores.create = Mock(return_value=mock_vector_store)
+        provider.client.files.create = Mock(return_value=mock_file)
+        provider.client.vector_stores.files.create = Mock()
+
+        result = provider.generate_text(
+            model_name="gpt-4o",
+            temperature=0.7,
+            max_tokens=100,
+            sys_msg="You are a helpful assistant",
+            prompt="What does the document say?",
+            retries=1,
+            config={},
+            files=[str(test_file)],  # Pass file path
+        )
+
+        assert result.text == "Based on the document, it says test content."
+        # Verify vector store was created
+        provider.client.vector_stores.create.assert_called_once()
+        # Verify file was uploaded
+        provider.client.files.create.assert_called_once()
+        # Verify file_search tool was included in the API call
+        call_args = provider.client.responses.create.call_args
+        assert "tools" in call_args.kwargs
+        tools = call_args.kwargs["tools"]
+        file_search_tool = next((t for t in tools if t.get("type") == "file_search"), None)
+        assert file_search_tool is not None
+        assert "vs_auto_123" in file_search_tool["vector_store_ids"]
 
 
 class TestOpenAIEmbeddingProvider:

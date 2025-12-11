@@ -487,7 +487,14 @@ class AgentStep:
             provider_type = str(config.get("type", "unknown"))
             model_label = str(model_name)
 
-            for _ in range(max_tool_iterations):
+            # Extract file paths for file search (OpenAI only)
+            files_for_search: Optional[List[str]] = None
+            attachment = (context or {}).get("_attachment") if isinstance(context, dict) else None
+            if isinstance(attachment, dict) and attachment.get("path"):
+                files_for_search = [attachment["path"]]
+                logger.debug(f"Passing file to LLM for file search: {attachment.get('name')}")
+
+            for iteration_num in range(max_tool_iterations):
                 # TextGenerationService is synchronous; run in a thread to avoid blocking
                 # Respect optional llm params from context; provide sensible defaults
                 _llm = (context or {}).get("_llm_params", {}) if isinstance(context, dict) else {}
@@ -496,6 +503,9 @@ class AgentStep:
                     _max_tokens = 4096  # increased to support large tool call arguments
                 _temperature = _llm.get("temperature")
                 _response_format = _llm.get("response_format")
+
+                # Only pass files on first iteration (files are uploaded once to vector store)
+                files_arg = files_for_search if iteration_num == 0 else None
 
                 response = await asyncio.to_thread(
                     self.llm_service.generate,
@@ -510,6 +520,7 @@ class AgentStep:
                     "auto" if llm_tools else None,  # tool_choice
                     messages,
                     _response_format,
+                    files_arg,
                 )
 
                 # Accumulate token usage
@@ -1014,6 +1025,17 @@ async def agent_execution_step(
     except Exception as e:
         logger.debug(f"Could not derive current_message from trigger: {e}")
 
+    # Extract file attachment from trigger data for file search
+    try:
+        trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+        if isinstance(trig, dict):
+            attachment = trig.get("attachment")
+            if isinstance(attachment, dict) and attachment.get("path"):
+                input_data["_attachment"] = attachment
+                logger.debug(f"File attachment available for agent: {attachment.get('name')} at {attachment.get('path')}")
+    except Exception as e:
+        logger.debug(f"Could not extract file attachment from trigger: {e}")
+
     # Include chat history/messages: prefer step-specific messages if present, else Trigger
     try:
         # Step-scoped messages (interactive chat)
@@ -1256,9 +1278,36 @@ async def agent_execution_step(
                 _temperature = _llm.get("temperature")
                 _response_format = _llm.get("response_format")
 
-                # Provider config
-                provider_config = {"type": "openai_textgen"}
-                model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
+                # Provider config - check step_config["model"] first (set by workflow_endpoints),
+                # then input_data["_agent_provider_config"], then default
+                model_from_step_config = step_config.get("model")
+                agent_provider_type = input_data.get("_agent_provider_type") if isinstance(input_data, dict) else None
+                agent_provider_config = input_data.get("_agent_provider_config") if isinstance(input_data, dict) else None
+
+                provider_config = {"type": agent_provider_type or "openai_textgen"}
+
+                if model_from_step_config:
+                    # Model set directly by workflow_endpoints.py
+                    model_name = model_from_step_config
+                    logger.info(f"Streaming with model from step_config: {model_name}")
+                elif agent_provider_config and agent_provider_config.get("model_name"):
+                    model_name_from_config = agent_provider_config.get("model_name")
+                    # Try to map to enum, fall back to string
+                    try:
+                        model_name = getattr(
+                            TextGenerationModelName, f"OPENAI_{model_name_from_config.replace('-', '_')}", None
+                        )
+                        if model_name:
+                            model_name = model_name.value  # type: ignore
+                        else:
+                            model_name = model_name_from_config
+                    except Exception:
+                        model_name = model_name_from_config
+                    logger.info(f"Streaming with agent provider config model: {model_name}")
+                else:
+                    model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
+                    logger.info("Streaming with default model: gpt-4o")
+
                 sid = step_config.get("step_id") or ""
 
                 # Prepare tools for LLM
@@ -1277,6 +1326,13 @@ async def agent_execution_step(
                 max_conversation_turns = 4
                 tool_calls_trace: List[Dict[str, Any]] = []
 
+                # Extract file paths for file search (OpenAI only)
+                files_for_search: Optional[List[str]] = None
+                attachment = input_data.get("_attachment")
+                if isinstance(attachment, dict) and attachment.get("path"):
+                    files_for_search = [attachment["path"]]
+                    logger.debug(f"Passing file to LLM for file search: {attachment.get('name')}")
+
                 while conversation_turns < max_conversation_turns:
                     conversation_turns += 1
 
@@ -1285,7 +1341,10 @@ async def agent_execution_step(
 
                     # Create a sync generator and wrap it to run in executor
                     # This allows the blocking I/O from OpenAI to not block the event loop
-                    def create_stream():
+                    # Note: files_for_search only passed on first turn (files are uploaded once to vector store)
+                    files_arg = files_for_search if conversation_turns == 1 else None
+
+                    def create_stream(files_to_pass=files_arg):
                         return svc.stream(
                             "",  # prompt not used when messages provided
                             provider_config,
@@ -1298,6 +1357,7 @@ async def agent_execution_step(
                             "auto" if llm_tools else None,
                             messages,
                             _response_format,
+                            files_to_pass,
                         )
 
                     # Get the generator
@@ -1476,15 +1536,48 @@ async def agent_execution_step(
                 _temperature = _llm.get("temperature")
                 _response_format = _llm.get("response_format")
 
-                # Provider config and model
-                provider_config = {"type": "openai_textgen"}
-                model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
+                # Provider config and model - check step_config["model"] first (set by workflow_endpoints),
+                # then input_data["_agent_provider_config"], then default
+                model_from_step_config = step_config["config"]["model"]
+                agent_provider_type = input_data.get("_agent_provider_type") if isinstance(input_data, dict) else None
+                agent_provider_config = input_data.get("_agent_provider_config") if isinstance(input_data, dict) else None
+
+                provider_config = {"type": agent_provider_type or "openai_textgen"}
+
+                if model_from_step_config:
+                    # Model set directly by workflow_endpoints.py
+                    model_name = model_from_step_config
+                    logger.info(f"Streaming (no tools) with model from step_config: {model_name}")
+                elif agent_provider_config and agent_provider_config.get("model_name"):
+                    model_name_from_config = agent_provider_config.get("model_name")
+                    # Try to map to enum, fall back to string
+                    try:
+                        model_name = getattr(
+                            TextGenerationModelName, f"OPENAI_{model_name_from_config.replace('-', '_')}", None
+                        )
+                        if model_name:
+                            model_name = model_name.value  # type: ignore
+                        else:
+                            model_name = model_name_from_config
+                    except Exception:
+                        model_name = model_name_from_config
+                    logger.info(f"Streaming (no tools) with agent provider config model: {model_name}")
+                else:
+                    model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
+                    logger.info("Streaming (no tools) with default model: gpt-4o")
 
                 sid = step_config.get("step_id") or ""
 
                 # Use llm-gateway streaming API
                 # Note: sys_msg is not needed since we already added it to messages
                 svc = TextGenerationService()  # type: ignore
+
+                # Extract file paths for file search (OpenAI only)
+                files_for_search: Optional[List[str]] = None
+                attachment = input_data.get("_attachment")
+                if isinstance(attachment, dict) and attachment.get("path"):
+                    files_for_search = [attachment["path"]]
+                    logger.debug(f"Passing file to LLM for file search: {attachment.get('name')}")
 
                 # Create stream generator
                 stream_generator = svc.stream(
@@ -1499,6 +1592,7 @@ async def agent_execution_step(
                     tool_choice=None,
                     messages=messages,
                     response_format=_response_format,
+                    files=files_for_search,
                 )
 
                 # Iterate through the sync generator, running each next() call in executor

@@ -20,19 +20,12 @@ import re
 from tools.servicenow.itsm_tools import (
     servicenow_itsm_create_incident,
     servicenow_itsm_get_incident,
-    servicenow_itsm_update_incident
+    servicenow_itsm_update_incident,
 )
-from tools.servicenow.csm_tools import (
-    servicenow_csm_create_case,
-    servicenow_csm_get_case,
-    servicenow_csm_update_case
-)
+from tools.servicenow.csm_tools import servicenow_csm_create_case, servicenow_csm_get_case, servicenow_csm_update_case
+
 # Import Salesforce tools
-from tools.salesforce.csm_tools import (
-    salesforce_csm_create_case,
-    salesforce_csm_get_case,
-    salesforce_csm_update_case
-)
+from tools.salesforce.csm_tools import salesforce_csm_create_case, salesforce_csm_get_case, salesforce_csm_update_case
 
 from tools.servicenow.agent_tools import ServiceNowAgentClient
 
@@ -107,60 +100,57 @@ RFQ Document:
 Return JSON:"""
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": extraction_prompt}],
-            temperature=0.1,
-            max_tokens=2000
+            model="gpt-4o-mini", messages=[{"role": "user", "content": extraction_prompt}], temperature=0.1, max_tokens=2000
         )
 
         extracted_json = response.choices[0].message.content.strip()
 
         # Clean markdown formatting if present
-        if extracted_json.startswith('```json'):
+        if extracted_json.startswith("```json"):
             extracted_json = extracted_json[7:]  # Remove ```json
-        if extracted_json.startswith('```'):
-            extracted_json = extracted_json[3:]   # Remove ```
-        if extracted_json.endswith('```'):
+        if extracted_json.startswith("```"):
+            extracted_json = extracted_json[3:]  # Remove ```
+        if extracted_json.endswith("```"):
             extracted_json = extracted_json[:-3]  # Remove trailing ```
         extracted_json = extracted_json.strip()
 
         # Validate it's proper JSON
         import json
+
         parsed_data = json.loads(extracted_json)
 
         # Validate mandatory fields are present
         mandatory_fields = [
-            "rfq_number", "client_name", "project_reference",
-            "site_postcode", "project_type", "duration_weeks",
-            "cost_base", "technical_specs"
+            "rfq_number",
+            "client_name",
+            "project_reference",
+            "site_postcode",
+            "project_type",
+            "duration_weeks",
+            "cost_base",
+            "technical_specs",
         ]
 
         missing_fields = [field for field in mandatory_fields if field not in parsed_data or not parsed_data[field]]
         if missing_fields:
-            return json.dumps({
-                "status": "incomplete",
-                "error": f"Missing mandatory fields: {', '.join(missing_fields)}",
-                "missing_fields": missing_fields,
-                "extracted_data": parsed_data,
-                "mandatory_fields_complete": False,
-                "user_action_required": "Please provide the missing information to continue with quote generation"
-            })
+            return json.dumps(
+                {
+                    "status": "incomplete",
+                    "error": f"Missing mandatory fields: {', '.join(missing_fields)}",
+                    "missing_fields": missing_fields,
+                    "extracted_data": parsed_data,
+                    "mandatory_fields_complete": False,
+                    "user_action_required": "Please provide the missing information to continue with quote generation",
+                }
+            )
 
-        return json.dumps({
-            "status": "success",
-            "extracted_data": parsed_data,
-            "mandatory_fields_complete": True
-        })
+        return json.dumps({"status": "success", "extracted_data": parsed_data, "mandatory_fields_complete": True})
 
     except json.JSONDecodeError as e:
-        return json.dumps({
-            "error": f"Invalid JSON extracted: {str(e)}",
-            "raw_response": extracted_json
-        })
+        return json.dumps({"error": f"Invalid JSON extracted: {str(e)}", "raw_response": extracted_json})
     except Exception as e:
-        return json.dumps({
-            "error": f"Extraction failed: {str(e)}"
-        })
+        return json.dumps({"error": f"Extraction failed: {str(e)}"})
+
 
 # Mitie RFQ Extractor ServiceNow Agent
 @function_schema
@@ -179,18 +169,19 @@ def extract_rfq_from_snow_agent(rfq_text: str) -> str:
     """
     try:
         import asyncio
-        extracted_quote_metadata = asyncio.run(ServiceNowAgentClient().trigger_quote_extraction(rfq_text, SERVICENOW_NOW_ASSIST_USER_REFERENCE))
+
+        extracted_quote_metadata = asyncio.run(
+            ServiceNowAgentClient().trigger_quote_extraction(rfq_text, SERVICENOW_NOW_ASSIST_USER_REFERENCE)
+        )
         if "model_output" in extracted_quote_metadata:
             quote_specs = extracted_quote_metadata["model_output"]
         else:
             quote_specs = extracted_quote_metadata
-        return json.dumps(quote_specs)   
+        return json.dumps(quote_specs)
     except Exception as e:
-        return json.dumps({
-            "error": f"Quote Extraction failed {e}"
-        })
+        return json.dumps({"error": f"Quote Extraction failed {e}"})
 
-    
+
 @function_schema
 def calculate_mitie_quote(extracted_data: str) -> str:
     """
@@ -232,20 +223,24 @@ def calculate_mitie_quote(extracted_data: str) -> str:
             else:
                 data = extracted_data
         except json.JSONDecodeError as e:
-            return json.dumps({
-                "error": f"Failed to parse extracted_data JSON: {str(e)}",
-                "type": "json_parse_error",
-                "details": f"Error at position {e.pos if hasattr(e, 'pos') else 'unknown'}"
-            })
+            return json.dumps(
+                {
+                    "error": f"Failed to parse extracted_data JSON: {str(e)}",
+                    "type": "json_parse_error",
+                    "details": f"Error at position {e.pos if hasattr(e, 'pos') else 'unknown'}",
+                }
+            )
 
         # Check if this is an incomplete extraction that needs user input
         if isinstance(data, dict) and data.get("status") == "incomplete":
-            return json.dumps({
-                "error": "Cannot calculate quote with incomplete RFQ data",
-                "type": "incomplete_data_error",
-                "missing_fields": data.get("missing_fields", []),
-                "user_action_required": data.get("user_action_required", "Please provide missing information")
-            })
+            return json.dumps(
+                {
+                    "error": "Cannot calculate quote with incomplete RFQ data",
+                    "type": "incomplete_data_error",
+                    "missing_fields": data.get("missing_fields", []),
+                    "user_action_required": data.get("user_action_required", "Please provide missing information"),
+                }
+            )
 
         # Handle nested structure if data comes from extract_rfq_json
         if "extracted_data" in data:
@@ -261,15 +256,15 @@ def calculate_mitie_quote(extracted_data: str) -> str:
             print("✅ Database connection successful")
         except Exception as e:
             print(f"❌ Database connection failed: {e}")
-            return json.dumps({
-                "error": f"Database connection failed: {str(e)}",
-                "fallback": "Please check database configuration"
-            })
+            return json.dumps(
+                {"error": f"Database connection failed: {str(e)}", "fallback": "Please check database configuration"}
+            )
 
         # 🤖 LLM-DRIVEN ITEM SELECTION
         print("🤖 Using LLM to select relevant items from available configurations...")
         try:
             from .mitie_llm_selector import select_relevant_mitie_items
+
             selected_items = select_relevant_mitie_items(rfq_data)
             print(f"✅ LLM selected {len(selected_items.get('selected_rate_items', []))} rate items")
             print(f"✅ LLM selected {len(selected_items.get('selected_preferred_items', []))} preferred items")
@@ -345,7 +340,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                         "unit": item["unit"],
                         "quantity": item.get("quantity", 1),
                         "total": rate * item.get("quantity", 1),
-                        "category": "materials_labour"
+                        "category": "materials_labour",
                     }
                     line_items.append(rate_item)
 
@@ -384,7 +379,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                         "unit": "Nr",
                         "quantity": item.get("quantity", 1),
                         "total": preferred_rate * item.get("quantity", 1),
-                        "category": "preferred_supplier"
+                        "category": "preferred_supplier",
                     }
                     line_items.append(preferred_item)
                     passive_components.append(preferred_item)
@@ -414,7 +409,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                         "unit": "Nr",
                         "quantity": 1,
                         "total": power_rate,
-                        "category": "materials_labour"
+                        "category": "materials_labour",
                     }
                     line_items.append(power_item)
                     active_components.append(power_item)
@@ -436,7 +431,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                     "unit": "Nr",
                     "quantity": 1,
                     "total": lighting_rate,
-                    "category": "materials_labour"
+                    "category": "materials_labour",
                 }
                 line_items.append(lighting_item)
                 active_components.append(lighting_item)
@@ -457,7 +452,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                     "unit": "Per Day",
                     "quantity": 2,  # Estimated days
                     "total": access_rate * 2,
-                    "category": "subcontractors"
+                    "category": "subcontractors",
                 }
                 line_items.append(access_item)
                 base_costs["access_lifting"] = access_rate * 2
@@ -485,14 +480,16 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                     "quantity": tonnage,
                     "total": marked_up_cost,
                     "category": "materials_labour",
-                    "validation_required": True
+                    "validation_required": True,
                 }
                 line_items.append(steel_item)
                 passive_components.append(steel_item)
                 base_costs["steel"] = marked_up_cost
                 steel_cost_details = {"amount": marked_up_cost}
 
-                print(f"   ✅ Added steel: {steel_config.get('height', '')} {steel_config.get('tower_type', '')} - {tonnage}t × £{rate_per_tonne} = £{marked_up_cost:.2f}")
+                print(
+                    f"   ✅ Added steel: {steel_config.get('height', '')} {steel_config.get('tower_type', '')} - {tonnage}t × £{rate_per_tonne} = £{marked_up_cost:.2f}"
+                )
                 print(f"      Justification: {steel_config.get('justification', 'LLM selected')}")
 
         else:
@@ -510,7 +507,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                             "quantity": steel_cost_details["tonnage"],
                             "total": steel_cost_details["marked_up_cost"],
                             "category": "materials_labour",
-                            "validation_required": True
+                            "validation_required": True,
                         }
                         line_items.append(steel_item)
                         passive_components.append(steel_item)
@@ -532,7 +529,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                             "unit": "Nr",
                             "quantity": 1,
                             "total": preferred_rate,
-                            "category": "preferred_supplier"
+                            "category": "preferred_supplier",
                         }
                         line_items.append(preferred_item)
                         passive_components.append(preferred_item)
@@ -592,7 +589,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
             "quantity": 1,
             "total": preliminaries["amount"],
             "final_total": preliminaries["amount"],
-            "category": "preliminaries"
+            "category": "preliminaries",
         }
         line_items.append(prelim_item)
 
@@ -611,7 +608,9 @@ def calculate_mitie_quote(extracted_data: str) -> str:
         # Calculate regional uplift on the subtotal (not just base costs)
         regional_uplift_base = {"subtotal": subtotal_after_markups}
         regional_uplift = calculator.apply_regional_uplift(site_postcode, regional_uplift_base)
-        print(f"   Regional uplift result: {regional_uplift['region']} +{regional_uplift['percentage']:.1f}% = £{regional_uplift['amount']:.2f}")
+        print(
+            f"   Regional uplift result: {regional_uplift['region']} +{regional_uplift['percentage']:.1f}% = £{regional_uplift['amount']:.2f}"
+        )
 
         # Apply regional uplift to subtotal
         subtotal_after_regional = subtotal_after_markups + regional_uplift["amount"]
@@ -637,17 +636,19 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                 "final_amount": contingency_amount,
                 "cap_applied": False,
                 "cap_amount": 25000,
-                "subtotal_base": subtotal_after_regional
+                "subtotal_base": subtotal_after_regional,
             }
 
-            print(f"   LLM Risk Level: {risk_level} ({risk_rate*100:.0f}%) = £{contingency_amount:.2f}")
+            print(f"   LLM Risk Level: {risk_level} ({risk_rate * 100:.0f}%) = £{contingency_amount:.2f}")
             print(f"   Justification: {risk_assessment.get('justification', 'LLM assessed')}")
         else:
             # FALLBACK: Original risk calculation
             risk_factors = rfq_data.get("risk_factors", technical_scope)
             print(f"   Risk factors: {risk_factors[:100]}...")
             contingency = calculator.calculate_risk_contingency(risk_factors, subtotal_after_regional)
-            print(f"   Contingency: {contingency['risk_level']} ({contingency['rate']*100:.0f}%) = £{contingency['final_amount']:.2f}")
+            print(
+                f"   Contingency: {contingency['risk_level']} ({contingency['rate'] * 100:.0f}%) = £{contingency['final_amount']:.2f}"
+            )
 
         # 10. CALCULATE FINAL TOTAL
         final_total = subtotal_after_regional + contingency["final_amount"]
@@ -663,7 +664,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                 "client_name": client_name,
                 "site_postcode": site_postcode,
                 "project_classification": project_type,
-                "is_framework_account": is_framework
+                "is_framework_account": is_framework,
             },
             "line_items": line_items,
             "active_components": active_components,
@@ -681,9 +682,9 @@ def calculate_mitie_quote(extracted_data: str) -> str:
                 f"Project classified as: {project_type}",
                 f"Regional uplift: {regional_uplift['region']} +{regional_uplift['percentage']:.1f}%",
                 f"Preliminaries: {preliminaries['type']} - £{preliminaries['amount']:.2f}",
-                f"Contingency: {contingency['risk_level']} risk ({contingency['rate']*100:.0f}%)",
-                f"Framework account: {'Yes' if is_framework else 'No'}"
-            ]
+                f"Contingency: {contingency['risk_level']} risk ({contingency['rate'] * 100:.0f}%)",
+                f"Framework account: {'Yes' if is_framework else 'No'}",
+            ],
         }
 
         # Calculate rule-based risk assessment
@@ -691,7 +692,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
             total_cost=final_total,
             duration_weeks=rfq_data.get("duration_weeks", ""),
             complexity=technical_scope,
-            contingency_rate=contingency.get("rate", 0.05)
+            contingency_rate=contingency.get("rate", 0.05),
         )
 
         # Add steel validation warning if applicable
@@ -701,30 +702,26 @@ def calculate_mitie_quote(extracted_data: str) -> str:
         # Add risk assessment to cost breakdown
         cost_breakdown["risk_assessment"] = risk_assessment
 
-        return json.dumps({
-            "status": "success",
-            "cost_breakdown": cost_breakdown,
-            "summary": {
-                "total_cost": f"£{final_total:,.2f}",
-                "base_cost": f"£{sum(base_costs.values()):,.2f}",
-                "regional_uplift": f"£{regional_uplift['amount']:,.2f}",
-                "markups": f"£{sum(details['amount'] for details in markup_details.values()):,.2f}",
-                "preliminaries": f"£{preliminaries['amount']:,.2f}",
-                "contingency": f"£{contingency['final_amount']:,.2f}",
-                "risk_category": risk_assessment["category"]
+        return json.dumps(
+            {
+                "status": "success",
+                "cost_breakdown": cost_breakdown,
+                "summary": {
+                    "total_cost": f"£{final_total:,.2f}",
+                    "base_cost": f"£{sum(base_costs.values()):,.2f}",
+                    "regional_uplift": f"£{regional_uplift['amount']:,.2f}",
+                    "markups": f"£{sum(details['amount'] for details in markup_details.values()):,.2f}",
+                    "preliminaries": f"£{preliminaries['amount']:,.2f}",
+                    "contingency": f"£{contingency['final_amount']:,.2f}",
+                    "risk_category": risk_assessment["category"],
+                },
             }
-        })
+        )
 
     except MitieCalculationError as e:
-        return json.dumps({
-            "error": f"Mitie calculation error: {str(e)}",
-            "type": "calculation_error"
-        })
+        return json.dumps({"error": f"Mitie calculation error: {str(e)}", "type": "calculation_error"})
     except Exception as e:
-        return json.dumps({
-            "error": f"Quote calculation failed: {str(e)}",
-            "type": "system_error"
-        })
+        return json.dumps({"error": f"Quote calculation failed: {str(e)}", "type": "system_error"})
 
 
 @function_schema
@@ -768,20 +765,24 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
             else:
                 data = extracted_data
         except json.JSONDecodeError as e:
-            return json.dumps({
-                "error": f"Failed to parse extracted_data JSON: {str(e)}",
-                "type": "json_parse_error",
-                "details": f"Error at position {e.pos if hasattr(e, 'pos') else 'unknown'}"
-            })
+            return json.dumps(
+                {
+                    "error": f"Failed to parse extracted_data JSON: {str(e)}",
+                    "type": "json_parse_error",
+                    "details": f"Error at position {e.pos if hasattr(e, 'pos') else 'unknown'}",
+                }
+            )
 
         # Check if this is an incomplete extraction that needs user input
         if isinstance(data, dict) and data.get("status") == "incomplete":
-            return json.dumps({
-                "error": "Cannot calculate quote with incomplete RFQ data",
-                "type": "incomplete_data_error",
-                "missing_fields": data.get("missing_fields", []),
-                "user_action_required": data.get("user_action_required", "Please provide missing information")
-            })
+            return json.dumps(
+                {
+                    "error": "Cannot calculate quote with incomplete RFQ data",
+                    "type": "incomplete_data_error",
+                    "missing_fields": data.get("missing_fields", []),
+                    "user_action_required": data.get("user_action_required", "Please provide missing information"),
+                }
+            )
 
         # Handle nested structure if data comes from extract_rfq_json
         if "extracted_data" in data:
@@ -797,15 +798,15 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
             print("✅ Database connection successful")
         except Exception as e:
             print(f"❌ Database connection failed: {e}")
-            return json.dumps({
-                "error": f"Database connection failed: {str(e)}",
-                "fallback": "Please check database configuration"
-            })
+            return json.dumps(
+                {"error": f"Database connection failed: {str(e)}", "fallback": "Please check database configuration"}
+            )
 
         # 🤖 LLM-DRIVEN ITEM SELECTION
         print("🤖 Using LLM to select relevant items from available configurations...")
         try:
             from .mitie_llm_selector import select_relevant_mitie_items
+
             selected_items = select_relevant_mitie_items(rfq_data)
             print(f"✅ LLM selected {len(selected_items.get('selected_rate_items', []))} rate items")
             print(f"✅ LLM selected {len(selected_items.get('selected_preferred_items', []))} preferred items")
@@ -883,7 +884,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                         "unit": item["unit"],
                         "quantity": item.get("quantity", 1),
                         "total": rate * item.get("quantity", 1),
-                        "category": "materials_labour"
+                        "category": "materials_labour",
                     }
                     line_items.append(rate_item)
 
@@ -922,7 +923,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                         "unit": "Nr",
                         "quantity": item.get("quantity", 1),
                         "total": preferred_rate * item.get("quantity", 1),
-                        "category": "preferred_supplier"
+                        "category": "preferred_supplier",
                     }
                     line_items.append(preferred_item)
                     passive_components.append(preferred_item)
@@ -952,7 +953,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                         "unit": "Nr",
                         "quantity": 1,
                         "total": power_rate,
-                        "category": "materials_labour"
+                        "category": "materials_labour",
                     }
                     line_items.append(power_item)
                     active_components.append(power_item)
@@ -974,7 +975,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                     "unit": "Nr",
                     "quantity": 1,
                     "total": lighting_rate,
-                    "category": "materials_labour"
+                    "category": "materials_labour",
                 }
                 line_items.append(lighting_item)
                 active_components.append(lighting_item)
@@ -995,7 +996,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                     "unit": "Per Day",
                     "quantity": 2,  # Estimated days
                     "total": access_rate * 2,
-                    "category": "subcontractors"
+                    "category": "subcontractors",
                 }
                 line_items.append(access_item)
                 base_costs["access_lifting"] = access_rate * 2
@@ -1023,14 +1024,16 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                     "quantity": tonnage,
                     "total": marked_up_cost,
                     "category": "materials_labour",
-                    "validation_required": True
+                    "validation_required": True,
                 }
                 line_items.append(steel_item)
                 passive_components.append(steel_item)
                 base_costs["steel"] = marked_up_cost
                 steel_cost_details = {"amount": marked_up_cost}
 
-                print(f"   ✅ Added steel: {steel_config.get('height', '')} {steel_config.get('tower_type', '')} - {tonnage}t × £{rate_per_tonne} = £{marked_up_cost:.2f}")
+                print(
+                    f"   ✅ Added steel: {steel_config.get('height', '')} {steel_config.get('tower_type', '')} - {tonnage}t × £{rate_per_tonne} = £{marked_up_cost:.2f}"
+                )
                 print(f"      Justification: {steel_config.get('justification', 'LLM selected')}")
 
         else:
@@ -1048,7 +1051,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                             "quantity": steel_cost_details["tonnage"],
                             "total": steel_cost_details["marked_up_cost"],
                             "category": "materials_labour",
-                            "validation_required": True
+                            "validation_required": True,
                         }
                         line_items.append(steel_item)
                         passive_components.append(steel_item)
@@ -1070,7 +1073,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                             "unit": "Nr",
                             "quantity": 1,
                             "total": preferred_rate,
-                            "category": "preferred_supplier"
+                            "category": "preferred_supplier",
                         }
                         line_items.append(preferred_item)
                         passive_components.append(preferred_item)
@@ -1130,7 +1133,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
             "quantity": 1,
             "total": preliminaries["amount"],
             "final_total": preliminaries["amount"],
-            "category": "preliminaries"
+            "category": "preliminaries",
         }
         line_items.append(prelim_item)
 
@@ -1149,7 +1152,9 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
         # Calculate regional uplift on the subtotal (not just base costs)
         regional_uplift_base = {"subtotal": subtotal_after_markups}
         regional_uplift = calculator.apply_regional_uplift(site_postcode, regional_uplift_base)
-        print(f"   Regional uplift result: {regional_uplift['region']} +{regional_uplift['percentage']:.1f}% = £{regional_uplift['amount']:.2f}")
+        print(
+            f"   Regional uplift result: {regional_uplift['region']} +{regional_uplift['percentage']:.1f}% = £{regional_uplift['amount']:.2f}"
+        )
 
         # Apply regional uplift to subtotal
         subtotal_after_regional = subtotal_after_markups + regional_uplift["amount"]
@@ -1175,17 +1180,19 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                 "final_amount": contingency_amount,
                 "cap_applied": False,
                 "cap_amount": 25000,
-                "subtotal_base": subtotal_after_regional
+                "subtotal_base": subtotal_after_regional,
             }
 
-            print(f"   LLM Risk Level: {risk_level} ({risk_rate*100:.0f}%) = £{contingency_amount:.2f}")
+            print(f"   LLM Risk Level: {risk_level} ({risk_rate * 100:.0f}%) = £{contingency_amount:.2f}")
             print(f"   Justification: {risk_assessment.get('justification', 'LLM assessed')}")
         else:
             # FALLBACK: Original risk calculation
             risk_factors = rfq_data.get("risk_factors", technical_scope)
             print(f"   Risk factors: {risk_factors[:100]}...")
             contingency = calculator.calculate_risk_contingency(risk_factors, subtotal_after_regional)
-            print(f"   Contingency: {contingency['risk_level']} ({contingency['rate']*100:.0f}%) = £{contingency['final_amount']:.2f}")
+            print(
+                f"   Contingency: {contingency['risk_level']} ({contingency['rate'] * 100:.0f}%) = £{contingency['final_amount']:.2f}"
+            )
 
         # 10. CALCULATE FINAL TOTAL
         final_total = subtotal_after_regional + contingency["final_amount"]
@@ -1204,7 +1211,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                 "duration_weeks": duration_weeks,
                 "site_postcode": site_postcode,
                 "project_classification": project_type,
-                "is_framework_account": is_framework
+                "is_framework_account": is_framework,
             },
             "line_items": line_items,
             "active_components": active_components,
@@ -1222,9 +1229,9 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
                 f"Project classified as: {project_type}",
                 f"Regional uplift: {regional_uplift['region']} +{regional_uplift['percentage']:.1f}%",
                 f"Preliminaries: {preliminaries['type']} - £{preliminaries['amount']:.2f}",
-                f"Contingency: {contingency['risk_level']} risk ({contingency['rate']*100:.0f}%)",
-                f"Framework account: {'Yes' if is_framework else 'No'}"
-            ]
+                f"Contingency: {contingency['risk_level']} risk ({contingency['rate'] * 100:.0f}%)",
+                f"Framework account: {'Yes' if is_framework else 'No'}",
+            ],
         }
 
         # Calculate rule-based risk assessment
@@ -1232,7 +1239,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
             total_cost=final_total,
             duration_weeks=rfq_data.get("duration_weeks", ""),
             complexity=technical_scope,
-            contingency_rate=contingency.get("rate", 0.05)
+            contingency_rate=contingency.get("rate", 0.05),
         )
 
         # Add steel validation warning if applicable
@@ -1242,30 +1249,27 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
         # Add risk assessment to cost breakdown
         cost_breakdown["risk_assessment"] = risk_assessment
 
-        return json.dumps({
-            "status": "success",
-            "cost_breakdown": cost_breakdown,
-            "summary": {
-                "total_cost": f"£{final_total:,.2f}",
-                "base_cost": f"£{sum(base_costs.values()):,.2f}",
-                "regional_uplift": f"£{regional_uplift['amount']:,.2f}",
-                "markups": f"£{sum(details['amount'] for details in markup_details.values()):,.2f}",
-                "preliminaries": f"£{preliminaries['amount']:,.2f}",
-                "contingency": f"£{contingency['final_amount']:,.2f}",
-                "risk_category": risk_assessment["category"]
+        return json.dumps(
+            {
+                "status": "success",
+                "cost_breakdown": cost_breakdown,
+                "summary": {
+                    "total_cost": f"£{final_total:,.2f}",
+                    "base_cost": f"£{sum(base_costs.values()):,.2f}",
+                    "regional_uplift": f"£{regional_uplift['amount']:,.2f}",
+                    "markups": f"£{sum(details['amount'] for details in markup_details.values()):,.2f}",
+                    "preliminaries": f"£{preliminaries['amount']:,.2f}",
+                    "contingency": f"£{contingency['final_amount']:,.2f}",
+                    "risk_category": risk_assessment["category"],
+                },
             }
-        })
+        )
 
     except MitieCalculationError as e:
-        return json.dumps({
-            "error": f"Mitie calculation error: {str(e)}",
-            "type": "calculation_error"
-        })
+        return json.dumps({"error": f"Mitie calculation error: {str(e)}", "type": "calculation_error"})
     except Exception as e:
-        return json.dumps({
-            "error": f"Quote calculation failed: {str(e)}",
-            "type": "system_error"
-        })
+        return json.dumps({"error": f"Quote calculation failed: {str(e)}", "type": "system_error"})
+
 
 @function_schema
 def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
@@ -1292,9 +1296,7 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
         # Get template ID from environment variables
         MITIE_TEMPLATE_ID = os.getenv("MITIE_TEMPLATE_ID")
         if not MITIE_TEMPLATE_ID:
-            return json.dumps({
-                "error": "MITIE_TEMPLATE_ID environment variable not set"
-            })
+            return json.dumps({"error": "MITIE_TEMPLATE_ID environment variable not set"})
 
         # Parse input data with better error handling
         try:
@@ -1303,10 +1305,9 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
             else:
                 rfq_data = extracted_data
         except json.JSONDecodeError as e:
-            return json.dumps({
-                "error": f"Failed to parse extracted_data JSON: {str(e)}",
-                "details": f"Error at position {e.pos}"
-            })
+            return json.dumps(
+                {"error": f"Failed to parse extracted_data JSON: {str(e)}", "details": f"Error at position {e.pos}"}
+            )
 
         try:
             if isinstance(cost_calculations, str):
@@ -1321,29 +1322,35 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
                 brace_count = 0
                 last_valid_pos = -1
                 for i, char in enumerate(cost_calculations_clean):
-                    if char == '{':
+                    if char == "{":
                         brace_count += 1
-                    elif char == '}':
+                    elif char == "}":
                         brace_count -= 1
                         if brace_count == 0:
                             last_valid_pos = i
                             break
 
                 if last_valid_pos != -1:
-                    cost_calculations_clean = cost_calculations_clean[:last_valid_pos + 1]
+                    cost_calculations_clean = cost_calculations_clean[: last_valid_pos + 1]
                     print(f"🔍 Cleaned to position {last_valid_pos}, new length: {len(cost_calculations_clean)}")
 
                 cost_data = json.loads(cost_calculations_clean)
             else:
                 cost_data = cost_calculations
         except json.JSONDecodeError as e:
-            return json.dumps({
-                "error": f"Failed to parse cost_calculations JSON: {str(e)}",
-                "details": f"Error at position {e.pos}",
-                "length": len(cost_calculations) if isinstance(cost_calculations, str) else "not string",
-                "sample_start": cost_calculations[:200] + "..." if isinstance(cost_calculations, str) and len(cost_calculations) > 200 else str(cost_calculations),
-                "sample_end": "..." + cost_calculations[-200:] if isinstance(cost_calculations, str) and len(cost_calculations) > 200 else ""
-            })
+            return json.dumps(
+                {
+                    "error": f"Failed to parse cost_calculations JSON: {str(e)}",
+                    "details": f"Error at position {e.pos}",
+                    "length": len(cost_calculations) if isinstance(cost_calculations, str) else "not string",
+                    "sample_start": cost_calculations[:200] + "..."
+                    if isinstance(cost_calculations, str) and len(cost_calculations) > 200
+                    else str(cost_calculations),
+                    "sample_end": "..." + cost_calculations[-200:]
+                    if isinstance(cost_calculations, str) and len(cost_calculations) > 200
+                    else "",
+                }
+            )
 
         # Handle nested structure
         if "extracted_data" in rfq_data:
@@ -1361,9 +1368,7 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
         # Get Google credentials and services
         creds = _get_google_credentials()
         if not creds:
-            return json.dumps({
-                "error": "Google credentials not available"
-            })
+            return json.dumps({"error": "Google credentials not available"})
 
         drive_service = build("drive", "v3", credentials=creds)
         docs_service = build("docs", "v1", credentials=creds)
@@ -1373,8 +1378,8 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
         quote_date = current_date.strftime("%d %B %Y")
         validity_date = (current_date + timedelta(days=30)).strftime("%d %B %Y")
 
-        customer_name = rfq_info.get('client_name', 'N/A')
-        customer_details = rfq_info.get('project_reference', 'N/A')
+        customer_name = rfq_info.get("client_name", "N/A")
+        customer_details = rfq_info.get("project_reference", "N/A")
 
         # Build cost tables using proper table structure (like Salesforce approach)
         mitie_cost_table = _build_mitie_cost_table_data(costs)
@@ -1383,14 +1388,9 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
         doc_title = f"Mitie Quote - {rfq_info.get('rfq_number', 'Unknown')} - {current_date.strftime('%Y-%m-%d')}"
 
         # Copy template to create new document
-        copy_body = {
-            "name": doc_title
-        }
+        copy_body = {"name": doc_title}
 
-        copied_doc = drive_service.files().copy(
-            fileId=MITIE_TEMPLATE_ID,
-            body=copy_body
-        ).execute()
+        copied_doc = drive_service.files().copy(fileId=MITIE_TEMPLATE_ID, body=copy_body).execute()
 
         doc_id = copied_doc.get("id")
 
@@ -1401,7 +1401,7 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
             "Customer_Details": customer_details,
             "Quoatation_Validity_Date": validity_date,
             "mitie_cost_table": mitie_cost_table,
-            "CR_Source": str(random.randint(10000000, 99999999))
+            "CR_Source": str(random.randint(10000000, 99999999)),
         }
 
         # Use the same approach as Salesforce insertion order for proper table formatting
@@ -1412,7 +1412,7 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
             None,  # No folder needed since we already copied the doc
             doc_title,
             template_variables,
-            existing_doc_id=doc_id  # Pass existing doc_id to avoid re-copying
+            existing_doc_id=doc_id,  # Pass existing doc_id to avoid re-copying
         )
 
         # Extract result information
@@ -1430,10 +1430,7 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
                 # Share document with iopex.com domain without sending notifications
                 permission = {"type": "domain", "role": "writer", "domain": "iopex.com"}
                 drive_service.permissions().create(
-                    fileId=document_id,
-                    body=permission,
-                    supportsAllDrives=True,
-                    sendNotificationEmail=False
+                    fileId=document_id, body=permission, supportsAllDrives=True, sendNotificationEmail=False
                 ).execute()
                 print(f"✅ Shared document {document_id} with iopex.com domain (no notifications)")
             except Exception as e:
@@ -1444,10 +1441,7 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
                 # Share PDF with iopex.com domain without sending notifications
                 permission = {"type": "domain", "role": "writer", "domain": "iopex.com"}
                 drive_service.permissions().create(
-                    fileId=pdf_file_id,
-                    body=permission,
-                    supportsAllDrives=True,
-                    sendNotificationEmail=False
+                    fileId=pdf_file_id, body=permission, supportsAllDrives=True, sendNotificationEmail=False
                 ).execute()
                 print(f"✅ Shared PDF {pdf_file_id} with iopex.com domain (no notifications)")
             except Exception as e:
@@ -1469,27 +1463,28 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
         print(f"📎 PDF File Link: {pdf_link}")
         print(f"🆔 Document ID: {document_id}")
 
-        return json.dumps({
-            "status": "success",
-            "document_id": document_id,
-            "document_title": doc_title,
-            "document_url": document_url,
-            "pdf_url": pdf_url,
-            "pdf_link": pdf_link,  # Include both PDF links
-            "quote_summary": {
-                "rfq_number": rfq_info.get('rfq_number'),
-                "total_cost": f"£{final_total:,.2f}",
-                "project_type": rfq_info.get('project_type'),
-                "duration": rfq_info.get('duration_weeks'),
-                "validity_date": validity_date
+        return json.dumps(
+            {
+                "status": "success",
+                "document_id": document_id,
+                "document_title": doc_title,
+                "document_url": document_url,
+                "pdf_url": pdf_url,
+                "pdf_link": pdf_link,  # Include both PDF links
+                "quote_summary": {
+                    "rfq_number": rfq_info.get("rfq_number"),
+                    "total_cost": f"£{final_total:,.2f}",
+                    "project_type": rfq_info.get("project_type"),
+                    "duration": rfq_info.get("duration_weeks"),
+                    "validity_date": validity_date,
+                },
             }
-        })
+        )
 
     except Exception as e:
-        return json.dumps({
-            "error": f"PDF generation failed: {str(e)}"
-        })
-    
+        return json.dumps({"error": f"PDF generation failed: {str(e)}"})
+
+
 @function_schema
 def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
     """
@@ -1515,9 +1510,7 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
         # Get template ID from environment variables
         MITIE_TEMPLATE_ID = os.getenv("MITIE_TEMPLATE_ID")
         if not MITIE_TEMPLATE_ID:
-            return json.dumps({
-                "error": "MITIE_TEMPLATE_ID environment variable not set"
-            })
+            return json.dumps({"error": "MITIE_TEMPLATE_ID environment variable not set"})
         try:
             if isinstance(cost_calculations, str):
                 # Debug: Log the length and end of the string
@@ -1531,29 +1524,35 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
                 brace_count = 0
                 last_valid_pos = -1
                 for i, char in enumerate(cost_calculations_clean):
-                    if char == '{':
+                    if char == "{":
                         brace_count += 1
-                    elif char == '}':
+                    elif char == "}":
                         brace_count -= 1
                         if brace_count == 0:
                             last_valid_pos = i
                             break
 
                 if last_valid_pos != -1:
-                    cost_calculations_clean = cost_calculations_clean[:last_valid_pos + 1]
+                    cost_calculations_clean = cost_calculations_clean[: last_valid_pos + 1]
                     print(f"🔍 Cleaned to position {last_valid_pos}, new length: {len(cost_calculations_clean)}")
 
                 cost_data = json.loads(cost_calculations_clean)
             else:
                 cost_data = cost_calculations
         except json.JSONDecodeError as e:
-            return json.dumps({
-                "error": f"Failed to parse cost_calculations JSON: {str(e)}",
-                "details": f"Error at position {e.pos}",
-                "length": len(cost_calculations) if isinstance(cost_calculations, str) else "not string",
-                "sample_start": cost_calculations[:200] + "..." if isinstance(cost_calculations, str) and len(cost_calculations) > 200 else str(cost_calculations),
-                "sample_end": "..." + cost_calculations[-200:] if isinstance(cost_calculations, str) and len(cost_calculations) > 200 else ""
-            })
+            return json.dumps(
+                {
+                    "error": f"Failed to parse cost_calculations JSON: {str(e)}",
+                    "details": f"Error at position {e.pos}",
+                    "length": len(cost_calculations) if isinstance(cost_calculations, str) else "not string",
+                    "sample_start": cost_calculations[:200] + "..."
+                    if isinstance(cost_calculations, str) and len(cost_calculations) > 200
+                    else str(cost_calculations),
+                    "sample_end": "..." + cost_calculations[-200:]
+                    if isinstance(cost_calculations, str) and len(cost_calculations) > 200
+                    else "",
+                }
+            )
 
         if "cost_breakdown" in cost_data:
             costs = cost_data["cost_breakdown"]
@@ -1565,9 +1564,7 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
         # Get Google credentials and services
         creds = _get_google_credentials()
         if not creds:
-            return json.dumps({
-                "error": "Google credentials not available"
-            })
+            return json.dumps({"error": "Google credentials not available"})
 
         drive_service = build("drive", "v3", credentials=creds)
         docs_service = build("docs", "v1", credentials=creds)
@@ -1578,11 +1575,11 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
         validity_date = (current_date + timedelta(days=30)).strftime("%d %B %Y")
 
         rfq_info = costs.get("project_info", {})
-        rfq_number = rfq_info.get('rfq_number', 'Unknown')
-        customer_name = rfq_info.get('client_name', 'Unknown')
-        customer_details = rfq_info.get('project_reference', 'Unknown')
-        project_type = rfq_info.get('project_type', 'Unknown')
-        project_duration_weeks = rfq_info.get('duration_weeks', 'Unknown')
+        rfq_number = rfq_info.get("rfq_number", "Unknown")
+        customer_name = rfq_info.get("client_name", "Unknown")
+        customer_details = rfq_info.get("project_reference", "Unknown")
+        project_type = rfq_info.get("project_type", "Unknown")
+        project_duration_weeks = rfq_info.get("duration_weeks", "Unknown")
 
         # Build cost tables using proper table structure (like Salesforce approach)
         mitie_cost_table = _build_mitie_cost_table_data(costs)
@@ -1591,14 +1588,9 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
         doc_title = f"Mitie Quote - {rfq_number} - {current_date.strftime('%Y-%m-%d')}"
 
         # Copy template to create new document
-        copy_body = {
-            "name": doc_title
-        }
+        copy_body = {"name": doc_title}
 
-        copied_doc = drive_service.files().copy(
-            fileId=MITIE_TEMPLATE_ID,
-            body=copy_body
-        ).execute()
+        copied_doc = drive_service.files().copy(fileId=MITIE_TEMPLATE_ID, body=copy_body).execute()
 
         doc_id = copied_doc.get("id")
 
@@ -1609,7 +1601,7 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
             "Customer_Details": customer_details,
             "Quoatation_Validity_Date": validity_date,
             "mitie_cost_table": mitie_cost_table,
-            "CR_Source": str(random.randint(10000000, 99999999))
+            "CR_Source": str(random.randint(10000000, 99999999)),
         }
 
         # Use the same approach as Salesforce insertion order for proper table formatting
@@ -1620,7 +1612,7 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
             None,  # No folder needed since we already copied the doc
             doc_title,
             template_variables,
-            existing_doc_id=doc_id  # Pass existing doc_id to avoid re-copying
+            existing_doc_id=doc_id,  # Pass existing doc_id to avoid re-copying
         )
 
         # Extract result information
@@ -1638,10 +1630,7 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
                 # Share document with iopex.com domain without sending notifications
                 permission = {"type": "domain", "role": "writer", "domain": "iopex.com"}
                 drive_service.permissions().create(
-                    fileId=document_id,
-                    body=permission,
-                    supportsAllDrives=True,
-                    sendNotificationEmail=False
+                    fileId=document_id, body=permission, supportsAllDrives=True, sendNotificationEmail=False
                 ).execute()
                 print(f"✅ Shared document {document_id} with iopex.com domain (no notifications)")
             except Exception as e:
@@ -1652,10 +1641,7 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
                 # Share PDF with iopex.com domain without sending notifications
                 permission = {"type": "domain", "role": "writer", "domain": "iopex.com"}
                 drive_service.permissions().create(
-                    fileId=pdf_file_id,
-                    body=permission,
-                    supportsAllDrives=True,
-                    sendNotificationEmail=False
+                    fileId=pdf_file_id, body=permission, supportsAllDrives=True, sendNotificationEmail=False
                 ).execute()
                 print(f"✅ Shared PDF {pdf_file_id} with iopex.com domain (no notifications)")
             except Exception as e:
@@ -1677,31 +1663,33 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
         print(f"📎 PDF File Link: {pdf_link}")
         print(f"🆔 Document ID: {document_id}")
 
-        return json.dumps({
-            "status": "success",
-            "document_id": document_id,
-            "document_title": doc_title,
-            "document_url": document_url,
-            "pdf_url": pdf_url,
-            "pdf_link": pdf_link,  # Include both PDF links
-            "quote_summary": {
-                "rfq_number": rfq_number,
-                "customer_name": customer_name,
-                "project_reference": customer_details,
-                "total_cost": f"£{final_total:,.2f}",
-                "project_type": project_type,
-                "duration": project_duration_weeks,
-                "validity_date": validity_date
+        return json.dumps(
+            {
+                "status": "success",
+                "document_id": document_id,
+                "document_title": doc_title,
+                "document_url": document_url,
+                "pdf_url": pdf_url,
+                "pdf_link": pdf_link,  # Include both PDF links
+                "quote_summary": {
+                    "rfq_number": rfq_number,
+                    "customer_name": customer_name,
+                    "project_reference": customer_details,
+                    "total_cost": f"£{final_total:,.2f}",
+                    "project_type": project_type,
+                    "duration": project_duration_weeks,
+                    "validity_date": validity_date,
+                },
             }
-        })
+        )
 
     except Exception as e:
-        return json.dumps({
-            "error": f"PDF generation failed: {str(e)}"
-        })
+        return json.dumps({"error": f"PDF generation failed: {str(e)}"})
 
 
-def _calculate_rule_based_risk(total_cost: float, duration_weeks: str, complexity: str, contingency_rate: float) -> Dict[str, Any]:
+def _calculate_rule_based_risk(
+    total_cost: float, duration_weeks: str, complexity: str, contingency_rate: float
+) -> Dict[str, Any]:
     """
     Calculate rule-based risk assessment based on project parameters.
 
@@ -1731,7 +1719,8 @@ def _calculate_rule_based_risk(total_cost: float, duration_weeks: str, complexit
             else:
                 # Extract numeric part from strings like "8 weeks" or "8"
                 import re
-                numbers = re.findall(r'\d+', duration_weeks)
+
+                numbers = re.findall(r"\d+", duration_weeks)
                 duration_numeric = int(numbers[0]) if numbers else 0
     except (ValueError, IndexError):
         duration_numeric = 0
@@ -1761,10 +1750,12 @@ def _calculate_rule_based_risk(total_cost: float, duration_weeks: str, complexit
     contingency_percentage = contingency_rate * 100
 
     # Category 3 (HIGH) - Check first as it takes precedence
-    if (total_cost > 40000 or
-        duration_numeric > 15 or
-        complexity_level in ["lattice", "complex"] or
-        contingency_percentage >= 10):
+    if (
+        total_cost > 40000
+        or duration_numeric > 15
+        or complexity_level in ["lattice", "complex"]
+        or contingency_percentage >= 10
+    ):
         category = "HIGH"
         reasons = []
         if total_cost > 40000:
@@ -1777,16 +1768,18 @@ def _calculate_rule_based_risk(total_cost: float, duration_weeks: str, complexit
             reasons.append(f"Contingency {contingency_percentage:.1f}% ≥ 10%")
 
     # Category 1 (LOW)
-    elif (total_cost <= 15000 and
-          duration_numeric <= 10 and
-          complexity_level == "standard_rooftop" and
-          contingency_percentage <= 5):
+    elif (
+        total_cost <= 15000
+        and duration_numeric <= 10
+        and complexity_level == "standard_rooftop"
+        and contingency_percentage <= 5
+    ):
         category = "LOW"
         reasons = [
             f"Total cost £{total_cost:,.2f} ≤ £15,000",
             f"Duration {duration_numeric} weeks ≤ 10 weeks",
             f"Standard rooftop complexity",
-            f"Contingency {contingency_percentage:.1f}% ≤ 5%"
+            f"Contingency {contingency_percentage:.1f}% ≤ 5%",
         ]
 
     # Category 2 (MODERATE) - Everything else
@@ -1813,7 +1806,7 @@ def _calculate_rule_based_risk(total_cost: float, duration_weeks: str, complexit
         "complexity_level": complexity_level,
         "contingency_percentage": contingency_percentage,
         "reasons": reasons,
-        "raw_duration_input": duration_weeks
+        "raw_duration_input": duration_weeks,
     }
 
 
@@ -1876,7 +1869,7 @@ def _build_mitie_cost_table_data(costs: dict) -> Dict[str, Any]:
         "MARK UP ON PREFERRED SUPPLIER ITEMS",
         "NON-SCHEDULED WORKS",
         "PREFERRED SUPPLIER ITEMS - STRUCTURE COSTS (INCLUDING APP)",
-        "PREFERRED SUPPLIER ITEMS - ENCLOSURE COSTS (INCLUDING APP)"
+        "PREFERRED SUPPLIER ITEMS - ENCLOSURE COSTS (INCLUDING APP)",
     ]
 
     # Add missing categories with zero values
@@ -1887,9 +1880,9 @@ def _build_mitie_cost_table_data(costs: dict) -> Dict[str, Any]:
 
     # Calculate passive total
     passive_total = sum(
-        float(row[1].replace('£', '').replace(',', ''))
+        float(row[1].replace("£", "").replace(",", ""))
         for row in table_rows[1:]
-        if len(row) > 1 and row[1] not in ["", " "] and row[1].startswith('£')
+        if len(row) > 1 and row[1] not in ["", " "] and row[1].startswith("£")
     )
     table_rows.append(["Passive Total", f"£{passive_total:,.2f}"])
 
@@ -1908,7 +1901,7 @@ def _build_mitie_cost_table_data(costs: dict) -> Dict[str, Any]:
         "FEEDER CABLES & ANCILLARIES",
         "MARK UP ON PREFERRED SUPPLIER ITEMS",
         "NON-SCHEDULED WORKS",
-        "PREFERRED SUPPLIER ITEMS (INCLUDING APP ITEMS)"
+        "PREFERRED SUPPLIER ITEMS (INCLUDING APP ITEMS)",
     ]
 
     # Add missing active categories with zero values
@@ -1920,7 +1913,7 @@ def _build_mitie_cost_table_data(costs: dict) -> Dict[str, Any]:
     # Calculate active total
     active_start_idx = next(i for i, row in enumerate(table_rows) if row[0] == "ACTIVE COSTS") + 1
     active_total = sum(
-        float(row[1].replace('£', '').replace(',', ''))
+        float(row[1].replace("£", "").replace(",", ""))
         for row in table_rows[active_start_idx:]
         if len(row) > 1 and row[1] != " " and row[0] != ""
     )
@@ -1952,14 +1945,14 @@ def _build_mitie_cost_table_data(costs: dict) -> Dict[str, Any]:
     if contingency_amount > 0:
         risk_level = contingency.get("risk_level", "standard")
         rate = contingency.get("rate", 0)
-        table_rows.append([f"CONTINGENCY ({risk_level.title()} Risk {rate*100:.0f}%)", f"£{contingency_amount:,.2f}"])
+        table_rows.append([f"CONTINGENCY ({risk_level.title()} Risk {rate * 100:.0f}%)", f"£{contingency_amount:,.2f}"])
 
     # Add final total
     table_rows.append(["TOTAL SITE COST", f"£{final_total:,.2f}"])
 
     return {
         "headers": ["Description", "Budget TEF Total"],  # Put back headers
-        "rows": table_rows
+        "rows": table_rows,
     }
 
 
@@ -2021,7 +2014,7 @@ def _build_passive_costs_from_data(costs: dict) -> str:
         "MARK UP ON PREFERRED SUPPLIER ITEMS",
         "NON-SCHEDULED WORKS",
         "PREFERRED SUPPLIER ITEMS - STRUCTURE COSTS (INCLUDING APP)",
-        "PREFERRED SUPPLIER ITEMS - ENCLOSURE COSTS (INCLUDING APP)"
+        "PREFERRED SUPPLIER ITEMS - ENCLOSURE COSTS (INCLUDING APP)",
     ]
 
     # Add missing categories with zero values (but avoid duplicates)
@@ -2072,7 +2065,7 @@ def _build_active_costs_from_data(costs: dict) -> str:
         "FEEDER CABLES & ANCILLARIES",
         "MARK UP ON PREFERRED SUPPLIER ITEMS",
         "NON-SCHEDULED WORKS",
-        "PREFERRED SUPPLIER ITEMS (INCLUDING APP ITEMS)"
+        "PREFERRED SUPPLIER ITEMS (INCLUDING APP ITEMS)",
     ]
 
     # Add missing categories with zero values
@@ -2157,7 +2150,7 @@ def _build_passive_costs_table() -> str:
         ("MARK UP ON PREFERRED SUPPLIER ITEMS", 0.00),
         ("NON-SCHEDULED WORKS", 501.18),
         ("PREFERRED SUPPLIER ITEMS - STRUCTURE COSTS (INCLUDING APP)", 0.00),
-        ("PREFERRED SUPPLIER ITEMS - ENCLOSURE COSTS (INCLUDING APP)", 0.00)
+        ("PREFERRED SUPPLIER ITEMS - ENCLOSURE COSTS (INCLUDING APP)", 0.00),
     ]
 
     # Calculate total
@@ -2191,7 +2184,7 @@ def _build_active_costs_table() -> str:
         ("FEEDER CABLES & ANCILLARIES", 20015.75),
         ("MARK UP ON PREFERRED SUPPLIER ITEMS", 0.00),
         ("NON-SCHEDULED WORKS", 2455.57),
-        ("PREFERRED SUPPLIER ITEMS (INCLUDING APP ITEMS)", 0.00)
+        ("PREFERRED SUPPLIER ITEMS (INCLUDING APP ITEMS)", 0.00),
     ]
 
     # Calculate total
@@ -2221,7 +2214,7 @@ def _calculate_total_site_cost() -> float:
     """Calculate the total site cost (placeholder implementation)."""
     # Placeholder calculation - will be updated when calc function provides proper data
     passive_total = 23357.67  # Sum of all passive costs
-    active_total = 36175.61   # Sum of all active costs
+    active_total = 36175.61  # Sum of all active costs
     return passive_total + active_total
 
 
@@ -2246,13 +2239,51 @@ def add_numbers(a: int, b: int) -> str:
 
 
 @function_schema
+def get_file_info(attachment: Dict[str, Any]) -> str:
+    """
+    Returns information about an uploaded file attachment.
+
+    Args:
+        attachment: The attachment object containing name, size_bytes, mime, and path
+
+    Returns:
+        A formatted string with file information
+    """
+    if not attachment:
+        return "No attachment provided"
+
+    file_name = attachment.get("name", "Unknown")
+    file_size = attachment.get("size_bytes", 0)
+    file_type = attachment.get("mime", "Unknown")
+    file_path = attachment.get("path")
+
+    size_kb = file_size / 1024
+    size_mb = size_kb / 1024
+
+    if size_mb >= 1:
+        size_str = f"{size_mb:.2f} MB"
+    else:
+        size_str = f"{size_kb:.2f} KB"
+
+    info_parts = [
+        f"File Name: {file_name}",
+        f"File Type: {file_type}",
+        f"File Size: {size_str} ({file_size} bytes)",
+    ]
+
+    if file_path:
+        info_parts.append(f"Stored At: {file_path}")
+
+    # return "\n".join(info_parts)
+    return str(attachment)
+
+
+@function_schema
 def get_customer_order(customer_id: int) -> str:
     """ "
     Returns the order number for a given customer ID."""
     if customer_id in [i["customer_id"] for i in EXAMPLE_DATA]:
-        order_number = [
-            i["order_number"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id
-        ][0]
+        order_number = [i["order_number"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id][0]
         return f"The order number for customer ID {customer_id} is {order_number}"
     return f"No order found for customer ID {customer_id}"
 
@@ -2262,9 +2293,7 @@ def get_customer_location(customer_id: int) -> str:
     """ "
     Returns the location for a given customer ID."""
     if customer_id in [i["customer_id"] for i in EXAMPLE_DATA]:
-        location = [
-            i["location"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id
-        ][0]
+        location = [i["location"] for i in EXAMPLE_DATA if i["customer_id"] == customer_id][0]
         return f"The location for customer ID {customer_id} is {location}"
     return f"No location found for customer ID {customer_id}"
 
@@ -2273,9 +2302,7 @@ def get_customer_location(customer_id: int) -> str:
 def add_customer(customer_id: int, order_number: int, location: str) -> str:
     """ "
     Adds a new customer to the database."""
-    EXAMPLE_DATA.append(
-        {"customer_id": customer_id, "order_number": order_number, "location": location}
-    )
+    EXAMPLE_DATA.append({"customer_id": customer_id, "order_number": order_number, "location": location})
     return f"Customer ID {customer_id} added successfully."
 
 
@@ -2304,9 +2331,7 @@ def url_to_markdown(url):
         content = soup.find("body")
 
         if content:
-            markdown_content = markdownify.markdownify(
-                str(content), heading_style="ATX"
-            )
+            markdown_content = markdownify.markdownify(str(content), heading_style="ATX")
             return markdown_content[:20000]
         else:
             return "No content found in the webpage body."
@@ -2368,9 +2393,7 @@ def query_retriever2(query: str) -> list:
     """
     RETRIEVER_URL = os.getenv("RETRIEVER_URL")
     if RETRIEVER_URL is None:
-        raise ValueError(
-            "RETRIEVER_URL not found. Please set it in the environment variables."
-        )
+        raise ValueError("RETRIEVER_URL not found. Please set it in the environment variables.")
     url = RETRIEVER_URL + "/query-chunks"
     params = {"query": query, "top_k": 60}
 
@@ -2383,11 +2406,7 @@ def query_retriever2(query: str) -> list:
         res += "*" * 5 + f"\n\nSegment {i}" + "\n" + "Contextual Header: "
         contextual_header = segment["chunks"][0].get("contextual_header", "")
         skip_length = len(contextual_header) if contextual_header else 0
-        res += (
-            contextual_header
-            if contextual_header
-            else "No contextual header" + "\n" + "Context: " + "\n"
-        )
+        res += contextual_header if contextual_header else "No contextual header" + "\n" + "Context: " + "\n"
         # print(segment["score"])
         print("Segment Done")
         references = ""
@@ -2444,9 +2463,7 @@ def media_context_retriever(
         qdrant_client = QdrantClient(url=qdrant_url)
 
         # Get embedding for query using OpenAI
-        embedding_response = client.embeddings.create(
-            model="text-embedding-ada-002", input=query
-        )
+        embedding_response = client.embeddings.create(model="text-embedding-ada-002", input=query)
         query_vector = embedding_response.data[0].embedding
 
         # Parse filter parameters - temporarily disabled due to Qdrant compatibility issues
@@ -2470,21 +2487,19 @@ def media_context_retriever(
         if search_results is None or not search_results:
             return f"No results found for query: '{query}' in collection '{collection}'"
 
-        result_text = (
-            f"QDRANT SEARCH RESULTS for '{query}' (Collection: {collection}):\n\n"
-        )
+        result_text = f"QDRANT SEARCH RESULTS for '{query}' (Collection: {collection}):\n\n"
         for i, result in enumerate(search_results):
             payload = result.payload
             score = result.score
 
             # Handle case where payload might be None
             if payload is None:
-                result_text += f"Result {i+1} (Score: {round(score, 3)}):\n"
+                result_text += f"Result {i + 1} (Score: {round(score, 3)}):\n"
                 result_text += "No payload data available\n"
                 result_text += "-" * 50 + "\n"
                 continue
 
-            result_text += f"Result {i+1} (Score: {round(score, 3)}):\n"
+            result_text += f"Result {i + 1} (Score: {round(score, 3)}):\n"
 
             # Use correct field names based on AdCreative model
             result_text += f"Campaign Folder: {payload.get('campaign_folder', 'Unknown Campaign')}\n"
@@ -2493,12 +2508,8 @@ def media_context_retriever(
             result_text += f"Industry: {payload.get('industry', 'Unknown Industry')}\n"
             result_text += f"File Type: {payload.get('file_type', 'Unknown')}\n"
             result_text += f"Duration: {payload.get('duration(days)', 0)} days\n"
-            result_text += (
-                f"Duration Category: {payload.get('duration_category', 'Unknown')}\n"
-            )
-            result_text += (
-                f"Season/Holiday: {payload.get('season_holiday', 'Unknown')}\n"
-            )
+            result_text += f"Duration Category: {payload.get('duration_category', 'Unknown')}\n"
+            result_text += f"Season/Holiday: {payload.get('season_holiday', 'Unknown')}\n"
             result_text += f"Ad Objective: {payload.get('ad_objective', 'Unknown')}\n"
             result_text += f"Targeting: {payload.get('targeting', 'Unknown')}\n"
             result_text += f"Tone/Mood: {payload.get('tone_mood', 'Unknown')}\n"
@@ -2560,11 +2571,9 @@ def media_context_retriever(
             },
         ]
 
-        result_text = (
-            f"QDRANT SEARCH RESULTS for '{query}' (MOCK DATA - Connection Error):\n\n"
-        )
+        result_text = f"QDRANT SEARCH RESULTS for '{query}' (MOCK DATA - Connection Error):\n\n"
         for i, result in enumerate(mock_results[:limit]):
-            result_text += f"Result {i+1} (Score: {result['score']}):\n"
+            result_text += f"Result {i + 1} (Score: {result['score']}):\n"
             result_text += f"Campaign: {result['campaign_name']}\n"
             result_text += f"Brand: {result['brand']}\n"
             result_text += f"Industry: {result['industry']}\n"
@@ -2579,9 +2588,7 @@ def media_context_retriever(
 
 
 @function_schema
-def redis_cache_operation(
-    operation: str, key: str, value: Optional[str] = None, ttl: Optional[int] = None
-) -> str:
+def redis_cache_operation(operation: str, key: str, value: Optional[str] = None, ttl: Optional[int] = None) -> str:
     """
     REDIS CACHE TOOL
 
@@ -2767,9 +2774,7 @@ def postgres_query(
             return f"Mock data not available for table '{table}'"
 
     elif query_type == "insert":
-        return (
-            f"Successfully inserted new record into '{table}' table with data: {data}"
-        )
+        return f"Successfully inserted new record into '{table}' table with data: {data}"
 
     elif query_type == "update":
         return f"Successfully updated records in '{table}' table where {conditions} with data: {data}"
@@ -2846,25 +2851,19 @@ def image_generation(
 
     # Mock response based on operation type
     if operation_type == "generate":
-        mock_image_url = (
-            f"https://mock-api.com/generated-image-{hash(prompt) % 10000}.jpg"
-        )
+        mock_image_url = f"https://mock-api.com/generated-image-{hash(prompt) % 10000}.jpg"
         return f"Successfully generated image with prompt: '{prompt}'\nDimensions: {dimensions}\nAspect Ratio: {aspect_ratio}\nGenerated Image URL: {mock_image_url}\nImage ID: IMG_{hash(prompt) % 100000}"
 
     elif operation_type == "multi_generate":
         mock_urls = []
         for i in range(min(count, 4)):
-            mock_urls.append(
-                f"https://mock-api.com/generated-image-{hash(prompt) % 10000}-variant-{i+1}.jpg"
-            )
+            mock_urls.append(f"https://mock-api.com/generated-image-{hash(prompt) % 10000}-variant-{i + 1}.jpg")
 
         result = f"Successfully generated {len(mock_urls)} image variations with prompt: '{prompt}'\n"
         result += f"Dimensions: {dimensions}\nAspect Ratio: {aspect_ratio}\n"
         result += "Generated Images:\n"
         for i, url in enumerate(mock_urls):
-            result += (
-                f"  Variant {i+1}: {url} (ID: IMG_{hash(prompt + str(i)) % 100000})\n"
-            )
+            result += f"  Variant {i + 1}: {url} (ID: IMG_{hash(prompt + str(i)) % 100000})\n"
         return result
 
     elif operation_type == "resize":
@@ -2898,7 +2897,9 @@ def image_generation(
             return f"Error: Unsupported IAB size '{iab_size}'. Supported sizes: {', '.join(iab_dimensions.keys())}"
 
     else:
-        return f"Error: Unsupported operation type '{operation_type}'. Supported: generate, resize, multi_generate, resize_to_iab"
+        return (
+            f"Error: Unsupported operation type '{operation_type}'. Supported: generate, resize, multi_generate, resize_to_iab"
+        )
 
 
 def _get_google_credentials():
@@ -2925,9 +2926,7 @@ def _get_google_credentials():
     return creds
 
 
-def _create_google_drive_folder(
-    service, folder_name: str, parent_folder_id: str
-) -> Dict[str, Any]:
+def _create_google_drive_folder(service, folder_name: str, parent_folder_id: str) -> Dict[str, Any]:
     """Create a folder in Google Drive"""
     try:
         file_metadata = {
@@ -2936,13 +2935,7 @@ def _create_google_drive_folder(
             "parents": [parent_folder_id],
         }
 
-        folder = (
-            service.files()
-            .create(
-                body=file_metadata, supportsAllDrives=True, fields="id, webViewLink"
-            )
-            .execute()
-        )
+        folder = service.files().create(body=file_metadata, supportsAllDrives=True, fields="id, webViewLink").execute()
 
         return {"id": folder.get("id"), "link": folder.get("webViewLink")}
     except Exception as e:
@@ -2954,16 +2947,10 @@ def _share_folder_with_users(service, folder_id: str, emails: List[str]):
     try:
         # Share with entire iopex.com domain instead of individual emails
         permission = {"type": "domain", "role": "writer", "domain": "iopex.com"}
-        service.permissions().create(
-            fileId=folder_id, body=permission, supportsAllDrives=True
-        ).execute()
-        logging.getLogger(__name__).info(
-            f"Shared folder {folder_id} with iopex.com domain"
-        )
+        service.permissions().create(fileId=folder_id, body=permission, supportsAllDrives=True).execute()
+        logging.getLogger(__name__).info(f"Shared folder {folder_id} with iopex.com domain")
     except Exception as e:
-        logging.getLogger(__name__).warning(
-            f"Failed to share with iopex.com domain: {str(e)}"
-        )
+        logging.getLogger(__name__).warning(f"Failed to share with iopex.com domain: {str(e)}")
 
 
 def _extract_targeting_info_from_placement(
@@ -2991,9 +2978,7 @@ def _extract_targeting_info_from_placement(
                     "income_level": targeting.get("income_level", "Not specified"),
                     "interests": targeting.get("interests", "Not specified"),
                     "location": targeting.get("location", "Not specified"),
-                    "behavioral_data": targeting.get(
-                        "behavioral_data", "Not specified"
-                    ),
+                    "behavioral_data": targeting.get("behavioral_data", "Not specified"),
                 }
             )
         elif isinstance(targeting, str):
@@ -3017,7 +3002,7 @@ def _generate_pdf_with_media_plan_table(
     folder_id: str,
     filename: str,
     template_variables: Dict[str, Any],
-    existing_doc_id: str = None
+    existing_doc_id: str = None,
 ) -> Dict[str, Any]:
     """Generate PDF from template with Media Plan table support"""
     try:
@@ -3058,26 +3043,20 @@ def _generate_pdf_with_media_plan_table(
 
         # Execute regular text replacements first
         if requests:
-            docs_service.documents().batchUpdate(
-                documentId=doc_id, body={"requests": requests}
-            ).execute()
+            docs_service.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
 
         # Handle table insertion if media_plan_table data exists
         if table_data:
             _insert_media_plan_table_simple(docs_service, doc_id, table_data)
 
         # Export the Google Doc as PDF
-        pdf_export_url = (
-            f"https://docs.google.com/document/d/{doc_id}/export?format=pdf"
-        )
+        pdf_export_url = f"https://docs.google.com/document/d/{doc_id}/export?format=pdf"
 
         # Download the PDF content
         import io
         from googleapiclient.http import MediaIoBaseDownload
 
-        request = drive_service.files().export_media(
-            fileId=doc_id, mimeType="application/pdf"
-        )
+        request = drive_service.files().export_media(fileId=doc_id, mimeType="application/pdf")
         pdf_content = io.BytesIO()
         downloader = MediaIoBaseDownload(pdf_content, request)
 
@@ -3115,16 +3094,14 @@ def _generate_pdf_with_media_plan_table(
             "pdf_link": pdf_file["webViewLink"],
             "document_id": doc_id,
             "document_url": doc_url,
-            "pdf_url": pdf_url
+            "pdf_url": pdf_url,
         }
 
     except Exception as e:
         raise Exception(f"Failed to generate PDF: {str(e)}")
 
 
-def _insert_media_plan_table_simple(
-    docs_service, doc_id: str, table_data: Dict[str, Any]
-):
+def _insert_media_plan_table_simple(docs_service, doc_id: str, table_data: Dict[str, Any]):
     """Insert a proper Google Docs table using the approach from tanaikech's implementation"""
     try:
         logger = logging.getLogger(__name__)
@@ -3139,23 +3116,17 @@ def _insert_media_plan_table_simple(
             _fallback_text_replacement(docs_service, doc_id, table_data)
             return
 
-        logger.info(
-            f"Creating table with {len(headers)} columns and {len(rows) + 1} rows"
-        )
+        logger.info(f"Creating table with {len(headers)} columns and {len(rows) + 1} rows")
         logger.info(f"Headers: {headers}")
 
         # Find the table placeholder (try both media_plan_table and mitie_cost_table)
         placeholder_text = "{{media_plan_table}}"
-        placeholder_index = _find_placeholder_index(
-            docs_service, doc_id, placeholder_text
-        )
+        placeholder_index = _find_placeholder_index(docs_service, doc_id, placeholder_text)
 
         if placeholder_index is None:
             # Try mitie_cost_table placeholder
             placeholder_text = "{{mitie_cost_table}}"
-            placeholder_index = _find_placeholder_index(
-                docs_service, doc_id, placeholder_text
-            )
+            placeholder_index = _find_placeholder_index(docs_service, doc_id, placeholder_text)
 
         if placeholder_index is None:
             logger.warning("No table placeholder found in document")
@@ -3165,9 +3136,7 @@ def _insert_media_plan_table_simple(
         logger.info(f"Found placeholder at index {placeholder_index}")
 
         # Create and populate table
-        _create_and_populate_table(
-            docs_service, doc_id, placeholder_index, placeholder_text, headers, rows
-        )
+        _create_and_populate_table(docs_service, doc_id, placeholder_index, placeholder_text, headers, rows)
 
     except Exception as e:
         logging.getLogger(__name__).error(f"Error inserting media plan table: {str(e)}")
@@ -3217,29 +3186,19 @@ def _create_and_populate_table(
         logger.info(f"Creating table with {num_rows} rows and {num_cols} columns")
 
         # Create requests using the Tanaikech approach
-        requests = _create_table_requests(
-            placeholder_index, placeholder_text, all_table_data
-        )
+        requests = _create_table_requests(placeholder_index, placeholder_text, all_table_data)
 
         # Execute all requests in one batch
-        docs_service.documents().batchUpdate(
-            documentId=doc_id, body={"requests": requests}
-        ).execute()
+        docs_service.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
 
-        logger.info(
-            f"Successfully created and populated table with {len(headers)} headers and {len(rows)} data rows"
-        )
+        logger.info(f"Successfully created and populated table with {len(headers)} headers and {len(rows)} data rows")
 
     except Exception as e:
-        logging.getLogger(__name__).error(
-            f"Error creating and populating table: {str(e)}"
-        )
+        logging.getLogger(__name__).error(f"Error creating and populating table: {str(e)}")
         raise
 
 
-def _create_table_requests(
-    placeholder_index: int, placeholder_text: str, table_data: list
-):
+def _create_table_requests(placeholder_index: int, placeholder_text: str, table_data: list):
     """Create requests for table creation and population using the Tanaikech approach"""
     try:
         logger = logging.getLogger(__name__)
@@ -3249,9 +3208,7 @@ def _create_table_requests(
         num_rows = len(table_data)
         max_cols = max(len(row) for row in table_data)
 
-        logger.info(
-            f"Creating table requests for {num_rows} rows and {max_cols} columns"
-        )
+        logger.info(f"Creating table requests for {num_rows} rows and {max_cols} columns")
 
         # Start with deleting the placeholder and creating the table
         requests = [
@@ -3272,8 +3229,6 @@ def _create_table_requests(
             },
         ]
 
-
-
         # Calculate cell indices and create insertion requests using the improved Tanaikech approach
         table_index = placeholder_index
         index = table_index + 5  # Table starts at index + 5
@@ -3282,18 +3237,14 @@ def _create_table_requests(
 
         # Process each row to calculate indices correctly
         for row_idx, row_data in enumerate(table_data):
-            row_index = (
-                index + (0 if row_idx == 0 else 3) - 1
-            )  # First row: index, subsequent rows: index + 3 - 1
+            row_index = index + (0 if row_idx == 0 else 3) - 1  # First row: index, subsequent rows: index + 3 - 1
 
             # Process each cell in the row
             for col_idx, cell_value in enumerate(row_data):
                 cell_index = row_index + col_idx * 2
                 cell_value_str = str(cell_value)
 
-                logger.info(
-                    f"Adding cell [{row_idx}][{col_idx}] = '{cell_value_str}' at index {cell_index}"
-                )
+                logger.info(f"Adding cell [{row_idx}][{col_idx}] = '{cell_value_str}' at index {cell_index}")
 
                 # Add text insertion request
                 cell_requests.append(
@@ -3332,9 +3283,7 @@ def _create_table_requests(
         # Add cell requests to the main requests
         requests.extend(cell_requests)
 
-        logger.info(
-            f"Created {len(requests)} total requests for table creation and population"
-        )
+        logger.info(f"Created {len(requests)} total requests for table creation and population")
         return requests
 
     except Exception as e:
@@ -3377,14 +3326,10 @@ def _fallback_text_replacement(docs_service, doc_id: str, table_data: Dict[str, 
             }
         ]
 
-        docs_service.documents().batchUpdate(
-            documentId=doc_id, body={"requests": requests}
-        ).execute()
+        docs_service.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
 
     except Exception as e:
-        logging.getLogger(__name__).error(
-            f"Error in fallback text replacement: {str(e)}"
-        )
+        logging.getLogger(__name__).error(f"Error in fallback text replacement: {str(e)}")
 
 
 def _create_sheet_from_template(
@@ -3423,9 +3368,7 @@ def _create_sheet_from_template(
             .execute()
         )
 
-        headers = (
-            header_result.get("values", [[]])[0] if header_result.get("values") else []
-        )
+        headers = header_result.get("values", [[]])[0] if header_result.get("values") else []
 
         # Create a mapping of data to column positions
         updates = []
@@ -3439,9 +3382,7 @@ def _create_sheet_from_template(
         # Batch update the sheet
         if updates:
             body = {"valueInputOption": "RAW", "data": updates}
-            sheets_service.spreadsheets().values().batchUpdate(
-                spreadsheetId=sheet_id, body=body
-            ).execute()
+            sheets_service.spreadsheets().values().batchUpdate(spreadsheetId=sheet_id, body=body).execute()
 
         return {"sheet_id": sheet_id, "sheet_link": copied_sheet["webViewLink"]}
     except Exception as e:
@@ -3487,16 +3428,10 @@ def _generate_pdf_from_template(
             )
 
         if requests_list:
-            docs_service.documents().batchUpdate(
-                documentId=doc_id, body={"requests": requests_list}
-            ).execute()
+            docs_service.documents().batchUpdate(documentId=doc_id, body={"requests": requests_list}).execute()
 
         # Export as PDF
-        pdf_export = (
-            drive_service.files()
-            .export(fileId=doc_id, mimeType="application/pdf")
-            .execute()
-        )
+        pdf_export = drive_service.files().export(fileId=doc_id, mimeType="application/pdf").execute()
 
         # Create PDF file in Drive
         pdf_metadata = {"name": f"{filename}.pdf", "parents": [output_folder_id]}
@@ -3509,9 +3444,7 @@ def _generate_pdf_from_template(
             drive_service.files()
             .create(
                 body=pdf_metadata,
-                media_body=MediaIoBaseUpload(
-                    io.BytesIO(pdf_export), mimetype="application/pdf"
-                ),
+                media_body=MediaIoBaseUpload(io.BytesIO(pdf_export), mimetype="application/pdf"),
                 supportsAllDrives=True,
                 fields="id, webViewLink",
             )
@@ -3630,28 +3563,18 @@ def create_insertion_order(
 
         # Parse placement data - FIX: Handle array of placements
         try:
-            placement_list = (
-                json.loads(placement_data)
-                if isinstance(placement_data, str)
-                else placement_data
-            )
+            placement_list = json.loads(placement_data) if isinstance(placement_data, str) else placement_data
             if not isinstance(placement_list, list):
-                return (
-                    "Error: placement_data must be a JSON array of placement objects."
-                )
+                return "Error: placement_data must be a JSON array of placement objects."
         except json.JSONDecodeError:
             return "Error: Invalid placement_data JSON format."
 
         # Create campaign folder
         folder_name = f"{campaign_name}_{datetime.now().strftime('%Y%m%d')}"
-        campaign_folder = _create_google_drive_folder(
-            drive_service, folder_name, base_folder
-        )
+        campaign_folder = _create_google_drive_folder(drive_service, folder_name, base_folder)
 
         # Create PDF subfolder
-        pdf_folder = _create_google_drive_folder(
-            drive_service, "PDF Files", campaign_folder["id"]
-        )
+        pdf_folder = _create_google_drive_folder(drive_service, "PDF Files", campaign_folder["id"])
 
         # Share folders with stakeholders
         stakeholder_emails = [
@@ -3659,9 +3582,7 @@ def create_insertion_order(
             sales_owner_email,
             fulfillment_owner_email,
         ]
-        _share_folder_with_users(
-            drive_service, campaign_folder["id"], stakeholder_emails
-        )
+        _share_folder_with_users(drive_service, campaign_folder["id"], stakeholder_emails)
 
         # Prepare data for sheet (use first placement for sheet data)
         first_placement = placement_list[0] if placement_list else {}
@@ -3738,12 +3659,12 @@ Placement {i}: {name}
   CPC: ${cpc}
   Budget: ${amount:,.2f}
   Target Audience:
-    - Age Range: {targeting_info['age_range']}
-    - Gender: {targeting_info['gender']}
-    - Income Level: {targeting_info['income_level']}
-    - Interests: {targeting_info['interests']}
-    - Location: {targeting_info['location']}
-    - Behavioral Data: {targeting_info['behavioral_data']}
+    - Age Range: {targeting_info["age_range"]}
+    - Gender: {targeting_info["gender"]}
+    - Income Level: {targeting_info["income_level"]}
+    - Interests: {targeting_info["interests"]}
+    - Location: {targeting_info["location"]}
+    - Behavioral Data: {targeting_info["behavioral_data"]}
             """.strip()
             placement_details.append(placement_detail)
 
@@ -3766,9 +3687,7 @@ Placement {i}: {name}
             media_plan_table_rows.append(table_row)
 
         # Get overall date range
-        start_dates = [
-            p.get("start_date", "") for p in placement_list if p.get("start_date")
-        ]
+        start_dates = [p.get("start_date", "") for p in placement_list if p.get("start_date")]
         end_dates = [p.get("end_date", "") for p in placement_list if p.get("end_date")]
         earliest_start = min(start_dates) if start_dates else ""
         latest_end = max(end_dates) if end_dates else ""
@@ -3856,9 +3775,7 @@ def _connect_to_salesforce():
         username = os.getenv("SALESFORCE_USERNAME")
         password = os.getenv("SALESFORCE_PASSWORD")
         security_token = os.getenv("SALESFORCE_SECURITY_TOKEN")
-        domain = os.getenv(
-            "SALESFORCE_DOMAIN", "test"
-        )  # test for sandbox, login for production
+        domain = os.getenv("SALESFORCE_DOMAIN", "test")  # test for sandbox, login for production
 
         if not all([username, password, security_token]):
             raise Exception(
@@ -3874,16 +3791,12 @@ def _connect_to_salesforce():
 
         return sf
     except ImportError:
-        raise Exception(
-            "simple-salesforce library not installed. Please install it with: pip install simple-salesforce"
-        )
+        raise Exception("simple-salesforce library not installed. Please install it with: pip install simple-salesforce")
     except Exception as e:
         raise Exception(f"Failed to connect to Salesforce: {str(e)}")
 
 
-def _create_salesforce_insertion_order_direct(
-    sf, order_data: Dict[str, Any]
-) -> Dict[str, Any]:
+def _create_salesforce_insertion_order_direct(sf, order_data: Dict[str, Any]) -> Dict[str, Any]:
     """Create insertion order record directly in Salesforce (replicating connector service logic)"""
     try:
         # Prepare the insertion order record data - using only core fields that should exist
@@ -3904,31 +3817,23 @@ def _create_salesforce_insertion_order_direct(
 
         # Add lookup fields - only if valid Salesforce IDs and accessible
         # Try to add Account lookup, but continue if it fails due to permissions
-        if order_data.get("account_id") and _is_valid_salesforce_id(
-            order_data["account_id"]
-        ):
+        if order_data.get("account_id") and _is_valid_salesforce_id(order_data["account_id"]):
             try:
                 # Test if we can access this account first
                 sf.Account.get(order_data["account_id"])
                 sf_data["Account__c"] = order_data["account_id"]
             except Exception as e:
-                logging.getLogger(__name__).warning(
-                    f"Cannot access Account {order_data['account_id']}: {str(e)}"
-                )
+                logging.getLogger(__name__).warning(f"Cannot access Account {order_data['account_id']}: {str(e)}")
                 # Continue without the Account lookup
 
         # Try to add Opportunity lookup, but continue if it fails due to permissions
-        if order_data.get("opportunity_id") and _is_valid_salesforce_id(
-            order_data["opportunity_id"]
-        ):
+        if order_data.get("opportunity_id") and _is_valid_salesforce_id(order_data["opportunity_id"]):
             try:
                 # Test if we can access this opportunity first
                 sf.Opportunity.get(order_data["opportunity_id"])
                 sf_data["Opportunity__c"] = order_data["opportunity_id"]
             except Exception as e:
-                logging.getLogger(__name__).warning(
-                    f"Cannot access Opportunity {order_data['opportunity_id']}: {str(e)}"
-                )
+                logging.getLogger(__name__).warning(f"Cannot access Opportunity {order_data['opportunity_id']}: {str(e)}")
                 # Continue without the Opportunity lookup
 
         # Add PDF link if available
@@ -3953,9 +3858,7 @@ def _create_salesforce_insertion_order_direct(
         raise Exception(f"Failed to create Salesforce insertion order: {str(e)}")
 
 
-def _create_placement_record_direct(
-    sf, insertion_order_id: str, placement_data: Dict[str, Any]
-):
+def _create_placement_record_direct(sf, insertion_order_id: str, placement_data: Dict[str, Any]):
     """Create placement record linked to insertion order (replicating connector service logic)"""
     try:
         placement_record = {
@@ -3990,34 +3893,24 @@ def _create_placement_record_direct(
         if placement_data.get("targeting"):
             targeting = placement_data["targeting"]
             if targeting.get("age_range"):
-                placement_record["target_audience_age_range__c"] = targeting[
-                    "age_range"
-                ]
+                placement_record["target_audience_age_range__c"] = targeting["age_range"]
             if targeting.get("gender"):
                 placement_record["target_audience_gender__c"] = targeting["gender"]
             if targeting.get("income_level"):
-                placement_record["target_audience_income_level__c"] = targeting[
-                    "income_level"
-                ]
+                placement_record["target_audience_income_level__c"] = targeting["income_level"]
             if targeting.get("location"):
                 placement_record["target_audience_location__c"] = targeting["location"]
             if targeting.get("interests"):
-                placement_record["target_audience_interests__c"] = targeting[
-                    "interests"
-                ]
+                placement_record["target_audience_interests__c"] = targeting["interests"]
             if targeting.get("behavioral_data"):
-                placement_record["target_audience_behavioral_data__c"] = ", ".join(
-                    targeting["behavioral_data"]
-                )
+                placement_record["target_audience_behavioral_data__c"] = ", ".join(targeting["behavioral_data"])
 
         # Create the placement record
         result = sf.Placement__c.create(placement_record)
         return result
 
     except Exception as e:
-        logging.getLogger(__name__).warning(
-            f"Failed to create placement record: {str(e)}"
-        )
+        logging.getLogger(__name__).warning(f"Failed to create placement record: {str(e)}")
         # Don't fail the entire operation if placement creation fails
         return None
 
@@ -4218,9 +4111,7 @@ def get_salesforce_opportunities_by_account(account_id: str) -> str:
             return f"❌ Invalid Salesforce Account ID format: {account_id}. Expected 15 or 18 character alphanumeric ID."
 
         # Connect to Salesforce directly
-        logger.info(
-            f"Connecting to Salesforce to retrieve opportunities for account: {account_id}"
-        )
+        logger.info(f"Connecting to Salesforce to retrieve opportunities for account: {account_id}")
         sf = _connect_to_salesforce()
 
         # First, try to get the account name to verify it exists
@@ -4229,9 +4120,7 @@ def get_salesforce_opportunities_by_account(account_id: str) -> str:
             account_result = sf.Account.get(account_id)
             account_name = account_result.get("Name", "Unknown Account")
         except Exception as account_error:
-            logger.warning(
-                f"Could not retrieve account details for {account_id}: {str(account_error)}"
-            )
+            logger.warning(f"Could not retrieve account details for {account_id}: {str(account_error)}")
 
         # Query for opportunities using both standard AccountId and custom Account__c lookup field
         query = f"""SELECT Id, Name, StageName, Amount, CloseDate, Type, Description,
@@ -4243,19 +4132,13 @@ def get_salesforce_opportunities_by_account(account_id: str) -> str:
         result = sf.query(query)
 
         opportunities = result["records"]
-        logger.info(
-            f"Retrieved {len(opportunities)} Salesforce opportunities for account: {account_id}"
-        )
+        logger.info(f"Retrieved {len(opportunities)} Salesforce opportunities for account: {account_id}")
 
         if not opportunities:
-            return (
-                f"No opportunities found for Account: {account_name} (ID: {account_id})"
-            )
+            return f"No opportunities found for Account: {account_name} (ID: {account_id})"
 
         # Format the results for display
-        response = (
-            f"✅ Found {len(opportunities)} Opportunities for Account: {account_name}\n"
-        )
+        response = f"✅ Found {len(opportunities)} Opportunities for Account: {account_name}\n"
         response += f"🏢 Account ID: {account_id}\n\n"
 
         total_amount = 0
@@ -4291,9 +4174,7 @@ def get_salesforce_opportunities_by_account(account_id: str) -> str:
         return response
 
     except Exception as e:
-        logger.error(
-            f"Error retrieving opportunities for account {account_id}: {str(e)}"
-        )
+        logger.error(f"Error retrieving opportunities for account {account_id}: {str(e)}")
         return f"❌ Error retrieving opportunities for account {account_id}: {str(e)}"
 
 
@@ -4394,9 +4275,7 @@ def create_salesforce_insertion_order(
         # Get configuration from environment variables or use provided values
         base_folder = base_folder_id or os.getenv("BASE_GOOGLE_DRIVE_FOLDER_ID")
         pdf_template = pdf_template_id or os.getenv("PDF_GENERATION_TEMPLATE_ID")
-        sf_base_url = salesforce_base_url or os.getenv(
-            "SALESFORCE_BASE_URL", "https://flow-business-5971.lightning.force.com"
-        )
+        sf_base_url = salesforce_base_url or os.getenv("SALESFORCE_BASE_URL", "https://flow-business-5971.lightning.force.com")
 
         if not base_folder:
             return "Error: BASE_GOOGLE_DRIVE_FOLDER_ID not configured. Please set environment variable or provide base_folder_id parameter."
@@ -4405,15 +4284,9 @@ def create_salesforce_insertion_order(
 
         # Parse placement data - FIX: Handle array of placements
         try:
-            placement_list = (
-                json.loads(placement_data)
-                if isinstance(placement_data, str)
-                else placement_data
-            )
+            placement_list = json.loads(placement_data) if isinstance(placement_data, str) else placement_data
             if not isinstance(placement_list, list):
-                return (
-                    "Error: placement_data must be a JSON array of placement objects."
-                )
+                return "Error: placement_data must be a JSON array of placement objects."
         except json.JSONDecodeError:
             return "Error: Invalid placement_data JSON format."
 
@@ -4422,14 +4295,10 @@ def create_salesforce_insertion_order(
 
         # Create campaign folder for Salesforce
         folder_name = f"{campaign_name}_{datetime.now().strftime('%Y%m%d')}_Salesforce"
-        campaign_folder = _create_google_drive_folder(
-            drive_service, folder_name, base_folder
-        )
+        campaign_folder = _create_google_drive_folder(drive_service, folder_name, base_folder)
 
         # Create PDF subfolder
-        pdf_folder = _create_google_drive_folder(
-            drive_service, "PDF Files", campaign_folder["id"]
-        )
+        pdf_folder = _create_google_drive_folder(drive_service, "PDF Files", campaign_folder["id"])
 
         # Share folders with stakeholders
         stakeholder_emails = [
@@ -4437,9 +4306,7 @@ def create_salesforce_insertion_order(
             sales_owner_email,
             fulfillment_owner_email,
         ]
-        _share_folder_with_users(
-            drive_service, campaign_folder["id"], stakeholder_emails
-        )
+        _share_folder_with_users(drive_service, campaign_folder["id"], stakeholder_emails)
 
         # NEW: Prepare Media Plan table data and PDF variables with proper targeting info
         media_plan_table_rows = []
@@ -4487,12 +4354,12 @@ Placement {i}: {name}
   CPC: ${cpc}
   Budget: ${amount:,.2f}
   Target Audience:
-    - Age Range: {targeting_info['age_range']}
-    - Gender: {targeting_info['gender']}
-    - Income Level: {targeting_info['income_level']}
-    - Interests: {targeting_info['interests']}
-    - Location: {targeting_info['location']}
-    - Behavioral Data: {targeting_info['behavioral_data']}
+    - Age Range: {targeting_info["age_range"]}
+    - Gender: {targeting_info["gender"]}
+    - Income Level: {targeting_info["income_level"]}
+    - Interests: {targeting_info["interests"]}
+    - Location: {targeting_info["location"]}
+    - Behavioral Data: {targeting_info["behavioral_data"]}
             """.strip()
             placement_details.append(placement_detail)
 
@@ -4515,9 +4382,7 @@ Placement {i}: {name}
             media_plan_table_rows.append(table_row)
 
         # Get overall date range
-        start_dates = [
-            p.get("start_date", "") for p in placement_list if p.get("start_date")
-        ]
+        start_dates = [p.get("start_date", "") for p in placement_list if p.get("start_date")]
         end_dates = [p.get("end_date", "") for p in placement_list if p.get("end_date")]
         earliest_start = min(start_dates) if start_dates else ""
         latest_end = max(end_dates) if end_dates else ""
@@ -4605,9 +4470,7 @@ Placement {i}: {name}
         logger.info("Connecting to Salesforce and creating insertion order record")
         try:
             sf = _connect_to_salesforce()
-            salesforce_response = _create_salesforce_insertion_order_direct(
-                sf, salesforce_data
-            )
+            salesforce_response = _create_salesforce_insertion_order_direct(sf, salesforce_data)
         except Exception as sf_error:
             logger.error(f"Salesforce integration error: {str(sf_error)}")
             return f"❌ Error creating Salesforce insertion order: {str(sf_error)}"
@@ -4616,9 +4479,7 @@ Placement {i}: {name}
 
         # Step 4: Generate Salesforce Lightning URL
         salesforce_record_id = salesforce_response.get("id", "")
-        salesforce_record_url = (
-            f"{sf_base_url}/lightning/r/Insertion_Order__c/{salesforce_record_id}/view"
-        )
+        salesforce_record_url = f"{sf_base_url}/lightning/r/Insertion_Order__c/{salesforce_record_id}/view"
 
         # Prepare success response
         return (
@@ -4741,9 +4602,7 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
             print("^" * 100)
             segments = response.json()["selected_segments"][:SEGMENT_NUM]
             for i, segment in enumerate(segments):
-                res += (
-                    "*" * 5 + f"\n\nSegment Begins: " + "\n"
-                )  # +"Contextual Header: "
+                res += "*" * 5 + f"\n\nSegment Begins: " + "\n"  # +"Contextual Header: "
                 references = ""
                 for j, chunk in enumerate(segment["chunks"]):
                     res += f"Chunk {j}: " + chunk["chunk_text"]
@@ -4753,19 +4612,11 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
                         print(chunk["filename"] + f" page {page}")
                         filename = chunk["filename"].strip(".pdf")
                         if "page" in filename:
-                            res += (
-                                f"{filename} page {page}" + f" [aws_id: {filename}]\n"
-                            )
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}]\n"
                         else:
-                            res += (
-                                f"{filename} page {page}"
-                                + f" [aws_id: {filename}_page_{page}]\n"
-                            )
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
                     if "page" in filename:
-                        sources.append(
-                            f"{filename}"
-                            + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]"
-                        )
+                        sources.append(f"{filename}" + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]")
                     else:
                         sources.append(
                             f"{filename} page {page}"
@@ -4868,9 +4719,7 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
             sources = []
             segments = response.json()["selected_segments"][:SEGMENT_NUM]
             for i, segment in enumerate(segments):
-                res += (
-                    "*" * 5 + f"\n\nSegment Begins: " + "\n"
-                )  # +"Contextual Header: "
+                res += "*" * 5 + f"\n\nSegment Begins: " + "\n"  # +"Contextual Header: "
                 references = ""
                 for j, chunk in enumerate(segment["chunks"]):
                     res += f"Chunk {j}: " + chunk["chunk_text"]
@@ -4882,15 +4731,9 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
                         if "page" in filename:
                             res += f"{filename}" + f" [aws_id: {filename}]\n"
                         else:
-                            res += (
-                                f"{filename} page {page}"
-                                + f" [aws_id: {filename}_page_{page}]\n"
-                            )
+                            res += f"{filename} page {page}" + f" [aws_id: {filename}_page_{page}]\n"
                     if "page" in filename:
-                        sources.append(
-                            f"{filename}"
-                            + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]"
-                        )
+                        sources.append(f"{filename}" + f" [aws_id: {filename}] score: [{round(segment['score'], 2)}]")
                     else:
                         sources.append(
                             f"{filename} page {page}"
@@ -4985,9 +4828,7 @@ def vectorizer_conversative_search(
     try:
         # Locate repo root relative to this file and load config.json
         current_dir = Path(__file__).resolve().parent
-        repo_root = current_dir.parents[
-            3
-        ]  # up from python_apps/agent_studio/agent-studio/agents
+        repo_root = current_dir.parents[3]  # up from python_apps/agent_studio/agent-studio/agents
         cfg_path = repo_root / "python_packages" / "elevaite_ingestion" / "config.json"
         with open(cfg_path, "r") as f:
             cfg = json.load(f)
@@ -5006,14 +4847,10 @@ def vectorizer_conversative_search(
         qdrant_client = QdrantClient(url=qdrant_url)
 
         # Explicit debug printout for verification
-        print(
-            f"[VectorizerConversative] Using Qdrant URL: {qdrant_url} | Collection: {collection_name}"
-        )
+        print(f"[VectorizerConversative] Using Qdrant URL: {qdrant_url} | Collection: {collection_name}")
 
         # Choose embedding model from config to match indexed vectors
-        embedding_default = (
-            cfg.get("embedding", {}).get("default_model") or "text-embedding-ada-002"
-        )
+        embedding_default = cfg.get("embedding", {}).get("default_model") or "text-embedding-ada-002"
 
         # Generate embedding
         embedding_response = client.embeddings.create(
@@ -5036,25 +4873,14 @@ def vectorizer_conversative_search(
 
         # Format response conservatively with citations
         out = []
-        out.append(
-            f"QDRANT SEARCH RESULTS (Collection: {collection_name}, TopK: {top_k}, Threshold: {score_threshold})\n"
-        )
+        out.append(f"QDRANT SEARCH RESULTS (Collection: {collection_name}, TopK: {top_k}, Threshold: {score_threshold})\n")
         for i, r in enumerate(results, 1):
             payload = r.payload or {}
             text = (
-                payload.get("chunk_text")
-                or payload.get("text")
-                or payload.get("content")
-                or payload.get("page_content")
-                or ""
+                payload.get("chunk_text") or payload.get("text") or payload.get("content") or payload.get("page_content") or ""
             )
             filename = payload.get("filename") or payload.get("source") or "Unknown"
-            page = (
-                payload.get("page")
-                or payload.get("page_number")
-                or payload.get("page_info")
-                or "-"
-            )
+            page = payload.get("page") or payload.get("page_number") or payload.get("page_info") or "-"
             out.append(f"Result {i} (score={getattr(r, 'score', 0):.3f})\n")
             out.append(f"Source: {filename} | Page: {page}\n")
             out.append(f"Content:\n{text}\n")
@@ -5108,7 +4934,8 @@ def document_search(
 
         # Generate embedding for the query
         embedding_response = client.embeddings.create(
-            model="text-embedding-3-small", input=query  # Using newer, better model
+            model="text-embedding-3-small",
+            input=query,  # Using newer, better model
         )
         query_vector = embedding_response.data[0].embedding
 
@@ -5127,9 +4954,7 @@ def document_search(
 
         # Format results for RAG usage
         result_text = f"DOCUMENT SEARCH RESULTS for '{query}':\n"
-        result_text += (
-            f"Collection: {collection_name} | Found: {len(search_results)} chunks\n"
-        )
+        result_text += f"Collection: {collection_name} | Found: {len(search_results)} chunks\n"
         result_text += "=" * 80 + "\n\n"
 
         for i, result in enumerate(search_results, 1):
@@ -5140,14 +4965,10 @@ def document_search(
             result_text += "-" * 40 + "\n"
 
             # Extract common document metadata
-            filename = payload.get(
-                "filename", payload.get("source", "Unknown Document")
-            )
+            filename = payload.get("filename", payload.get("source", "Unknown Document"))
             chunk_text = payload.get(
                 "text",
-                payload.get(
-                    "content", payload.get("page_content", "No content available")
-                ),
+                payload.get("content", payload.get("page_content", "No content available")),
             )
             page_number = payload.get("page", payload.get("page_number", "Unknown"))
             chunk_id = payload.get("chunk_id", payload.get("id", f"chunk_{i}"))
@@ -5211,11 +5032,7 @@ def document_metadata_search(
 
         if filename:
             # Use partial match for filename
-            filters.append(
-                models.FieldCondition(
-                    key="filename", match=models.MatchText(text=filename)
-                )
-            )
+            filters.append(models.FieldCondition(key="filename", match=models.MatchText(text=filename)))
 
         # Note: Date filtering would require proper date field setup in Qdrant
         # This is a placeholder for future implementation
@@ -5243,9 +5060,7 @@ def document_metadata_search(
 
         # Format results
         result_text = f"DOCUMENT METADATA SEARCH RESULTS:\n"
-        result_text += (
-            f"Collection: {collection_name} | Found: {len(points)} documents\n"
-        )
+        result_text += f"Collection: {collection_name} | Found: {len(points)} documents\n"
         result_text += "=" * 80 + "\n\n"
 
         for i, point in enumerate(points, 1):
@@ -5254,12 +5069,8 @@ def document_metadata_search(
             result_text += f"📄 DOCUMENT {i}\n"
             result_text += "-" * 40 + "\n"
 
-            filename = payload.get(
-                "filename", payload.get("source", "Unknown Document")
-            )
-            upload_date = payload.get(
-                "upload_date", payload.get("created_at", "Unknown Date")
-            )
+            filename = payload.get("filename", payload.get("source", "Unknown Document"))
+            upload_date = payload.get("upload_date", payload.get("created_at", "Unknown Date"))
             file_size = payload.get("file_size", "Unknown Size")
             chunk_count = payload.get("chunk_count", "Unknown")
 
@@ -5303,6 +5114,7 @@ def arlo_api(query: str) -> str:
 
 # ==================== SERVICENOW ITSM TOOL ====================
 
+
 @function_schema
 def ServiceNow_ITSM(
     operation: str,
@@ -5325,7 +5137,7 @@ def ServiceNow_ITSM(
     identifier_type: Optional[str] = "sys_id",
     state: Optional[str] = None,
     work_notes: Optional[str] = None,
-    close_notes: Optional[str] = None
+    close_notes: Optional[str] = None,
 ) -> str:
     """
     SERVICENOW ITSM (IT SERVICE MANAGEMENT) TOOL
@@ -5440,20 +5252,26 @@ def ServiceNow_ITSM(
 
     # Validate operation parameter
     if operation.lower() not in ["create", "read", "get", "update"]:
-        return json.dumps({
-            "success": False,
-            "message": f"Invalid operation: {operation}. Must be 'create', 'read', 'get', or 'update'",
-            "error": "Invalid operation parameter"
-        }, indent=2)
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Invalid operation: {operation}. Must be 'create', 'read', 'get', or 'update'",
+                "error": "Invalid operation parameter",
+            },
+            indent=2,
+        )
 
     # Handle CREATE operation
     if operation.lower() == "create":
         if not short_description:
-            return json.dumps({
-                "success": False,
-                "message": "short_description is required for create operation",
-                "error": "Missing required parameter"
-            }, indent=2)
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "short_description is required for create operation",
+                    "error": "Missing required parameter",
+                },
+                indent=2,
+            )
 
         result = servicenow_itsm_create_incident(
             short_description=short_description,
@@ -5469,33 +5287,32 @@ def ServiceNow_ITSM(
             location=location,
             business_service=business_service,
             cmdb_ci=cmdb_ci,
-            contact_type=contact_type
+            contact_type=contact_type,
         )
         return json.dumps(result, indent=2)
 
     # Handle READ/GET operation
     elif operation.lower() in ["read", "get"]:
         if not identifier:
-            return json.dumps({
-                "success": False,
-                "message": "identifier is required for read/get operation",
-                "error": "Missing required parameter"
-            }, indent=2)
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "identifier is required for read/get operation",
+                    "error": "Missing required parameter",
+                },
+                indent=2,
+            )
 
-        result = servicenow_itsm_get_incident(
-            identifier=identifier,
-            identifier_type=identifier_type or "sys_id"
-        )
+        result = servicenow_itsm_get_incident(identifier=identifier, identifier_type=identifier_type or "sys_id")
         return json.dumps(result, indent=2)
 
     # Handle UPDATE operation
     elif operation.lower() == "update":
         if not sys_id:
-            return json.dumps({
-                "success": False,
-                "message": "sys_id is required for update operation",
-                "error": "Missing required parameter"
-            }, indent=2)
+            return json.dumps(
+                {"success": False, "message": "sys_id is required for update operation", "error": "Missing required parameter"},
+                indent=2,
+            )
 
         result = servicenow_itsm_update_incident(
             sys_id=sys_id,
@@ -5506,12 +5323,13 @@ def ServiceNow_ITSM(
             urgency=urgency,
             state=state,
             work_notes=work_notes,
-            close_notes=close_notes
+            close_notes=close_notes,
         )
         return json.dumps(result, indent=2)
 
 
 # ==================== SERVICENOW CSM TOOL ====================
+
 
 @function_schema
 def ServiceNow_CSM(
@@ -5536,7 +5354,7 @@ def ServiceNow_CSM(
     identifier_type: Optional[str] = "sys_id",
     state: Optional[str] = None,
     work_notes: Optional[str] = None,
-    close_notes: Optional[str] = None
+    close_notes: Optional[str] = None,
 ) -> str:
     """
     SERVICENOW CSM (CUSTOMER SERVICE MANAGEMENT) TOOL
@@ -5636,20 +5454,26 @@ def ServiceNow_CSM(
 
     # Validate operation parameter
     if operation.lower() not in ["create", "read", "get", "update"]:
-        return json.dumps({
-            "success": False,
-            "message": f"Invalid operation: {operation}. Must be 'create', 'read', 'get', or 'update'",
-            "error": "Invalid operation parameter"
-        }, indent=2)
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Invalid operation: {operation}. Must be 'create', 'read', 'get', or 'update'",
+                "error": "Invalid operation parameter",
+            },
+            indent=2,
+        )
 
     # Handle CREATE operation
     if operation.lower() == "create":
         if not short_description:
-            return json.dumps({
-                "success": False,
-                "message": "short_description is required for create operation",
-                "error": "Missing required parameter"
-            }, indent=2)
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "short_description is required for create operation",
+                    "error": "Missing required parameter",
+                },
+                indent=2,
+            )
 
         result = servicenow_csm_create_case(
             short_description=short_description,
@@ -5666,33 +5490,32 @@ def ServiceNow_CSM(
             account=account,
             contact_type=contact_type,
             origin=origin,
-            escalation=escalation
+            escalation=escalation,
         )
         return json.dumps(result, indent=2)
 
     # Handle READ/GET operation
     elif operation.lower() in ["read", "get"]:
         if not identifier:
-            return json.dumps({
-                "success": False,
-                "message": "identifier is required for read/get operation",
-                "error": "Missing required parameter"
-            }, indent=2)
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "identifier is required for read/get operation",
+                    "error": "Missing required parameter",
+                },
+                indent=2,
+            )
 
-        result = servicenow_csm_get_case(
-            identifier=identifier,
-            identifier_type=identifier_type or "sys_id"
-        )
+        result = servicenow_csm_get_case(identifier=identifier, identifier_type=identifier_type or "sys_id")
         return json.dumps(result, indent=2)
 
     # Handle UPDATE operation
     elif operation.lower() == "update":
         if not sys_id:
-            return json.dumps({
-                "success": False,
-                "message": "sys_id is required for update operation",
-                "error": "Missing required parameter"
-            }, indent=2)
+            return json.dumps(
+                {"success": False, "message": "sys_id is required for update operation", "error": "Missing required parameter"},
+                indent=2,
+            )
 
         result = servicenow_csm_update_case(
             sys_id=sys_id,
@@ -5704,12 +5527,13 @@ def ServiceNow_CSM(
             state=state,
             work_notes=work_notes,
             close_notes=close_notes,
-            escalation=escalation
+            escalation=escalation,
         )
         return json.dumps(result, indent=2)
 
 
 # ==================== SALESFORCE CSM TOOL ====================
+
 
 @function_schema
 def Salesforce_CSM(
@@ -5740,7 +5564,7 @@ def Salesforce_CSM(
     web_phone: Optional[str] = None,
     case_id: Optional[str] = None,
     identifier: Optional[str] = None,
-    identifier_type: Optional[str] = "case_id"
+    identifier_type: Optional[str] = "case_id",
 ) -> str:
     """
     SALESFORCE CSM (CUSTOMER SERVICE MANAGEMENT) TOOL
@@ -5841,20 +5665,26 @@ def Salesforce_CSM(
 
     # Validate operation parameter
     if operation.lower() not in ["create", "read", "get", "update"]:
-        return json.dumps({
-            "success": False,
-            "message": f"Invalid operation: {operation}. Must be 'create', 'read', 'get', or 'update'",
-            "error": "Invalid operation parameter"
-        }, indent=2)
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Invalid operation: {operation}. Must be 'create', 'read', 'get', or 'update'",
+                "error": "Invalid operation parameter",
+            },
+            indent=2,
+        )
 
     # Handle CREATE operation
     if operation.lower() == "create":
         if not first_name or not last_name:
-            return json.dumps({
-                "success": False,
-                "message": "first_name and last_name are required for create operation",
-                "error": "Missing required parameters"
-            }, indent=2)
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "first_name and last_name are required for create operation",
+                    "error": "Missing required parameters",
+                },
+                indent=2,
+            )
 
         result = salesforce_csm_create_case(
             status=status,
@@ -5880,33 +5710,36 @@ def Salesforce_CSM(
             web_email=web_email,
             web_company=web_company,
             web_name=web_name,
-            web_phone=web_phone
+            web_phone=web_phone,
         )
         return json.dumps(result, indent=2)
 
     # Handle READ/GET operation
     elif operation.lower() in ["read", "get"]:
         if not identifier:
-            return json.dumps({
-                "success": False,
-                "message": "identifier is required for read/get operation",
-                "error": "Missing required parameter"
-            }, indent=2)
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "identifier is required for read/get operation",
+                    "error": "Missing required parameter",
+                },
+                indent=2,
+            )
 
-        result = salesforce_csm_get_case(
-            identifier=identifier,
-            identifier_type=identifier_type or "case_id"
-        )
+        result = salesforce_csm_get_case(identifier=identifier, identifier_type=identifier_type or "case_id")
         return json.dumps(result, indent=2)
 
     # Handle UPDATE operation
     elif operation.lower() == "update":
         if not case_id:
-            return json.dumps({
-                "success": False,
-                "message": "case_id is required for update operation",
-                "error": "Missing required parameter"
-            }, indent=2)
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "case_id is required for update operation",
+                    "error": "Missing required parameter",
+                },
+                indent=2,
+            )
 
         result = salesforce_csm_update_case(
             case_id=case_id,
@@ -5922,13 +5755,14 @@ def Salesforce_CSM(
             case_sub_type=case_sub_type,
             case_type=case_type,
             type=type,
-            ux_version=ux_version
+            ux_version=ux_version,
         )
         return json.dumps(result, indent=2)
 
 
 tool_store = {
     "add_numbers": add_numbers,
+    "get_file_info": get_file_info,
     "weather_forecast": weather_forecast,
     "url_to_markdown": url_to_markdown,
     "web_search": web_search,
@@ -5971,7 +5805,6 @@ tool_store = {
 }
 
 
-
 # Kevel Tools
 @function_schema
 def kevel_get_sites() -> str:
@@ -5995,35 +5828,32 @@ def kevel_get_sites() -> str:
     """
     try:
         if not KEVEL_API_KEY:
-            return json.dumps({
-                "success": False,
-                "message": "Kevel API key not configured",
-                "error": "Missing KEVEL_API_KEY in environment variables"
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "Kevel API key not configured",
+                    "error": "Missing KEVEL_API_KEY in environment variables",
+                }
+            )
 
-        headers = {
-            "X-Adzerk-ApiKey": KEVEL_API_KEY,
-            "Content-Type": "application/json"
-        }
+        headers = {"X-Adzerk-ApiKey": KEVEL_API_KEY, "Content-Type": "application/json"}
 
         # Try different possible endpoints for sites
         endpoints_to_try = [
             f"{KEVEL_API_BASE}/site",
             f"{KEVEL_API_BASE}/network/{KEVEL_NETWORK_ID}/site",
-            f"{KEVEL_API_BASE}/advertiser/site"
+            f"{KEVEL_API_BASE}/advertiser/site",
         ]
 
         last_error = None
         for endpoint in endpoints_to_try:
             try:
-                response = requests.get(
-                    endpoint,
-                    headers=headers,
-                    timeout=10
-                )
+                response = requests.get(endpoint, headers=headers, timeout=10)
 
                 # Log the response for debugging
-                print(f"🔍 KEVEL SITES API Response: Endpoint={endpoint}, Status={response.status_code}, Content={response.text[:500]}...")
+                print(
+                    f"🔍 KEVEL SITES API Response: Endpoint={endpoint}, Status={response.status_code}, Content={response.text[:500]}..."
+                )
 
                 if response.status_code == 200:
                     break
@@ -6034,33 +5864,27 @@ def kevel_get_sites() -> str:
                 continue
         else:
             # If we get here, all endpoints failed
-            return json.dumps({
-                "success": False,
-                "message": "Failed to retrieve sites from all attempted endpoints",
-                "error": f"Last error: {last_error}",
-                "attempted_endpoints": endpoints_to_try
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "Failed to retrieve sites from all attempted endpoints",
+                    "error": f"Last error: {last_error}",
+                    "attempted_endpoints": endpoints_to_try,
+                }
+            )
 
         if response.status_code == 200:
             sites = response.json()
-            return json.dumps({
-                "success": True,
-                "message": f"Retrieved {len(sites)} sites from network {KEVEL_NETWORK_ID}",
-                "sites": sites
-            })
+            return json.dumps(
+                {"success": True, "message": f"Retrieved {len(sites)} sites from network {KEVEL_NETWORK_ID}", "sites": sites}
+            )
         else:
-            return json.dumps({
-                "success": False,
-                "message": f"Failed to retrieve sites: HTTP {response.status_code}",
-                "error": response.text
-            })
+            return json.dumps(
+                {"success": False, "message": f"Failed to retrieve sites: HTTP {response.status_code}", "error": response.text}
+            )
 
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "message": "Error connecting to Kevel API",
-            "error": str(e)
-        })
+        return json.dumps({"success": False, "message": "Error connecting to Kevel API", "error": str(e)})
 
 
 @function_schema
@@ -6101,22 +5925,17 @@ def kevel_get_ad_types() -> str:
         import uuid
 
         if not KEVEL_API_KEY:
-            return json.dumps({
-                "success": False,
-                "message": "Kevel API key not configured",
-                "error": "Missing KEVEL_API_KEY in environment variables"
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "Kevel API key not configured",
+                    "error": "Missing KEVEL_API_KEY in environment variables",
+                }
+            )
 
-        headers = {
-            "X-Adzerk-ApiKey": KEVEL_API_KEY,
-            "Content-Type": "application/json"
-        }
+        headers = {"X-Adzerk-ApiKey": KEVEL_API_KEY, "Content-Type": "application/json"}
 
-        response = requests.get(
-            f"{KEVEL_API_BASE}/adtypes",
-            headers=headers,
-            timeout=10
-        )
+        response = requests.get(f"{KEVEL_API_BASE}/adtypes", headers=headers, timeout=10)
 
         if response.status_code == 200:
             response_data = response.json()
@@ -6133,24 +5952,24 @@ def kevel_get_ad_types() -> str:
                 unique_id = str(uuid.uuid4())[:8]
                 ad_type["element_id"] = f"azk{unique_id}"
 
-            return json.dumps({
-                "success": True,
-                "message": f"Retrieved {len(ad_types)} ad types from network {KEVEL_NETWORK_ID} with unique element IDs",
-                "ad_types": ad_types
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": f"Retrieved {len(ad_types)} ad types from network {KEVEL_NETWORK_ID} with unique element IDs",
+                    "ad_types": ad_types,
+                }
+            )
         else:
-            return json.dumps({
-                "success": False,
-                "message": f"Failed to retrieve ad types: HTTP {response.status_code}",
-                "error": response.text
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Failed to retrieve ad types: HTTP {response.status_code}",
+                    "error": response.text,
+                }
+            )
 
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "message": "Error connecting to Kevel API",
-            "error": str(e)
-        })
+        return json.dumps({"success": False, "message": "Error connecting to Kevel API", "error": str(e)})
 
 
 @function_schema
@@ -6166,16 +5985,15 @@ def kevel_debug_api() -> str:
     """
     try:
         if not KEVEL_API_KEY:
-            return json.dumps({
-                "success": False,
-                "message": "Kevel API key not configured",
-                "error": "Missing KEVEL_API_KEY in environment variables"
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "Kevel API key not configured",
+                    "error": "Missing KEVEL_API_KEY in environment variables",
+                }
+            )
 
-        headers = {
-            "X-Adzerk-ApiKey": KEVEL_API_KEY,
-            "Content-Type": "application/json"
-        }
+        headers = {"X-Adzerk-ApiKey": KEVEL_API_KEY, "Content-Type": "application/json"}
 
         # Test various endpoints
         endpoints_to_test = [
@@ -6187,7 +6005,7 @@ def kevel_debug_api() -> str:
             "/adtype",
             f"/network/{KEVEL_NETWORK_ID}/adtype",
             "/advertiser",
-            "/channel"
+            "/channel",
         ]
 
         results = []
@@ -6195,52 +6013,55 @@ def kevel_debug_api() -> str:
             try:
                 url = f"{KEVEL_API_BASE}{endpoint}"
                 response = requests.get(url, headers=headers, timeout=5)
-                results.append({
-                    "endpoint": endpoint,
-                    "url": url,
-                    "status_code": response.status_code,
-                    "success": response.status_code == 200,
-                    "response_size": len(response.text),
-                    "error": None if response.status_code == 200 else response.text[:200]
-                })
+                results.append(
+                    {
+                        "endpoint": endpoint,
+                        "url": url,
+                        "status_code": response.status_code,
+                        "success": response.status_code == 200,
+                        "response_size": len(response.text),
+                        "error": None if response.status_code == 200 else response.text[:200],
+                    }
+                )
             except Exception as e:
-                results.append({
-                    "endpoint": endpoint,
-                    "url": f"{KEVEL_API_BASE}{endpoint}",
-                    "status_code": None,
-                    "success": False,
-                    "response_size": 0,
-                    "error": str(e)
-                })
+                results.append(
+                    {
+                        "endpoint": endpoint,
+                        "url": f"{KEVEL_API_BASE}{endpoint}",
+                        "status_code": None,
+                        "success": False,
+                        "response_size": 0,
+                        "error": str(e),
+                    }
+                )
 
-        return json.dumps({
-            "success": True,
-            "message": f"Tested {len(endpoints_to_test)} endpoints",
-            "api_base": KEVEL_API_BASE,
-            "network_id": KEVEL_NETWORK_ID,
-            "results": results
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "message": f"Tested {len(endpoints_to_test)} endpoints",
+                "api_base": KEVEL_API_BASE,
+                "network_id": KEVEL_NETWORK_ID,
+                "results": results,
+            }
+        )
 
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "message": "Error during API debug",
-            "error": str(e)
-        })
+        return json.dumps({"success": False, "message": "Error during API debug", "error": str(e)})
 
 
 # Add Kevel tools to the tool_store dictionary
-tool_store.update({
-    "kevel_get_sites": kevel_get_sites,
-    "kevel_get_ad_types": kevel_get_ad_types,
-    "kevel_debug_api": kevel_debug_api,
-})
-
-
+tool_store.update(
+    {
+        "kevel_get_sites": kevel_get_sites,
+        "kevel_get_ad_types": kevel_get_ad_types,
+        "kevel_debug_api": kevel_debug_api,
+    }
+)
 
 
 tool_schemas = {
     "add_numbers": add_numbers.openai_schema,
+    "get_file_info": get_file_info.openai_schema,
     "weather_forecast": weather_forecast.openai_schema,
     "url_to_markdown": url_to_markdown.openai_schema,
     "web_search": web_search.openai_schema,

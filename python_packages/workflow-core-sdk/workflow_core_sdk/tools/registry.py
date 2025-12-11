@@ -13,7 +13,6 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Any, Literal
 from dataclasses import dataclass
-from datetime import datetime, timezone
 import uuid
 
 from sqlmodel import Session, select
@@ -30,7 +29,7 @@ class UnifiedTool:
     description: str
     parameters_schema: Dict[str, Any]
     return_schema: Optional[Dict[str, Any]]
-    execution_type: str
+    execution_type: Literal["function", "api", "command"]
     version: str
     source: ToolSource
     uri: str

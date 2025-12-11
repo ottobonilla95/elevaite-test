@@ -36,11 +36,17 @@ export interface AgentTypeDefinition {
   description?: string;
 }
 
+export interface ChatMessageAttachment {
+  name: string;
+  size: number;
+}
+
 export interface ChatMessage {
   id: number;
   text: string;
   sender: "user" | "bot";
   error?: boolean;
+  attachment?: ChatMessageAttachment;
 }
 
 export interface WorkflowConfig {

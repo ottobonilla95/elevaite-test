@@ -1,6 +1,6 @@
 import { ChatbotIcons, CommonButton } from "@repo/ui/components";
 import { useAutoSizeTextArea } from "@repo/ui/hooks";
-import { AlertCircle, Bot, FileText, Maximize2, Minimize2, Upload, User, X } from "lucide-react";
+import { AlertCircle, Bot, FileText, Maximize2, Minimize2, Paperclip, Upload, User, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { BACKEND_URL } from "../lib/constants";
 import { useWorkflows } from "../ui/contexts/WorkflowsContext";
@@ -33,10 +33,13 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
   const runIdRef = useRef(0);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const inFlightRef = useRef(false);
+  const pendingFileRef = useRef<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { expandChat, setExpandChat } = useWorkflows();
   const [showAgentWorkflowModal, setShowAgentWorkflowModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [chatInput, setChatInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [agentStatus, setAgentStatus] = useState("Ready");
@@ -49,7 +52,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
       id: Date.now(),
       text: workflowId
         ? // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- No! Not the same! description can be an empty string.
-          description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`
+        description || `Workflow ready with ID: ${workflowId.substring(0, 8)}. You can now upload documents and ask questions!`
         : "No workflow detected. Please select a workflow from the left panel or save a new one.",
       sender: "bot",
     },
@@ -135,6 +138,21 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
     }
   }
 
+  function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>): void {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      pendingFileRef.current = file;
+    }
+    // Reset the input so the same file can be selected again
+    event.target.value = "";
+  }
+
+  function handleRemoveFile(): void {
+    setSelectedFile(null);
+    pendingFileRef.current = null;
+  }
+
   async function handleSendMessage(): Promise<void> {
     if (!chatInput.trim() || !workflowId) return;
 
@@ -142,10 +160,17 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
     streamAbortRef.current = controller;
     const myRunId = ++runIdRef.current;
 
+    // Capture attachment info before clearing
+    const pendingFile = pendingFileRef.current;
+    const attachmentInfo = pendingFile
+      ? { name: pendingFile.name, size: pendingFile.size }
+      : undefined;
+
     const userMessage: ChatMessage = {
       id: Date.now(),
       text: chatInput,
       sender: "user",
+      attachment: attachmentInfo,
     };
 
     setChatMessages((prevMessages) => [...prevMessages, userMessage]);
@@ -176,14 +201,37 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
         runtime_overrides: {},
       };
 
-      const response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}/stream`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(executionRequest),
-          signal: controller.signal,
-        }
-      );
+      let response: Response;
+
+      if (pendingFile) {
+        // Use FormData for multipart/form-data request with file
+        const formData = new FormData();
+        formData.append("payload", JSON.stringify(executionRequest));
+        formData.append("file", pendingFile);
+
+        response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}/stream`,
+          {
+            method: "POST",
+            // Don't set Content-Type header - browser will set it with boundary
+            body: formData,
+            signal: controller.signal,
+          }
+        );
+
+        // Clear the pending file after sending
+        pendingFileRef.current = null;
+        setSelectedFile(null);
+      } else {
+        // Use JSON for regular request without file
+        response = await fetch(`${BACKEND_URL ?? ""}api/workflows/${workflowId}/stream`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(executionRequest),
+            signal: controller.signal,
+          }
+        );
+      }
       // console.log("📥 Raw response:", response);
       if (!response.ok) throw new Error(`HTTP ${response.status.toString()}`);
       if (!response.body) throw new Error("No stream body returned");
@@ -266,7 +314,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
               if (evt.type === "content") {
                 // console.log("[stream:content-payload]", { keys: Object.keys(parsed as Record<string, unknown>), dataType: typeof evt.data });
                 const data = typeof evt.data === "string" ? evt.data :
-                            typeof evt.message === "string" ? evt.message : "";
+                  typeof evt.message === "string" ? evt.message : "";
                 const nextText = accumulatedText + data;
                 accumulatedText = nextText;
                 // Live update the placeholder message
@@ -279,7 +327,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
                 );
               } else if (evt.type === "info") {
                 const raw = typeof evt.data === "string" ? evt.data :
-                            typeof evt.message === "string" ? evt.message : "";
+                  typeof evt.message === "string" ? evt.message : "";
                 const statusMessage = raw.trim();
                 if (statusMessage) setAgentStatus(statusMessage);
               } else if (evt.type === "tool_response") {
@@ -287,7 +335,7 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
                 // console.log("🔧 Tool Response:", evt.data);
               } else if (evt.type === "error") {
                 const raw = typeof evt.data === "string" ? evt.data :
-                            typeof evt.message === "string" ? evt.message : "";
+                  typeof evt.message === "string" ? evt.message : "";
                 setAgentStatus("Error");
                 setChatMessages((prev) => [
                   ...prev,
@@ -511,6 +559,18 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
                       >
                         {formatTime(message.id)}
                       </div>
+                      {/* Show attachment indicator for user messages with attachments */}
+                      {message.attachment ? (
+                        <div className="attachment-indicator flex items-center gap-1.5 mb-2 px-2.5 py-1 bg-blue-50 rounded-md w-fit">
+                          <Paperclip size={12} className="text-blue-600" />
+                          <span className="text-xs text-blue-700 truncate max-w-[200px]">
+                            {message.attachment.name}
+                          </span>
+                          <span className="text-xs text-blue-500">
+                            ({(message.attachment.size / 1024).toFixed(1)} KB)
+                          </span>
+                        </div>
+                      ) : null}
                       <div className="text-sm text-[#212124] opacity-75">
                         <AgentTestingParser
                           message={message.text}
@@ -568,6 +628,36 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
               .filter(Boolean)
               .join(" ")}
           >
+            {/* Hidden file input for direct file selection */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileSelect}
+              style={{ display: "none" }}
+              accept="*/*"
+            />
+
+            {/* Show selected file if any */}
+            {selectedFile ? (
+              <div className="selected-file-indicator px-4 py-2 bg-blue-50 border-b border-blue-100">
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <FileText size={14} />
+                  <span className="truncate flex-1">{selectedFile.name}</span>
+                  <span className="text-xs text-blue-500">
+                    ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                  <button
+                    onClick={handleRemoveFile}
+                    className="text-blue-500 hover:text-blue-700 p-1"
+                    type="button"
+                    title="Remove file"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div className="chatbot-input-contents">
               <textarea
                 ref={textAreaRef}
@@ -586,10 +676,10 @@ function AgentTestingPanel({ workflowId, sessionId, description }: AgentTestingP
                 <CommonButton
                   className="chatbot-input-upload-button"
                   onClick={() => {
-                    setShowUploadModal(true);
+                    fileInputRef.current?.click();
                   }}
-                  title="Upload files"
-                  disabled={!workflowId}
+                  title="Attach file"
+                  disabled={!workflowId || isLoading}
                   noBackground
                 >
                   <Upload size={16} />

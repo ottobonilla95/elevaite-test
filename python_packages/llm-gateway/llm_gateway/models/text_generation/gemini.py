@@ -26,7 +26,11 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         tools: Optional[List[Dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
         messages: Optional[List[Dict[str, Any]]] = None,
+        response_format: Optional[Dict[str, Any]] = None,
+        files: Optional[List[str]] = None,
     ) -> TextGenerationResponse:
+        if files:
+            raise NotImplementedError("File search is only supported by the OpenAI provider")
         model_name = model_name or "gemini-1.5-flash"
         temperature = temperature or 0.5
         max_tokens = max_tokens or 100
