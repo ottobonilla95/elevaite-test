@@ -325,6 +325,125 @@ async def execute_workflow(
     workflow_config_for_execution = RequestAdapter.migrate_legacy_workflow_config(workflow_config_for_execution, db)
     logger.info(f"After migration: {len(workflow_config_for_execution.get('steps', []))} steps")
 
+    # Configure agent steps: fetch agent configuration from database and disable interactive mode
+    # This ensures agents execute immediately with proper configuration (same as /stream endpoint)
+    if "steps" in workflow_config_for_execution:
+        for step in workflow_config_for_execution["steps"]:
+            if step.get("step_type") == "agent_execution":
+                if "config" not in step:
+                    step["config"] = {}
+
+                step_config = step["config"]
+                agent_id = step_config.get("agent_id") or step.get("agent_id") or step.get("step_id")
+
+                # Ensure step_id is available inside config
+                try:
+                    step_config["step_id"] = step.get("step_id")
+                except Exception:
+                    pass
+
+                # If config is missing critical fields, fetch from database
+                if not step_config.get("system_prompt") or not step_config.get("model"):
+                    logger.info(f"[/execute] Fetching agent configuration from database for agent: {agent_id}")
+
+                    try:
+                        from workflow_core_sdk import AgentsService, PromptsService
+
+                        sdk_agent = AgentsService.get_agent(db, agent_id)
+                        if sdk_agent:
+                            logger.info(f"[/execute] Found agent in database: {sdk_agent.name}")
+                            step_config["agent_name"] = sdk_agent.name
+
+                            # Fetch system prompt
+                            system_prompt = PromptsService.get_prompt(db, str(sdk_agent.system_prompt_id))
+                            if system_prompt:
+                                logger.info(f"[/execute] Found system prompt: {system_prompt.prompt_label}")
+                                step_config["system_prompt"] = system_prompt.prompt
+
+                                # Model precedence: agent's provider_config.model_name > prompt's ai_model_name > default
+                                agent_provider_config = sdk_agent.provider_config or {}
+                                step_config["model"] = (
+                                    agent_provider_config.get("model_name") or system_prompt.ai_model_name or "gpt-4o-mini"
+                                )
+
+                                # Extract temperature from hyper_parameters
+                                if system_prompt.hyper_parameters and "temperature" in system_prompt.hyper_parameters:
+                                    try:
+                                        temp_value = system_prompt.hyper_parameters["temperature"]
+                                        step_config["temperature"] = (
+                                            float(temp_value) if isinstance(temp_value, (str, int, float)) else 0.7
+                                        )
+                                    except (ValueError, TypeError):
+                                        step_config["temperature"] = 0.7
+                                else:
+                                    step_config["temperature"] = 0.7
+
+                                # Extract AS-specific fields from provider_config
+                                provider_config = sdk_agent.provider_config or {}
+                                step_config["response_type"] = provider_config.get("response_type", "json")
+                                step_config["routing_options"] = provider_config.get("routing_options", {})
+                                step_config["max_retries"] = provider_config.get("max_retries", 3)
+
+                                # Fetch agent's tool bindings and convert to functions format
+                                tool_bindings = AgentsService.list_agent_tools(db, agent_id)
+                                functions = []
+
+                                for binding in tool_bindings:
+                                    if binding.is_active:
+                                        from workflow_core_sdk.services.tools_service import ToolsService
+                                        from workflow_core_sdk.tools.registry import tool_registry
+
+                                        tool_name = None
+                                        tool_description = ""
+                                        tool_parameters = {}
+
+                                        try:
+                                            db_tool = ToolsService.get_tool(db, str(binding.tool_id))
+                                            if db_tool:
+                                                tool_name = db_tool.name
+                                                tool_description = db_tool.description or ""
+                                                tool_parameters = db_tool.parameters or {}
+                                        except Exception:
+                                            pass
+
+                                        if not tool_name:
+                                            tool_schema = tool_registry.get_tool_schema(str(binding.tool_id))
+                                            if tool_schema:
+                                                tool_name = tool_schema.get("name")
+                                                tool_description = tool_schema.get("description", "")
+                                                tool_parameters = tool_schema.get("parameters", {})
+
+                                        if tool_name:
+                                            functions.append(
+                                                {
+                                                    "tool_id": str(binding.tool_id),
+                                                    "name": tool_name,
+                                                    "description": tool_description,
+                                                    "parameters": tool_parameters,
+                                                }
+                                            )
+
+                                if functions:
+                                    existing_functions = step_config.get("functions", [])
+                                    if existing_functions:
+                                        step_config["functions"] = existing_functions + functions
+                                    else:
+                                        step_config["functions"] = functions
+                                    logger.info(
+                                        f"[/execute] Merged agent config: model={step_config['model']}, functions={len(step_config['functions'])}"
+                                    )
+                            else:
+                                logger.warning(f"[/execute] System prompt not found for agent {agent_id}")
+                        else:
+                            logger.warning(f"[/execute] Agent not found in database: {agent_id}")
+
+                    except Exception as e:
+                        logger.error(f"[/execute] Error fetching agent configuration: {e}", exc_info=True)
+
+                # ALWAYS disable interactive mode for workflow-based agent execution
+                # (agents should execute immediately, not wait for user input)
+                step["config"]["interactive"] = False
+
     # Build execution order from connections/dependencies and expand "$prev" based on graph (non-streaming)
     try:
         steps_list = workflow_config_for_execution.get("steps") or []
