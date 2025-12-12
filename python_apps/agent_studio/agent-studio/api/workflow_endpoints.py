@@ -397,41 +397,59 @@ async def execute_workflow(
                                         tool_description = ""
                                         tool_parameters = {}
 
+                                        # Try to get tool from database first
                                         try:
-                                            db_tool = ToolsService.get_tool(db, str(binding.tool_id))
+                                            db_tool = ToolsService.get_db_tool_by_id(db, str(binding.tool_id))
                                             if db_tool:
                                                 tool_name = db_tool.name
                                                 tool_description = db_tool.description or ""
-                                                tool_parameters = db_tool.parameters or {}
+                                                if db_tool.parameters_schema:
+                                                    tool_parameters = db_tool.parameters_schema
                                         except Exception:
                                             pass
 
+                                        # If not found in DB, try getting from unified registry
                                         if not tool_name:
-                                            tool_schema = tool_registry.get_tool_schema(str(binding.tool_id))
-                                            if tool_schema:
-                                                tool_name = tool_schema.get("name")
-                                                tool_description = tool_schema.get("description", "")
-                                                tool_parameters = tool_schema.get("parameters", {})
+                                            try:
+                                                unified_tools = tool_registry.get_unified_tools(db)
+                                                for unified_tool in unified_tools:
+                                                    if unified_tool.db_id and str(unified_tool.db_id) == str(binding.tool_id):
+                                                        tool_name = unified_tool.name
+                                                        tool_description = unified_tool.description or ""
+                                                        if unified_tool.parameters_schema:
+                                                            tool_parameters = unified_tool.parameters_schema
+                                                        break
+                                            except Exception:
+                                                pass
 
-                                        if tool_name:
-                                            functions.append(
-                                                {
-                                                    "tool_id": str(binding.tool_id),
+                                        # Fallback to tool_id if we couldn't find the tool
+                                        if not tool_name:
+                                            tool_name = str(binding.tool_id)
+
+                                        # Convert tool binding to ChatCompletionToolParam format
+                                        functions.append(
+                                            {
+                                                "type": "function",
+                                                "function": {
                                                     "name": tool_name,
                                                     "description": tool_description,
-                                                    "parameters": tool_parameters,
-                                                }
-                                            )
+                                                    "parameters": binding.override_parameters or tool_parameters,
+                                                },
+                                            }
+                                        )
 
-                                if functions:
-                                    existing_functions = step_config.get("functions", [])
-                                    if existing_functions:
-                                        step_config["functions"] = existing_functions + functions
-                                    else:
-                                        step_config["functions"] = functions
-                                    logger.info(
-                                        f"[/execute] Merged agent config: model={step_config['model']}, functions={len(step_config['functions'])}"
-                                    )
+                                # Merge with existing functions (e.g., agent tools from RequestAdapter)
+                                existing_functions = step_config.get("functions", [])
+                                logger.info(f"[/execute] Existing functions before merge: {len(existing_functions)}")
+
+                                if existing_functions:
+                                    # Add DB tools to existing functions (agent tools take precedence)
+                                    step_config["functions"] = existing_functions + functions
+                                else:
+                                    step_config["functions"] = functions
+                                logger.info(
+                                    f"[/execute] Merged agent config: model={step_config['model']}, functions={len(step_config['functions'])}"
+                                )
                             else:
                                 logger.warning(f"[/execute] System prompt not found for agent {agent_id}")
                         else:
