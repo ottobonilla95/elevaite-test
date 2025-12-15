@@ -2,10 +2,13 @@ import logging
 import time
 import json
 from typing import Dict, Any, Optional, List, Iterable
-from openai import OpenAI
+from openai import OpenAI, BadRequestError, AuthenticationError, PermissionDeniedError, NotFoundError, UnprocessableEntityError
 
 from .core.base import BaseTextGenerationProvider
 from .core.interfaces import TextGenerationResponse, ToolCall
+
+# Client errors that should not be retried (4xx errors)
+NON_RETRYABLE_ERRORS = (BadRequestError, AuthenticationError, PermissionDeniedError, NotFoundError, UnprocessableEntityError)
 
 
 class OpenAITextGenerationProvider(BaseTextGenerationProvider):
@@ -81,12 +84,28 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     }
                 )
 
-        # Convert function tools
+        # Convert function tools from Chat Completions format to Responses API format
         if tools:
             for tool in tools:
                 if tool.get("type") == "function":
-                    # Function tools stay the same format
-                    responses_tools.append(tool)
+                    # Check if it's Chat Completions format (nested under "function" key)
+                    if "function" in tool:
+                        # Convert from Chat Completions format:
+                        # {type: "function", function: {name, description, parameters}}
+                        # to Responses API format:
+                        # {type: "function", name, description, parameters}
+                        func_def = tool["function"]
+                        responses_tools.append(
+                            {
+                                "type": "function",
+                                "name": func_def.get("name"),
+                                "description": func_def.get("description", ""),
+                                "parameters": func_def.get("parameters", {}),
+                            }
+                        )
+                    else:
+                        # Already in Responses API format
+                        responses_tools.append(tool)
                 elif tool.get("type") in ("file_search", "web_search", "code_interpreter"):
                     # Built-in tools
                     responses_tools.append(tool)
@@ -326,6 +345,10 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     finish_reason=finish_reason,
                 )
 
+            except NON_RETRYABLE_ERRORS as e:
+                # Don't retry client errors (4xx) - they will fail again
+                logging.error(f"Non-retryable error (client error): {e}")
+                raise RuntimeError(f"Text generation failed with client error: {e}")
             except Exception as e:
                 logging.warning(f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
                 if attempt == retries - 1:
@@ -502,6 +525,10 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 yield final_data
                 return
 
+            except NON_RETRYABLE_ERRORS as e:
+                # Don't retry client errors (4xx) - they will fail again
+                logging.error(f"Non-retryable streaming error (client error): {e}")
+                raise RuntimeError(f"Streaming failed with client error: {e}")
             except Exception as e:
                 logging.warning(f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
                 if attempt == retries - 1:
