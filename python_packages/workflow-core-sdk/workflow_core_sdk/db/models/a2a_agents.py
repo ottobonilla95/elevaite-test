@@ -6,7 +6,7 @@ This model stores connection information for external agents exposed via A2A pro
 """
 
 from enum import Enum
-from typing import Optional, List, Dict, Any
+from typing import ClassVar, Optional, List, Dict, Any
 import uuid as uuid_module
 from datetime import datetime
 from sqlmodel import SQLModel, Field
@@ -123,6 +123,8 @@ class A2AAgent(SQLModel, table=True):
     Stores connection information, cached Agent Card data, authentication,
     and health status for external agents exposed via the A2A protocol.
     """
+
+    __tablename__: ClassVar[str] = "a2a_agents"
 
     id: uuid_module.UUID = Field(default_factory=uuid_module.uuid4, primary_key=True)
     name: str
