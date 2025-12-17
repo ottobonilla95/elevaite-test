@@ -21,15 +21,16 @@ from workflow_core_sdk import (
 
 # Import routers from local PoC code
 from workflow_engine_poc.routers import (
-    workflows,
-    executions,
-    steps,
-    files,
-    monitoring as monitoring_router,
+    a2a_agents,
     agents,
-    tools,
-    prompts,
+    executions,
+    files,
     messages,
+    monitoring as monitoring_router,
+    prompts,
+    steps,
+    tools,
+    workflows,
 )
 from workflow_engine_poc.routers.approvals import router as approvals
 
@@ -158,6 +159,7 @@ logger.info("Mounting PoC routers (powered by SDK services)...")
 app.include_router(workflows, prefix="/api", tags=["workflows"])
 app.include_router(executions, prefix="/api", tags=["executions"])
 app.include_router(agents, prefix="/api", tags=["agents"])
+app.include_router(a2a_agents, prefix="/api", tags=["a2a-agents"])
 app.include_router(tools, prefix="/api", tags=["tools"])
 app.include_router(steps, prefix="/api", tags=["steps"])
 app.include_router(files, prefix="/api", tags=["files"])

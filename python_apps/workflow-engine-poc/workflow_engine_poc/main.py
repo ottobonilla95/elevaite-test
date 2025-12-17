@@ -40,16 +40,17 @@ else:
     logging.getLogger(__name__).info("⏭️  DBOS pre-init skipped (test mode)")
 
 from workflow_engine_poc.routers import (
-    health,
-    workflows,
-    executions,
-    steps,
-    files,
-    monitoring as monitoring_router,
+    a2a_agents,
     agents,
-    tools,
-    prompts,
+    executions,
+    files,
+    health,
     messages,
+    monitoring as monitoring_router,
+    prompts,
+    steps,
+    tools,
+    workflows,
 )
 from workflow_engine_poc.routers.approvals import router as approvals
 
@@ -166,6 +167,7 @@ app.include_router(steps)
 app.include_router(files)
 app.include_router(monitoring_router)
 app.include_router(agents)
+app.include_router(a2a_agents)
 app.include_router(tools)
 app.include_router(prompts)
 app.include_router(messages)
