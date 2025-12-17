@@ -20,6 +20,7 @@ dependencies = [
     "google-genai>=1.31.0",
     "pytest>=8.3.4",
     "aiohttp>=3.11.11",
+    "a2a-sdk>=0.3.22",
 ]
 
 [tool.hatch.build.targets.wheel]
