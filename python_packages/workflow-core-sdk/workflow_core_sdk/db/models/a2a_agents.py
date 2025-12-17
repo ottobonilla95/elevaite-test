@@ -5,7 +5,8 @@ A2A is Google's open protocol that enables AI agents to communicate with each ot
 This model stores connection information for external agents exposed via A2A protocol.
 """
 
-from typing import Optional, List, Dict, Any, Literal
+from enum import Enum
+from typing import Optional, List, Dict, Any
 import uuid as uuid_module
 from datetime import datetime
 from sqlmodel import SQLModel, Field
@@ -14,16 +15,28 @@ from sqlalchemy import Column, JSON, DateTime, func
 from .base import get_utc_datetime
 
 
-# A2A Agent status options
-A2AAgentStatus = Literal["active", "inactive", "error", "unreachable"]
+class A2AAgentStatus(str, Enum):
+    """A2A Agent status options."""
 
-# A2A Authentication types
-A2AAuthType = Literal["none", "bearer", "api_key", "oauth2"]
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    ERROR = "error"
+    UNREACHABLE = "unreachable"
+
+
+class A2AAuthType(str, Enum):
+    """A2A Authentication types."""
+
+    NONE = "none"
+    BEARER = "bearer"
+    API_KEY = "api_key"
+    OAUTH2 = "oauth2"
 
 
 # ---------- A2A Agent Skill (from Agent Card) ----------
 class A2AAgentSkill(SQLModel):
     """Represents a skill/capability advertised by an A2A agent in its Agent Card."""
+
     id: str
     name: str
     description: Optional[str] = None
@@ -36,20 +49,21 @@ class A2AAgentSkill(SQLModel):
 # ---------- A2A Agent Base Schema ----------
 class A2AAgentBase(SQLModel):
     """Base schema for A2A agent data."""
+
     name: str
     description: Optional[str] = None
-    
+
     # Connection info
     base_url: str  # e.g., "https://agent.example.com"
     agent_card_url: Optional[str] = None  # Defaults to {base_url}/.well-known/agent.json
-    
+
     # Authentication
-    auth_type: A2AAuthType = "none"
+    auth_type: A2AAuthType = A2AAuthType.NONE
     auth_config: Optional[Dict[str, Any]] = None  # Credentials config
-    
+
     # Health check settings
     health_check_interval: int = 300  # seconds
-    
+
     # Organization/multi-tenancy
     organization_id: Optional[str] = None
     tags: Optional[List[str]] = None
@@ -57,11 +71,13 @@ class A2AAgentBase(SQLModel):
 
 class A2AAgentCreate(A2AAgentBase):
     """Schema for creating a new A2A agent registration."""
+
     pass
 
 
 class A2AAgentUpdate(SQLModel):
     """Schema for updating an A2A agent registration."""
+
     name: Optional[str] = None
     description: Optional[str] = None
     base_url: Optional[str] = None
@@ -75,22 +91,23 @@ class A2AAgentUpdate(SQLModel):
 
 class A2AAgentRead(A2AAgentBase):
     """Schema for reading A2A agent data."""
+
     id: uuid_module.UUID
-    
+
     # Agent Card data (cached from remote)
     agent_card: Optional[Dict[str, Any]] = None
     skills: Optional[List[Dict[str, Any]]] = None
     supported_input_modes: Optional[List[str]] = None
     supported_output_modes: Optional[List[str]] = None
-    
+
     # Protocol version
     protocol_version: Optional[str] = None
-    
+
     # Status & Health
-    status: A2AAgentStatus = "active"
+    status: A2AAgentStatus = A2AAgentStatus.ACTIVE
     last_health_check: Optional[datetime] = None
     consecutive_failures: int = 0
-    
+
     # Metadata
     created_by: Optional[str] = None
     registered_at: datetime
@@ -102,46 +119,45 @@ class A2AAgentRead(A2AAgentBase):
 class A2AAgent(SQLModel, table=True):
     """
     Database model for storing A2A (Agent-to-Agent) agent connections.
-    
+
     Stores connection information, cached Agent Card data, authentication,
     and health status for external agents exposed via the A2A protocol.
     """
-    __tablename__ = "a2a_agents"
-    
+
     id: uuid_module.UUID = Field(default_factory=uuid_module.uuid4, primary_key=True)
     name: str
     description: Optional[str] = None
-    
+
     # Connection info
     base_url: str  # e.g., "https://agent.example.com"
     agent_card_url: Optional[str] = None  # Defaults to {base_url}/.well-known/agent.json
-    
+
     # Agent Card data (cached from remote)
     agent_card: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     skills: Optional[List[Dict[str, Any]]] = Field(default=None, sa_column=Column(JSON))
     supported_input_modes: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
     supported_output_modes: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
-    
+
     # Protocol version from Agent Card
     protocol_version: Optional[str] = None
-    
+
     # Authentication
-    auth_type: str = "none"  # none, bearer, api_key, oauth2
+    auth_type: A2AAuthType = A2AAuthType.NONE
     auth_config: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
-    
+
     # Health check settings
     health_check_interval: int = 300  # seconds
-    
+
     # Status & Health
-    status: str = Field(default="active")  # active, inactive, error, unreachable
+    status: A2AAgentStatus = Field(default=A2AAgentStatus.ACTIVE)
     last_health_check: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
     consecutive_failures: int = 0
-    
+
     # Organization/multi-tenancy
     organization_id: Optional[str] = None
     created_by: Optional[str] = None
     tags: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
-    
+
     # Timestamps
     registered_at: datetime = Field(
         default_factory=get_utc_datetime,
@@ -152,4 +168,3 @@ class A2AAgent(SQLModel, table=True):
         default_factory=get_utc_datetime,
         sa_column=Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now()),
     )
-

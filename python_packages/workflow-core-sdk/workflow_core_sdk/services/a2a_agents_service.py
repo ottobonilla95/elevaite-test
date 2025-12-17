@@ -13,7 +13,7 @@ from uuid import UUID
 
 from sqlmodel import Session, select
 
-from ..db.models import A2AAgent, A2AAgentCreate, A2AAgentUpdate
+from ..db.models import A2AAgent, A2AAgentCreate, A2AAgentStatus, A2AAgentUpdate
 
 
 @dataclass
@@ -263,16 +263,16 @@ class A2AAgentsService:
         db_agent.last_health_check = now
 
         if is_healthy:
-            db_agent.status = "active"
+            db_agent.status = A2AAgentStatus.ACTIVE
             db_agent.consecutive_failures = 0
             db_agent.last_seen = now
         else:
             db_agent.consecutive_failures += 1
             # Mark as unreachable after 3 consecutive failures
             if db_agent.consecutive_failures >= 3:
-                db_agent.status = "unreachable"
+                db_agent.status = A2AAgentStatus.UNREACHABLE
             elif db_agent.consecutive_failures >= 1:
-                db_agent.status = "error"
+                db_agent.status = A2AAgentStatus.ERROR
 
         session.add(db_agent)
         session.commit()
@@ -298,7 +298,7 @@ class A2AAgentsService:
             List of A2AAgent records needing health checks.
         """
         now = datetime.now(timezone.utc)
-        query = select(A2AAgent).where(A2AAgent.status.in_(["active", "error"]))
+        query = select(A2AAgent).where(A2AAgent.status.in_([A2AAgentStatus.ACTIVE, A2AAgentStatus.ERROR]))
 
         if organization_id:
             query = query.where(A2AAgent.organization_id == organization_id)

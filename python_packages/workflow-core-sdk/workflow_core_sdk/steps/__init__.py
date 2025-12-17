@@ -4,7 +4,7 @@ Workflow Engine Steps Package
 This package contains all step implementations organized by domain:
 
 - data_steps: Basic data processing, input/output, merging
-- ai_steps: LLM agents, AI-powered processing
+- ai_steps: LLM agents, AI-powered processing (including external A2A agents)
 - file_steps: File operations, text processing, tokenization
 - flow_steps: Control flow, subflows, conditional execution
 - trigger_steps: Workflow trigger normalization
@@ -26,7 +26,7 @@ __all__ = [
     "data_merge_step",
     "delay_step",
     "conditional_step",
-    # AI/LLM steps
+    # AI/LLM steps (includes built-in agents and external A2A agents)
     "agent_execution_step",
     # File processing steps
     "file_reader_step",

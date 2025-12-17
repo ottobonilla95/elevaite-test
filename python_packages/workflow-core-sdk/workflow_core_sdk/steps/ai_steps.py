@@ -977,6 +977,93 @@ class AgentStep:
             }
 
 
+async def _execute_a2a_agent(
+    step_config: Dict[str, Any],
+    input_data: Dict[str, Any],
+    execution_context: ExecutionContext,  # noqa: ARG001 - reserved for future use
+) -> Dict[str, Any]:
+    """Execute an external A2A agent.
+
+    This is called from agent_execution_step when a2a_agent_id is provided.
+    """
+    from uuid import UUID
+
+    from sqlmodel import Session, select
+
+    from ..db.database import engine
+    from ..db.models.a2a_agents import A2AAgent, A2AAgentStatus, A2AAuthType
+
+    try:
+        from llm_gateway.a2a import A2AClientService
+        from llm_gateway.a2a.types import A2AAgentInfo, A2AAuthConfig, A2AMessageRequest
+    except ImportError:
+        return {"success": False, "error": "llm-gateway package is required for A2A"}
+
+    config = step_config.get("config", {}) or {}
+    a2a_agent_id = config.get("a2a_agent_id", "")
+
+    # Get query from template or input_data
+    query = config.get("query", "")
+    if query and "{" in query:
+        try:
+            query = query.format_map(type("_", (dict,), {"__missing__": lambda _, k: ""})(input_data))
+        except Exception:
+            pass
+    if not query:
+        query = input_data.get("current_message") or input_data.get("query") or ""
+    if not query:
+        return {"success": False, "error": "query is required"}
+
+    # Fetch A2A agent from database
+    try:
+        with Session(engine) as session:
+            agent = session.exec(select(A2AAgent).where(A2AAgent.id == UUID(a2a_agent_id))).first()
+        if not agent:
+            return {"success": False, "error": f"A2A agent not found: {a2a_agent_id}"}
+        if agent.status != A2AAgentStatus.ACTIVE:
+            return {"success": False, "error": f"A2A agent not active: {agent.status}"}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to fetch A2A agent: {e}"}
+
+    # Build client request
+    auth = None
+    if agent.auth_type != A2AAuthType.NONE and agent.auth_config:
+        auth = A2AAuthConfig(auth_type=agent.auth_type.value, **agent.auth_config)
+
+    agent_info = A2AAgentInfo(
+        base_url=agent.base_url,
+        name=agent.name,
+        agent_card_url=agent.agent_card_url,
+        auth=auth,
+        timeout=config.get("timeout", 30.0),
+    )
+
+    request = A2AMessageRequest(
+        content=query,
+        context_id=config.get("context_id") or input_data.get("context_id"),
+        task_id=config.get("task_id") or input_data.get("task_id"),
+    )
+
+    # Execute
+    try:
+        response = await A2AClientService().send_message(agent_info, request)
+        return {
+            "success": True,
+            "response": response.content or "",
+            "task_id": response.task.task_id if response.task else None,
+            "context_id": response.task.context_id if response.task else None,
+            "is_complete": response.is_complete,
+            "artifacts": response.artifacts,
+            "error": response.error,
+            "agent_name": agent.name,
+            "a2a_agent_id": str(agent.id),
+            "mode": "a2a",
+        }
+    except Exception as e:
+        logger.error(f"A2A agent execution failed: {e}")
+        return {"success": False, "error": str(e), "a2a_agent_id": str(agent.id)}
+
+
 async def agent_execution_step(
     step_config: Dict[str, Any],
     input_data: Dict[str, Any],
@@ -991,10 +1078,15 @@ async def agent_execution_step(
     - query: Query to execute (can use template variables)
     - tools: List of tools available to the agent
     - force_real_llm: Force use of real LLM even without full config
+    - a2a_agent_id: UUID of an external A2A agent (if provided, uses A2A protocol)
     """
 
-    _ = execution_context  # currently unused, reserved for future scoping/analytics
     config = step_config.get("config", {})
+
+    # Check if this is an A2A agent execution
+    a2a_agent_id = config.get("a2a_agent_id")
+    if a2a_agent_id:
+        return await _execute_a2a_agent(step_config, input_data, execution_context)
 
     # Get agent configuration
     agent_name = config.get("agent_name", "Assistant")

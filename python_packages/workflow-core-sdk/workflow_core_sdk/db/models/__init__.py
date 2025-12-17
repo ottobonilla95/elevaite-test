@@ -79,8 +79,10 @@ from .a2a_agents import (
     A2AAgentBase,
     A2AAgentCreate,
     A2AAgentRead,
+    A2AAgentStatus,
     A2AAgentUpdate,
     A2AAgentSkill,
+    A2AAuthType,
 )
 
 __all__ = [
@@ -133,6 +135,8 @@ __all__ = [
     "A2AAgentBase",
     "A2AAgentCreate",
     "A2AAgentRead",
+    "A2AAgentStatus",
     "A2AAgentUpdate",
     "A2AAgentSkill",
+    "A2AAuthType",
 ]
