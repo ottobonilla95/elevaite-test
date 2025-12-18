@@ -523,6 +523,18 @@ class AgentStep:
                     files_arg,
                 )
 
+                # === DEBUG: Log raw LLM response structure ===
+                logger.info(f"[LLM_RESPONSE_DEBUG] Response type: {type(response)}")
+                logger.info(f"[LLM_RESPONSE_DEBUG] Response repr: {repr(response)}")
+                if hasattr(response, "model_dump"):
+                    try:
+                        logger.info(f"[LLM_RESPONSE_DEBUG] response.model_dump(): {response.model_dump()}")
+                    except Exception as dump_err:
+                        logger.info(f"[LLM_RESPONSE_DEBUG] model_dump() failed: {dump_err}")
+                logger.info(f"[LLM_RESPONSE_DEBUG] response.tool_calls: {getattr(response, 'tool_calls', 'NO_ATTR')}")
+                logger.info(f"[LLM_RESPONSE_DEBUG] response.text: {getattr(response, 'text', 'NO_ATTR')}")
+                logger.info(f"[LLM_RESPONSE_DEBUG] response.finish_reason: {getattr(response, 'finish_reason', 'NO_ATTR')}")
+
                 # Accumulate token usage
                 try:
                     tokens_in_total += int(getattr(response, "tokens_in", 0) or 0)
@@ -615,7 +627,10 @@ class AgentStep:
                     logger.debug(f"Could not persist assistant message with tool_calls: {persist_err}")
 
                 # Execute tool calls and add proper tool response messages
-                for tool_call in response.tool_calls or []:
+                logger.info(f"[TOOL_CALL_DEBUG] response.tool_calls type: {type(response.tool_calls)}")
+                logger.info(f"[TOOL_CALL_DEBUG] response.tool_calls value: {response.tool_calls}")
+                for idx, tool_call in enumerate(response.tool_calls or []):
+                    logger.info(f"[TOOL_CALL_DEBUG] Processing tool_call[{idx}] from response.tool_calls")
                     try:
                         tool_result = await self._execute_tool_call(tool_call, context=context)
                         tool_calls_trace.append(tool_result)
@@ -730,17 +745,45 @@ class AgentStep:
         import time
 
         try:
-            # Extract function name and args from multiple possible shapes
-            function_name = getattr(tool_call, "name", None)
-            function_args = getattr(tool_call, "arguments", None)
+            # === DETAILED LOGGING FOR DEBUGGING TOOL CALL STRUCTURE ===
+            logger.info(f"[TOOL_CALL_DEBUG] Raw tool_call type: {type(tool_call)}")
+            logger.info(f"[TOOL_CALL_DEBUG] Raw tool_call repr: {repr(tool_call)}")
 
-            if function_name is None and hasattr(tool_call, "function"):
-                function_name = getattr(tool_call.function, "name", None)
-                function_args = getattr(tool_call.function, "arguments", None)
+            # Log all attributes of the tool_call object
+            if hasattr(tool_call, "__dict__"):
+                logger.info(f"[TOOL_CALL_DEBUG] tool_call.__dict__: {tool_call.__dict__}")
+            if hasattr(tool_call, "model_dump"):
+                try:
+                    logger.info(f"[TOOL_CALL_DEBUG] tool_call.model_dump(): {tool_call.model_dump()}")
+                except Exception as dump_err:
+                    logger.info(f"[TOOL_CALL_DEBUG] model_dump() failed: {dump_err}")
 
-            # Log raw tool call for debugging
-            logger.debug(f"Processing tool call: {function_name}")
-            logger.debug(f"Raw arguments type: {type(function_args)}, value: {function_args}")
+            # Check if it's a dict (common issue)
+            if isinstance(tool_call, dict):
+                logger.info(f"[TOOL_CALL_DEBUG] tool_call is a dict with keys: {tool_call.keys()}")
+                # Handle dict format directly
+                function_name = tool_call.get("name") or (tool_call.get("function", {}) or {}).get("name")
+                function_args = tool_call.get("arguments") or (tool_call.get("function", {}) or {}).get("arguments")
+                logger.info(f"[TOOL_CALL_DEBUG] Extracted from dict - name: {function_name}, args type: {type(function_args)}")
+            else:
+                # Extract function name and args from multiple possible shapes
+                function_name = getattr(tool_call, "name", None)
+                function_args = getattr(tool_call, "arguments", None)
+                logger.info(f"[TOOL_CALL_DEBUG] Direct attrs - name: {function_name}, args: {function_args}")
+
+                if function_name is None and hasattr(tool_call, "function"):
+                    func_obj = getattr(tool_call, "function", None)
+                    logger.info(f"[TOOL_CALL_DEBUG] Has 'function' attr, type: {type(func_obj)}, value: {func_obj}")
+                    if isinstance(func_obj, dict):
+                        function_name = func_obj.get("name")
+                        function_args = func_obj.get("arguments")
+                    else:
+                        function_name = getattr(func_obj, "name", None)
+                        function_args = getattr(func_obj, "arguments", None)
+                    logger.info(f"[TOOL_CALL_DEBUG] From function attr - name: {function_name}, args: {function_args}")
+
+            # Log final extracted values
+            logger.info(f"[TOOL_CALL_DEBUG] Final function_name: {function_name}, function_args type: {type(function_args)}")
 
             # Normalize arguments: allow JSON string or dict; default to {}
             if isinstance(function_args, str):
@@ -754,7 +797,15 @@ class AgentStep:
                 function_args = {}
 
             if not function_name:
-                raise ValueError("Tool call missing function name")
+                logger.warning(f"[TOOL_CALL_DEBUG] Skipping tool call with missing function name: {tool_call}")
+                return {
+                    "tool_name": None,
+                    "arguments": function_args,
+                    "result": "Error: Tool call missing function name",
+                    "success": False,
+                    "error": "Tool call missing function name",
+                    "tool_call_id": getattr(tool_call, "id", None) or getattr(tool_call, "tool_call_id", None),
+                }
 
             # Resolve either a dynamic agent tool or a registered function tool
             dynamic_meta = self._dynamic_agent_tools.get(function_name)
@@ -1411,6 +1462,19 @@ async def agent_execution_step(
                             break
 
                     # Check for tool calls from streaming response
+                    if tool_calls_from_stream:
+                        # Filter out incomplete tool calls with missing function names
+                        valid_tool_calls = [
+                            tc for tc in tool_calls_from_stream
+                            if tc.get("function", {}).get("name")
+                        ]
+                        if len(valid_tool_calls) != len(tool_calls_from_stream):
+                            skipped = len(tool_calls_from_stream) - len(valid_tool_calls)
+                            logger.warning(
+                                f"Skipping {skipped} tool call(s) with missing function name"
+                            )
+                        tool_calls_from_stream = valid_tool_calls
+
                     if tool_calls_from_stream:
                         # Tool calls detected - add assistant message with tool calls to conversation
                         assistant_message: Dict[str, Any] = {"role": "assistant", "tool_calls": []}

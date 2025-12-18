@@ -516,9 +516,19 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 )
 
                 # Include tool calls in final response if present
+                # Filter out any incomplete tool calls (missing function name)
+                valid_tool_calls = [
+                    tc for tc in tool_calls_collected
+                    if tc.get("function", {}).get("name")
+                ]
+                if valid_tool_calls != tool_calls_collected:
+                    incomplete_count = len(tool_calls_collected) - len(valid_tool_calls)
+                    logging.warning(
+                        f"Filtered out {incomplete_count} incomplete tool call(s) missing function name"
+                    )
                 final_data: Dict[str, Any] = {"type": "final", "response": response.model_dump()}
-                if tool_calls_collected:
-                    final_data["tool_calls"] = tool_calls_collected
+                if valid_tool_calls:
+                    final_data["tool_calls"] = valid_tool_calls
                 if finish_reason:
                     final_data["finish_reason"] = finish_reason
 
