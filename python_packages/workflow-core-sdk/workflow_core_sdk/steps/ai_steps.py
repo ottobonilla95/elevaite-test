@@ -438,9 +438,6 @@ class AgentStep:
             # Prepare tools: merge explicit tools with dynamic per-agent tools
             dynamic_agent_tools = await self._ensure_dynamic_agent_tools(context)
             explicit_tools = self.tools or []
-            logger.info(
-                f"🔧 Tool preparation: explicit_tools={len(explicit_tools)}, dynamic_agent_tools={len(dynamic_agent_tools)}, _dynamic_agent_tools={len(self._dynamic_agent_tools)}"
-            )
             # If neither explicit tools nor dynamic agent tools are provided, pass None (no tools)
             llm_tools = None
             if explicit_tools:
@@ -842,8 +839,6 @@ class AgentStep:
                     logger.warning(f"Failed to emit agent_call event: {e}")
 
                 result = await self._invoke_agent(target_agent, query=query, context=child_context)
-                duration_ms = int((time.time() - start_time) * 1000)
-                logger.info(f"✅ Agent tool completed: {target_agent.name} ({duration_ms}ms)")
 
                 # Emit tool_response event
                 try:
@@ -1376,6 +1371,8 @@ async def agent_execution_step(
                 conversation_turns = 0
                 max_conversation_turns = 4
                 tool_calls_trace: List[Dict[str, Any]] = []
+                tokens_in_total = 0
+                tokens_out_total = 0
 
                 # Extract file paths for file search (OpenAI only)
                 files_for_search: Optional[List[str]] = None
@@ -1459,24 +1456,16 @@ async def agent_execution_step(
                             # Final event contains tool calls if present
                             tool_calls_from_stream = event.get("tool_calls", [])
                             finish_reason = event.get("finish_reason")
+                            # Extract token usage from final response
+                            final_response = event.get("response", {})
+                            if isinstance(final_response, dict):
+                                tokens_in_total += final_response.get("tokens_in", 0) or 0
+                                tokens_out_total += final_response.get("tokens_out", 0) or 0
                             break
-
-                    # Check for tool calls from streaming response
-                    if tool_calls_from_stream:
-                        # Filter out incomplete tool calls with missing function names
-                        valid_tool_calls = [
-                            tc for tc in tool_calls_from_stream
-                            if tc.get("function", {}).get("name")
-                        ]
-                        if len(valid_tool_calls) != len(tool_calls_from_stream):
-                            skipped = len(tool_calls_from_stream) - len(valid_tool_calls)
-                            logger.warning(
-                                f"Skipping {skipped} tool call(s) with missing function name"
-                            )
-                        tool_calls_from_stream = valid_tool_calls
 
                     if tool_calls_from_stream:
                         # Tool calls detected - add assistant message with tool calls to conversation
+                        # Use generic Chat Completions format - providers will convert as needed
                         assistant_message: Dict[str, Any] = {"role": "assistant", "tool_calls": []}
                         for tc in tool_calls_from_stream:
                             # Tool calls from stream are already in dict format
@@ -1505,8 +1494,11 @@ async def agent_execution_step(
                         # Execute tool calls
                         for tool_call_dict in tool_calls_from_stream:
                             try:
+                                func_name = tool_call_dict.get("function", {}).get("name")
+                                func_args = tool_call_dict.get("function", {}).get("arguments", "{}")
+                                tool_call_id = tool_call_dict.get("id") or str(uuid.uuid4())
+
                                 # Convert dict to object-like structure for _execute_tool_call
-                                # Create a simple object with the required attributes
                                 class ToolCallObj:
                                     def __init__(self, tc_dict):
                                         self.id = tc_dict.get("id")
@@ -1514,7 +1506,6 @@ async def agent_execution_step(
                                         self.name = tc_dict.get("function", {}).get("name")
                                         self.arguments = tc_dict.get("function", {}).get("arguments")
 
-                                        # Create function object
                                         class FunctionObj:
                                             def __init__(self, name, arguments):
                                                 self.name = name
@@ -1526,14 +1517,14 @@ async def agent_execution_step(
                                 tool_result = await agent._execute_tool_call(tool_call_obj, context=input_data)
                                 tool_calls_trace.append(tool_result)
 
-                                # Add tool response to messages
-                                tool_call_id = tool_call_dict.get("id") or str(uuid.uuid4())
+                                # Build result string
                                 result_content = tool_result.get("result", {})
                                 if isinstance(result_content, dict):
                                     result_str = result_content.get("response") or json.dumps(result_content)
                                 else:
                                     result_str = str(result_content)
 
+                                # Add tool response in generic format - providers convert as needed
                                 messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": result_str})
 
                             except Exception as e:
@@ -1553,11 +1544,11 @@ async def agent_execution_step(
                             "response": collected_content,
                             "tool_calls": tool_calls_trace,
                             "mode": "llm",
-                            "model": {"provider": "openai_textgen", "name": str(model_name)},
+                            "model": {"provider": provider_config["type"], "name": str(model_name)},
                             "usage": {
-                                "tokens_in": -1,  # Not available during streaming
-                                "tokens_out": -1,  # Not available during streaming
-                                "total_tokens": -1,
+                                "tokens_in": tokens_in_total,
+                                "tokens_out": tokens_out_total,
+                                "total_tokens": tokens_in_total + tokens_out_total,
                                 "llm_calls": conversation_turns,
                             },
                         }
@@ -1565,12 +1556,18 @@ async def agent_execution_step(
 
                 # If we hit max turns without a final response
                 if conversation_turns >= max_conversation_turns:
+                    logger.warning(f"Reached max conversation turns ({max_conversation_turns}), ending loop")
                     result = {
                         "response": "Reached conversation turn limit",
                         "tool_calls": tool_calls_trace,
                         "mode": "llm",
-                        "model": {"provider": "openai_textgen", "name": str(model_name)},
-                        "usage": {"tokens_in": 0, "tokens_out": 0, "total_tokens": 0, "llm_calls": conversation_turns},
+                        "model": {"provider": provider_config["type"], "name": str(model_name)},
+                        "usage": {
+                            "tokens_in": tokens_in_total,
+                            "tokens_out": tokens_out_total,
+                            "total_tokens": tokens_in_total + tokens_out_total,
+                            "llm_calls": conversation_turns,
+                        },
                     }
             else:
                 # Build messages chronologically from context

@@ -30,34 +30,95 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         messages: List[Dict[str, Any]],
         sys_msg: str,
         prompt: str,
-    ) -> tuple[str, str]:
+    ) -> tuple[str, List[Any]]:
         """
         Convert Chat Completions style messages to Responses API format.
 
+        The Responses API expects input as a list of items, not a string.
+        Tool calls and responses need special handling:
+        - Assistant messages with tool_calls become function_call items
+        - Tool messages become function_call_output items
+
         Returns:
-            tuple of (instructions, input_text)
+            tuple of (instructions, input_items_list)
         """
         instructions = ""
-        input_parts = []
+        input_items: List[Any] = []
 
         if messages and len(messages) > 0:
             for msg in messages:
                 msg_role = msg.get("role", "user")
                 content = msg.get("content", "")
+                msg_type = msg.get("type")  # For already-converted items
+
+                # Handle already-converted Responses API format items
+                if msg_type == "function_call":
+                    input_items.append(msg)
+                    continue
+                elif msg_type == "function_call_output":
+                    input_items.append(msg)
+                    continue
+
                 if msg_role == "system":
                     instructions = content
                 elif msg_role == "user":
-                    input_parts.append(content)
+                    input_items.append({"role": "user", "content": content})
                 elif msg_role == "assistant":
-                    # For multi-turn, we'd use previous_response_id in production
-                    # For now, include assistant context in input
-                    input_parts.append(f"[Previous response: {content}]")
+                    # Check if this assistant message has tool_calls
+                    tool_calls = msg.get("tool_calls", [])
+                    if tool_calls:
+                        # Convert each tool call to a function_call item
+                        for tc in tool_calls:
+                            call_id = tc.get("id")
+                            func = tc.get("function", {})
+                            func_name = func.get("name")
+                            func_args = func.get("arguments", "{}")
+
+                            # Ensure arguments is a string
+                            if isinstance(func_args, dict):
+                                import json
+
+                                func_args = json.dumps(func_args)
+
+                            input_items.append(
+                                {
+                                    "type": "function_call",
+                                    "call_id": call_id,
+                                    "name": func_name,
+                                    "arguments": func_args,
+                                }
+                            )
+
+                        # If assistant also had content, add it as a separate item
+                        if content:
+                            input_items.append({"role": "assistant", "content": content})
+                    else:
+                        # Regular assistant message without tool calls
+                        if content:
+                            input_items.append({"role": "assistant", "content": content})
+                elif msg_role == "tool":
+                    # Convert tool response to function_call_output
+                    tool_call_id = msg.get("tool_call_id")
+                    tool_content = msg.get("content", "")
+
+                    input_items.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": tool_call_id,
+                            "output": tool_content,
+                        }
+                    )
         else:
             # Fall back to sys_msg and prompt
             instructions = sys_msg
-            input_parts.append(prompt)
+            if prompt:
+                input_items.append({"role": "user", "content": prompt})
 
-        return instructions, "\n".join(input_parts)
+        # If input_items is empty but we have a prompt, add it
+        if not input_items and prompt:
+            input_items.append({"role": "user", "content": prompt})
+
+        return instructions, input_items
 
     def _convert_tools_to_responses_format(
         self,
@@ -271,8 +332,8 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
             try:
                 start_time = time.time()
 
-                # Convert messages to Responses API format
-                instructions, input_text = self._convert_messages_to_responses_input(messages or [], sys_msg, prompt)
+                # Convert messages to Responses API format (returns list of input items)
+                instructions, input_items = self._convert_messages_to_responses_input(messages or [], sys_msg, prompt)
 
                 # If we have a vector store from file uploads, add it to config for tool conversion
                 effective_config = config.copy()
@@ -288,7 +349,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 # Build API params for Responses API
                 api_params: Dict[str, Any] = {
                     "model": model_name,
-                    "input": input_text,
+                    "input": input_items,
                 }
 
                 # Add instructions if present
@@ -389,8 +450,8 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
 
         for attempt in range(retries):
             try:
-                # Convert messages to Responses API format
-                instructions, input_text = self._convert_messages_to_responses_input(messages or [], sys_msg, prompt)
+                # Convert messages to Responses API format (returns list of input items)
+                instructions, input_items = self._convert_messages_to_responses_input(messages or [], sys_msg, prompt)
 
                 # If we have a vector store from file uploads, add it to config for tool conversion
                 effective_config = config.copy()
@@ -406,7 +467,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 # Build API params for Responses API streaming
                 api_params: Dict[str, Any] = {
                     "model": model_name,
-                    "input": input_text,
+                    "input": input_items,
                     "stream": True,
                 }
 
@@ -460,32 +521,69 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                                 full_text += delta_text
                                 yield {"type": "delta", "text": delta_text}
 
+                        elif event_type == "response.output_item.added":
+                            item = getattr(event, "item", None)
+                            if item:
+                                name = getattr(item, "name", None)
+                                item_id = getattr(item, "id", None)
+                                call_id = getattr(item, "call_id", None)
+                                existing = next((tc for tc in tool_calls_collected if tc.get("item_id") == item_id), None)
+                                if existing:
+                                    existing["function"]["name"] = name
+                                    if call_id:
+                                        existing["id"] = call_id
+                                else:
+                                    tool_calls_collected.append(
+                                        {
+                                            "item_id": item_id,
+                                            "type": "function",
+                                            "function": {"name": name, "arguments": ""},
+                                            "id": call_id,
+                                        }
+                                    )
+
                         # Handle function call events
                         elif event_type == "response.function_call_arguments.delta":
                             # Function arguments streaming
+                            item_id = getattr(event, "item_id", "")
                             call_id = getattr(event, "call_id", "")
                             delta_args = getattr(event, "delta", "")
                             # Find or create the tool call entry
-                            existing = next((tc for tc in tool_calls_collected if tc.get("id") == call_id), None)
+                            existing = next((tc for tc in tool_calls_collected if tc.get("item_id") == item_id), None)
                             if existing:
                                 existing["function"]["arguments"] += delta_args
+                                # Update call_id if we got it and don't have it yet
+                                if call_id and not existing.get("id"):
+                                    existing["id"] = call_id
                             else:
                                 tool_calls_collected.append(
-                                    {"id": call_id, "type": "function", "function": {"name": "", "arguments": delta_args}}
+                                    {
+                                        "item_id": item_id,
+                                        "type": "function",
+                                        "function": {"name": "", "arguments": delta_args},
+                                        "id": call_id,
+                                    }
                                 )
 
                         elif event_type == "response.function_call_arguments.done":
                             # Function call complete
-                            call_id = getattr(event, "call_id", "")
-                            name = getattr(event, "name", "")
+                            item_id = getattr(event, "item_id", "")
+                            call_id = getattr(event, "call_id", "")  # call_id doesn't exist here.
                             arguments = getattr(event, "arguments", "")
-                            existing = next((tc for tc in tool_calls_collected if tc.get("id") == call_id), None)
+                            existing = next((tc for tc in tool_calls_collected if tc.get("item_id") == item_id), None)
                             if existing:
-                                existing["function"]["name"] = name
                                 existing["function"]["arguments"] = arguments
+                                # Update call_id if we got it and don't have it yet
+                                if call_id and not existing.get("id"):
+                                    existing["id"] = call_id
                             else:
                                 tool_calls_collected.append(
-                                    {"id": call_id, "type": "function", "function": {"name": name, "arguments": arguments}}
+                                    {
+                                        "item_id": item_id,
+                                        "id": call_id,
+                                        "type": "function",
+                                        "function": {"name": "", "arguments": arguments},
+                                    }
                                 )
                             finish_reason = "tool_calls"
 
@@ -517,15 +615,8 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
 
                 # Include tool calls in final response if present
                 # Filter out any incomplete tool calls (missing function name)
-                valid_tool_calls = [
-                    tc for tc in tool_calls_collected
-                    if tc.get("function", {}).get("name")
-                ]
-                if valid_tool_calls != tool_calls_collected:
-                    incomplete_count = len(tool_calls_collected) - len(valid_tool_calls)
-                    logging.warning(
-                        f"Filtered out {incomplete_count} incomplete tool call(s) missing function name"
-                    )
+                valid_tool_calls = [tc for tc in tool_calls_collected if tc.get("function", {}).get("name")]
+
                 final_data: Dict[str, Any] = {"type": "final", "response": response.model_dump()}
                 if valid_tool_calls:
                     final_data["tool_calls"] = valid_tool_calls
@@ -541,6 +632,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 raise RuntimeError(f"Streaming failed with client error: {e}")
             except Exception as e:
                 logging.warning(f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
+                logging.error(e)
                 if attempt == retries - 1:
                     raise RuntimeError(f"Streaming failed after {retries} attempts: {e}")
                 time.sleep((2**attempt) * 0.5)

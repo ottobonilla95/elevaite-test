@@ -336,9 +336,10 @@ async def execute_workflow(
                 step_config = step["config"]
                 agent_id = step_config.get("agent_id") or step.get("agent_id") or step.get("step_id")
 
-                # Ensure step_id is available inside config
+                # Ensure step_id and agent_id are available inside config for downstream use
                 try:
                     step_config["step_id"] = step.get("step_id")
+                    step_config["agent_id"] = agent_id
                 except Exception:
                     pass
 
@@ -1167,9 +1168,10 @@ async def execute_workflow_stream(
                 step_config = step["config"]
                 agent_id = step_config.get("agent_id") or step.get("agent_id") or step.get("step_id")
 
-                # Ensure step_id is available inside config for streaming emissions
+                # Ensure step_id and agent_id are available inside config for downstream use
                 try:
                     step_config["step_id"] = step.get("step_id")
+                    step_config["agent_id"] = agent_id
                 except Exception:
                     pass
 

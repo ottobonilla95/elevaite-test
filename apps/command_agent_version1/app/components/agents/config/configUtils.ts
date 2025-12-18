@@ -63,10 +63,14 @@ export const MODEL_OPTIONS = [
   { displayName: "GPT-4.1 Mini", modelCode: "gpt-4.1-mini", provider: "openai_textgen" },
   { displayName: "GPT-5", modelCode: "gpt-5", provider: "openai_textgen" },
   { displayName: "GPT-5 Mini", modelCode: "gpt-5-mini", provider: "openai_textgen" },
+  { displayName: "GPT-5.1", modelCode: "gpt-5.1", provider: "openai_textgen" },
+  { displayName: "GPT-5.2", modelCode: "gpt-5.2", provider: "openai_textgen" },
   { displayName: "o3-mini", modelCode: "o3-mini", provider: "openai_textgen" },
   { displayName: "Gemini 2.5 Pro", modelCode: "gemini-2.5-pro", provider: "gemini_textgen" },
   { displayName: "Gemini 2.5 Flash", modelCode: "gemini-2.5-flash", provider: "gemini_textgen" },
   { displayName: "Gemini 2.5 Flash Lite", modelCode: "gemini-2.5-flash-lite", provider: "gemini_textgen" },
+  { displayName: "Gemini 3.0 Pro", modelCode: "gemini-3.0-pro", provider: "gemini_textgen" },
+  { displayName: "Gemini 3.0 Flash", modelCode: "gemini-3.0-flash", provider: "gemini_textgen" },
 ] as const;
 
 // Get available models (returns model codes)
