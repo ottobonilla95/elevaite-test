@@ -124,7 +124,7 @@ class A2AAgent(SQLModel, table=True):
     and health status for external agents exposed via the A2A protocol.
     """
 
-    __tablename__: ClassVar[str] = "a2a_agents"
+    __tablename__: str = "a2a_agents"  # type: ignore
 
     id: uuid_module.UUID = Field(default_factory=uuid_module.uuid4, primary_key=True)
     name: str

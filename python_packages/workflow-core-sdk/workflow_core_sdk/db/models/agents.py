@@ -88,6 +88,8 @@ class AgentRead(AgentBase):
 
 # Database models
 class Agent(SQLModel, table=True):
+    __tablename__: str = "agents"  # type: ignore
+
     id: uuid_module.UUID = Field(
         default_factory=uuid_module.uuid4,
         primary_key=True,
@@ -115,6 +117,8 @@ class Agent(SQLModel, table=True):
 
 
 class AgentToolBinding(SQLModel, table=True):
+    __tablename__: str = "agent_tool_bindings"  # type: ignore
+
     id: uuid_module.UUID = Field(
         default_factory=uuid_module.uuid4,
         primary_key=True,
