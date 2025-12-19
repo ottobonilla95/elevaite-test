@@ -161,6 +161,98 @@ def resolve_tool_schemas_by_names(tool_names: List[str]) -> List[Dict[str, Any]]
     return resolved
 
 
+# ---------------------------------------------------------------------------
+# AgentStep helper functions
+# ---------------------------------------------------------------------------
+
+
+def _get_provider_config(context: Optional[Dict[str, Any]]) -> Tuple[Dict[str, str], str]:
+    """Resolve provider config and model name from context or use defaults.
+    Returns (provider_config, model_name).
+    """
+    agent_provider_type = context.get("_agent_provider_type") if isinstance(context, dict) else None
+    agent_provider_config = context.get("_agent_provider_config") if isinstance(context, dict) else None
+
+    if agent_provider_type and agent_provider_config:
+        config = {"type": agent_provider_type}
+        model_name_from_config = agent_provider_config.get("model_name", "gpt-4o")
+        try:
+            model_enum = getattr(TextGenerationModelName, f"OPENAI_{model_name_from_config.replace('-', '_')}", None)
+            model_name = model_enum.value if model_enum else model_name_from_config  # type: ignore
+        except Exception:
+            model_name = model_name_from_config
+        return config, model_name
+
+    # Default: OpenAI GPT-4o
+    return {"type": "openai_textgen"}, TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
+
+
+def _persist_message(
+    context: Optional[Dict[str, Any]],
+    role: str,
+    content: str,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Persist a message to the database if context has required IDs."""
+    if not context or not isinstance(context, dict):
+        return
+    execution_id = context.get("_execution_id")
+    step_id = context.get("_step_id")
+    if not execution_id or not step_id:
+        return
+    try:
+        from ..db.service import DatabaseService
+        from ..db.database import get_db_session
+
+        session = get_db_session()
+        try:
+            DatabaseService().create_agent_message(
+                session,
+                execution_id=execution_id,
+                step_id=step_id,
+                role=role,
+                content=content,
+                metadata=metadata or {},
+                user_id=context.get("_user_id"),
+                session_id=context.get("_session_id"),
+            )
+        finally:
+            try:
+                session.close()
+            except Exception:
+                pass
+    except Exception as e:
+        logger.debug(f"Could not persist {role} message: {e}")
+
+
+async def _emit_tool_event(
+    context: Optional[Dict[str, Any]],
+    event_type: str,
+    data: Dict[str, Any],
+) -> None:
+    """Emit a tool-related event (tool_call, tool_response, agent_call) via stream_manager."""
+    if not context or not isinstance(context, dict):
+        return
+    execution_id = context.get("_execution_id")
+    step_id = context.get("_step_id")
+    workflow_id = context.get("_workflow_id")
+    if not execution_id or not step_id:
+        return
+    try:
+        evt = create_step_event(
+            execution_id=execution_id,
+            step_id=step_id,
+            step_status="running",
+            workflow_id=workflow_id,
+            output_data={"event_type": event_type, **data},
+        )
+        await stream_manager.emit_execution_event(evt)
+        if workflow_id:
+            await stream_manager.emit_workflow_event(evt)
+    except Exception as e:
+        logger.warning(f"Failed to emit {event_type} event: {e}")
+
+
 class AgentStep:
     """
     Simplified agent that can execute queries with optional tools.
@@ -407,29 +499,19 @@ class AgentStep:
         if self.llm_service is None:
             raise Exception("No LLM Service configured.")
         try:
-            # Compose sys_msg and initial prompt/messages
             sys_msg = self.system_prompt or ""
-            base_prompt = f"{json.dumps(context, indent=2)}\n\nUser query: {query}" if context else query
-            current_prompt = base_prompt
+            ctx_messages = (context or {}).get("messages") or (context or {}).get("chat_history") or []
+            messages = _build_messages(sys_msg, ctx_messages, query)
 
-            # Build chat messages if available
-            messages: List[Dict[str, Any]] = []
-            if sys_msg:
-                messages.append({"role": "system", "content": sys_msg})
-            ctx_messages = []
-            if isinstance(context, dict):
-                ctx_messages = context.get("messages") or context.get("chat_history") or []
-            if isinstance(ctx_messages, list) and ctx_messages:
-                # Ensure messages are {role, content}
-                for m in ctx_messages:
-                    if isinstance(m, dict) and "role" in m and "content" in m:
-                        messages.append({"role": str(m["role"]), "content": str(m["content"])})
-                # Only add the query if not already the last user message
-                if not (messages and messages[-1].get("role") == "user" and messages[-1].get("content") == query):
-                    messages.append({"role": "user", "content": query})
-            else:
-                messages.append({"role": "user", "content": query})
+            # Prepare tools
+            dynamic_tools = await self._ensure_dynamic_agent_tools(context)
+            llm_tools = list(self.tools or []) + list(dynamic_tools)
+            llm_tools = llm_tools or None
+            logger.info(f"🔧 Tools: explicit={len(self.tools or [])}, dynamic={len(dynamic_tools)}")
 
+            # Provider config
+            config, model_name = _get_provider_config(context)
+            provider_type, model_label = str(config.get("type", "unknown")), str(model_name)
             # Prepare tools: merge explicit tools with dynamic per-agent tools
             dynamic_agent_tools = await self._ensure_dynamic_agent_tools(context)
             explicit_tools = self.tools or []
@@ -499,17 +581,23 @@ class AgentStep:
                 # Only pass files on first iteration (files are uploaded once to vector store)
                 files_arg = files_for_search if iteration_num == 0 else None
 
+            # Multi-turn tool loop
+            tool_calls_trace: List[Dict[str, Any]] = []
+            tokens_in_total, tokens_out_total, llm_calls = 0, 0, 0
+            base_prompt = f"{json.dumps(context, indent=2)}\n\nUser query: {query}" if context else query
+
+            for _ in range(4):  # max iterations
                 response = await asyncio.to_thread(
                     self.llm_service.generate,
-                    current_prompt,
+                    base_prompt,
                     config,
                     _max_tokens,
                     model_name,
                     sys_msg,
-                    None,  # retries
+                    None,
                     _temperature,
                     llm_tools,
-                    "auto" if llm_tools else None,  # tool_choice
+                    "auto" if llm_tools else None,
                     messages,
                     _response_format,
                     files_arg,
@@ -535,7 +623,7 @@ class AgentStep:
                 except Exception:
                     pass
 
-                # If no tool calls, we have a final answer
+                # Final answer if no tool calls
                 if not getattr(response, "tool_calls", None):
                     return {
                         "response": getattr(response, "text", str(response)) or "",
@@ -550,40 +638,21 @@ class AgentStep:
                         },
                     }
 
-                # Add assistant message with tool_calls (required by OpenAI format)
-                assistant_message = {"role": "assistant", "tool_calls": []}
-
-                # Convert tool calls to proper format for the assistant message
-                for tool_call in response.tool_calls or []:
-                    # Extract tool call info
-                    tool_call_id = getattr(tool_call, "id", None) or getattr(tool_call, "tool_call_id", None)
-                    function_name = getattr(tool_call, "name", None)
-                    function_args = getattr(tool_call, "arguments", None)
-
-                    if function_name is None and hasattr(tool_call, "function"):
-                        function_name = getattr(tool_call.function, "name", None)
-                        function_args = getattr(tool_call.function, "arguments", None)
-
-                    # Ensure we have a tool_call_id
-                    if not tool_call_id:
-                        import uuid
-
-                        tool_call_id = str(uuid.uuid4())
-
-                    # Normalize arguments to string if needed
-                    if isinstance(function_args, dict):
-                        function_args = json.dumps(function_args)
-                    elif function_args is None:
-                        function_args = "{}"
-
-                    assistant_message["tool_calls"].append(
-                        {
-                            "id": tool_call_id,
-                            "type": "function",
-                            "function": {"name": function_name, "arguments": function_args},
-                        }
+                # Build assistant message with tool_calls
+                assistant_message: Dict[str, Any] = {"role": "assistant", "tool_calls": []}
+                for tc in response.tool_calls or []:
+                    tc_id = getattr(tc, "id", None) or getattr(tc, "tool_call_id", None) or str(uuid.uuid4())
+                    fn_name = getattr(tc, "name", None) or (
+                        getattr(tc.function, "name", None) if hasattr(tc, "function") else None
                     )
-
+                    fn_args = getattr(tc, "arguments", None) or (
+                        getattr(tc.function, "arguments", None) if hasattr(tc, "function") else None
+                    )
+                    if isinstance(fn_args, dict):
+                        fn_args = json.dumps(fn_args)
+                    assistant_message["tool_calls"].append(
+                        {"id": tc_id, "type": "function", "function": {"name": fn_name, "arguments": fn_args or "{}"}}
+                    )
                 messages.append(assistant_message)
 
                 # Persist assistant message with tool_calls to database
@@ -624,93 +693,25 @@ class AgentStep:
                 for idx, tool_call in enumerate(response.tool_calls or []):
                     logger.info(f"[TOOL_CALL_DEBUG] Processing tool_call[{idx}] from response.tool_calls")
                     try:
-                        tool_result = await self._execute_tool_call(tool_call, context=context)
+                        tool_result = await self._execute_tool_call(tc, context=context)
                         tool_calls_trace.append(tool_result)
-
-                        # Get tool_call_id for the response
-                        tool_call_id = getattr(tool_call, "id", None) or getattr(tool_call, "tool_call_id", None)
-                        if not tool_call_id:
-                            # Find the corresponding tool call from assistant message
-                            function_name = getattr(tool_call, "name", None)
-                            if function_name is None and hasattr(tool_call, "function"):
-                                function_name = getattr(tool_call.function, "name", None)
-
-                            # Find matching tool call in assistant message
-                            for tc in assistant_message["tool_calls"]:
-                                if tc["function"]["name"] == function_name:
-                                    tool_call_id = tc["id"]
-                                    break
-
-                        # Format tool result content
+                        res_val = tool_result.get("result")
                         if tool_result.get("success"):
-                            res_val = tool_result.get("result")
-                            # Prefer child agent response when present
-                            if isinstance(res_val, dict) and res_val.get("response"):
-                                content = str(res_val.get("response"))
-                            else:
-                                try:
-                                    content = res_val if isinstance(res_val, str) else json.dumps(res_val)
-                                except Exception:
-                                    content = str(res_val)
+                            content = (
+                                res_val.get("response")
+                                if isinstance(res_val, dict) and res_val.get("response")
+                                else (res_val if isinstance(res_val, str) else json.dumps(res_val) if res_val else "")
+                            )
                         else:
                             content = f"Error: {tool_result.get('error', 'Unknown error')}"
-
-                        # Add proper tool response message
-                        messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": content})
-
-                        # Persist tool message to database for conversation continuity
-                        try:
-                            if context and isinstance(context, dict):
-                                execution_id = context.get("_execution_id")
-                                step_id = context.get("_step_id")
-                                user_id = context.get("_user_id")
-                                session_id = context.get("_session_id")
-                                if execution_id and step_id:
-                                    from ..db.service import DatabaseService
-                                    from ..db.database import get_db_session
-
-                                    dbs = DatabaseService()
-                                    session = get_db_session()
-                                    try:
-                                        dbs.create_agent_message(
-                                            session,
-                                            execution_id=execution_id,
-                                            step_id=step_id,
-                                            role="tool",
-                                            content=content,
-                                            metadata={"tool_call_id": tool_call_id, "tool_name": tool_result.get("tool_name")},
-                                            user_id=user_id,
-                                            session_id=session_id,
-                                        )
-                                    finally:
-                                        try:
-                                            session.close()
-                                        except Exception:
-                                            pass
-                        except Exception as persist_err:
-                            logger.debug(f"Could not persist tool message: {persist_err}")
-
                     except Exception as e:
-                        err = {
-                            "tool_name": getattr(tool_call, "name", "unknown"),
-                            "success": False,
-                            "error": str(e)[:400],
-                        }
-                        tool_calls_trace.append(err)
+                        tool_calls_trace.append({"tool_name": fn_name or "unknown", "success": False, "error": str(e)[:400]})
+                        content = f"Error: {e}"
 
-                        # Add error tool response
-                        tool_call_id = getattr(tool_call, "id", None) or getattr(tool_call, "tool_call_id", None)
-                        if not tool_call_id:
-                            import uuid
+                    messages.append({"role": "tool", "tool_call_id": tc_id, "content": content})
+                    _persist_message(context, "tool", content, {"tool_call_id": tc_id, "tool_name": fn_name})
 
-                            tool_call_id = str(uuid.uuid4())
-
-                        messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": f"Error: {str(e)}"})
-
-                # Keep the current prompt for the next iteration
-                current_prompt = base_prompt
-
-            # If iteration cap reached without final text
+            # Max iterations reached
             return {
                 "response": "Reached tool iteration limit; see tool_calls for details.",
                 "tool_calls": tool_calls_trace,
@@ -782,12 +783,9 @@ class AgentStep:
             if isinstance(function_args, str):
                 try:
                     function_args = json.loads(function_args)
-                except Exception as json_err:
-                    logger.error(f"Failed to parse tool arguments as JSON for {function_name}: {json_err}")
-                    logger.error(f"Raw arguments string: {function_args[:500]}")
-                    raise ValueError(f"Invalid JSON in tool arguments: {json_err}")
-            if function_args is None:
-                function_args = {}
+                except Exception as e:
+                    raise ValueError(f"Invalid JSON in tool arguments: {e}")
+            function_args = function_args or {}
 
             if not function_name:
                 logger.warning(f"[TOOL_CALL_DEBUG] Skipping tool call with missing function name: {tool_call}")
@@ -803,37 +801,17 @@ class AgentStep:
             # Resolve either a dynamic agent tool or a registered function tool
             dynamic_meta = self._dynamic_agent_tools.get(function_name)
             start_time = time.time()
+
+            # Check for dynamic agent tool first
+            dynamic_meta = self._dynamic_agent_tools.get(function_name)
             if dynamic_meta:
-                # Dynamic agent invocation
                 target_agent: DBAgent = dynamic_meta["agent"]
                 query = function_args.get("query") or function_args.get("input") or ""
                 child_context = function_args.get("context") if isinstance(function_args.get("context"), dict) else {}
 
-                # Emit agent_call event
-                try:
-                    if context and isinstance(context, dict):
-                        execution_id = context.get("_execution_id")
-                        workflow_id = context.get("_workflow_id")
-                        step_id = context.get("_step_id")
-                        if execution_id and step_id:
-                            agent_call_event = create_step_event(
-                                execution_id=execution_id,
-                                step_id=step_id,
-                                step_status="running",
-                                workflow_id=workflow_id,
-                                output_data={
-                                    "event_type": "agent_call",
-                                    "agent_name": target_agent.name,
-                                    "query": query,
-                                    "arguments": function_args,
-                                },
-                            )
-                            await stream_manager.emit_execution_event(agent_call_event)
-                            if workflow_id:
-                                await stream_manager.emit_workflow_event(agent_call_event)
-                except Exception as e:
-                    logger.warning(f"Failed to emit agent_call event: {e}")
-
+                await _emit_tool_event(
+                    context, "agent_call", {"agent_name": target_agent.name, "query": query, "arguments": function_args}
+                )
                 result = await self._invoke_agent(target_agent, query=query, context=child_context)
 
                 # Emit tool_response event
@@ -867,106 +845,48 @@ class AgentStep:
                     "result": result,
                     "success": True,
                     "duration_ms": duration_ms,
-                    "tool_call_id": getattr(tool_call, "id", None) or getattr(tool_call, "tool_call_id", None),
+                    "tool_call_id": tc_id,
                     "_agent_invocation_result": True,
                 }
 
-            # Fall back to static tool registry
+            # Static tool registry
             tool_function = get_tool_function(function_name)
             if not tool_function:
                 raise ValueError(f"Tool function not found: {function_name}")
 
-            # Emit tool_call event for regular tools
-            try:
-                if context and isinstance(context, dict):
-                    execution_id = context.get("_execution_id")
-                    workflow_id = context.get("_workflow_id")
-                    step_id = context.get("_step_id")
-                    if execution_id and step_id:
-                        tool_call_event = create_step_event(
-                            execution_id=execution_id,
-                            step_id=step_id,
-                            step_status="running",
-                            workflow_id=workflow_id,
-                            output_data={
-                                "event_type": "tool_call",
-                                "tool_name": function_name,
-                                "arguments": function_args,
-                            },
-                        )
-                        await stream_manager.emit_execution_event(tool_call_event)
-                        if workflow_id:
-                            await stream_manager.emit_workflow_event(tool_call_event)
-            except Exception as e:
-                logger.warning(f"Failed to emit tool_call event: {e}")
+            await _emit_tool_event(context, "tool_call", {"tool_name": function_name, "arguments": function_args})
 
-            # Determine sync/async and execute accordingly
-            is_async = getattr(tool_function, "_is_async", False)
-            if not is_async:
-                try:
-                    import inspect as _inspect
+            # Execute sync or async
+            import inspect as _inspect
 
-                    is_async = _inspect.iscoroutinefunction(tool_function)
-                except Exception:
-                    pass
-
-            if is_async:
+            if getattr(tool_function, "_is_async", False) or _inspect.iscoroutinefunction(tool_function):
                 result = await tool_function(**function_args)  # type: ignore[arg-type]
             else:
                 result = await asyncio.to_thread(tool_function, **function_args)
+
             duration_ms = int((time.time() - start_time) * 1000)
-
-            # Emit tool_response event for regular tools
-            try:
-                if context and isinstance(context, dict):
-                    execution_id = context.get("_execution_id")
-                    workflow_id = context.get("_workflow_id")
-                    step_id = context.get("_step_id")
-                    if execution_id and step_id:
-                        tool_response_event = create_step_event(
-                            execution_id=execution_id,
-                            step_id=step_id,
-                            step_status="running",
-                            workflow_id=workflow_id,
-                            output_data={
-                                "event_type": "tool_response",
-                                "tool_name": function_name,
-                                "result": result if isinstance(result, (str, int, float, bool)) else str(result)[:200],
-                                "duration_ms": duration_ms,
-                            },
-                        )
-                        await stream_manager.emit_execution_event(tool_response_event)
-                        if workflow_id:
-                            await stream_manager.emit_workflow_event(tool_response_event)
-            except Exception as e:
-                logger.warning(f"Failed to emit tool_response event: {e}")
-
+            await _emit_tool_event(
+                context,
+                "tool_response",
+                {
+                    "tool_name": function_name,
+                    "result": result if isinstance(result, (str, int, float, bool)) else str(result)[:200],
+                    "duration_ms": duration_ms,
+                },
+            )
             return {
                 "tool_name": function_name,
                 "arguments": function_args,
                 "result": result,
                 "success": True,
                 "duration_ms": duration_ms,
-                "tool_call_id": getattr(tool_call, "id", None) or getattr(tool_call, "tool_call_id", None),
+                "tool_call_id": tc_id,
             }
 
         except Exception as e:
-            tool_name = getattr(
-                tool_call,
-                "name",
-                getattr(getattr(tool_call, "function", None), "name", "unknown"),
-            )
-            # Log detailed error information for debugging
+            tool_name = getattr(tool_call, "name", getattr(getattr(tool_call, "function", None), "name", "unknown"))
             logger.error(f"Tool execution failed for {tool_name}: {e}")
-            logger.error(f"Tool call object: {tool_call}")
-            logger.error(f"Parsed arguments: {function_args if 'function_args' in locals() else 'N/A'}")
-
-            return {
-                "tool_name": tool_name,
-                "error": str(e),
-                "success": False,
-                "arguments": function_args if "function_args" in locals() else None,
-            }
+            return {"tool_name": tool_name, "error": str(e), "success": False, "arguments": function_args}
 
 
 def _build_messages(system_prompt: str, context_msgs: List[Dict], query: str) -> List[Dict[str, Any]]:
