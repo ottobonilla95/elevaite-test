@@ -180,8 +180,8 @@ class TestA2AAgentExecution:
             mock_session.exec.return_value.first.return_value = mock_a2a_agent
             mock_session_cls.return_value = mock_session
 
-            # Mock the A2A client streaming
-            with patch("llm_gateway.a2a.A2AClientService") as mock_client_cls:
+            # Mock the A2A client streaming - patch at module level where it's imported
+            with patch("workflow_core_sdk.steps.ai_steps.A2AClientService") as mock_client_cls:
                 mock_client = MagicMock()
                 mock_client_cls.return_value = mock_client
 
@@ -243,7 +243,8 @@ class TestA2AAgentExecution:
             mock_session.exec.return_value.first.return_value = mock_a2a_agent
             mock_session_cls.return_value = mock_session
 
-            with patch("llm_gateway.a2a.A2AClientService") as mock_client_cls:
+            # Patch at module level where it's imported
+            with patch("workflow_core_sdk.steps.ai_steps.A2AClientService") as mock_client_cls:
                 mock_client = MagicMock()
                 mock_client_cls.return_value = mock_client
 

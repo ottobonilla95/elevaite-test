@@ -10,16 +10,20 @@ import asyncio
 import json
 import time
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Callable, Union
+from typing import Dict, Any, List, Optional, Callable, Union, Tuple
 import logging
 
 # Import tools system
+from llm_gateway.a2a.client import A2AClientService
+from llm_gateway.a2a.types import A2AAgentInfo, A2AAuthConfig, A2AMessageRequest
+from workflow_core_sdk.db.service import DatabaseService
 from workflow_core_sdk.tools.registry import tool_registry
 from workflow_core_sdk.tools.basic_tools import get_tool_by_name as get_tool_function
+from ..db.database import get_db_session
+from workflow_core_sdk import AgentsService
 
 # DB access for dynamic agent tools
 from sqlmodel import select
-from workflow_core_sdk.db.database import get_db_session
 from workflow_core_sdk.db.models import (
     Agent as DBAgent,
     Prompt as DBPrompt,
@@ -32,10 +36,22 @@ from workflow_core_sdk.execution_context import ExecutionContext, StepResult, St
 # Streaming utilities
 from workflow_core_sdk.execution.streaming import stream_manager, create_step_event
 
+# Import llm-gateway components
+from llm_gateway.services import (
+    TextGenerationService,
+    RequestType,
+    UniversalService,
+)
+from llm_gateway.models.text_generation.core.interfaces import (
+    TextGenerationType,
+    TextGenerationModelName,
+)
+
 # Initialize logger first
 logger = logging.getLogger(__name__)
 
 MAX_AGENT_RECURSION_DEPTH = 5
+LLM_GATEWAY_AVAILABLE = True
 
 # -------- DB helper: load DB-defined tools for an agent and convert to OpenAI tool schemas --------
 
@@ -143,27 +159,6 @@ def resolve_tool_schemas_by_names(tool_names: List[str]) -> List[Dict[str, Any]]
         logger.debug(f"Failed resolving DB tools by names {remaining}: {e}")
 
     return resolved
-
-
-# Import llm-gateway components
-try:
-    from llm_gateway.services import (
-        TextGenerationService,
-        RequestType,
-        UniversalService,
-    )
-    from llm_gateway.models.text_generation.core.interfaces import (
-        TextGenerationType,
-        TextGenerationModelName,
-    )
-
-    LLM_GATEWAY_AVAILABLE = True
-except ImportError as e:
-    logger.error(f"llm-gateway not available: {e}")
-    LLM_GATEWAY_AVAILABLE = False
-except Exception as e:
-    logger.error(f"llm-gateway configuration error: {e}")
-    LLM_GATEWAY_AVAILABLE = False
 
 
 class AgentStep:
@@ -740,6 +735,7 @@ class AgentStep:
         - Supports both sync and async tool functions
         """
         import time
+        function_args = None
 
         try:
             # === DETAILED LOGGING FOR DEBUGGING TOOL CALL STRUCTURE ===
@@ -887,8 +883,6 @@ class AgentStep:
                     workflow_id = context.get("_workflow_id")
                     step_id = context.get("_step_id")
                     if execution_id and step_id:
-                        from ..execution.streaming import create_step_event, stream_manager
-
                         tool_call_event = create_step_event(
                             execution_id=execution_id,
                             step_id=step_id,
@@ -929,8 +923,6 @@ class AgentStep:
                     workflow_id = context.get("_workflow_id")
                     step_id = context.get("_step_id")
                     if execution_id and step_id:
-                        from ..execution.streaming import create_step_event, stream_manager
-
                         tool_response_event = create_step_event(
                             execution_id=execution_id,
                             step_id=step_id,
@@ -977,6 +969,95 @@ class AgentStep:
             }
 
 
+def _build_messages(system_prompt: str, context_msgs: List[Dict], query: str) -> List[Dict[str, Any]]:
+    """Build LLM messages array from system prompt, context, and query."""
+    messages: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt or "You are a helpful assistant."}]
+    if isinstance(context_msgs, list):
+        for m in context_msgs:
+            if isinstance(m, dict) and "role" in m and "content" in m and m.get("role") != "system":
+                msg = {"role": str(m["role"]), "content": str(m["content"])}
+                # Preserve tool_calls for assistant messages
+                if m.get("role") == "assistant" and m.get("tool_calls"):
+                    msg["tool_calls"] = m["tool_calls"]
+                # Preserve tool_call_id for tool messages
+                if m.get("role") == "tool" and m.get("tool_call_id"):
+                    msg["tool_call_id"] = m["tool_call_id"]
+                messages.append(msg)
+    # Ensure last message is the current query (avoid duplicates)
+    if not (messages and messages[-1].get("role") == "user" and messages[-1].get("content") == query):
+        messages.append({"role": "user", "content": query})
+    return messages
+
+
+async def _stream_llm_response(
+    messages: List[Dict],
+    llm_params: Dict[str, Any],
+    tools: Optional[List] = None,
+    step_id: str = "",
+    execution_context: Optional[ExecutionContext] = None,
+    visible_to_user: bool = True,
+) -> Tuple[str, List[Dict], Optional[str]]:
+    """Stream LLM response and emit delta events. Returns (content, tool_calls, finish_reason)."""
+    import functools
+
+    provider_config = {"type": "openai_textgen"}
+    model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
+    svc = TextGenerationService()  # type: ignore
+
+    stream_gen = svc.stream(
+        "",  # prompt not used when messages provided
+        provider_config,
+        llm_params.get("max_tokens", 4096),
+        model_name,
+        "",  # sys_msg already in messages
+        None,  # retries
+        llm_params.get("temperature"),
+        tools,
+        "auto" if tools else None,
+        messages,
+        llm_params.get("response_format"),
+    )
+
+    collected = ""
+    tool_calls = []
+    finish_reason = None
+
+    while True:
+        try:
+            event = await asyncio.get_event_loop().run_in_executor(None, functools.partial(next, stream_gen))
+        except StopIteration:
+            break
+
+        event_type = event.get("type")
+        if event_type == "delta":
+            delta = event.get("text", "")
+            collected += delta
+            if step_id and execution_context:
+                try:
+                    evt = create_step_event(
+                        execution_id=execution_context.execution_id,
+                        step_id=step_id,
+                        step_status="running",
+                        workflow_id=execution_context.workflow_id,
+                        output_data={"delta": delta, "accumulated_len": len(collected), "visible_to_user": visible_to_user},
+                    )
+                    await stream_manager.emit_execution_event(evt)
+                    if execution_context.workflow_id:
+                        await stream_manager.emit_workflow_event(evt)
+                except Exception:
+                    pass
+        elif event_type == "final":
+            tool_calls = event.get("tool_calls", [])
+            finish_reason = event.get("finish_reason")
+            # Get final text if available
+            final_resp = event.get("response", {})
+            if final_resp.get("text"):
+                collected = final_resp["text"]
+            break
+
+    return collected, tool_calls, finish_reason
+
+
 async def _execute_a2a_agent(
     step_config: Dict[str, Any],
     input_data: Dict[str, Any],
@@ -993,12 +1074,6 @@ async def _execute_a2a_agent(
 
     from ..db.database import engine
     from ..db.models.a2a_agents import A2AAgent, A2AAgentStatus, A2AAuthType
-
-    try:
-        from llm_gateway.a2a import A2AClientService
-        from llm_gateway.a2a.types import A2AAgentInfo, A2AAuthConfig, A2AMessageRequest
-    except ImportError:
-        return {"success": False, "error": "llm-gateway package is required for A2A"}
 
     config = step_config.get("config", {}) or {}
     a2a_agent_id = config.get("a2a_agent_id", "")
@@ -1135,9 +1210,6 @@ async def agent_execution_step(
 
     if agent_id:
         try:
-            from ..db.database import get_db_session
-            from workflow_core_sdk import AgentsService
-
             session = get_db_session()
             try:
                 db_agent = AgentsService.get_agent(session, agent_id)
@@ -1213,9 +1285,6 @@ async def agent_execution_step(
         # Step-scoped messages (interactive chat)
         step_msgs = []
         try:
-            from ..db.service import DatabaseService
-            from ..db.database import get_db_session
-
             session = get_db_session()
             try:
                 dbs = DatabaseService()
@@ -1338,9 +1407,6 @@ async def agent_execution_step(
     # Load and register agent tools from functions array
     if agent_tool_ids:
         try:
-            from ..db.database import get_db_session
-            from workflow_core_sdk import AgentsService
-
             session = get_db_session()
             try:
                 for agent_id in agent_tool_ids:
@@ -1413,34 +1479,17 @@ async def agent_execution_step(
     except Exception:
         pass
 
-    # Execute query, optionally streaming deltas (genuine streaming via llm-gateway when available)
+    # Execute query, optionally streaming deltas
     stream_enabled = bool(config.get("stream", False))
-    visible_to_user = config.get("visible_to_user", True)  # Default to visible
-    accumulated = ""
+    visible_to_user = config.get("visible_to_user", True)
+    result = {}
+    sid = step_config.get("step_id") or ""
+
     if stream_enabled:
         try:
-            backend = step_config.get("_backend")
-            # If tools are available, or backend is DBOS (for now), fall back to pseudo/one-shot to ensure progress
-            llm_tools_for_agent = load_agent_db_tool_schemas(agent_name=agent_name)
-            # Also check for agent tools (from functions array)
-            has_agent_tools = len(agent._dynamic_agent_tools) > 0
-            if llm_tools_for_agent or has_agent_tools or backend == "dbos":
-                # True streaming with tool support - multi-turn conversation
-                # llm-gateway now supports streaming with tool calls
-
-                # Build messages array
-                messages: List[Dict[str, Any]] = []
-                sys_msg_val = system_prompt or "You are a helpful assistant."
-                messages.append({"role": "system", "content": sys_msg_val})
-
-                ctx_msgs = input_data.get("messages") or input_data.get("chat_history")
-                if isinstance(ctx_msgs, list):
-                    for m in ctx_msgs:
-                        if isinstance(m, dict) and "role" in m and "content" in m:
-                            if m.get("role") != "system":
-                                messages.append({"role": str(m["role"]), "content": str(m["content"])})
-                if not (messages and messages[-1].get("role") == "user" and messages[-1].get("content") == query):
-                    messages.append({"role": "user", "content": query})
+            # Prepare messages and tools
+            ctx_msgs = input_data.get("messages") or input_data.get("chat_history") or []
+            messages = _build_messages(system_prompt, ctx_msgs, query)
 
                 # LLM params
                 _llm = input_data.get("_llm_params", {}) if isinstance(input_data, dict) else {}
@@ -1862,7 +1911,7 @@ async def agent_execution_step(
                     except Exception:
                         pass
         except Exception as _se:
-            logger.debug(f"Streaming emission failed, falling back to non-streaming: {_se}")
+            logger.debug(f"Streaming failed, falling back to non-streaming: {_se}")
             result = await agent.execute(query, context=input_data)
     else:
         result = await agent.execute(query, context=input_data)
@@ -1885,9 +1934,6 @@ async def agent_execution_step(
     # Persist assistant response to DB as a message for this step
     logger.info("=== STARTING DB PERSISTENCE ===")
     try:
-        from ..db.service import DatabaseService
-        from ..db.database import get_db_session
-
         sid = step_config.get("step_id")
         if sid and isinstance(result, dict):
             assistant_content = result.get("response") or result.get("output")
