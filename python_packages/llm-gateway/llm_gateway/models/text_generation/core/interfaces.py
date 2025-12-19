@@ -20,12 +20,33 @@ class TextGenerationModelName(str, Enum):
     BEDROCK_llama3_3_70b_instruct_v1 = "meta.llama3-3-70b-instruct-v1:0"
 
 
+class ToolCallFunction(BaseModel):
+    """OpenAI-style function object within a ToolCall."""
+
+    name: str
+    arguments: str  # JSON string of arguments
+
+    model_config = {"frozen": True}
+
+
 class ToolCall(BaseModel):
-    """Represents a tool/function call from the LLM"""
+    """Represents a tool/function call from the LLM.
+
+    Provides both direct access (tc.name, tc.arguments) and OpenAI-style
+    access (tc.function.name, tc.function.arguments) for compatibility.
+    """
 
     id: str
     name: str
     arguments: Dict[str, Any]
+
+    @property
+    def function(self) -> ToolCallFunction:
+        """OpenAI-compatible function accessor."""
+        import json
+
+        args_str = json.dumps(self.arguments) if isinstance(self.arguments, dict) else str(self.arguments)
+        return ToolCallFunction(name=self.name, arguments=args_str)
 
 
 class TextGenerationResponse(BaseModel):

@@ -10,14 +10,13 @@ import asyncio
 import json
 import time
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Callable, Union, Tuple
+from typing import Dict, Any, List, Optional, Union, Tuple
 import logging
 
 # Import tools system
 from llm_gateway.a2a.client import A2AClientService
 from llm_gateway.a2a.types import A2AAgentInfo, A2AAuthConfig, A2AMessageRequest
 from workflow_core_sdk.db.service import DatabaseService
-from workflow_core_sdk.tools.registry import tool_registry
 from workflow_core_sdk.tools.basic_tools import get_tool_by_name as get_tool_function
 from ..db.database import get_db_session
 from workflow_core_sdk import AgentsService
@@ -31,21 +30,14 @@ from workflow_core_sdk.db.models import (
     Tool as DBTool,
 )
 
-from workflow_core_sdk.execution_context import ExecutionContext, StepResult, StepStatus, ExecutionStatus
+from workflow_core_sdk.execution_context import ExecutionContext
 
 # Streaming utilities
 from workflow_core_sdk.execution.streaming import stream_manager, create_step_event
 
 # Import llm-gateway components
-from llm_gateway.services import (
-    TextGenerationService,
-    RequestType,
-    UniversalService,
-)
-from llm_gateway.models.text_generation.core.interfaces import (
-    TextGenerationType,
-    TextGenerationModelName,
-)
+from llm_gateway.services import TextGenerationService
+from llm_gateway.models.text_generation.core.interfaces import TextGenerationModelName
 
 # Initialize logger first
 logger = logging.getLogger(__name__)
@@ -251,6 +243,36 @@ async def _emit_tool_event(
             await stream_manager.emit_workflow_event(evt)
     except Exception as e:
         logger.warning(f"Failed to emit {event_type} event: {e}")
+
+
+def _extract_tool_call_info(tc: Any) -> Tuple[str, str, Dict[str, Any]]:
+    """Extract (id, name, arguments) from a tool call object.
+
+    Handles both our ToolCall class (tc.name, tc.arguments) and OpenAI raw
+    format (tc.function.name, tc.function.arguments).
+    """
+    # Get id
+    tc_id = getattr(tc, "id", None) or getattr(tc, "tool_call_id", None) or str(uuid.uuid4())
+
+    # Get name - prefer direct, fall back to .function
+    fn_name = getattr(tc, "name", None)
+    if fn_name is None and hasattr(tc, "function"):
+        fn_name = getattr(tc.function, "name", None)
+
+    # Get arguments - prefer direct, fall back to .function
+    fn_args = getattr(tc, "arguments", None)
+    if fn_args is None and hasattr(tc, "function"):
+        fn_args = getattr(tc.function, "arguments", None)
+
+    # Normalize to dict
+    if isinstance(fn_args, str):
+        try:
+            fn_args = json.loads(fn_args)
+        except Exception:
+            fn_args = {}
+    fn_args = fn_args or {}
+
+    return tc_id, fn_name or "unknown", fn_args
 
 
 class AgentStep:
@@ -641,17 +663,10 @@ class AgentStep:
                 # Build assistant message with tool_calls
                 assistant_message: Dict[str, Any] = {"role": "assistant", "tool_calls": []}
                 for tc in response.tool_calls or []:
-                    tc_id = getattr(tc, "id", None) or getattr(tc, "tool_call_id", None) or str(uuid.uuid4())
-                    fn_name = getattr(tc, "name", None) or (
-                        getattr(tc.function, "name", None) if hasattr(tc, "function") else None
-                    )
-                    fn_args = getattr(tc, "arguments", None) or (
-                        getattr(tc.function, "arguments", None) if hasattr(tc, "function") else None
-                    )
-                    if isinstance(fn_args, dict):
-                        fn_args = json.dumps(fn_args)
+                    tc_id, fn_name, fn_args = _extract_tool_call_info(tc)
+                    args_str = json.dumps(fn_args) if isinstance(fn_args, dict) else str(fn_args)
                     assistant_message["tool_calls"].append(
-                        {"id": tc_id, "type": "function", "function": {"name": fn_name, "arguments": fn_args or "{}"}}
+                        {"id": tc_id, "type": "function", "function": {"name": fn_name, "arguments": args_str}}
                     )
                 messages.append(assistant_message)
 
@@ -705,11 +720,11 @@ class AgentStep:
                         else:
                             content = f"Error: {tool_result.get('error', 'Unknown error')}"
                     except Exception as e:
-                        tool_calls_trace.append({"tool_name": fn_name or "unknown", "success": False, "error": str(e)[:400]})
+                        tool_calls_trace.append({"tool_name": fn_name, "success": False, "error": str(e)[:400]})
                         content = f"Error: {e}"
 
                     messages.append({"role": "tool", "tool_call_id": tc_id, "content": content})
-                    _persist_message(context, "tool", content, {"tool_call_id": tc_id, "tool_name": fn_name})
+                    _persist_message(context, "tool", str(content), {"tool_call_id": tc_id, "tool_name": fn_name})
 
             # Max iterations reached
             return {
@@ -884,9 +899,8 @@ class AgentStep:
             }
 
         except Exception as e:
-            tool_name = getattr(tool_call, "name", getattr(getattr(tool_call, "function", None), "name", "unknown"))
-            logger.error(f"Tool execution failed for {tool_name}: {e}")
-            return {"tool_name": tool_name, "error": str(e), "success": False, "arguments": function_args}
+            logger.error(f"Tool execution failed for {function_name}: {e}")
+            return {"tool_name": function_name, "error": str(e), "success": False, "arguments": function_args}
 
 
 def _build_messages(system_prompt: str, context_msgs: List[Dict], query: str) -> List[Dict[str, Any]]:
