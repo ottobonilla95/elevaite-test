@@ -980,11 +980,12 @@ class AgentStep:
 async def _execute_a2a_agent(
     step_config: Dict[str, Any],
     input_data: Dict[str, Any],
-    execution_context: ExecutionContext,  # noqa: ARG001 - reserved for future use
+    execution_context: ExecutionContext,
 ) -> Dict[str, Any]:
     """Execute an external A2A agent.
 
     This is called from agent_execution_step when a2a_agent_id is provided.
+    Supports streaming when config.stream is True.
     """
     from uuid import UUID
 
@@ -1001,6 +1002,8 @@ async def _execute_a2a_agent(
 
     config = step_config.get("config", {}) or {}
     a2a_agent_id = config.get("a2a_agent_id", "")
+    stream = config.get("stream", False)
+    step_id = step_config.get("step_id") or ""
 
     # Get query from template or input_data
     query = config.get("query", "")
@@ -1044,21 +1047,52 @@ async def _execute_a2a_agent(
         task_id=config.get("task_id") or input_data.get("task_id"),
     )
 
-    # Execute
-    try:
-        response = await A2AClientService().send_message(agent_info, request)
+    # Helper to build response dict from A2AMessageResponse
+    def build_response(resp):
         return {
             "success": True,
-            "response": response.content or "",
-            "task_id": response.task.task_id if response.task else None,
-            "context_id": response.task.context_id if response.task else None,
-            "is_complete": response.is_complete,
-            "artifacts": response.artifacts,
-            "error": response.error,
+            "response": resp.content or "",
+            "task_id": resp.task.task_id if resp.task else None,
+            "context_id": resp.task.context_id if resp.task else None,
+            "is_complete": resp.is_complete,
+            "artifacts": resp.artifacts,
+            "error": resp.error,
             "agent_name": agent.name,
             "a2a_agent_id": str(agent.id),
             "mode": "a2a",
         }
+
+    # Execute
+    try:
+        client = A2AClientService()
+
+        if not (stream and step_id):
+            return build_response(await client.send_message(agent_info, request))
+
+        # Streaming mode - emit deltas via SSE
+        accumulated = ""
+        response = None
+
+        async for response in client.stream_message(agent_info, request):
+            new_content = response.content or ""
+            if len(new_content) > len(accumulated):
+                delta = new_content[len(accumulated) :]
+                accumulated = new_content
+                evt = create_step_event(
+                    execution_id=execution_context.execution_id,
+                    step_id=step_id,
+                    step_status="running",
+                    workflow_id=execution_context.workflow_id,
+                    output_data={"delta": delta, "accumulated_len": len(accumulated)},
+                )
+                await stream_manager.emit_execution_event(evt)
+                if execution_context.workflow_id:
+                    await stream_manager.emit_workflow_event(evt)
+
+        if response:
+            return build_response(response)
+        return {"success": False, "error": "No response from A2A agent", "a2a_agent_id": str(agent.id)}
+
     except Exception as e:
         logger.error(f"A2A agent execution failed: {e}")
         return {"success": False, "error": str(e), "a2a_agent_id": str(agent.id)}

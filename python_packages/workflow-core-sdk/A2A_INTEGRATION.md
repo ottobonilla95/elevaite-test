@@ -41,11 +41,17 @@ This document tracks the progress of integrating Google's A2A protocol for exter
 - [x] Uses `A2AClientService` for remote communication
 - [x] Consistent response format with built-in agents
 
-### 6. Tests
+### 6. Streaming Support
+
+- [x] SSE streaming in `_execute_a2a_agent()` via `stream_manager`
+- [x] Delta events emitted during A2A streaming responses
+- [x] Enabled via `config.stream: true` in step config
+
+### 7. Tests
 
 - [x] 16 tests for A2A client (`llm_gateway/tests/test_a2a_client.py`)
 - [x] 22 tests for A2A agents service (`workflow_core_sdk/tests/services/test_a2a_agents_service.py`)
-- [x] 4 tests for A2A agent execution (`workflow_core_sdk/tests/steps/test_a2a_agent_execution.py`)
+- [x] 6 tests for A2A agent execution (`workflow_core_sdk/tests/steps/test_a2a_agent_execution.py`)
 
 ## TODO
 
@@ -56,7 +62,7 @@ This document tracks the progress of integrating Google's A2A protocol for exter
 
 ### Streaming
 
-- [ ] Add SSE streaming support in `_execute_a2a_agent()` when needed
+- [x] ~~Add SSE streaming support in `_execute_a2a_agent()` when needed~~ (completed)
 
 ### Frontend
 
