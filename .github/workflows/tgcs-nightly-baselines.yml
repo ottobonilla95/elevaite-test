@@ -2,6 +2,8 @@
 # That way PR builds only need to build the components that have changed within the PR.
 # Images are tagged "latest-baseline", and "baseline-{run-id}"
 #
+# Runs nightly on the 'develop' branch, but builds the latest code from the 'tgcs-main' branch.
+#
 # IMPORTANT:
 #  Only the version of this workflow on the 'develop' branch takes any effect because scheduled workflows always
 #  run from the primary branch.
@@ -26,7 +28,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Don't build UI component because it needs extra env-specific parameters and must always be built for each deployment.
+          # frontend services
+          # - Don't build UI components because they needs extra env-specific parameters and must always be built for each deployment.
 
           # backend services
           - name: api
@@ -34,41 +37,49 @@ jobs:
             dockerfile: python_apps/toshiba_backends/toshiba_backend/Dockerfile
             image: elevaite-toshiba-backend
             context: python_apps/toshiba_backends/toshiba_backend
-          - name: analytics-api
-            kind: svc
-            dockerfile: python_apps/toshiba_backends/analytics_backend/Dockerfile
-            image: elevaite-toshiba-analytics-backend
-            context: python_apps/toshiba_backends/analytics_backend
-          - name: toshiba_data_schema
-            kind: svc
-            dockerfile: python_apps/toshiba_backends/toshiba_data_schema/Dockerfile
-            image: elevaite-toshiba-data-schema
-            context: python_apps/toshiba_backends/toshiba_data_schema
+
           - name: auth
             kind: svc
             dockerfile: python_apps/auth_api/Dockerfile
             image: elevaite-auth-api
             context: .
+
+          - name: analytics-api
+            kind: svc
+            dockerfile: python_apps/toshiba_backends/analytics_backend/Dockerfile
+            image: elevaite-toshiba-analytics-backend
+            context: python_apps/toshiba_backends/analytics_backend
+
+          - name: bom-mapping-api
+            kind: svc
+            dockerfile: python_apps/toshiba_backends/bom_mapping_api/Dockerfile
+            image: elevaite-toshiba-bom-mapping-api
+            context: python_apps/toshiba_backends/bom_mapping_api
+
           - name: sql-retriever
             kind: svc
             dockerfile: python_apps/toshiba_backends/sql_retriever/Dockerfile
             image: elevaite-toshiba-sql-retriever
             context: python_apps/toshiba_backends/sql_retriever
+
           - name: tgcs-retriever
             kind: svc
             dockerfile: python_apps/toshiba_backends/tgcs_retriever/Dockerfile
             image: elevaite-toshiba-tgcs-retriever
             context: python_apps/toshiba_backends/tgcs_retriever
+
           - name: topgun-retriever
             kind: svc
             dockerfile: python_apps/toshiba_backends/top_gun_retriever/Dockerfile
             image: elevaite-toshiba-topgun-retriever
             context: python_apps/toshiba_backends/top_gun_retriever
+
           - name: power-retriever
             kind: svc
             dockerfile: python_apps/toshiba_backends/power_retriever/Dockerfile
             image: elevaite-toshiba-power-retriever
             context: python_apps/toshiba_backends/power_retriever
+
           - name: video-retriever
             kind: svc
             dockerfile: python_apps/toshiba_backends/video_retriever/Dockerfile
@@ -76,7 +87,7 @@ jobs:
             context: python_apps/toshiba_backends/video_retriever
 
     steps:
-      # note: must run against the main branch, because the 'release' branch can be behind and either
+      # note: must run against the TGCS main branch, because the 'release' branch can be behind and either
       # not have newly added components present or be missing important changes needed in PR builds.
       - uses: actions/checkout@v4
         with:
