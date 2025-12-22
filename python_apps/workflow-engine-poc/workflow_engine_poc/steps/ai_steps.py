@@ -717,36 +717,62 @@ async def agent_execution_step(
     - query: Query to execute (can use template variables)
     - tools: List of tools available to the agent
     - force_real_llm: Force use of real LLM even without full config
+    - a2a_agent_id: UUID of an external A2A agent (if provided, uses A2A protocol)
     """
 
-    _ = execution_context  # currently unused, reserved for future scoping/analytics
     config = step_config.get("config", {})
+
+    # Enrich input_data with variables from step_io_data for template interpolation
+    # This must happen BEFORE the A2A check so A2A agents can use template interpolation
+    try:
+        if isinstance(input_data, dict):
+            # Add scalar values from step_io_data (e.g., name, order_id from input_data in execution payload)
+            for key, value in execution_context.step_io_data.items():
+                if key not in input_data and isinstance(value, (str, int, float, bool)):
+                    input_data[key] = value
+
+            # Ensure current_message is available from Trigger output if not present
+            if "current_message" not in input_data:
+                # Prefer normalized trigger; fallback to raw payload seeded by router
+                trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+                if isinstance(trig, dict):
+                    # Direct current_message if present
+                    cm = trig.get("current_message")
+                    if isinstance(cm, str) and cm:
+                        input_data["current_message"] = cm
+                    # Else walk messages for last user content
+                    msgs = trig.get("messages") or []
+                    if isinstance(msgs, list) and msgs and "current_message" not in input_data:
+                        for m in reversed(msgs):
+                            if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
+                                input_data["current_message"] = m["content"]
+                                break
+    except Exception as e:
+        logger.debug(f"Could not enrich input_data from step_io_data: {e}")
+
+    # Check if this is an A2A agent execution - delegate to SDK implementation
+    a2a_agent_id = config.get("a2a_agent_id")
+    if a2a_agent_id:
+        from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
+        from workflow_core_sdk.execution_context import ExecutionContext as SDKExecutionContext, UserContext
+
+        # Convert POC execution context to SDK execution context
+        sdk_context = SDKExecutionContext(
+            workflow_config=execution_context.workflow_config,
+            user_context=UserContext(
+                user_id=execution_context.user_context.user_id if execution_context.user_context else None,
+                session_id=execution_context.user_context.session_id if execution_context.user_context else None,
+                organization_id=execution_context.user_context.organization_id if execution_context.user_context else None,
+            ),
+            execution_id=execution_context.execution_id,
+        )
+        return await _execute_a2a_agent(step_config, input_data, sdk_context)
 
     # Get agent configuration
     agent_name = config.get("agent_name", "Assistant")
     system_prompt = config.get("system_prompt", "You are a helpful assistant.")
     query_template = config.get("query", "")
     force_real_llm = config.get("force_real_llm", False)
-
-    # Ensure current_message is available from Trigger output if not present
-    try:
-        if isinstance(input_data, dict) and "current_message" not in input_data:
-            # Prefer normalized trigger; fallback to raw payload seeded by router
-            trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
-            if isinstance(trig, dict):
-                # Direct current_message if present
-                cm = trig.get("current_message")
-                if isinstance(cm, str) and cm:
-                    input_data["current_message"] = cm
-                # Else walk messages for last user content
-                msgs = trig.get("messages") or []
-                if isinstance(msgs, list) and msgs:
-                    for m in reversed(msgs):
-                        if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
-                            input_data["current_message"] = m["content"]
-                            break
-    except Exception as e:
-        logger.debug(f"Could not derive current_message from trigger: {e}")
 
     # Include chat history/messages: prefer step-specific messages if present, else Trigger
     try:

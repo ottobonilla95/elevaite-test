@@ -345,6 +345,11 @@ async def execute_workflow_by_id(
                 # Use background_tasks for async execution
                 background_tasks.add_task(workflow_engine.execute_workflow, execution_context)
 
+        # Commit and refresh session to see updates from workflow engine (which uses its own session)
+        # The workflow engine commits in a separate session, so we need to end our transaction
+        # to see those changes in SQLite (which has different isolation than PostgreSQL)
+        session.commit()
+
         # Return the execution as response
         created = WorkflowsService.get_execution(session, execution_id)
         assert created is not None

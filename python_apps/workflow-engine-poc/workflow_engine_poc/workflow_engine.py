@@ -102,7 +102,7 @@ class WorkflowEngine:
                 # Persist final status and step I/O snapshot to DB for API reads
                 try:
                     from sqlmodel import Session as _SQLSession
-                    from .db.database import engine as _engine
+                    from . import db as _db_module
                     from .db.service import DatabaseService as _DBS
 
                     seconds = None
@@ -112,8 +112,10 @@ class WorkflowEngine:
                     except Exception:
                         pass
 
-                    with _SQLSession(_engine) as _s:
-                        _DBS().update_execution(
+                    logger.info(f"Persisting execution state to engine: {_db_module.database.engine.url}")
+                    logger.info(f"step_io_data keys: {list(execution_context.step_io_data.keys())}")
+                    with _SQLSession(_db_module.database.engine) as _s:
+                        result = _DBS().update_execution(
                             _s,
                             execution_context.execution_id,
                             {
@@ -124,8 +126,9 @@ class WorkflowEngine:
                                 "execution_time_seconds": seconds,
                             },
                         )
+                        logger.info(f"update_execution result: {result}")
                 except Exception as _persist_e:
-                    logger.warning(f"Failed to persist final execution state: {_persist_e}")
+                    logger.warning(f"Failed to persist final execution state: {_persist_e}", exc_info=True)
 
                 # Persist workflow-level analytics rollup (tokens-only)
                 try:
