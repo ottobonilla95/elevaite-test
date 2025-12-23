@@ -5,12 +5,13 @@ Uses the official a2a-sdk to connect to and communicate with A2A-compliant agent
 
 import logging
 import uuid
-from typing import Any, AsyncIterator, Dict
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
-from a2a.client import A2ACardResolver, ClientConfig, ClientFactory
+from a2a.client import A2ACardResolver, ClientCallInterceptor, ClientConfig, ClientFactory
 from a2a.types import AgentCard, Message, Part, Role, TaskState, TextPart
 
+from .auth import create_auth_interceptor
 from .types import A2AAgentInfo, A2AMessageRequest, A2AMessageResponse, A2ATaskInfo
 
 
@@ -43,6 +44,29 @@ class A2AClientService:
         """
         self._default_timeout = default_timeout
         self._card_cache: Dict[str, AgentCard] = {}
+        self._interceptor_cache: Dict[str, ClientCallInterceptor] = {}
+
+    def _get_interceptors(self, agent: A2AAgentInfo) -> Optional[List[ClientCallInterceptor]]:
+        """Get authentication interceptors for an agent.
+
+        Args:
+            agent: Agent connection information with auth config.
+
+        Returns:
+            List of interceptors, or None if no auth is configured.
+        """
+        if not agent.auth or agent.auth.auth_type == "none":
+            return None
+
+        # Cache interceptors by base_url to reuse OAuth2 token state
+        cache_key = agent.base_url
+        if cache_key not in self._interceptor_cache:
+            interceptor = create_auth_interceptor(agent.auth)
+            if interceptor:
+                self._interceptor_cache[cache_key] = interceptor
+
+        interceptor = self._interceptor_cache.get(cache_key)
+        return [interceptor] if interceptor else None
 
     async def get_agent_card(
         self,
@@ -93,7 +117,12 @@ class A2AClientService:
             accepted_output_modes=request.accepted_output_modes or ["text"],
         )
 
-        client = await ClientFactory.connect(agent.base_url, client_config=config)
+        interceptors = self._get_interceptors(agent)
+        client = await ClientFactory.connect(
+            agent.base_url,
+            client_config=config,
+            interceptors=interceptors,
+        )
         message = _create_message(request.content, request.context_id, request.task_id)
 
         response = A2AMessageResponse()
@@ -112,7 +141,12 @@ class A2AClientService:
             accepted_output_modes=request.accepted_output_modes or ["text"],
         )
 
-        client = await ClientFactory.connect(agent.base_url, client_config=config)
+        interceptors = self._get_interceptors(agent)
+        client = await ClientFactory.connect(
+            agent.base_url,
+            client_config=config,
+            interceptors=interceptors,
+        )
         message = _create_message(request.content, request.context_id, request.task_id)
 
         response = A2AMessageResponse()
@@ -197,7 +231,12 @@ class A2AClientService:
         """Get the current status of a task."""
         from a2a.types import TaskQueryParams
 
-        client = await ClientFactory.connect(agent.base_url, client_config=ClientConfig(streaming=False))
+        interceptors = self._get_interceptors(agent)
+        client = await ClientFactory.connect(
+            agent.base_url,
+            client_config=ClientConfig(streaming=False),
+            interceptors=interceptors,
+        )
         task = await client.get_task(TaskQueryParams(id=task_id))
 
         return A2ATaskInfo(
@@ -211,7 +250,12 @@ class A2AClientService:
         """Cancel a running task."""
         from a2a.types import TaskIdParams
 
-        client = await ClientFactory.connect(agent.base_url, client_config=ClientConfig(streaming=False))
+        interceptors = self._get_interceptors(agent)
+        client = await ClientFactory.connect(
+            agent.base_url,
+            client_config=ClientConfig(streaming=False),
+            interceptors=interceptors,
+        )
         task = await client.cancel_task(TaskIdParams(id=task_id))
 
         return A2ATaskInfo(

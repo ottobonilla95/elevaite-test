@@ -19,6 +19,7 @@ from llm_gateway.a2a.types import A2AAgentInfo, A2AAuthConfig, A2AMessageRequest
 from workflow_core_sdk.db.service import DatabaseService
 from workflow_core_sdk.tools.basic_tools import get_tool_by_name as get_tool_function
 from ..db.database import get_db_session
+from ..utils import decrypt_if_encrypted
 from workflow_core_sdk import AgentsService
 
 # DB access for dynamic agent tools
@@ -1048,10 +1049,12 @@ async def _execute_a2a_agent(
     except Exception as e:
         return {"success": False, "error": f"Failed to fetch A2A agent: {e}"}
 
-    # Build client request
+    # Build client request - decrypt auth_config if encrypted
     auth = None
     if agent.auth_type != A2AAuthType.NONE and agent.auth_config:
-        auth = A2AAuthConfig(auth_type=agent.auth_type.value, **agent.auth_config)
+        decrypted_config = decrypt_if_encrypted(agent.auth_config)
+        if decrypted_config:
+            auth = A2AAuthConfig(auth_type=agent.auth_type.value, credentials=decrypted_config)
 
     agent_info = A2AAgentInfo(
         base_url=agent.base_url,

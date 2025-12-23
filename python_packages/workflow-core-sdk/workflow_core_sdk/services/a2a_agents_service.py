@@ -6,6 +6,7 @@ Provides CRUD operations for A2A agents, Agent Card fetching, and health check m
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -14,6 +15,10 @@ from uuid import UUID
 from sqlmodel import Session, select
 
 from ..db.models import A2AAgent, A2AAgentCreate, A2AAgentStatus, A2AAgentUpdate
+from ..utils import decrypt_if_encrypted, encrypt_if_configured
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -64,8 +69,14 @@ class A2AAgentsService:
         if existing:
             raise ValueError(f"A2A agent with base_url '{payload.base_url}' already exists")
 
+        # Encrypt auth_config if encryption is configured
+        agent_data = payload.model_dump()
+        if agent_data.get("auth_config"):
+            encrypted = encrypt_if_configured(agent_data["auth_config"])
+            agent_data["auth_config"] = encrypted
+
         db_agent = A2AAgent(
-            **payload.model_dump(),
+            **agent_data,
             created_by=created_by,
         )
         session.add(db_agent)
@@ -117,6 +128,22 @@ class A2AAgentsService:
         return session.exec(select(A2AAgent).where(A2AAgent.id == UUID(agent_id))).first()
 
     @staticmethod
+    def get_decrypted_auth_config(agent: A2AAgent) -> Optional[Dict[str, Any]]:
+        """Get decrypted auth_config for an agent.
+
+        This method handles both encrypted and plaintext auth_config.
+
+        Args:
+            agent: The A2AAgent to get credentials for.
+
+        Returns:
+            Decrypted auth_config dict, or None if not configured.
+        """
+        if not agent.auth_config:
+            return None
+        return decrypt_if_encrypted(agent.auth_config)
+
+    @staticmethod
     def get_agent_by_base_url(
         session: Session,
         base_url: str,
@@ -160,7 +187,14 @@ class A2AAgentsService:
         if not db_agent:
             raise ValueError("A2A agent not found")
 
-        for key, value in payload.model_dump(exclude_unset=True).items():
+        update_data = payload.model_dump(exclude_unset=True)
+
+        # Encrypt auth_config if being updated and encryption is configured
+        if "auth_config" in update_data and update_data["auth_config"]:
+            encrypted = encrypt_if_configured(update_data["auth_config"])
+            update_data["auth_config"] = encrypted
+
+        for key, value in update_data.items():
             setattr(db_agent, key, value)
 
         session.add(db_agent)
