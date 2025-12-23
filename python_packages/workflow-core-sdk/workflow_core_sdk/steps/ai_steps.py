@@ -526,93 +526,39 @@ class AgentStep:
             ctx_messages = (context or {}).get("messages") or (context or {}).get("chat_history") or []
             messages = _build_messages(sys_msg, ctx_messages, query)
 
-            # Prepare tools
+            # Prepare tools: merge explicit with dynamic agent tools
             dynamic_tools = await self._ensure_dynamic_agent_tools(context)
-            llm_tools = list(self.tools or []) + list(dynamic_tools)
+            llm_tools = (list(self.tools) if self.tools else []) + list(dynamic_tools)
             llm_tools = llm_tools or None
             logger.info(f"🔧 Tools: explicit={len(self.tools or [])}, dynamic={len(dynamic_tools)}")
 
             # Provider config
             config, model_name = _get_provider_config(context)
-            provider_type, model_label = str(config.get("type", "unknown")), str(model_name)
-            # Prepare tools: merge explicit tools with dynamic per-agent tools
-            dynamic_agent_tools = await self._ensure_dynamic_agent_tools(context)
-            explicit_tools = self.tools or []
-            # If neither explicit tools nor dynamic agent tools are provided, pass None (no tools)
-            llm_tools = None
-            if explicit_tools:
-                llm_tools = list(explicit_tools)
-            if dynamic_agent_tools:
-                llm_tools = (llm_tools or []) + list(dynamic_agent_tools)
-
-            # Use agent's provider config from context if available, otherwise default to OpenAI GPT-4o
-            agent_provider_type = context.get("_agent_provider_type") if isinstance(context, dict) else None
-            agent_provider_config = context.get("_agent_provider_config") if isinstance(context, dict) else None
-
-            if agent_provider_type and agent_provider_config:
-                config = {"type": agent_provider_type}
-                model_name_from_config = agent_provider_config.get("model_name", "gpt-4o")
-                # Map model name to TextGenerationModelName enum
-                try:
-                    # Try to find matching enum value
-                    model_name = getattr(TextGenerationModelName, f"OPENAI_{model_name_from_config.replace('-', '_')}", None)
-                    if model_name:
-                        model_name = model_name.value  # type: ignore
-                    else:
-                        # Fallback to string if enum not found
-                        model_name = model_name_from_config
-                        logger.info(f"Using model name as string (not in enum): {model_name}")
-                except Exception as e:
-                    logger.warning(f"Failed to map model name to enum: {e}, using string: {model_name_from_config}")
-                    model_name = model_name_from_config
-                logger.info(f"Using agent provider config: {agent_provider_type}, model: {model_name}")
-            else:
-                # Default provider config
-                config = {"type": "openai_textgen"}
-                # Use GPT-4o as default
-                model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
-                logger.info("Using default provider config: openai_textgen, model: gpt-4o")
-
-            # Multi-turn tool loop with a small cap
-            tool_calls_trace: List[Dict[str, Any]] = []
-            max_tool_iterations = 4
-
-            # Token usage accumulation
-            tokens_in_total = 0
-            tokens_out_total = 0
-            llm_calls = 0
             provider_type = str(config.get("type", "unknown"))
             model_label = str(model_name)
 
-            # Extract file paths for file search (OpenAI only)
+            # LLM params
+            _llm = (context or {}).get("_llm_params", {}) if isinstance(context, dict) else {}
+            _max_tokens_val = _llm.get("max_tokens")
+            _max_tokens = _max_tokens_val if isinstance(_max_tokens_val, int) and _max_tokens_val > 0 else 4096
+            _temperature = _llm.get("temperature")
+            _response_format = _llm.get("response_format")
+
+            # File paths for file search (OpenAI only)
             files_for_search: Optional[List[str]] = None
             attachment = (context or {}).get("_attachment") if isinstance(context, dict) else None
             if isinstance(attachment, dict) and attachment.get("path"):
                 files_for_search = [attachment["path"]]
-                logger.debug(f"Passing file to LLM for file search: {attachment.get('name')}")
-
-            for iteration_num in range(max_tool_iterations):
-                # TextGenerationService is synchronous; run in a thread to avoid blocking
-                # Respect optional llm params from context; provide sensible defaults
-                _llm = (context or {}).get("_llm_params", {}) if isinstance(context, dict) else {}
-                _max_tokens = _llm.get("max_tokens")
-                if not isinstance(_max_tokens, int) or _max_tokens <= 0:
-                    _max_tokens = 4096  # increased to support large tool call arguments
-                _temperature = _llm.get("temperature")
-                _response_format = _llm.get("response_format")
-
-                # Only pass files on first iteration (files are uploaded once to vector store)
-                files_arg = files_for_search if iteration_num == 0 else None
 
             # Multi-turn tool loop
             tool_calls_trace: List[Dict[str, Any]] = []
             tokens_in_total, tokens_out_total, llm_calls = 0, 0, 0
-            base_prompt = f"{json.dumps(context, indent=2)}\n\nUser query: {query}" if context else query
 
-            for _ in range(4):  # max iterations
+            for iteration_num in range(4):  # max iterations
+                files_arg = files_for_search if iteration_num == 0 else None
                 response = await asyncio.to_thread(
                     self.llm_service.generate,
-                    base_prompt,
+                    query,
                     config,
                     _max_tokens,
                     model_name,
@@ -626,25 +572,10 @@ class AgentStep:
                     files_arg,
                 )
 
-                # === DEBUG: Log raw LLM response structure ===
-                logger.info(f"[LLM_RESPONSE_DEBUG] Response type: {type(response)}")
-                logger.info(f"[LLM_RESPONSE_DEBUG] Response repr: {repr(response)}")
-                if hasattr(response, "model_dump"):
-                    try:
-                        logger.info(f"[LLM_RESPONSE_DEBUG] response.model_dump(): {response.model_dump()}")
-                    except Exception as dump_err:
-                        logger.info(f"[LLM_RESPONSE_DEBUG] model_dump() failed: {dump_err}")
-                logger.info(f"[LLM_RESPONSE_DEBUG] response.tool_calls: {getattr(response, 'tool_calls', 'NO_ATTR')}")
-                logger.info(f"[LLM_RESPONSE_DEBUG] response.text: {getattr(response, 'text', 'NO_ATTR')}")
-                logger.info(f"[LLM_RESPONSE_DEBUG] response.finish_reason: {getattr(response, 'finish_reason', 'NO_ATTR')}")
-
                 # Accumulate token usage
-                try:
-                    tokens_in_total += int(getattr(response, "tokens_in", 0) or 0)
-                    tokens_out_total += int(getattr(response, "tokens_out", 0) or 0)
-                    llm_calls += 1
-                except Exception:
-                    pass
+                tokens_in_total += int(getattr(response, "tokens_in", 0) or 0)
+                tokens_out_total += int(getattr(response, "tokens_out", 0) or 0)
+                llm_calls += 1
 
                 # Final answer if no tool calls
                 if not getattr(response, "tool_calls", None):
@@ -671,43 +602,9 @@ class AgentStep:
                     )
                 messages.append(assistant_message)
 
-                # Persist assistant message with tool_calls to database
-                try:
-                    if context and isinstance(context, dict):
-                        execution_id = context.get("_execution_id")
-                        step_id = context.get("_step_id")
-                        user_id = context.get("_user_id")
-                        session_id = context.get("_session_id")
-                        if execution_id and step_id and assistant_message.get("content"):
-                            from ..db.service import DatabaseService
-                            from ..db.database import get_db_session
-
-                            dbs = DatabaseService()
-                            session = get_db_session()
-                            try:
-                                dbs.create_agent_message(
-                                    session,
-                                    execution_id=execution_id,
-                                    step_id=step_id,
-                                    role="assistant",
-                                    content=str(assistant_message["content"]),
-                                    metadata={"tool_calls": assistant_message.get("tool_calls", [])},
-                                    user_id=user_id,
-                                    session_id=session_id,
-                                )
-                            finally:
-                                try:
-                                    session.close()
-                                except Exception:
-                                    pass
-                except Exception as persist_err:
-                    logger.debug(f"Could not persist assistant message with tool_calls: {persist_err}")
-
                 # Execute tool calls and add proper tool response messages
-                logger.info(f"[TOOL_CALL_DEBUG] response.tool_calls type: {type(response.tool_calls)}")
-                logger.info(f"[TOOL_CALL_DEBUG] response.tool_calls value: {response.tool_calls}")
-                for idx, tool_call in enumerate(response.tool_calls or []):
-                    logger.info(f"[TOOL_CALL_DEBUG] Processing tool_call[{idx}] from response.tool_calls")
+                for tc in response.tool_calls or []:
+                    tc_id, fn_name, _ = _extract_tool_call_info(tc)
                     try:
                         tool_result = await self._execute_tool_call(tc, context=context)
                         tool_calls_trace.append(tool_result)
@@ -746,77 +643,26 @@ class AgentStep:
             raise
 
     async def _execute_tool_call(self, tool_call, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Execute a tool call from either OpenAI-style or llm-gateway ToolCall
-        - Supports both tool_call.name/arguments and tool_call.function.name/arguments
-        - Arguments may be dicts or JSON strings
-        - Supports both sync and async tool functions
-        """
-        import time
-        function_args = None
+        """Execute a tool call from either OpenAI-style or llm-gateway ToolCall."""
+        import inspect as _inspect
+
+        function_name: Optional[str] = None
+        function_args: Dict[str, Any] = {}
 
         try:
-            # === DETAILED LOGGING FOR DEBUGGING TOOL CALL STRUCTURE ===
-            logger.info(f"[TOOL_CALL_DEBUG] Raw tool_call type: {type(tool_call)}")
-            logger.info(f"[TOOL_CALL_DEBUG] Raw tool_call repr: {repr(tool_call)}")
-
-            # Log all attributes of the tool_call object
-            if hasattr(tool_call, "__dict__"):
-                logger.info(f"[TOOL_CALL_DEBUG] tool_call.__dict__: {tool_call.__dict__}")
-            if hasattr(tool_call, "model_dump"):
-                try:
-                    logger.info(f"[TOOL_CALL_DEBUG] tool_call.model_dump(): {tool_call.model_dump()}")
-                except Exception as dump_err:
-                    logger.info(f"[TOOL_CALL_DEBUG] model_dump() failed: {dump_err}")
-
-            # Check if it's a dict (common issue)
-            if isinstance(tool_call, dict):
-                logger.info(f"[TOOL_CALL_DEBUG] tool_call is a dict with keys: {tool_call.keys()}")
-                # Handle dict format directly
-                function_name = tool_call.get("name") or (tool_call.get("function", {}) or {}).get("name")
-                function_args = tool_call.get("arguments") or (tool_call.get("function", {}) or {}).get("arguments")
-                logger.info(f"[TOOL_CALL_DEBUG] Extracted from dict - name: {function_name}, args type: {type(function_args)}")
-            else:
-                # Extract function name and args from multiple possible shapes
-                function_name = getattr(tool_call, "name", None)
-                function_args = getattr(tool_call, "arguments", None)
-                logger.info(f"[TOOL_CALL_DEBUG] Direct attrs - name: {function_name}, args: {function_args}")
-
-                if function_name is None and hasattr(tool_call, "function"):
-                    func_obj = getattr(tool_call, "function", None)
-                    logger.info(f"[TOOL_CALL_DEBUG] Has 'function' attr, type: {type(func_obj)}, value: {func_obj}")
-                    if isinstance(func_obj, dict):
-                        function_name = func_obj.get("name")
-                        function_args = func_obj.get("arguments")
-                    else:
-                        function_name = getattr(func_obj, "name", None)
-                        function_args = getattr(func_obj, "arguments", None)
-                    logger.info(f"[TOOL_CALL_DEBUG] From function attr - name: {function_name}, args: {function_args}")
-
-            # Log final extracted values
-            logger.info(f"[TOOL_CALL_DEBUG] Final function_name: {function_name}, function_args type: {type(function_args)}")
-
-            # Normalize arguments: allow JSON string or dict; default to {}
-            if isinstance(function_args, str):
-                try:
-                    function_args = json.loads(function_args)
-                except Exception as e:
-                    raise ValueError(f"Invalid JSON in tool arguments: {e}")
-            function_args = function_args or {}
+            # Extract tool call info using helper
+            tc_id, function_name, function_args = _extract_tool_call_info(tool_call)
+            start_time = time.time()
 
             if not function_name:
-                logger.warning(f"[TOOL_CALL_DEBUG] Skipping tool call with missing function name: {tool_call}")
                 return {
                     "tool_name": None,
                     "arguments": function_args,
                     "result": "Error: Tool call missing function name",
                     "success": False,
                     "error": "Tool call missing function name",
-                    "tool_call_id": getattr(tool_call, "id", None) or getattr(tool_call, "tool_call_id", None),
+                    "tool_call_id": tc_id,
                 }
-
-            # Resolve either a dynamic agent tool or a registered function tool
-            dynamic_meta = self._dynamic_agent_tools.get(function_name)
-            start_time = time.time()
 
             # Check for dynamic agent tool first
             dynamic_meta = self._dynamic_agent_tools.get(function_name)
@@ -829,32 +675,17 @@ class AgentStep:
                     context, "agent_call", {"agent_name": target_agent.name, "query": query, "arguments": function_args}
                 )
                 result = await self._invoke_agent(target_agent, query=query, context=child_context)
+                duration_ms = int((time.time() - start_time) * 1000)
 
-                # Emit tool_response event
-                try:
-                    if context and isinstance(context, dict):
-                        execution_id = context.get("_execution_id")
-                        workflow_id = context.get("_workflow_id")
-                        step_id = context.get("_step_id")
-                        if execution_id and step_id:
-                            tool_response_event = create_step_event(
-                                execution_id=execution_id,
-                                step_id=step_id,
-                                step_status="running",
-                                workflow_id=workflow_id,
-                                output_data={
-                                    "event_type": "tool_response",
-                                    "agent_name": target_agent.name,
-                                    "response": result.get("response") if isinstance(result, dict) else str(result),
-                                    "duration_ms": duration_ms,
-                                },
-                            )
-                            await stream_manager.emit_execution_event(tool_response_event)
-                            if workflow_id:
-                                await stream_manager.emit_workflow_event(tool_response_event)
-                except Exception as e:
-                    logger.warning(f"Failed to emit tool_response event: {e}")
-
+                await _emit_tool_event(
+                    context,
+                    "tool_response",
+                    {
+                        "agent_name": target_agent.name,
+                        "response": result.get("response") if isinstance(result, dict) else str(result),
+                        "duration_ms": duration_ms,
+                    },
+                )
                 return {
                     "tool_name": function_name,
                     "arguments": function_args,
@@ -873,10 +704,8 @@ class AgentStep:
             await _emit_tool_event(context, "tool_call", {"tool_name": function_name, "arguments": function_args})
 
             # Execute sync or async
-            import inspect as _inspect
-
             if getattr(tool_function, "_is_async", False) or _inspect.iscoroutinefunction(tool_function):
-                result = await tool_function(**function_args)  # type: ignore[arg-type]
+                result = await tool_function(**function_args)
             else:
                 result = await asyncio.to_thread(tool_function, **function_args)
 
@@ -922,75 +751,6 @@ def _build_messages(system_prompt: str, context_msgs: List[Dict], query: str) ->
     if not (messages and messages[-1].get("role") == "user" and messages[-1].get("content") == query):
         messages.append({"role": "user", "content": query})
     return messages
-
-
-async def _stream_llm_response(
-    messages: List[Dict],
-    llm_params: Dict[str, Any],
-    tools: Optional[List] = None,
-    step_id: str = "",
-    execution_context: Optional[ExecutionContext] = None,
-    visible_to_user: bool = True,
-) -> Tuple[str, List[Dict], Optional[str]]:
-    """Stream LLM response and emit delta events. Returns (content, tool_calls, finish_reason)."""
-    import functools
-
-    provider_config = {"type": "openai_textgen"}
-    model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
-    svc = TextGenerationService()  # type: ignore
-
-    stream_gen = svc.stream(
-        "",  # prompt not used when messages provided
-        provider_config,
-        llm_params.get("max_tokens", 4096),
-        model_name,
-        "",  # sys_msg already in messages
-        None,  # retries
-        llm_params.get("temperature"),
-        tools,
-        "auto" if tools else None,
-        messages,
-        llm_params.get("response_format"),
-    )
-
-    collected = ""
-    tool_calls = []
-    finish_reason = None
-
-    while True:
-        try:
-            event = await asyncio.get_event_loop().run_in_executor(None, functools.partial(next, stream_gen))
-        except StopIteration:
-            break
-
-        event_type = event.get("type")
-        if event_type == "delta":
-            delta = event.get("text", "")
-            collected += delta
-            if step_id and execution_context:
-                try:
-                    evt = create_step_event(
-                        execution_id=execution_context.execution_id,
-                        step_id=step_id,
-                        step_status="running",
-                        workflow_id=execution_context.workflow_id,
-                        output_data={"delta": delta, "accumulated_len": len(collected), "visible_to_user": visible_to_user},
-                    )
-                    await stream_manager.emit_execution_event(evt)
-                    if execution_context.workflow_id:
-                        await stream_manager.emit_workflow_event(evt)
-                except Exception:
-                    pass
-        elif event_type == "final":
-            tool_calls = event.get("tool_calls", [])
-            finish_reason = event.get("finish_reason")
-            # Get final text if available
-            final_resp = event.get("response", {})
-            if final_resp.get("text"):
-                collected = final_resp["text"]
-            break
-
-    return collected, tool_calls, finish_reason
 
 
 async def _execute_a2a_agent(
@@ -1439,70 +1199,41 @@ async def agent_execution_step(
             ctx_msgs = input_data.get("messages") or input_data.get("chat_history") or []
             messages = _build_messages(system_prompt, ctx_msgs, query)
 
-                # LLM params
-                _llm = input_data.get("_llm_params", {}) if isinstance(input_data, dict) else {}
-                _max_tokens = _llm.get("max_tokens")
-                if not isinstance(_max_tokens, int) or _max_tokens <= 0:
-                    _max_tokens = 4096  # increased to support large tool call arguments
-                _temperature = _llm.get("temperature")
-                _response_format = _llm.get("response_format")
+            # LLM params
+            _llm = input_data.get("_llm_params", {}) if isinstance(input_data, dict) else {}
+            _max_tokens_val = _llm.get("max_tokens")
+            _max_tokens = _max_tokens_val if isinstance(_max_tokens_val, int) and _max_tokens_val > 0 else 4096
+            _temperature = _llm.get("temperature")
+            _response_format = _llm.get("response_format")
 
-                # Provider config - check step_config["model"] first (set by workflow_endpoints),
-                # then input_data["_agent_provider_config"], then default
-                model_from_step_config = step_config.get("model")
-                agent_provider_type = input_data.get("_agent_provider_type") if isinstance(input_data, dict) else None
-                agent_provider_config = input_data.get("_agent_provider_config") if isinstance(input_data, dict) else None
+            # Provider config
+            provider_config, model_name = _get_provider_config(input_data)
+            model_from_step_config = step_config.get("model")
+            if model_from_step_config:
+                model_name = model_from_step_config
 
-                provider_config = {"type": agent_provider_type or "openai_textgen"}
+            sid = step_config.get("step_id") or ""
 
-                if model_from_step_config:
-                    # Model set directly by workflow_endpoints.py
-                    model_name = model_from_step_config
-                    logger.info(f"Streaming with model from step_config: {model_name}")
-                elif agent_provider_config and agent_provider_config.get("model_name"):
-                    model_name_from_config = agent_provider_config.get("model_name")
-                    # Try to map to enum, fall back to string
-                    try:
-                        model_name = getattr(
-                            TextGenerationModelName, f"OPENAI_{model_name_from_config.replace('-', '_')}", None
-                        )
-                        if model_name:
-                            model_name = model_name.value  # type: ignore
-                        else:
-                            model_name = model_name_from_config
-                    except Exception:
-                        model_name = model_name_from_config
-                    logger.info(f"Streaming with agent provider config model: {model_name}")
-                else:
-                    model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
-                    logger.info("Streaming with default model: gpt-4o")
+            # Prepare tools for LLM
+            await agent._ensure_dynamic_agent_tools(input_data)
+            explicit_tools = agent.tools or []
+            dynamic_agent_tools_list = [meta["schema"] for meta in agent._dynamic_agent_tools.values()]
+            llm_tools = (list(explicit_tools) if explicit_tools else []) + dynamic_agent_tools_list
+            llm_tools = llm_tools or None
 
-                sid = step_config.get("step_id") or ""
+            # Extract file paths for file search (OpenAI only)
+            files_for_search: Optional[List[str]] = None
+            attachment = input_data.get("_attachment")
+            if isinstance(attachment, dict) and attachment.get("path"):
+                files_for_search = [attachment["path"]]
 
-                # Prepare tools for LLM
-                await agent._ensure_dynamic_agent_tools(input_data)
-                explicit_tools = agent.tools or []
-                # Extract only the schemas from dynamic agent tools (not the agent objects)
-                dynamic_agent_tools_list = [meta["schema"] for meta in agent._dynamic_agent_tools.values()]
-                llm_tools = None
-                if explicit_tools:
-                    llm_tools = list(explicit_tools)
-                if dynamic_agent_tools_list:
-                    llm_tools = (llm_tools or []) + dynamic_agent_tools_list
-
-                # Multi-turn conversation loop
+            if llm_tools:
+                # Multi-turn conversation loop with tools
                 conversation_turns = 0
                 max_conversation_turns = 4
                 tool_calls_trace: List[Dict[str, Any]] = []
                 tokens_in_total = 0
                 tokens_out_total = 0
-
-                # Extract file paths for file search (OpenAI only)
-                files_for_search: Optional[List[str]] = None
-                attachment = input_data.get("_attachment")
-                if isinstance(attachment, dict) and attachment.get("path"):
-                    files_for_search = [attachment["path"]]
-                    logger.debug(f"Passing file to LLM for file search: {attachment.get('name')}")
 
                 while conversation_turns < max_conversation_turns:
                     conversation_turns += 1
@@ -1537,15 +1268,13 @@ async def agent_execution_step(
                     # Process streaming response
                     collected_content = ""
                     tool_calls_from_stream = []
-                    finish_reason = None
 
                     # Iterate through the sync generator, running each next() call in executor
+                    import functools
+
                     while True:
                         try:
                             # Run the blocking next() call in a thread pool to avoid blocking event loop
-                            # Use functools.partial to avoid lambda closure issues
-                            import functools
-
                             event = await asyncio.get_event_loop().run_in_executor(
                                 None, functools.partial(next, stream_generator)
                             )
@@ -1578,7 +1307,6 @@ async def agent_execution_step(
                         elif event_type == "final":
                             # Final event contains tool calls if present
                             tool_calls_from_stream = event.get("tool_calls", [])
-                            finish_reason = event.get("finish_reason")
                             # Extract token usage from final response
                             final_response = event.get("response", {})
                             if isinstance(final_response, dict):
@@ -1693,83 +1421,16 @@ async def agent_execution_step(
                         },
                     }
             else:
-                # Build messages chronologically from context
-                messages: List[Dict[str, str]] = []
-
-                # Always start with system message for streaming (required for response_format)
-                sys_msg_val = system_prompt or "You are a helpful assistant."
-                messages.append({"role": "system", "content": sys_msg_val})
-
-                ctx_msgs = input_data.get("messages") or input_data.get("chat_history")
-                if isinstance(ctx_msgs, list):
-                    # Ensure order and shape
-                    for m in ctx_msgs:
-                        if isinstance(m, dict) and "role" in m and "content" in m:
-                            # Skip system messages from context since we already added one
-                            if m.get("role") != "system":
-                                messages.append({"role": str(m["role"]), "content": str(m["content"])})
-                # Ensure the last message is the current user query
-                if not (messages and messages[-1].get("role") == "user" and messages[-1].get("content") == query):
-                    messages.append({"role": "user", "content": query})
-
-                # LLM params
-                _llm = input_data.get("_llm_params", {}) if isinstance(input_data, dict) else {}
-                _max_tokens = _llm.get("max_tokens")
-                if not isinstance(_max_tokens, int) or _max_tokens <= 0:
-                    _max_tokens = 4096  # increased to support large tool call arguments
-                _temperature = _llm.get("temperature")
-                _response_format = _llm.get("response_format")
-
-                # Provider config and model - check step_config["model"] first (set by workflow_endpoints),
-                # then input_data["_agent_provider_config"], then default
-                model_from_step_config = step_config["config"]["model"]
-                agent_provider_type = input_data.get("_agent_provider_type") if isinstance(input_data, dict) else None
-                agent_provider_config = input_data.get("_agent_provider_config") if isinstance(input_data, dict) else None
-
-                provider_config = {"type": agent_provider_type or "openai_textgen"}
-
-                if model_from_step_config:
-                    # Model set directly by workflow_endpoints.py
-                    model_name = model_from_step_config
-                    logger.info(f"Streaming (no tools) with model from step_config: {model_name}")
-                elif agent_provider_config and agent_provider_config.get("model_name"):
-                    model_name_from_config = agent_provider_config.get("model_name")
-                    # Try to map to enum, fall back to string
-                    try:
-                        model_name = getattr(
-                            TextGenerationModelName, f"OPENAI_{model_name_from_config.replace('-', '_')}", None
-                        )
-                        if model_name:
-                            model_name = model_name.value  # type: ignore
-                        else:
-                            model_name = model_name_from_config
-                    except Exception:
-                        model_name = model_name_from_config
-                    logger.info(f"Streaming (no tools) with agent provider config model: {model_name}")
-                else:
-                    model_name = TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
-                    logger.info("Streaming (no tools) with default model: gpt-4o")
-
-                sid = step_config.get("step_id") or ""
-
-                # Use llm-gateway streaming API
-                # Note: sys_msg is not needed since we already added it to messages
+                # No tools - simple streaming without tool loop
                 svc = TextGenerationService()  # type: ignore
+                accumulated = ""
 
-                # Extract file paths for file search (OpenAI only)
-                files_for_search: Optional[List[str]] = None
-                attachment = input_data.get("_attachment")
-                if isinstance(attachment, dict) and attachment.get("path"):
-                    files_for_search = [attachment["path"]]
-                    logger.debug(f"Passing file to LLM for file search: {attachment.get('name')}")
-
-                # Create stream generator
                 stream_generator = svc.stream(
                     prompt="",
                     config=provider_config,
                     max_tokens=_max_tokens,
                     model_name=model_name,
-                    sys_msg="",  # Empty since system message is already in messages array
+                    sys_msg="",
                     retries=None,
                     temperature=_temperature,
                     tools=None,
@@ -1779,13 +1440,10 @@ async def agent_execution_step(
                     files=files_for_search,
                 )
 
-                # Iterate through the sync generator, running each next() call in executor
+                import functools
+
                 while True:
                     try:
-                        # Run the blocking next() call in a thread pool to avoid blocking event loop
-                        # Use functools.partial to avoid lambda closure issues
-                        import functools
-
                         ev = await asyncio.get_event_loop().run_in_executor(None, functools.partial(next, stream_generator))
                     except StopIteration:
                         break
@@ -1793,10 +1451,8 @@ async def agent_execution_step(
                     et = (ev.get("type") or "").lower()
                     if et == "delta":
                         delta = ev.get("text") or ""
-                        if not isinstance(delta, str) or not delta:
-                            continue
-                        accumulated += delta
-                        try:
+                        if delta:
+                            accumulated += delta
                             if sid:
                                 evt = create_step_event(
                                     execution_id=execution_context.execution_id,
@@ -1812,29 +1468,24 @@ async def agent_execution_step(
                                 await stream_manager.emit_execution_event(evt)
                                 if execution_context.workflow_id:
                                     await stream_manager.emit_workflow_event(evt)
-                        except Exception:
-                            pass
                     elif et == "final":
-                        # Final response payload from gateway
                         final_resp = ev.get("response") or {}
                         text = (final_resp.get("text") or accumulated or "").strip()
-                        usage = {
-                            "tokens_in": int(final_resp.get("tokens_in", -1) or -1),
-                            "tokens_out": int(final_resp.get("tokens_out", -1) or -1),
-                            "total_tokens": int(final_resp.get("tokens_in", -1) or -1)
-                            + int(final_resp.get("tokens_out", -1) or -1),
-                            "llm_calls": 1,
-                        }
                         result = {
                             "response": text,
                             "tool_calls": [],
                             "mode": "llm",
                             "model": {"provider": provider_config["type"], "name": str(model_name)},
-                            "usage": usage,
+                            "usage": {
+                                "tokens_in": int(final_resp.get("tokens_in", -1) or -1),
+                                "tokens_out": int(final_resp.get("tokens_out", -1) or -1),
+                                "total_tokens": int(final_resp.get("tokens_in", -1) or -1)
+                                + int(final_resp.get("tokens_out", -1) or -1),
+                                "llm_calls": 1,
+                            },
                         }
                         break
                 else:
-                    # If stream ended without final marker, synthesize result
                     result = {
                         "response": accumulated,
                         "tool_calls": [],
@@ -1842,22 +1493,6 @@ async def agent_execution_step(
                         "model": {"provider": provider_config["type"], "name": str(model_name)},
                         "usage": {"tokens_in": -1, "tokens_out": -1, "total_tokens": -1, "llm_calls": 1},
                     }
-
-                # Small flush to ensure the last line breaks after deltas
-                if accumulated and sid:
-                    try:
-                        evt = create_step_event(
-                            execution_id=execution_context.execution_id,
-                            step_id=sid,
-                            step_status="running",
-                            workflow_id=execution_context.workflow_id,
-                            output_data={"delta": "", "accumulated_len": len(accumulated)},
-                        )
-                        await stream_manager.emit_execution_event(evt)
-                        if execution_context.workflow_id:
-                            await stream_manager.emit_workflow_event(evt)
-                    except Exception:
-                        pass
         except Exception as _se:
             logger.debug(f"Streaming failed, falling back to non-streaming: {_se}")
             result = await agent.execute(query, context=input_data)
