@@ -121,12 +121,17 @@ class StreamManager:
 
     async def emit_workflow_event(self, event: StreamEvent) -> None:
         """Emit an event to all streams listening to this workflow"""
+        logger.info(f"=== EMIT_WORKFLOW_EVENT: type={event.type}, workflow_id={event.workflow_id} ===")
         if not event.workflow_id:
+            logger.warning("=== NO WORKFLOW_ID IN EVENT ===")
             return
 
         workflow_id = event.workflow_id
+        logger.info(f"=== REGISTERED WORKFLOW STREAMS: {list(self.workflow_streams.keys())} ===")
         if workflow_id not in self.workflow_streams:
+            logger.warning(f"=== NO STREAMS REGISTERED FOR WORKFLOW {workflow_id} ===")
             return
+        logger.info(f"=== SENDING EVENT TO {len(self.workflow_streams[workflow_id])} STREAMS ===")
 
         sse_data = event.to_sse()
         dead_queues = set()
@@ -199,6 +204,21 @@ async def create_sse_stream(
                     yield event_data
                     event_count += 1
                     queue.task_done()
+
+                    # Check if this is a completion event and close the stream
+                    try:
+                        # Parse the SSE data to check for completion
+                        # Format: "data: {...}\n\n"
+                        if event_data.startswith("data: "):
+                            json_str = event_data[6:].strip()
+                            parsed = json.loads(json_str)
+                            status = parsed.get("data", {}).get("status")
+                            if status in ("completed", "failed", "error"):
+                                logger.debug(f"Stream closing: received '{status}' status")
+                                break
+                    except (json.JSONDecodeError, KeyError, TypeError):
+                        # If we can't parse, just continue
+                        pass
 
             except asyncio.CancelledError:
                 logger.debug("SSE stream cancelled")

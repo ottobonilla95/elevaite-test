@@ -756,9 +756,14 @@ async def agent_execution_step(
         from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
         from workflow_core_sdk.execution_context import ExecutionContext as SDKExecutionContext, UserContext
 
+        # Ensure workflow_id is included in the config for the SDK context
+        sdk_workflow_config = execution_context.workflow_config.copy()
+        if "workflow_id" not in sdk_workflow_config and execution_context.workflow_id:
+            sdk_workflow_config["workflow_id"] = execution_context.workflow_id
+
         # Convert POC execution context to SDK execution context
         sdk_context = SDKExecutionContext(
-            workflow_config=execution_context.workflow_config,
+            workflow_config=sdk_workflow_config,
             user_context=UserContext(
                 user_id=execution_context.user_context.user_id if execution_context.user_context else None,
                 session_id=execution_context.user_context.session_id if execution_context.user_context else None,
@@ -766,7 +771,8 @@ async def agent_execution_step(
             ),
             execution_id=execution_context.execution_id,
         )
-        return await _execute_a2a_agent(step_config, input_data, sdk_context)
+        # Pass the POC's stream_manager so SSE events are routed correctly
+        return await _execute_a2a_agent(step_config, input_data, sdk_context, stream_mgr=stream_manager)
 
     # Get agent configuration
     agent_name = config.get("agent_name", "Assistant")

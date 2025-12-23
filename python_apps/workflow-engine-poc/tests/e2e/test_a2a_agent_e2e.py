@@ -346,3 +346,114 @@ class TestA2AAgentE2E:
 
         # Cleanup
         await client.delete(f"/a2a-agents/{a2a_agent_id}")
+
+    @pytest.mark.asyncio
+    async def test_a2a_agent_streaming(self, async_client, a2a_echo_server):
+        """
+        E2E test for A2A agent with streaming configuration.
+
+        Verifies that the A2A agent step works correctly when configured for streaming,
+        producing a valid response that can be streamed to clients.
+        """
+        client = async_client
+
+        # Step 1: Create A2A agent
+        unique_id = str(uuid.uuid4())
+        agent_payload = {
+            "name": f"Streaming Test Agent {unique_id}",
+            "base_url": a2a_echo_server["base_url"],
+            "description": "Tests A2A streaming",
+            "auth_type": "none",
+            "status": "active",
+        }
+
+        response = await client.post("/a2a-agents/", json=agent_payload)
+        assert response.status_code in [200, 201], f"Failed to create A2A agent: {response.text}"
+        a2a_agent_id = response.json()["id"]
+
+        # Step 2: Create workflow with streaming enabled
+        workflow_payload = {
+            "workflow_id": str(uuid.uuid4()),
+            "name": "Streaming A2A Test",
+            "steps": [
+                {
+                    "step_id": "trigger",
+                    "step_type": "trigger",
+                    "step_order": 1,
+                    "parameters": {"kind": "chat"},
+                },
+                {
+                    "step_id": "a2a_streaming_step",
+                    "step_type": "agent_execution",
+                    "step_order": 2,
+                    "dependencies": ["trigger"],
+                    "config": {
+                        "a2a_agent_id": a2a_agent_id,
+                        "query": "{current_message}",
+                        "stream": True,  # Enable streaming
+                    },
+                },
+            ],
+        }
+
+        response = await client.post("/workflows/", json=workflow_payload)
+        assert response.status_code in [200, 201]
+        workflow_id = response.json()["id"]
+
+        # Step 3: Execute the workflow
+        test_message = "Hello streaming world!"
+        execution_payload = {
+            "trigger": {
+                "kind": "chat",
+                "current_message": test_message,
+            },
+            "user_id": "e2e-streaming-test",
+            "session_id": f"e2e-streaming-{uuid.uuid4()}",
+            "wait": False,
+        }
+
+        response = await client.post(f"/workflows/{workflow_id}/execute", json=execution_payload)
+        assert response.status_code == 200
+        execution_id = response.json()["id"]
+
+        # Step 4: Poll for completion
+        execution_status = None
+        for _ in range(30):
+            time.sleep(0.5)
+            response = await client.get(f"/executions/{execution_id}")
+            assert response.status_code == 200
+            execution_status = response.json()
+            if execution_status.get("status") in ["completed", "COMPLETED", "failed", "FAILED"]:
+                break
+
+        assert execution_status is not None
+        assert execution_status.get("status") in ["completed", "COMPLETED"]
+
+        # Step 6: Get the full results and verify
+        response = await client.get(f"/executions/{execution_id}/results")
+        assert response.status_code == 200
+        execution_details = response.json()
+
+        step_results = execution_details.get("step_results", {})
+        a2a_result = {}
+
+        if step_results and "a2a_streaming_step" in step_results:
+            a2a_result = step_results["a2a_streaming_step"].get("output_data", {})
+        else:
+            step_io_data = execution_details.get("step_io_data", {})
+            if not step_io_data:
+                db_record = execution_details.get("db_record", {})
+                step_io_data = db_record.get("step_io_data", {})
+            a2a_result = step_io_data.get("a2a_streaming_step", {})
+
+        # Verify the A2A step completed successfully
+        assert a2a_result.get("success") is True, f"A2A streaming step failed: {a2a_result}"
+        assert f"Echo: {test_message}" in a2a_result.get("response", ""), f"Echo not found: {a2a_result}"
+
+        # Verify the response structure is streaming-compatible (has response text)
+        assert "response" in a2a_result, f"Missing response field in A2A result: {a2a_result}"
+        assert isinstance(a2a_result["response"], str), f"Response should be string: {a2a_result}"
+        assert len(a2a_result["response"]) > 0, f"Response should not be empty: {a2a_result}"
+
+        # Cleanup
+        await client.delete(f"/a2a-agents/{a2a_agent_id}")

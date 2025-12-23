@@ -996,12 +996,23 @@ async def _execute_a2a_agent(
     step_config: Dict[str, Any],
     input_data: Dict[str, Any],
     execution_context: ExecutionContext,
+    stream_mgr: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """Execute an external A2A agent.
 
     This is called from agent_execution_step when a2a_agent_id is provided.
     Supports streaming when config.stream is True.
+
+    Args:
+        step_config: Step configuration containing a2a_agent_id, query, stream, etc.
+        input_data: Input data from previous steps.
+        execution_context: Workflow execution context.
+        stream_mgr: Optional stream manager for emitting SSE events. If None, uses the
+                    SDK's default stream_manager. This allows callers (like workflow-engine-poc)
+                    to pass their own stream manager for proper event routing.
     """
+    # Use provided stream manager or fall back to SDK's default
+    _stream_manager = stream_mgr if stream_mgr is not None else stream_manager
     from uuid import UUID
 
     from sqlmodel import Session, select
@@ -1094,9 +1105,9 @@ async def _execute_a2a_agent(
                     workflow_id=execution_context.workflow_id,
                     output_data={"delta": delta, "accumulated_len": len(accumulated)},
                 )
-                await stream_manager.emit_execution_event(evt)
+                await _stream_manager.emit_execution_event(evt)
                 if execution_context.workflow_id:
-                    await stream_manager.emit_workflow_event(evt)
+                    await _stream_manager.emit_workflow_event(evt)
 
         if response:
             return build_response(response)

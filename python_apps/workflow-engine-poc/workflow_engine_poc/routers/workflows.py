@@ -119,6 +119,10 @@ async def execute_workflow_by_id(
         if not workflow:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
+        # Ensure workflow_id is in the config (needed for SSE streaming)
+        if "workflow_id" not in workflow:
+            workflow["workflow_id"] = workflow_id
+
         # Parse incoming body
         content_type = request.headers.get("content-type", "").lower()
         body_data: Dict[str, Any] = {}
