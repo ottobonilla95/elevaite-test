@@ -733,20 +733,27 @@ class WorkflowEngine:
 
             step_validation[step_id] = {"status": "valid", "step_type": step_type}
 
-        # Enforce trigger rules: exactly one trigger, first step, no dependencies
+        # Validate trigger steps (legacy single-trigger support)
         trigger_steps = [s for s in steps if s.get("step_type") == "trigger"]
-        if len(trigger_steps) != 1:
-            errors.append("Workflow must include exactly one 'trigger' step")
-        else:
+        if len(trigger_steps) > 1:
+            errors.append("Workflow can have at most one 'trigger' step (use 'input' for multiple entry points)")
+        elif trigger_steps:
             trigger = trigger_steps[0]
             if trigger.get("dependencies"):
                 errors.append("Trigger step must not have dependencies")
-            # If steps have explicit ordering, enforce trigger first
             orders = [s.get("step_order") for s in steps if s.get("step_order") is not None]
-            if orders:
-                min_order = min(orders)
-                if trigger.get("step_order") != min_order:
-                    errors.append("Trigger step must be first in execution order")
+            if orders and trigger.get("step_order") != min(orders):
+                errors.append("Trigger step must be first in execution order")
+
+        # Validate input nodes: must have no dependencies
+        for s in steps:
+            if s.get("step_type") == "input" and s.get("dependencies"):
+                errors.append(f"Input node '{s.get('step_id')}' must not have dependencies")
+
+        # Validate merge nodes: must have 2+ dependencies
+        for s in steps:
+            if s.get("step_type") == "merge" and len(s.get("dependencies", [])) < 2:
+                errors.append(f"Merge node '{s.get('step_id')}' must have at least 2 dependencies")
 
         # Check for circular dependencies
         if not self._has_circular_dependencies(steps):

@@ -307,3 +307,143 @@ class TestDependencyGraph:
         ready_steps = context.get_ready_steps()
         assert len(ready_steps) == 1
         assert ready_steps[0] == "step2"
+
+
+class TestInputNodeReadyCheck:
+    """Tests for input node ready check logic"""
+
+    def test_input_node_ready_with_data(self):
+        """Test input node is ready when data is provided"""
+        workflow_config = {
+            "workflow_id": "test",
+            "steps": [
+                {
+                    "step_id": "input-1",
+                    "step_type": "input",
+                    "parameters": {"kind": "manual"},
+                },
+            ],
+        }
+        context = ExecutionContext(workflow_config=workflow_config)
+        context.step_io_data["input-1"] = {"message": "Hello"}
+
+        assert context.can_execute_step("input-1") is True
+
+    def test_input_node_ready_with_trigger_raw(self):
+        """Test input node is ready when trigger_raw is provided (backwards compat)"""
+        workflow_config = {
+            "workflow_id": "test",
+            "steps": [
+                {
+                    "step_id": "input-1",
+                    "step_type": "input",
+                    "parameters": {"kind": "webhook"},
+                },
+            ],
+        }
+        context = ExecutionContext(workflow_config=workflow_config)
+        context.step_io_data["trigger_raw"] = {"event": "test"}
+
+        assert context.can_execute_step("input-1") is True
+
+    def test_input_node_not_ready_without_data(self):
+        """Test input node is not ready when no data is provided"""
+        workflow_config = {
+            "workflow_id": "test",
+            "steps": [
+                {
+                    "step_id": "input-1",
+                    "step_type": "input",
+                    "parameters": {"kind": "manual"},
+                },
+            ],
+        }
+        context = ExecutionContext(workflow_config=workflow_config)
+        # No data provided
+
+        assert context.can_execute_step("input-1") is False
+
+
+class TestMergeNodeReadyCheck:
+    """Tests for merge node ready check logic"""
+
+    def test_merge_first_available_ready_with_one_dep(self):
+        """Test merge node (first_available) is ready when one dependency completes"""
+        workflow_config = {
+            "workflow_id": "test",
+            "steps": [
+                {"step_id": "input-1", "step_type": "data_input"},
+                {"step_id": "input-2", "step_type": "data_input"},
+                {
+                    "step_id": "merge-1",
+                    "step_type": "merge",
+                    "dependencies": ["input-1", "input-2"],
+                    "parameters": {"mode": "first_available"},
+                },
+            ],
+        }
+        context = ExecutionContext(workflow_config=workflow_config)
+        context.completed_steps.add("input-1")  # Only one completed
+
+        assert context.can_execute_step("merge-1") is True
+
+    def test_merge_first_available_not_ready_with_no_deps(self):
+        """Test merge node (first_available) is not ready when no dependencies complete"""
+        workflow_config = {
+            "workflow_id": "test",
+            "steps": [
+                {"step_id": "input-1", "step_type": "data_input"},
+                {"step_id": "input-2", "step_type": "data_input"},
+                {
+                    "step_id": "merge-1",
+                    "step_type": "merge",
+                    "dependencies": ["input-1", "input-2"],
+                    "parameters": {"mode": "first_available"},
+                },
+            ],
+        }
+        context = ExecutionContext(workflow_config=workflow_config)
+        # No dependencies completed
+
+        assert context.can_execute_step("merge-1") is False
+
+    def test_merge_wait_all_not_ready_with_one_dep(self):
+        """Test merge node (wait_all) is not ready when only one dependency completes"""
+        workflow_config = {
+            "workflow_id": "test",
+            "steps": [
+                {"step_id": "input-1", "step_type": "data_input"},
+                {"step_id": "input-2", "step_type": "data_input"},
+                {
+                    "step_id": "merge-1",
+                    "step_type": "merge",
+                    "dependencies": ["input-1", "input-2"],
+                    "parameters": {"mode": "wait_all"},
+                },
+            ],
+        }
+        context = ExecutionContext(workflow_config=workflow_config)
+        context.completed_steps.add("input-1")  # Only one completed
+
+        assert context.can_execute_step("merge-1") is False
+
+    def test_merge_wait_all_ready_with_all_deps(self):
+        """Test merge node (wait_all) is ready when all dependencies complete"""
+        workflow_config = {
+            "workflow_id": "test",
+            "steps": [
+                {"step_id": "input-1", "step_type": "data_input"},
+                {"step_id": "input-2", "step_type": "data_input"},
+                {
+                    "step_id": "merge-1",
+                    "step_type": "merge",
+                    "dependencies": ["input-1", "input-2"],
+                    "parameters": {"mode": "wait_all"},
+                },
+            ],
+        }
+        context = ExecutionContext(workflow_config=workflow_config)
+        context.completed_steps.add("input-1")
+        context.completed_steps.add("input-2")
+
+        assert context.can_execute_step("merge-1") is True

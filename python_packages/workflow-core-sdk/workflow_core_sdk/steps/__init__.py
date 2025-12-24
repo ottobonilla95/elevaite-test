@@ -8,6 +8,9 @@ This package contains all step implementations organized by domain:
 - file_steps: File operations, text processing, tokenization
 - flow_steps: Control flow, subflows, conditional execution
 - trigger_steps: Workflow trigger normalization
+- input_steps: Input node entry points
+- output_steps: Output node endpoints (pass-through for canvas display)
+- merge_steps: Merge node for combining multiple inputs
 - tool_steps: Tool execution
 - human_steps: Human approval/interaction
 
@@ -37,6 +40,10 @@ __all__ = [
     "subflow_step",
     # Trigger steps
     "trigger_step",
+    # Input/Output/Merge steps (multi-trigger support)
+    "input_step",
+    "output_step",
+    "merge_step",
     # Tool steps
     "tool_execution_step",
     # Human steps

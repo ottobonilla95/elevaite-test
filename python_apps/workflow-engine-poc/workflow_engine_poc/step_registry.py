@@ -454,6 +454,33 @@ class StepRegistry:
             }
         )
 
+        # Output node step (pass-through for displaying output on canvas)
+        await self.register_step(
+            {
+                "step_type": "output",
+                "name": "Output",
+                "description": "Pass-through endpoint for displaying workflow output on canvas.",
+                "function_reference": "workflow_core_sdk.steps.output_steps.output_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "label": {
+                            "type": "string",
+                            "description": "Label for the output (for UI display)",
+                            "default": "Output",
+                        },
+                        "format": {
+                            "type": "string",
+                            "enum": ["auto", "json", "text", "markdown", "html"],
+                            "default": "auto",
+                            "description": "Format hint for displaying the output",
+                        },
+                    },
+                },
+            }
+        )
+
         # Register agent execution step
         await self.register_step(
             {

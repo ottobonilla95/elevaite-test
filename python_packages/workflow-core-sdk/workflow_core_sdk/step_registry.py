@@ -388,6 +388,97 @@ class StepRegistry:
             }
         )
 
+        # Input node step (generalized entry point)
+        await self.register_step(
+            {
+                "step_type": "input",
+                "name": "Input",
+                "description": "Data entry point for workflows. Can be triggered externally or filled manually.",
+                "function_reference": "workflow_core_sdk.steps.input_steps.input_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "enum": ["webhook", "schedule", "gmail", "slack", "chat", "manual", "form"],
+                            "default": "manual",
+                        },
+                        "schema": {"type": "object"},
+                        "webhook_path": {"type": "string"},
+                        "schedule": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {"type": "boolean"},
+                                "mode": {"type": "string", "enum": ["interval", "cron"]},
+                                "interval_seconds": {"type": "integer"},
+                                "cron": {"type": "string"},
+                            },
+                        },
+                        "need_history": {"type": "boolean"},
+                        "allowed_modalities": {"type": "array", "items": {"type": "string"}},
+                        "allowed_mime_types": {"type": "array", "items": {"type": "string"}},
+                        "max_files": {"type": "integer"},
+                        "per_file_size_mb": {"type": "integer"},
+                        "total_size_mb": {"type": "integer"},
+                    },
+                },
+            }
+        )
+
+        # Merge node step (combines multiple inputs)
+        await self.register_step(
+            {
+                "step_type": "merge",
+                "name": "Merge",
+                "description": "Combines multiple inputs with OR or AND logic. Use first_available for OR, wait_all for AND.",
+                "function_reference": "workflow_core_sdk.steps.merge_steps.merge_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "mode": {
+                            "type": "string",
+                            "enum": ["first_available", "wait_all"],
+                            "default": "first_available",
+                        },
+                        "combine_mode": {
+                            "type": "string",
+                            "enum": ["object", "array", "first"],
+                            "default": "object",
+                        },
+                    },
+                },
+            }
+        )
+
+        # Output node step (pass-through for displaying output on canvas)
+        await self.register_step(
+            {
+                "step_type": "output",
+                "name": "Output",
+                "description": "Pass-through endpoint for displaying workflow output on canvas.",
+                "function_reference": "workflow_core_sdk.steps.output_steps.output_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "label": {
+                            "type": "string",
+                            "description": "Label for the output (for UI display)",
+                            "default": "Output",
+                        },
+                        "format": {
+                            "type": "string",
+                            "enum": ["auto", "json", "text", "markdown", "html"],
+                            "default": "auto",
+                            "description": "Format hint for displaying the output",
+                        },
+                    },
+                },
+            }
+        )
+
         # Human approval step (pause/resume)
         await self.register_step(
             {

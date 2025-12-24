@@ -302,12 +302,30 @@ class ExecutionContext:
         self._try_emit_step_event(step_id, step_result.status.value, step_result)
 
     def can_execute_step(self, step_id: str) -> bool:
-        """Check if a step can be executed (all dependencies satisfied)"""
+        """Check if a step can be executed based on its type and dependencies."""
         if step_id in self.completed_steps or step_id in self.failed_steps:
             return False
 
-        dependencies = self.dependency_graph.get(step_id, [])
-        return all(dep in self.completed_steps for dep in dependencies)
+        step_config = self.get_step_config(step_id)
+        if not step_config:
+            return False
+
+        step_type = step_config.get("step_type")
+        deps = self.dependency_graph.get(step_id, [])
+
+        # Input nodes: ready when data is available (no dependencies allowed)
+        if step_type == "input":
+            return not deps and (step_id in self.step_io_data or "trigger_raw" in self.step_io_data)
+
+        # Merge nodes: OR logic for first_available, AND logic for wait_all
+        if step_type == "merge":
+            params = step_config.get("parameters", step_config.get("config", {}))
+            if params.get("mode", "first_available") == "first_available":
+                return any(dep in self.completed_steps for dep in deps)
+            return all(dep in self.completed_steps for dep in deps)
+
+        # Default: all dependencies must be completed
+        return all(dep in self.completed_steps for dep in deps)
 
     def get_ready_steps(self) -> List[str]:
         """Get list of steps that are ready to execute"""

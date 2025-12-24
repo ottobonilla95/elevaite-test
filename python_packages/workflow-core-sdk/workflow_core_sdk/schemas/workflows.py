@@ -24,6 +24,44 @@ class TriggerKindEnum(str, Enum):
     file = "file"
 
 
+class InputKindEnum(str, Enum):
+    """Input node kinds - determines how the input is activated.
+
+    Trigger kinds (external activation):
+    - webhook: Activated by HTTP POST to registered path
+    - schedule: Activated by cron/interval
+    - gmail: Activated by Gmail event listener
+    - slack: Activated by Slack event listener
+
+    Manual kinds (user-provided):
+    - chat: User provides via chat interface
+    - manual: User provides via canvas UI or API
+    - form: User provides via structured form
+    """
+
+    # Trigger kinds (external activation)
+    webhook = "webhook"
+    schedule = "schedule"
+    gmail = "gmail"
+    slack = "slack"
+
+    # Manual kinds (user-provided)
+    chat = "chat"
+    manual = "manual"
+    form = "form"
+
+
+class MergeModeEnum(str, Enum):
+    """Merge node modes - determines when the merge completes.
+
+    - first_available: Completes when ANY dependency completes (OR logic)
+    - wait_all: Waits for ALL dependencies to complete (AND logic, then combines)
+    """
+
+    first_available = "first_available"
+    wait_all = "wait_all"
+
+
 # -------- Workflow Configuration Schemas (for creation/edit) --------
 
 
@@ -124,7 +162,73 @@ class TriggerStepConfig(StepBase):
     parameters: TriggerParameters
 
 
-StepConfig = Union[TriggerStepConfig, StepBase]
+class InputStepParameters(BaseModel):
+    """Parameters for input node steps.
+
+    Input nodes are entry points that receive data. They can be:
+    - Externally triggered (webhook, schedule, gmail, slack)
+    - Manually provided (chat, manual, form)
+    """
+
+    kind: InputKindEnum = InputKindEnum.manual
+
+    # Schedule configuration (for schedule kind)
+    schedule: Optional[CronSchedule] = None
+
+    # Webhook configuration (for webhook kind)
+    webhook_path: Optional[str] = None  # Custom webhook path
+
+    # Schema for validating input data
+    schema: Optional[Dict[str, Any]] = None
+
+    # Chat/form constraints
+    need_history: bool = True
+    allowed_modalities: Optional[List[str]] = None
+    allowed_mime_types: Optional[List[str]] = None
+    max_files: int = 10
+    per_file_size_mb: int = 20
+    total_size_mb: int = 60
+
+
+class InputStepConfig(StepBase):
+    """Input node step configuration.
+
+    Input nodes are data entry points with no execution logic.
+    They complete when data is provided (via trigger event or manual input).
+    Input nodes must have no dependencies.
+    """
+
+    step_type: Literal["input"] = "input"
+    parameters: InputStepParameters = Field(default_factory=InputStepParameters)
+
+
+class MergeStepParameters(BaseModel):
+    """Parameters for merge node steps."""
+
+    mode: MergeModeEnum = MergeModeEnum.first_available
+
+    # For wait_all mode: how to combine outputs
+    # - "object": Combine as {step_id: output, ...}
+    # - "array": Combine as [output1, output2, ...]
+    # - "first": Just use the first completed (same as first_available)
+    combine_mode: Literal["object", "array", "first"] = "object"
+
+
+class MergeStepConfig(StepBase):
+    """Merge node step configuration.
+
+    Merge nodes combine multiple inputs with OR or AND logic.
+    - first_available: Completes when ANY dependency completes
+    - wait_all: Waits for ALL dependencies to complete
+
+    Merge nodes must have 2+ dependencies.
+    """
+
+    step_type: Literal["merge"] = "merge"
+    parameters: MergeStepParameters = Field(default_factory=MergeStepParameters)
+
+
+StepConfig = Union[TriggerStepConfig, InputStepConfig, MergeStepConfig, StepBase]
 
 
 class WorkflowConfig(BaseModel):
