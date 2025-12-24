@@ -15,7 +15,7 @@ import logging
 
 from .execution_context import ExecutionContext, StepResult
 from workflow_core_sdk.models import StepStatus
-from .monitoring import monitoring
+from workflow_core_sdk.monitoring import monitoring
 
 
 logger = logging.getLogger(__name__)

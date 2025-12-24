@@ -34,7 +34,7 @@ from .condition_evaluator import (
     ConditionOperator,
     LogicalOperator,
 )
-from .monitoring import monitoring
+from workflow_core_sdk.monitoring import monitoring
 
 from .services.analytics_service import analytics_service
 from typing import TYPE_CHECKING

@@ -1,11 +1,12 @@
 """
 Monitoring, metrics, and analytics endpoints
 """
+
 import logging
 from fastapi import APIRouter, Request, HTTPException, Response
 from typing import Optional
 
-from ..monitoring import monitoring
+from workflow_core_sdk.monitoring import monitoring
 from ..error_handling import error_handler
 
 logger = logging.getLogger(__name__)
@@ -60,15 +61,11 @@ async def get_monitoring_summary():
 
 
 @router.get("/analytics/executions")
-async def get_execution_analytics(
-    limit: int = 100, offset: int = 0, status: Optional[str] = None, request: Request = None
-):
+async def get_execution_analytics(limit: int = 100, offset: int = 0, status: Optional[str] = None, request: Request = None):
     """Get execution analytics and history"""
     try:
         workflow_engine = request.app.state.workflow_engine
-        executions = await workflow_engine.get_execution_history(
-            limit=limit, offset=offset, status=status
-        )
+        executions = await workflow_engine.get_execution_history(limit=limit, offset=offset, status=status)
 
         # Convert to serializable format
         execution_list = []

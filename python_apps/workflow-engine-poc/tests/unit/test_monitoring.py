@@ -10,7 +10,7 @@ import time
 from typing import Dict, Any
 import pytest
 
-from workflow_engine_poc.monitoring import monitoring, MetricData, TraceData
+from workflow_core_sdk.monitoring import monitoring, MetricData, TraceData
 from workflow_engine_poc.execution_context import ExecutionContext, UserContext
 from workflow_engine_poc.workflow_engine import WorkflowEngine
 from workflow_engine_poc.step_registry import StepRegistry

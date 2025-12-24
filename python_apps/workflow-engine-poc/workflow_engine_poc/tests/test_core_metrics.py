@@ -22,7 +22,7 @@ def count_points(metric):
 def test_workflow_metrics_emitted_with_trace_context_manager_success_and_failure(
     monkeypatch,
 ):
-    from workflow_engine_poc.monitoring import monitoring
+    from workflow_core_sdk.monitoring import monitoring
 
     reader = InMemoryMetricReader()
     provider = MeterProvider(metric_readers=[reader])
