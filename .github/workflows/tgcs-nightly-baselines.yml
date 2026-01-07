@@ -50,11 +50,11 @@ jobs:
             image: elevaite-toshiba-analytics-backend
             context: python_apps/toshiba_backends/analytics_backend
 
-          - name: bom-mapping-api
+          - name: part-mapping-api
             kind: svc
-            dockerfile: python_apps/toshiba_backends/bom_mapping_api/Dockerfile
-            image: elevaite-toshiba-bom-mapping-api
-            context: python_apps/toshiba_backends/bom_mapping_api
+            dockerfile: python_apps/toshiba_backends/part_mapping_api/Dockerfile
+            image: elevaite-toshiba-part-mapping-api
+            context: python_apps/toshiba_backends/part_mapping_api
 
           - name: sql-retriever
             kind: svc
