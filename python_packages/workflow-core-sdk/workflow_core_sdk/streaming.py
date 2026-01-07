@@ -81,6 +81,7 @@ class StreamManager:
             self.execution_streams[execution_id].discard(queue)
             if not self.execution_streams[execution_id]:
                 del self.execution_streams[execution_id]
+                logger.debug(f"Execution stream registry deleted for {execution_id}")
         logger.debug(f"Removed execution stream for {execution_id}")
 
     def remove_workflow_stream(self, workflow_id: str, queue: asyncio.Queue) -> None:
@@ -94,20 +95,20 @@ class StreamManager:
     async def emit_execution_event(self, event: StreamEvent) -> None:
         """Emit an event to all streams listening to this execution"""
         execution_id = event.execution_id
-        logger.info(f"=== EMIT_EXECUTION_EVENT: type={event.type}, execution_id={execution_id} ===")
+        logger.debug(f"Emit event: type={event.type}, execution_id={execution_id}")
         if execution_id not in self.execution_streams:
-            logger.warning(f"=== NO STREAMS REGISTERED FOR EXECUTION {execution_id} ===")
+            logger.debug(f"No streams registered for execution {execution_id}")
             return
 
         sse_data = event.to_sse()
         dead_queues = set()
         queue_count = len(self.execution_streams[execution_id])
-        logger.info(f"=== ADDING EVENT TO {queue_count} QUEUE(S) ===")
+        logger.debug(f"Adding event to {queue_count} queue(s)")
 
         for queue in self.execution_streams[execution_id]:
             try:
                 queue.put_nowait(sse_data)
-                logger.debug(f"=== EVENT ADDED TO QUEUE (qsize={queue.qsize()}) ===")
+                logger.debug(f"Event added to queue (qsize={queue.qsize()})")
             except asyncio.QueueFull:
                 logger.warning(f"Stream queue full for execution {execution_id}")
                 dead_queues.add(queue)
@@ -121,17 +122,12 @@ class StreamManager:
 
     async def emit_workflow_event(self, event: StreamEvent) -> None:
         """Emit an event to all streams listening to this workflow"""
-        logger.info(f"=== EMIT_WORKFLOW_EVENT: type={event.type}, workflow_id={event.workflow_id} ===")
         if not event.workflow_id:
-            logger.warning("=== NO WORKFLOW_ID IN EVENT ===")
             return
 
         workflow_id = event.workflow_id
-        logger.info(f"=== REGISTERED WORKFLOW STREAMS: {list(self.workflow_streams.keys())} ===")
         if workflow_id not in self.workflow_streams:
-            logger.warning(f"=== NO STREAMS REGISTERED FOR WORKFLOW {workflow_id} ===")
             return
-        logger.info(f"=== SENDING EVENT TO {len(self.workflow_streams[workflow_id])} STREAMS ===")
 
         sse_data = event.to_sse()
         dead_queues = set()

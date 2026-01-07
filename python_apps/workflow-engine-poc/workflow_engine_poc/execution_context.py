@@ -12,10 +12,14 @@ The execution context is the heart of the workflow engine. It:
 
 import uuid
 import asyncio
+import logging
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Set, TYPE_CHECKING
+from typing import Dict, Any, List, Optional, Set, Union, TYPE_CHECKING
 from dataclasses import dataclass, field
 from workflow_core_sdk.models import ExecutionStatus, StepStatus
+from workflow_core_sdk.schemas.workflows import WorkflowConfig, StepBase, StepConfig
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from .workflow_engine import WorkflowEngine
@@ -39,6 +43,8 @@ class StepResult:
     error_message: Optional[str] = None
     execution_time_ms: Optional[int] = None
     retry_count: int = 0
+    step_type: Optional[str] = None
+    duration_ms: Optional[int] = None
 
 
 @dataclass
@@ -73,22 +79,36 @@ class ExecutionContext:
 
     def __init__(
         self,
-        workflow_config: Dict[str, Any],
+        workflow_config: Union[Dict[str, Any], WorkflowConfig],
         user_context: Optional[UserContext] = None,
         execution_id: Optional[str] = None,
         workflow_engine: Optional["WorkflowEngine"] = None,
     ):
+        # Convert dict to typed WorkflowConfig if needed
+        if isinstance(workflow_config, dict):
+            # Ensure we have a valid workflow_id before validation
+            if "workflow_id" not in workflow_config or workflow_config["workflow_id"] is None:
+                workflow_config = {**workflow_config, "workflow_id": str(uuid.uuid4())}
+            self._config = WorkflowConfig.model_validate(workflow_config)
+        else:
+            self._config = workflow_config
+            # Ensure workflow_id is set
+            if self._config.workflow_id is None:
+                # Create a copy with workflow_id set
+                self._config = self._config.model_copy(update={"workflow_id": str(uuid.uuid4())})
+
         # Core identifiers
         self.execution_id = execution_id or str(uuid.uuid4())
-        self.workflow_id = workflow_config.get("workflow_id", str(uuid.uuid4()))
-
-        # Workflow configuration (immutable snapshot)
-        self.workflow_config = workflow_config.copy()
-        self.workflow_name = workflow_config.get("name", "Unnamed Workflow")
+        self.workflow_id = self._config.workflow_id
+        self.workflow_name = self._config.name
 
         # Normalize steps to ensure each has a unique step_id
-        raw_steps = list(self.workflow_config.get("steps", []) or [])
-        self.workflow_config["steps"] = self._normalize_steps(raw_steps)
+        normalized_steps = self._normalize_steps(list(self._config.steps))
+        # Update the config with normalized steps
+        self._config = self._config.model_copy(update={"steps": normalized_steps})
+
+        # Keep a dict version for backward compatibility with code that expects dict access
+        self.workflow_config = self._config.model_dump()
 
         # Execution state
         self.status = ExecutionStatus.PENDING
@@ -96,12 +116,12 @@ class ExecutionContext:
         self.started_at: Optional[datetime] = None
         self.completed_at: Optional[datetime] = None
 
-        # Step management
-        self.steps_config = self.workflow_config.get("steps", [])
+        # Step management - use typed list
+        self.steps_config: List[StepBase] = list(self._config.steps)
         self.step_results: Dict[str, StepResult] = {}
         self.completed_steps: Set[str] = set()
         self.failed_steps: Set[str] = set()
-        self.pending_steps: Set[str] = {step["step_id"] for step in self.steps_config}
+        self.pending_steps: Set[str] = {step.step_id for step in self.steps_config if step.step_id}
 
         # Data flow between steps
         self.step_io_data: Dict[str, Any] = {}
@@ -123,31 +143,30 @@ class ExecutionContext:
         # Build dependency graph
         self.dependency_graph = self._build_dependency_graph()
 
-    def _normalize_steps(self, steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _normalize_steps(self, steps: List[StepConfig]) -> List[StepConfig]:
         """Ensure each step has a unique step_id. If missing, infer a reasonable default.
         - Trigger step: defaults to 'trigger'
         - Else: slugified name or fall back to step_type_{idx}
         - Ensure uniqueness by appending numeric suffixes if needed
         """
+        import re
 
         def slugify(txt: str) -> str:
             s = (txt or "").strip().lower()
-            import re
-
             s = re.sub(r"[^a-z0-9]+", "_", s)
             s = re.sub(r"_+", "_", s).strip("_")
             return s or "step"
 
         used: Set[str] = set()
-        normalized: List[Dict[str, Any]] = []
+        normalized: List[StepConfig] = []
         for idx, step in enumerate(steps):
-            stype = step.get("step_type") or "step"
-            sid = step.get("step_id")
+            stype = step.step_type or "step"
+            sid = step.step_id
             if not sid:
                 if stype == "trigger":
                     candidate = "trigger"
                 else:
-                    candidate = slugify(step.get("name") or f"{stype}_{idx + 1}")
+                    candidate = slugify(step.name or f"{stype}_{idx + 1}")
                 # Ensure unique
                 base = candidate
                 n = 2
@@ -155,7 +174,8 @@ class ExecutionContext:
                     candidate = f"{base}_{n}"
                     n += 1
                 sid = candidate
-                step = {**step, "step_id": sid}
+                # Create updated step with step_id set
+                step = step.model_copy(update={"step_id": sid})
             used.add(sid)
             normalized.append(step)
         return normalized
@@ -164,8 +184,8 @@ class ExecutionContext:
         """Build dependency graph from step configurations"""
         graph = {}
         for step in self.steps_config:
-            step_id = step["step_id"]
-            dependencies = step.get("dependencies", [])
+            step_id = step.step_id
+            dependencies = step.dependencies or []
             graph[step_id] = dependencies
         return graph
 
@@ -201,10 +221,10 @@ class ExecutionContext:
         # Emit streaming event
         self._try_emit_error_event(error_message)
 
-    def get_step_config(self, step_id: str) -> Optional[Dict[str, Any]]:
+    def get_step_config(self, step_id: str) -> Optional[StepBase]:
         """Get configuration for a specific step"""
         for step in self.steps_config:
-            if step["step_id"] == step_id:
+            if step.step_id == step_id:
                 return step
         return None
 
@@ -222,7 +242,8 @@ class ExecutionContext:
         # Read input_mapping from top-level first, then fall back to config.input_mapping
         # The streaming endpoint writes expanded mappings to top-level, but workflows
         # stored in DB may have the original $prev references in config.input_mapping
-        input_mapping = step_config.get("input_mapping") or step_config.get("config", {}).get("input_mapping") or {}
+        input_mapping = step_config.input_mapping or step_config.config.get("input_mapping") if step_config.config else {}
+        input_mapping = input_mapping or {}
         input_data = {}
 
         # Process input mappings
@@ -244,9 +265,10 @@ class ExecutionContext:
                 # Global variable reference
                 input_data[input_key] = self.global_variables[source_spec]
 
-        # Add any direct input_data from step config
-        if "input_data" in step_config:
-            input_data.update(step_config["input_data"])
+        # Add any direct input_data from step config (check if it exists in config dict)
+        step_config_dict = step_config.config if step_config.config else {}
+        if "input_data" in step_config_dict:
+            input_data.update(step_config_dict["input_data"])
 
         return input_data
 

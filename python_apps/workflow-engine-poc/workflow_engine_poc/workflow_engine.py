@@ -13,6 +13,7 @@ from typing import Dict, Any, List, Optional, Union, Set
 from datetime import datetime
 
 from .execution_context import ExecutionContext, StepResult
+from workflow_core_sdk.schemas.workflows import StepConfig, StepBase
 
 # Prefer SDK status enums; fallback to local if SDK unavailable
 from workflow_core_sdk.models import ExecutionStatus, StepStatus
@@ -191,16 +192,14 @@ class WorkflowEngine:
         """Execute steps sequentially based on step_order"""
 
         # Sort steps by step_order (handle None values)
-        steps = sorted(
-            execution_context.steps_config,
-            key=lambda s: s.get("step_order") if s.get("step_order") is not None else 0,
-        )
+        # StepBase doesn't have step_order, so we use position or index order
+        steps = list(execution_context.steps_config)
 
         for step_config in steps:
             if execution_context.status != ExecutionStatus.RUNNING:
                 break
 
-            step_id = step_config["step_id"]
+            step_id = step_config.step_id
 
             # Check if dependencies are satisfied
             if not execution_context.can_execute_step(step_id):
@@ -269,13 +268,16 @@ class WorkflowEngine:
             if step_config:
                 await self._execute_single_step(execution_context, step_config)
 
-    async def _execute_single_step(self, execution_context: ExecutionContext, step_config: Dict[str, Any]):
+    async def _execute_single_step(self, execution_context: ExecutionContext, step_config: StepBase):
         """Execute a single step with enhanced error handling and retry logic"""
 
-        step_id = step_config["step_id"]
-        step_type = step_config["step_type"]
+        step_id = step_config.step_id
+        step_type = step_config.step_type
 
-        logger.info(f"Executing step: {step_id} ({step_type})")
+        # Map "agent" to "agent_execution" for registry lookup
+        effective_step_type = "agent_execution" if step_type == "agent" else step_type
+
+        logger.info(f"Executing step: {step_id} ({effective_step_type})")
 
         # Update current step
         execution_context.current_step = step_id
@@ -295,7 +297,7 @@ class WorkflowEngine:
             "component": "workflow_engine",
             "operation": f"execute_step_{step_id}",
             "step_id": step_id,
-            "step_type": step_type,
+            "step_type": effective_step_type,
             "execution_id": execution_context.execution_id,
         }
 
@@ -305,6 +307,7 @@ class WorkflowEngine:
                 self._execute_step_once,
                 execution_context,
                 step_config,
+                effective_step_type,
                 retry_config=retry_config,
                 context=error_context,
             )
@@ -338,7 +341,7 @@ class WorkflowEngine:
 
                 # Persist agent analytics if applicable (tokens-only)
                 try:
-                    if step_type == "agent_execution" and isinstance(step_result.output_data, dict):
+                    if effective_step_type == "agent_execution" and isinstance(step_result.output_data, dict):
                         agent_out = step_result.output_data
                         # Insert analytics row
                         # Use a real Session context manager (get_session is a generator)
@@ -370,7 +373,7 @@ class WorkflowEngine:
                 logger.error(f"Step failed: {step_id} - {step_result.error_message}")
 
                 # Check if this should fail the entire workflow
-                if step_config.get("critical", True):  # Steps are critical by default
+                if step_config.critical:  # Steps are critical by default
                     execution_context.fail_execution(f"Critical step {step_id} failed: {step_result.error_message}")
 
         except Exception as e:
@@ -378,24 +381,28 @@ class WorkflowEngine:
             logger.error(f"Step {step_id} failed after all retries: {e}")
             execution_context.fail_execution(f"Step {step_id} failed: {e}")
 
-    async def _execute_step_once(self, execution_context: ExecutionContext, step_config: Dict[str, Any]):
+    async def _execute_step_once(self, execution_context: ExecutionContext, step_config: StepBase, effective_step_type: str):
         """Execute a single step once (used by retry mechanism)"""
 
-        step_id = step_config["step_id"]
-        step_type = step_config["step_type"]
+        step_id = step_config.step_id
 
         # Get input data for this step
         input_data = execution_context.get_step_input_data(step_id)
 
         # Execute step through registry with timeout if configured
-        timeout = step_config.get("timeout_seconds")
+        timeout = step_config.timeout_seconds
+
+        # Convert step_config to dict for step registry (step functions expect dict)
+        step_config_dict = step_config.model_dump()
+        # Apply the effective step type (handles agent -> agent_execution mapping)
+        step_config_dict["step_type"] = effective_step_type
 
         try:
             if timeout:
                 step_result = await asyncio.wait_for(
                     self.step_registry.execute_step(
-                        step_type=step_type,
-                        step_config=step_config,
+                        step_type=effective_step_type,
+                        step_config=step_config_dict,
                         input_data=input_data,
                         execution_context=execution_context,
                     ),
@@ -403,8 +410,8 @@ class WorkflowEngine:
                 )
             else:
                 step_result = await self.step_registry.execute_step(
-                    step_type=step_type,
-                    step_config=step_config,
+                    step_type=effective_step_type,
+                    step_config=step_config_dict,
                     input_data=input_data,
                     execution_context=execution_context,
                 )
@@ -435,14 +442,14 @@ class WorkflowEngine:
 
         return step_result
 
-    def _create_retry_config(self, step_config: Dict[str, Any]) -> RetryConfig:
+    def _create_retry_config(self, step_config: StepBase) -> RetryConfig:
         """Create retry configuration from step configuration"""
 
-        # Get retry settings from step config
-        max_retries = step_config.get("max_retries", 3)
-        retry_strategy = step_config.get("retry_strategy", "exponential_backoff")
-        retry_delay = step_config.get("retry_delay_seconds", 1.0)
-        max_retry_delay = step_config.get("max_retry_delay_seconds", 60.0)
+        # Get retry settings from step config (with typed attributes)
+        max_retries = step_config.max_retries
+        retry_strategy = step_config.retry_strategy
+        retry_delay = step_config.retry_delay_seconds
+        max_retry_delay = step_config.max_retry_delay_seconds
 
         # Map string strategy to enum
         strategy_map = {
@@ -509,7 +516,7 @@ class WorkflowEngine:
         # Default to non-retryable for unknown errors
         return False
 
-    def _should_execute_step(self, execution_context: ExecutionContext, step_config: Dict[str, Any]) -> bool:
+    def _should_execute_step(self, execution_context: ExecutionContext, step_config: StepBase) -> bool:
         """
         Check if a step should be executed based on its conditions.
 
@@ -521,7 +528,7 @@ class WorkflowEngine:
             True if step should be executed, False otherwise
         """
         # Check if step has conditions
-        conditions = step_config.get("conditions")
+        conditions = step_config.conditions
         if not conditions:
             return True  # No conditions means always execute
 

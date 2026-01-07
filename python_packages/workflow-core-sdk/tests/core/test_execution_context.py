@@ -110,10 +110,10 @@ class TestStepNormalization:
         context = ExecutionContext(workflow_config=workflow_config)
 
         # Trigger should get 'trigger' as step_id
-        assert context.steps_config[0]["step_id"] == "trigger"
+        assert context.steps_config[0].step_id == "trigger"
         # Others should get slugified names
-        assert context.steps_config[1]["step_id"] == "input_step"
-        assert context.steps_config[2]["step_id"] == "process_data"
+        assert context.steps_config[1].step_id == "input_step"
+        assert context.steps_config[2].step_id == "process_data"
 
     def test_normalize_steps_with_duplicate_names(self):
         """Test normalization handles duplicate names"""
@@ -130,7 +130,7 @@ class TestStepNormalization:
         context = ExecutionContext(workflow_config=workflow_config)
 
         # Should have unique step_ids
-        step_ids = [step["step_id"] for step in context.steps_config]
+        step_ids = [step.step_id for step in context.steps_config]
         assert len(step_ids) == len(set(step_ids))  # All unique
         assert "input" in step_ids
         assert "input_2" in step_ids
@@ -188,8 +188,8 @@ class TestStepManagement:
 
         step_config = context.get_step_config("step1")
         assert step_config is not None
-        assert step_config["step_id"] == "step1"
-        assert step_config["step_type"] == "data_input"
+        assert step_config.step_id == "step1"
+        assert step_config.step_type == "data_input"
 
     def test_get_step_config_not_found(self, basic_workflow_config):
         """Test getting non-existent step configuration"""

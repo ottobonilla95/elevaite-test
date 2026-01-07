@@ -148,6 +148,10 @@ class StepRegistry:
                 if isinstance(result, StepResult):
                     if result.execution_time_ms is None:
                         result.execution_time_ms = execution_time_ms
+                    if result.step_type is None:
+                        result.step_type = step_type
+                    if result.duration_ms is None:
+                        result.duration_ms = execution_time_ms
                     return result
 
                 # If the step returned a dict indicating WAITING, map to a WAITING StepResult
@@ -157,6 +161,8 @@ class StepRegistry:
                         status=StepStatus.WAITING,
                         output_data=result,
                         execution_time_ms=execution_time_ms,
+                        step_type=step_type,
+                        duration_ms=execution_time_ms,
                     )
 
                 # Otherwise, wrap raw output as a completed step
@@ -165,6 +171,8 @@ class StepRegistry:
                     status=StepStatus.COMPLETED,
                     output_data=result,
                     execution_time_ms=execution_time_ms,
+                    step_type=step_type,
+                    duration_ms=execution_time_ms,
                 )
 
             except Exception as e:
@@ -178,6 +186,8 @@ class StepRegistry:
                     status=StepStatus.FAILED,
                     error_message=str(e),
                     execution_time_ms=execution_time_ms,
+                    step_type=step_type,
+                    duration_ms=execution_time_ms,
                 )
 
     async def _execute_local_step(

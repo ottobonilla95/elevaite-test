@@ -150,6 +150,24 @@ class StepBase(BaseModel):
     parameters: Dict[str, Any] = Field(default_factory=dict)
     config: Dict[str, Any] = Field(default_factory=dict)
 
+    # Execution control fields
+    critical: bool = Field(default=True, description="If True, step failure fails the entire workflow")
+    timeout_seconds: Optional[int] = Field(default=None, description="Maximum execution time for this step")
+
+    # Retry configuration
+    max_retries: int = Field(default=3, description="Maximum number of retry attempts")
+    retry_strategy: str = Field(
+        default="exponential_backoff",
+        description="Retry strategy: none, fixed_delay, exponential_backoff, linear_backoff",
+    )
+    retry_delay_seconds: float = Field(default=1.0, description="Initial delay between retries")
+    max_retry_delay_seconds: float = Field(default=60.0, description="Maximum delay between retries")
+
+    # Conditional execution
+    conditions: Optional[Union[str, Dict[str, Any], List[Any]]] = Field(
+        default=None, description="Conditions that must be met for this step to execute"
+    )
+
     # UI metadata for visual workflow editor
     position: Optional[UIPosition] = None
 
@@ -232,10 +250,11 @@ StepConfig = Union[TriggerStepConfig, InputStepConfig, MergeStepConfig, StepBase
 
 
 class WorkflowConfig(BaseModel):
-    name: str
+    workflow_id: Optional[str] = None
+    name: str = "Unnamed Workflow"
     description: Optional[str] = None
     version: Optional[str] = "1.0.0"
-    steps: List[StepConfig]
+    steps: List[StepConfig] = Field(default_factory=list)
     global_config: Dict[str, Any] = Field(default_factory=dict)
     tags: List[str] = Field(default_factory=list)
     timeout_seconds: Optional[int] = None
@@ -245,6 +264,13 @@ class WorkflowConfig(BaseModel):
     connections: List[StepConnection] = Field(
         default_factory=list, description="Visual connections between steps for UI rendering"
     )
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "WorkflowConfig":
+        """Create WorkflowConfig from a dictionary, handling both raw dicts and model instances."""
+        if isinstance(data, cls):
+            return data
+        return cls.model_validate(data)
 
     model_config = {
         "json_schema_extra": {

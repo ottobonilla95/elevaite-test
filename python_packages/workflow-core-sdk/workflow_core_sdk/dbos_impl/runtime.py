@@ -4,6 +4,7 @@ Runtime helpers for DBOS adapter without import-time cycles.
 Provides get_dbos_adapter() with lazy import of the Adapter class to avoid
 circular imports between steps/workflows and the adapter.
 """
+
 from __future__ import annotations
 
 import logging
@@ -34,9 +35,9 @@ async def get_dbos_adapter():
         # Ensure DBOS is configured (idempotent)
         if DBOS_AVAILABLE:
             try:
-                from workflow_engine_poc.db.database import DATABASE_URL as _ENGINE_DB_URL
+                from workflow_core_sdk.db.database import DATABASE_URL as _SDK_DB_URL
 
-                _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
+                _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _SDK_DB_URL
                 _app_name = os.getenv("DBOS_APPLICATION_NAME") or os.getenv("DBOS_APP_NAME") or "workflow-engine-poc"
                 try:
                     DBOS(config=DBOSConfig(database_url=_dbos_db_url, name=_app_name))  # type: ignore[call-arg]
@@ -47,4 +48,3 @@ async def get_dbos_adapter():
                 logger.warning(f"DBOS init failed: {e}")
 
     return _dbos_adapter
-

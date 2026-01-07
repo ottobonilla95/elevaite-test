@@ -334,9 +334,9 @@ class DBOSWorkflowAdapter:
                 if "No DBOS was created yet" in str(e):
                     try:
                         # Build config and create DBOS instance
-                        from workflow_engine_poc.db.database import DATABASE_URL as _ENGINE_DB_URL
+                        from workflow_core_sdk.db.database import DATABASE_URL as _SDK_DB_URL
 
-                        _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
+                        _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _SDK_DB_URL
                         _app_name = os.getenv("DBOS_APPLICATION_NAME") or os.getenv("DBOS_APP_NAME") or "workflow-engine-poc"
                         cfg = DBOSConfig(database_url=_dbos_db_url, name=_app_name)  # dbos 1.12.0 expects 'name'
                         DBOS(config=cfg)
