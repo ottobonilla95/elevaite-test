@@ -59,6 +59,15 @@ def _mock_guard_factory(action: str):
 _rbac_patcher = patch("workflow_engine_poc.util.api_key_or_user_guard", side_effect=_mock_guard_factory)
 _rbac_patcher.start()
 
+# Also patch superadmin_guard for tenant admin endpoints
+# We need to patch both the util module and the tenant_admin module where it's imported
+_superadmin_patcher = patch("workflow_engine_poc.util.superadmin_guard", side_effect=_mock_guard_factory)
+_superadmin_patcher.start()
+
+# Patch at the tenant_admin module level as well (where it's imported)
+_superadmin_tenant_patcher = patch("workflow_engine_poc.tenant_admin.superadmin_guard", side_effect=_mock_guard_factory)
+_superadmin_tenant_patcher.start()
+
 from workflow_engine_poc.main import app
 from workflow_engine_poc.db.database import get_db_session
 

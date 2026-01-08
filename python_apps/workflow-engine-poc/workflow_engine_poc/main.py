@@ -59,6 +59,8 @@ from workflow_engine_poc.routers import (
     workflows,
 )
 from workflow_engine_poc.routers.approvals import router as approvals
+from workflow_engine_poc.tenant_admin import tenant_admin_router
+from workflow_engine_poc.tenant_admin import tenant_admin_router
 
 
 ElevaiteLogger.attach_to_uvicorn(
@@ -174,6 +176,7 @@ excluded_paths = {
     r"^/docs.*": {"default_tenant": "default"},
     r"^/redoc.*": {"default_tenant": "default"},
     r"^/openapi\.json$": {"default_tenant": "default"},
+    r"^/admin/tenants.*": {"default_tenant": "default"},  # Tenant admin endpoints
 }
 add_tenant_middleware(app, settings=multitenancy_settings, excluded_paths=excluded_paths)
 
@@ -201,6 +204,7 @@ app.include_router(tools)
 app.include_router(prompts)
 app.include_router(messages)
 app.include_router(approvals)
+app.include_router(tenant_admin_router, prefix="/admin")
 
 # Initialize DBOS context if available so DBOS.start_* can be used (skip in test mode)
 if not os.getenv("TESTING"):

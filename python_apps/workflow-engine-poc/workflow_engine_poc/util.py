@@ -49,3 +49,27 @@ def user_guard(action: str) -> Callable[[Request], Awaitable[None]]:
         ),
         principal_resolver=principal_resolvers.user_id_header(),
     )
+
+
+def superadmin_guard(action: str) -> Callable[[Request], Awaitable[None]]:
+    """
+    Guard that requires superadmin role at the organization level.
+
+    This is the highest security clearance - only organization superadmins
+    can access endpoints protected by this guard.
+
+    Args:
+        action: The action to check (e.g., "manage_tenants")
+
+    Returns:
+        FastAPI dependency that enforces superadmin access
+    """
+    if _SKIP_RBAC:
+        return _noop_guard
+    return require_permission_async(
+        action=action,
+        resource_builder=resource_builders.organization_from_headers(
+            org_header=HDR_ORG_ID,
+        ),
+        principal_resolver=principal_resolvers.user_id_header(),
+    )

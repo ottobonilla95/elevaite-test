@@ -176,7 +176,8 @@ class TestUploadFile:
 
                 assert response.status_code == 200
                 data = response.json()
-                assert "auto_processing" not in data
+                # auto_processing should be None when not triggered
+                assert data.get("auto_processing") is None
 
     def test_upload_file_with_auto_process_true(
         self, authenticated_client: TestClient, sample_text_file, mock_workflow_config, tmp_path
@@ -215,9 +216,7 @@ class TestUploadFile:
                     # Verify workflow execution was triggered
                     mock_create_task.assert_called_once()
 
-    def test_upload_file_auto_process_workflow_not_found(
-        self, authenticated_client: TestClient, sample_text_file, tmp_path
-    ):
+    def test_upload_file_auto_process_workflow_not_found(self, authenticated_client: TestClient, sample_text_file, tmp_path):
         """Test auto-process when workflow doesn't exist"""
         with patch("workflow_engine_poc.routers.files.Path") as mock_path_class:
             mock_upload_dir = MagicMock()
@@ -240,7 +239,7 @@ class TestUploadFile:
                 assert response.status_code == 200
                 data = response.json()
                 # File should still upload successfully, just no auto-processing
-                assert "auto_processing" not in data
+                assert data.get("auto_processing") is None
 
     @pytest.mark.api
     def test_upload_file_without_workflow_id(self, authenticated_client: TestClient, sample_text_file, tmp_path):
@@ -260,7 +259,8 @@ class TestUploadFile:
 
                 assert response.status_code == 200
                 data = response.json()
-                assert "auto_processing" not in data
+                # auto_processing should be None when no workflow_id provided
+                assert data.get("auto_processing") is None
 
     @pytest.mark.api
     def test_upload_file_creates_directory(self, authenticated_client: TestClient, sample_text_file, tmp_path):
@@ -317,4 +317,3 @@ class TestUploadFile:
                 assert response.status_code == 200
                 data = response.json()
                 assert data["file_size"] == 0
-
