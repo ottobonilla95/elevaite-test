@@ -222,12 +222,19 @@ def test_api_key_fixture():
     return "test-api-key-12345678"
 
 
+@pytest.fixture(name="test_tenant_id")
+def test_tenant_id_fixture():
+    """Provide a test tenant ID for multitenancy."""
+    return "default"
+
+
 @pytest.fixture(name="auth_headers")
 def auth_headers_fixture(
     test_user_id: str,
     test_org_id: str,
     test_account_id: str,
     test_project_id: str,
+    test_tenant_id: str,
 ) -> Dict[str, str]:
     """Provide valid auth headers for user-based authentication."""
     return {
@@ -235,6 +242,7 @@ def auth_headers_fixture(
         HDR_ORG_ID: test_org_id,
         HDR_ACCOUNT_ID: test_account_id,
         HDR_PROJECT_ID: test_project_id,
+        "X-Tenant-ID": test_tenant_id,
     }
 
 
@@ -244,6 +252,7 @@ def api_key_headers_fixture(
     test_org_id: str,
     test_account_id: str,
     test_project_id: str,
+    test_tenant_id: str,
 ) -> Dict[str, str]:
     """Provide valid auth headers for API key-based authentication."""
     return {
@@ -251,6 +260,7 @@ def api_key_headers_fixture(
         HDR_ORG_ID: test_org_id,
         HDR_ACCOUNT_ID: test_account_id,
         HDR_PROJECT_ID: test_project_id,
+        "X-Tenant-ID": test_tenant_id,
     }
 
 
