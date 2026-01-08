@@ -25,6 +25,16 @@ from db_core.router import (
     TenantResponse,
     TenantListResponse,
 )
+from db_core.audit import (
+    TenantAuditEvent,
+    log_tenant_event,
+    log_tenant_created,
+    log_tenant_updated,
+    log_tenant_activated,
+    log_tenant_deactivated,
+    log_tenant_deleted,
+    get_audit_logger,
+)
 
 __version__ = "0.1.0"
 __all__ = [
@@ -58,4 +68,13 @@ __all__ = [
     "TenantUpdate",
     "TenantResponse",
     "TenantListResponse",
+    # Audit logging
+    "TenantAuditEvent",
+    "log_tenant_event",
+    "log_tenant_created",
+    "log_tenant_updated",
+    "log_tenant_activated",
+    "log_tenant_deactivated",
+    "log_tenant_deleted",
+    "get_audit_logger",
 ]

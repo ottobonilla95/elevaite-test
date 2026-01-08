@@ -14,6 +14,18 @@ from sqlalchemy.orm import Session
 from db_core.config import MultitenancySettings
 from db_core.models import Tenant, TenantStatus
 from db_core.utils import get_schema_name
+from db_core.audit import (
+    log_tenant_created,
+    log_tenant_updated,
+    log_tenant_activated,
+    log_tenant_deactivated,
+    log_tenant_deleted,
+    log_tenant_init_started,
+    log_tenant_init_completed,
+    log_tenant_init_failed,
+    TenantAuditEvent,
+    log_tenant_event,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +162,7 @@ class TenantRegistry:
 
         # Create the schema
         await session.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
-        logger.info(f"Created schema '{schema_name}' for tenant '{tenant_id}'")
+        log_tenant_event(TenantAuditEvent.TENANT_SCHEMA_CREATED, tenant_id, details={"schema_name": schema_name})
 
         # Create tenant record
         tenant = Tenant(
@@ -167,15 +179,17 @@ class TenantRegistry:
 
         # Run tenant initializers
         if run_initializers:
+            log_tenant_init_started(tenant_id, schema_name)
             for initializer in _tenant_initializers:
                 try:
                     await initializer(tenant_id, session)
                     logger.info(f"Ran initializer '{initializer.__name__}' for tenant '{tenant_id}'")
                 except Exception as e:
-                    logger.error(f"Initializer '{initializer.__name__}' failed for tenant '{tenant_id}': {e}")
+                    log_tenant_init_failed(tenant_id, schema_name, str(e))
                     raise
 
             tenant.is_schema_initialized = True
+            log_tenant_init_completed(tenant_id, schema_name)
 
         await session.commit()
         await session.refresh(tenant)
@@ -183,7 +197,7 @@ class TenantRegistry:
         # Update cache with new tenant
         _tenant_cache.add_tenant(tenant_id)
 
-        logger.info(f"Created tenant '{tenant_id}' with schema '{schema_name}'")
+        log_tenant_created(tenant_id, display_name=name)
         return tenant
 
     async def get_tenant(self, session: AsyncSession, tenant_id: str) -> Optional[Tenant]:
@@ -281,19 +295,25 @@ class TenantRegistry:
         if not tenant:
             return None
 
+        changes = {}
         if name is not None:
+            changes["name"] = {"old": tenant.name, "new": name}
             tenant.name = name
         if description is not None:
+            changes["description"] = {"old": tenant.description, "new": description}
             tenant.description = description
         if metadata is not None:
+            changes["metadata"] = "updated"
             tenant.metadata_ = metadata
         if status is not None:
+            changes["status"] = {"old": tenant.status, "new": status.value}
             tenant.status = status.value
 
         await session.commit()
         await session.refresh(tenant)
 
-        logger.info(f"Updated tenant '{tenant_id}'")
+        if changes:
+            log_tenant_updated(tenant_id, changes)
         return tenant
 
     async def deactivate_tenant(
@@ -317,6 +337,7 @@ class TenantRegistry:
         result = await self.update_tenant(session, tenant_id, status=TenantStatus.INACTIVE)
         if result:
             _tenant_cache.remove_tenant(tenant_id)
+            log_tenant_deactivated(tenant_id)
         return result
 
     async def activate_tenant(
@@ -337,6 +358,7 @@ class TenantRegistry:
         result = await self.update_tenant(session, tenant_id, status=TenantStatus.ACTIVE)
         if result:
             _tenant_cache.add_tenant(tenant_id)
+            log_tenant_activated(tenant_id)
         return result
 
     async def delete_tenant(
@@ -371,14 +393,14 @@ class TenantRegistry:
         # Optionally drop the schema
         if drop_schema:
             await session.execute(text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE'))
-            logger.warning(f"Dropped schema '{schema_name}' for tenant '{tenant_id}'")
+            log_tenant_event(TenantAuditEvent.TENANT_SCHEMA_DROPPED, tenant_id, details={"schema_name": schema_name})
 
         await session.commit()
 
         # Remove from cache
         _tenant_cache.remove_tenant(tenant_id)
 
-        logger.info(f"Deleted tenant '{tenant_id}'")
+        log_tenant_deleted(tenant_id, drop_schema=drop_schema)
         return True
 
     async def ensure_tenant_table(self, session: AsyncSession) -> None:

@@ -19,8 +19,12 @@ dependencies = [
     "psycopg2-binary>=2.9.0; platform_python_implementation != 'PyPy'",
     "psycopg2cffi>=2.9.0; platform_python_implementation == 'PyPy'",
     "asyncpg>=0.24.0",
+    "elevaite-logger",
 ]
 # dynamic = ["version"]
+
+[tool.uv.sources]
+elevaite-logger = { workspace = true }
 
 [project.optional-dependencies]
 dev = [
