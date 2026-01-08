@@ -4,20 +4,19 @@ Tenant administration for the Workflow Execution Engine.
 Provides tenant initializer, admin router, and tenant validation callback.
 """
 
+import asyncio
 import logging
 from typing import AsyncGenerator
 
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.schema import CreateTable
-from sqlalchemy.dialects import postgresql
-from sqlmodel import SQLModel
 from fastapi import Depends
 
 from db_core import TenantRegistry, register_tenant_initializer, create_tenant_admin_router, get_tenant_cache
 from db_core.utils import get_schema_name
 from workflow_core_sdk.multitenancy import multitenancy_settings, DEFAULT_TENANTS
+from workflow_core_sdk.db.database import DATABASE_URL
 from workflow_core_sdk.db.models import *  # noqa: F401, F403 - register models
+from workflow_core_sdk.db.migrations import run_migrations_for_tenant
 from workflow_engine_poc.util import superadmin_guard
 
 logger = logging.getLogger(__name__)
@@ -27,8 +26,6 @@ _async_session_factory = None
 
 def _get_async_db_url() -> str:
     """Convert sync database URL to async format."""
-    from workflow_core_sdk.db.database import DATABASE_URL
-
     url = DATABASE_URL
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
@@ -59,24 +56,14 @@ def get_tenant_registry() -> TenantRegistry:
 
 @register_tenant_initializer
 async def init_workflow_tables(tenant_id: str, session: AsyncSession) -> None:
-    """Create workflow tables in new tenant's schema."""
+    """Create workflow tables in new tenant's schema using Alembic migrations."""
     schema_name = get_schema_name(tenant_id, multitenancy_settings)
-    logger.info(f"Initializing tables for tenant '{tenant_id}' in schema '{schema_name}'")
+    logger.info(f"Running Alembic migrations for tenant '{tenant_id}' in schema '{schema_name}'")
 
-    for table in SQLModel.metadata.tables.values():
-        # Check if table exists
-        result = await session.execute(
-            text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = :schema AND table_name = :table)"),
-            {"schema": schema_name, "table": table.name},
-        )
-        if not result.scalar():
-            # Create table with schema-qualified name
-            ddl = str(CreateTable(table).compile(dialect=postgresql.dialect()))
-            ddl = ddl.replace(f'"{table.name}"', f'"{schema_name}"."{table.name}"')
-            await session.execute(text(ddl))
+    # Run Alembic migrations in a thread pool since it uses sync database operations
+    await asyncio.to_thread(run_migrations_for_tenant, schema_name, DATABASE_URL)
 
-    await session.commit()
-    logger.info(f"Tables initialized for tenant '{tenant_id}'")
+    logger.info(f"Migrations completed for tenant '{tenant_id}'")
 
 
 def validate_tenant_exists(tenant_id: str) -> bool:
