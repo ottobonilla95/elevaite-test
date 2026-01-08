@@ -10,6 +10,10 @@ from workflow_core_sdk.execution.registry_impl import StepRegistry
 # Database
 from .db.database import engine, get_db_session, create_db_and_tables
 
+# Multitenancy (lazy imports available via submodule)
+# from workflow_core_sdk.multitenancy import multitenancy_settings, DEFAULT_TENANTS
+# from workflow_core_sdk.db.tenant_db import initialize_tenant_db, get_tenant_db_session
+
 # Database models
 from .db.models import (
     Workflow,

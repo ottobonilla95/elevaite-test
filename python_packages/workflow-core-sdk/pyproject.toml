@@ -25,10 +25,11 @@ dependencies = [
     "requests>=2.31.0",
     "typing-extensions>=4.9.0",
     "dbos>=1.12.0",
+    "db-core",                  # Required for schema-based multitenancy
 ]
 
 [project.optional-dependencies]
-workspace = ["llm-gateway", "elevaite-ingestion", "elevaite-logger", "db-core"]
+workspace = ["llm-gateway", "elevaite-ingestion", "elevaite-logger"]
 dev = ["pytest>=7.4.3", "pytest-asyncio>=0.21.1"]
 
 [tool.uv.sources]

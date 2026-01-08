@@ -6,6 +6,7 @@ A clean, agnostic workflow execution engine that supports:
 - RPC-like step registration
 - Simplified agent execution
 - Database-backed configuration
+- Schema-based multitenancy for data isolation
 """
 
 import os
@@ -21,6 +22,11 @@ from workflow_engine_poc.db.database import get_database, create_db_and_tables
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from fastapi_logger import ElevaiteLogger
+
+# Multitenancy support
+from db_core.middleware import add_tenant_middleware
+from workflow_core_sdk.multitenancy import multitenancy_settings, DEFAULT_TENANTS
+from workflow_core_sdk.db.tenant_db import initialize_tenant_db
 
 # Early DBOS bootstrap to ensure decorators are bound before importing routers
 # Skip DBOS in test mode to avoid SQLite compatibility issues
@@ -94,7 +100,20 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.warning(f"DB models import warning (continuing): {_e}")
 
-    create_db_and_tables()
+    # Initialize tenant schemas for multitenancy
+    try:
+        logger.info(f"Initializing tenant schemas for: {DEFAULT_TENANTS}")
+        initialize_tenant_db(
+            settings=multitenancy_settings,
+            tenant_ids=DEFAULT_TENANTS,
+        )
+        logger.info("✅ Tenant schemas initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize tenant schemas: {e}")
+        # Fall back to non-tenant database initialization
+        create_db_and_tables()
+        logger.warning("⚠️  Falling back to non-tenant database mode")
+
     database = await get_database()
     logger.info("✅ Database initialized")
     app.state.database = database
@@ -147,6 +166,16 @@ app = FastAPI(
     version="1.0.0-poc",
     lifespan=lifespan,
 )
+
+# Add tenant middleware for multitenancy
+# Excluded paths don't require tenant ID header
+excluded_paths = {
+    r"^/health$": {"default_tenant": "default"},
+    r"^/docs.*": {"default_tenant": "default"},
+    r"^/redoc.*": {"default_tenant": "default"},
+    r"^/openapi\.json$": {"default_tenant": "default"},
+}
+add_tenant_middleware(app, settings=multitenancy_settings, excluded_paths=excluded_paths)
 
 # Add CORS middleware
 app.add_middleware(

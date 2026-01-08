@@ -3,6 +3,8 @@ Database engine and session management using SQLModel
 
 This module provides the database engine, session management, and
 database initialization functionality for the workflow engine.
+
+Supports schema-based multitenancy when enabled via db-core middleware.
 """
 
 import os
@@ -10,7 +12,6 @@ from typing import Generator
 from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy import text
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-from contextlib import contextmanager
 
 # Database configuration
 # Priority order:
@@ -63,14 +64,31 @@ def create_db_and_tables():
 
 
 def get_session() -> Generator[Session, None, None]:
-    """Get database session"""
+    """
+    Get database session with automatic tenant schema isolation.
+
+    When multitenancy is enabled via initialize_tenant_db(), the db-core
+    event listener automatically sets the PostgreSQL search_path to the
+    tenant's schema based on the X-Tenant-ID request header.
+
+    This provides transparent data isolation without manual intervention.
+    """
     with Session(engine) as session:
         yield session
 
 
 # Dependency for FastAPI
-def get_db_session():
-    """FastAPI dependency for database session"""
+def get_db_session() -> Session:
+    """
+    FastAPI dependency for database session.
+
+    Automatically applies tenant schema isolation when multitenancy is enabled.
+
+    Usage:
+        @router.get("/items")
+        def list_items(session: Session = Depends(get_db_session)):
+            ...
+    """
     return next(get_session())
 
 
