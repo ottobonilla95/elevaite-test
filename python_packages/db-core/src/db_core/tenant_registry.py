@@ -1,12 +1,11 @@
 """
 Tenant Registry for dynamic tenant provisioning.
-
-This module provides a registry for managing tenants dynamically,
-including creating, listing, and deactivating tenants at runtime.
 """
 
 import logging
-from typing import Any, Callable, Coroutine, Dict, List, Optional
+import time
+from threading import RLock
+from typing import Any, Callable, Coroutine, Dict, List, Optional, Set
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,10 +17,51 @@ from db_core.utils import get_schema_name
 
 logger = logging.getLogger(__name__)
 
-# Type for tenant initializer callbacks
-TenantInitializer = Callable[[str, AsyncSession], Coroutine[Any, Any, None]]
 
-# Global registry of tenant initializers
+class TenantCache:
+    """Thread-safe cache for active tenant IDs with TTL."""
+
+    def __init__(self, ttl_seconds: int = 60):
+        self._active_tenants: Set[str] = set()
+        self._last_refresh: float = 0
+        self._ttl_seconds = ttl_seconds
+        self._lock = RLock()
+        self._initialized = False
+
+    def is_active(self, tenant_id: str) -> Optional[bool]:
+        """Check if tenant is active. Returns None if cache needs refresh."""
+        with self._lock:
+            if not self._initialized or time.time() - self._last_refresh > self._ttl_seconds:
+                return None
+            return tenant_id in self._active_tenants
+
+    def refresh(self, active_tenant_ids: Set[str]) -> None:
+        """Refresh cache with active tenant IDs."""
+        with self._lock:
+            self._active_tenants = active_tenant_ids.copy()
+            self._last_refresh = time.time()
+            self._initialized = True
+
+    def add_tenant(self, tenant_id: str) -> None:
+        """Add tenant to cache."""
+        with self._lock:
+            self._active_tenants.add(tenant_id)
+
+    def remove_tenant(self, tenant_id: str) -> None:
+        """Remove tenant from cache."""
+        with self._lock:
+            self._active_tenants.discard(tenant_id)
+
+
+_tenant_cache = TenantCache(ttl_seconds=60)
+
+
+def get_tenant_cache() -> TenantCache:
+    """Get global tenant cache instance."""
+    return _tenant_cache
+
+
+TenantInitializer = Callable[[str, AsyncSession], Coroutine[Any, Any, None]]
 _tenant_initializers: List[TenantInitializer] = []
 
 
@@ -140,6 +180,9 @@ class TenantRegistry:
         await session.commit()
         await session.refresh(tenant)
 
+        # Update cache with new tenant
+        _tenant_cache.add_tenant(tenant_id)
+
         logger.info(f"Created tenant '{tenant_id}' with schema '{schema_name}'")
         return tenant
 
@@ -183,6 +226,33 @@ class TenantRegistry:
 
         result = await session.execute(query.order_by(Tenant.created_at))
         return list(result.scalars().all())
+
+    async def get_active_tenant_ids(self, session: AsyncSession) -> Set[str]:
+        """
+        Get all active tenant IDs.
+
+        This is used to refresh the tenant cache.
+
+        Args:
+            session: Database session
+
+        Returns:
+            Set of active tenant IDs
+        """
+        query = select(Tenant.tenant_id).where(Tenant.status == TenantStatus.ACTIVE.value)
+        result = await session.execute(query)
+        return {row[0] for row in result.fetchall()}
+
+    async def refresh_cache(self, session: AsyncSession) -> None:
+        """
+        Refresh the tenant cache with current active tenants from database.
+
+        Args:
+            session: Database session
+        """
+        active_tenant_ids = await self.get_active_tenant_ids(session)
+        _tenant_cache.refresh(active_tenant_ids)
+        logger.info(f"Refreshed tenant cache with {len(active_tenant_ids)} active tenants")
 
     async def update_tenant(
         self,
@@ -244,7 +314,10 @@ class TenantRegistry:
         Returns:
             Updated Tenant object or None if not found
         """
-        return await self.update_tenant(session, tenant_id, status=TenantStatus.INACTIVE)
+        result = await self.update_tenant(session, tenant_id, status=TenantStatus.INACTIVE)
+        if result:
+            _tenant_cache.remove_tenant(tenant_id)
+        return result
 
     async def activate_tenant(
         self,
@@ -261,7 +334,10 @@ class TenantRegistry:
         Returns:
             Updated Tenant object or None if not found
         """
-        return await self.update_tenant(session, tenant_id, status=TenantStatus.ACTIVE)
+        result = await self.update_tenant(session, tenant_id, status=TenantStatus.ACTIVE)
+        if result:
+            _tenant_cache.add_tenant(tenant_id)
+        return result
 
     async def delete_tenant(
         self,
@@ -298,6 +374,10 @@ class TenantRegistry:
             logger.warning(f"Dropped schema '{schema_name}' for tenant '{tenant_id}'")
 
         await session.commit()
+
+        # Remove from cache
+        _tenant_cache.remove_tenant(tenant_id)
+
         logger.info(f"Deleted tenant '{tenant_id}'")
         return True
 

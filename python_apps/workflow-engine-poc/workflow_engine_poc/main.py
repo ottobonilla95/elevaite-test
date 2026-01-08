@@ -59,8 +59,7 @@ from workflow_engine_poc.routers import (
     workflows,
 )
 from workflow_engine_poc.routers.approvals import router as approvals
-from workflow_engine_poc.tenant_admin import tenant_admin_router
-from workflow_engine_poc.tenant_admin import tenant_admin_router
+from workflow_engine_poc.tenant_admin import tenant_admin_router, validate_tenant_exists
 
 
 ElevaiteLogger.attach_to_uvicorn(
@@ -110,6 +109,13 @@ async def lifespan(app: FastAPI):
             tenant_ids=DEFAULT_TENANTS,
         )
         logger.info("✅ Tenant schemas initialized")
+
+        # Initialize tenant cache with default tenants
+        from db_core import get_tenant_cache
+
+        tenant_cache = get_tenant_cache()
+        tenant_cache.refresh(set(DEFAULT_TENANTS))
+        logger.info(f"✅ Tenant cache initialized with {len(DEFAULT_TENANTS)} tenants")
     except Exception as e:
         logger.error(f"Failed to initialize tenant schemas: {e}")
         # Fall back to non-tenant database initialization
@@ -178,7 +184,12 @@ excluded_paths = {
     r"^/openapi\.json$": {"default_tenant": "default"},
     r"^/admin/tenants.*": {"default_tenant": "default"},  # Tenant admin endpoints
 }
-add_tenant_middleware(app, settings=multitenancy_settings, excluded_paths=excluded_paths)
+add_tenant_middleware(
+    app,
+    settings=multitenancy_settings,
+    tenant_callback=validate_tenant_exists,  # Validate tenant exists and is active
+    excluded_paths=excluded_paths,
+)
 
 # Add CORS middleware
 app.add_middleware(

@@ -12,9 +12,11 @@ from db_core.middleware import TenantMiddleware, get_current_tenant_id
 from db_core.models import Tenant, TenantStatus
 from db_core.tenant_registry import (
     TenantRegistry,
+    TenantCache,
     register_tenant_initializer,
     get_tenant_initializers,
     clear_tenant_initializers,
+    get_tenant_cache,
 )
 from db_core.router import (
     create_tenant_admin_router,
@@ -43,11 +45,13 @@ __all__ = [
     # Tenant models
     "Tenant",
     "TenantStatus",
-    # Tenant registry
+    # Tenant registry and cache
     "TenantRegistry",
+    "TenantCache",
     "register_tenant_initializer",
     "get_tenant_initializers",
     "clear_tenant_initializers",
+    "get_tenant_cache",
     # Router
     "create_tenant_admin_router",
     "TenantCreate",
