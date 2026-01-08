@@ -173,10 +173,7 @@ def get_tenant_session(
     with Session(engine) as session:
         # Explicitly set search path to tenant schema
         session.execute(text(f'SET search_path TO "{schema_name}", public'))
-        try:
-            yield session
-        finally:
-            session.close()
+        yield session
 
 
 def get_tenant_db_session(
