@@ -165,6 +165,57 @@ class TestCreateTenant:
         )
         assert response.status_code == 422
 
+    def test_create_tenant_invalid_id_uppercase_returns_422(self, test_client, auth_headers):
+        """Test that tenant_id with uppercase letters returns 422."""
+        response = test_client.post(
+            "/admin/tenants",
+            json={
+                "tenant_id": "InvalidTenant",  # Has uppercase letters
+                "name": "Test Tenant",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+    def test_create_tenant_invalid_id_starts_with_number_returns_422(self, test_client, auth_headers):
+        """Test that tenant_id starting with a number returns 422."""
+        response = test_client.post(
+            "/admin/tenants",
+            json={
+                "tenant_id": "123tenant",  # Starts with number
+                "name": "Test Tenant",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+    def test_create_tenant_invalid_id_with_special_chars_returns_422(self, test_client, auth_headers):
+        """Test that tenant_id with special characters returns 422."""
+        response = test_client.post(
+            "/admin/tenants",
+            json={
+                "tenant_id": "tenant-with-dashes",  # Has dashes (only underscores allowed)
+                "name": "Test Tenant",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+    def test_create_tenant_server_error_returns_500(self, tenant_admin_client):
+        """Test that unexpected errors return 500 Internal Server Error."""
+        client, mock_registry = tenant_admin_client
+        mock_registry.create_tenant = AsyncMock(side_effect=RuntimeError("Database connection failed"))
+
+        response = client.post(
+            "/admin/tenants",
+            json={
+                "tenant_id": "new_tenant",
+                "name": "New Tenant",
+            },
+        )
+        assert response.status_code == 500
+        assert "Failed to create tenant" in response.json()["detail"]
+
 
 class TestListTenants:
     """Tests for tenant listing endpoint."""
@@ -201,6 +252,15 @@ class TestListTenants:
         assert response.status_code == 200
         # Verify the include_inactive parameter was passed
         mock_registry.list_tenants.assert_called_once()
+
+    def test_list_tenants_server_error_returns_500(self, tenant_admin_client):
+        """Test that unexpected errors return 500 Internal Server Error."""
+        client, mock_registry = tenant_admin_client
+        mock_registry.list_tenants = AsyncMock(side_effect=RuntimeError("Database error"))
+
+        response = client.get("/admin/tenants")
+        assert response.status_code == 500
+        assert "Failed to list tenants" in response.json()["detail"]
 
 
 class TestGetTenant:
@@ -271,6 +331,49 @@ class TestUpdateTenant:
         )
         assert response.status_code == 404
 
+    def test_update_tenant_partial_name_only(self, tenant_admin_client, sample_tenant):
+        """Test partial update with only name field."""
+        client, mock_registry = tenant_admin_client
+
+        updated_tenant = MagicMock()
+        updated_tenant.id = sample_tenant.id
+        updated_tenant.tenant_id = sample_tenant.tenant_id
+        updated_tenant.name = "Only Name Updated"
+        updated_tenant.description = sample_tenant.description
+        updated_tenant.status = sample_tenant.status
+        updated_tenant.schema_name = sample_tenant.schema_name
+        updated_tenant.metadata_ = sample_tenant.metadata_
+        updated_tenant.is_schema_initialized = True
+        updated_tenant.created_at = sample_tenant.created_at
+        updated_tenant.updated_at = sample_tenant.updated_at
+
+        mock_registry.update_tenant = AsyncMock(return_value=updated_tenant)
+
+        response = client.patch(
+            f"/admin/tenants/{sample_tenant.tenant_id}",
+            json={"name": "Only Name Updated"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Only Name Updated"
+        # Verify only name was passed to update
+        mock_registry.update_tenant.assert_called_once()
+        call_kwargs = mock_registry.update_tenant.call_args.kwargs
+        assert call_kwargs.get("name") == "Only Name Updated"
+        assert call_kwargs.get("description") is None
+        assert call_kwargs.get("metadata") is None
+
+    def test_update_tenant_empty_body(self, tenant_admin_client, sample_tenant):
+        """Test update with empty body (no changes)."""
+        client, mock_registry = tenant_admin_client
+        mock_registry.update_tenant = AsyncMock(return_value=sample_tenant)
+
+        response = client.patch(
+            f"/admin/tenants/{sample_tenant.tenant_id}",
+            json={},
+        )
+        assert response.status_code == 200
+
 
 class TestDeactivateTenant:
     """Tests for tenant deactivation endpoint."""
@@ -319,6 +422,15 @@ class TestActivateTenant:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "active"
+
+    def test_activate_tenant_not_found(self, tenant_admin_client):
+        """Test activating a non-existent tenant returns 404."""
+        client, mock_registry = tenant_admin_client
+        mock_registry.activate_tenant = AsyncMock(return_value=None)
+
+        response = client.post("/admin/tenants/nonexistent_tenant/activate")
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"]
 
 
 class TestDeleteTenant:
