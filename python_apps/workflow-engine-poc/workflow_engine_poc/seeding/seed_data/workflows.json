@@ -1,0 +1,91 @@
+{
+  "_description": "Demo workflow definitions showcasing platform capabilities. Add your 13 workflows here.",
+  "workflows": [
+    {
+      "template_id": "simple_hello_world",
+      "name": "Hello World Workflow",
+      "description": "A simple workflow demonstrating basic data input and output.",
+      "execution_pattern": "sequential",
+      "tags": ["demo", "beginner", "tutorial"],
+      "steps": [
+        {
+          "step_id": "trigger",
+          "step_type": "trigger",
+          "parameters": {
+            "kind": "webhook"
+          }
+        },
+        {
+          "step_id": "data_input",
+          "step_type": "data_input",
+          "dependencies": ["trigger"],
+          "config": {
+            "input_type": "static",
+            "data": {
+              "message": "Hello, World!"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "template_id": "agent_chat_workflow",
+      "name": "Agent Chat Workflow",
+      "description": "A workflow demonstrating AI agent interaction for chat scenarios.",
+      "execution_pattern": "sequential",
+      "tags": ["demo", "agent", "chat"],
+      "steps": [
+        {
+          "step_id": "trigger",
+          "step_type": "trigger",
+          "parameters": {
+            "kind": "webhook"
+          }
+        },
+        {
+          "step_id": "agent_step",
+          "step_type": "agent",
+          "name": "ChatAgent",
+          "dependencies": ["trigger"],
+          "parameters": {
+            "agent_template_id": "general_assistant_agent"
+          }
+        }
+      ]
+    },
+    {
+      "template_id": "data_processing_workflow",
+      "name": "Data Processing Pipeline",
+      "description": "A workflow demonstrating data transformation and processing steps.",
+      "execution_pattern": "sequential",
+      "tags": ["demo", "data", "processing"],
+      "steps": [
+        {
+          "step_id": "trigger",
+          "step_type": "trigger",
+          "parameters": {
+            "kind": "webhook"
+          }
+        },
+        {
+          "step_id": "data_input",
+          "step_type": "data_input",
+          "dependencies": ["trigger"],
+          "config": {
+            "input_type": "dynamic",
+            "source": "trigger"
+          }
+        },
+        {
+          "step_id": "process",
+          "step_type": "data_processing",
+          "dependencies": ["data_input"],
+          "config": {
+            "processing_type": "transform"
+          }
+        }
+      ]
+    }
+  ]
+}
+

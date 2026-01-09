@@ -1,0 +1,61 @@
+{
+  "_description": "Agent configurations for demo workflows. References prompts by template_id.",
+  "agents": [
+    {
+      "template_id": "general_assistant_agent",
+      "name": "General Assistant",
+      "description": "A general-purpose AI assistant for answering questions and helping with tasks.",
+      "prompt_template_id": "general_assistant_prompt",
+      "provider_type": "openai_textgen",
+      "provider_config": {
+        "model_name": "gpt-4o-mini",
+        "temperature": 0.7,
+        "max_tokens": 2048
+      },
+      "tags": ["demo", "general"],
+      "status": "active",
+      "tool_bindings": []
+    },
+    {
+      "template_id": "data_analyst_agent",
+      "name": "Data Analyst",
+      "description": "An AI agent specialized in data analysis and insights.",
+      "prompt_template_id": "data_analyst_prompt",
+      "provider_type": "openai_textgen",
+      "provider_config": {
+        "model_name": "gpt-4o-mini",
+        "temperature": 0.3,
+        "max_tokens": 4096
+      },
+      "tags": ["demo", "data", "analysis"],
+      "status": "active",
+      "tool_bindings": [
+        {
+          "tool_template_id": "calculator_tool",
+          "is_active": true
+        }
+      ]
+    },
+    {
+      "template_id": "code_assistant_agent",
+      "name": "Code Assistant",
+      "description": "An AI agent specialized in programming and code assistance.",
+      "prompt_template_id": "code_assistant_prompt",
+      "provider_type": "openai_textgen",
+      "provider_config": {
+        "model_name": "gpt-4o-mini",
+        "temperature": 0.2,
+        "max_tokens": 4096
+      },
+      "tags": ["demo", "code", "programming"],
+      "status": "active",
+      "tool_bindings": [
+        {
+          "tool_template_id": "text_transform_tool",
+          "is_active": true
+        }
+      ]
+    }
+  ]
+}
+

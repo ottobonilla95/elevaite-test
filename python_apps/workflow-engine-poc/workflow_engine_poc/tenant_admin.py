@@ -54,6 +54,7 @@ def get_tenant_registry() -> TenantRegistry:
     return TenantRegistry(multitenancy_settings)
 
 
+# Register migration initializer FIRST (order matters!)
 @register_tenant_initializer
 async def init_workflow_tables(tenant_id: str, session: AsyncSession) -> None:
     """Create workflow tables in new tenant's schema using Alembic migrations."""
@@ -64,6 +65,11 @@ async def init_workflow_tables(tenant_id: str, session: AsyncSession) -> None:
     await asyncio.to_thread(run_migrations_for_tenant, schema_name, DATABASE_URL)
 
     logger.info(f"Migrations completed for tenant '{tenant_id}'")
+
+
+# Import seeding module to register the seed_tenant_data initializer AFTER migrations
+# This ensures the seeding initializer runs after tables are created
+from workflow_engine_poc.seeding import seed_tenant_data  # noqa: F401, E402 - registers initializer
 
 
 def validate_tenant_exists(tenant_id: str) -> bool:

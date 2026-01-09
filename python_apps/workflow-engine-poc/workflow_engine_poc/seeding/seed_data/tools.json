@@ -1,0 +1,76 @@
+{
+  "_description": "Tool definitions for demo workflows. Each tool has a template_id for cross-referencing.",
+  "tools": [
+    {
+      "template_id": "calculator_tool",
+      "name": "calculator",
+      "display_name": "Calculator",
+      "description": "Performs basic arithmetic operations: addition, subtraction, multiplication, and division.",
+      "version": "1.0.0",
+      "tool_type": "local",
+      "execution_type": "function",
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["add", "subtract", "multiply", "divide"],
+            "description": "The arithmetic operation to perform"
+          },
+          "a": {
+            "type": "number",
+            "description": "First operand"
+          },
+          "b": {
+            "type": "number",
+            "description": "Second operand"
+          }
+        },
+        "required": ["operation", "a", "b"]
+      },
+      "return_schema": {
+        "type": "object",
+        "properties": {
+          "result": {"type": "number"}
+        }
+      },
+      "module_path": "workflow_engine_poc.tools.basic_tools",
+      "function_name": "calculator",
+      "tags": ["demo", "math", "utility"]
+    },
+    {
+      "template_id": "text_transform_tool",
+      "name": "text_transform",
+      "display_name": "Text Transformer",
+      "description": "Transforms text: uppercase, lowercase, reverse, or word count.",
+      "version": "1.0.0",
+      "tool_type": "local",
+      "execution_type": "function",
+      "parameters_schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text to transform"
+          },
+          "operation": {
+            "type": "string",
+            "enum": ["uppercase", "lowercase", "reverse", "word_count"],
+            "description": "The transformation to apply"
+          }
+        },
+        "required": ["text", "operation"]
+      },
+      "return_schema": {
+        "type": "object",
+        "properties": {
+          "result": {"type": ["string", "integer"]}
+        }
+      },
+      "module_path": "workflow_engine_poc.tools.basic_tools",
+      "function_name": "text_transform",
+      "tags": ["demo", "text", "utility"]
+    }
+  ]
+}
+
