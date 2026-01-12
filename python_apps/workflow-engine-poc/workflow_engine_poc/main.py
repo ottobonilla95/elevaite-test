@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 import logging
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 # Import core components from the SDK
 from workflow_core_sdk import (
@@ -226,6 +227,8 @@ app.include_router(files)
 app.include_router(messages)
 app.include_router(prompts)
 app.include_router(approvals)
+app.include_router(monitoring_router)
+app.include_router(tenant_admin_router, prefix="/admin")
 
 # Also expose the same routes under /api for clients expecting that prefix
 api_router = APIRouter(prefix="/api")
