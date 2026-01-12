@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Union
 import requests
 
 # Updated to point to Auth API's authz endpoint
@@ -13,7 +13,7 @@ class RBACClientError(Exception):
 
 
 def check_access(
-    user_id: int,
+    user_id: Union[int, str],
     action: str,
     resource: Dict[str, Any],
     *,
@@ -29,7 +29,7 @@ def check_access(
     3. Calls OPA to evaluate the policy
 
     Args:
-        user_id: Integer user ID from Auth API users table.
+        user_id: User ID (int or string that can be converted to int).
         action: Action string (e.g., "view_project", "update_project").
         resource: Dict with keys: type, id, organization_id, account_id (optional).
         base_url: Override base URL (default uses AUTHZ_SERVICE_URL env or http://localhost:8004).
@@ -39,14 +39,20 @@ def check_access(
         True if allowed, False otherwise.
 
     Raises:
-        RBACClientError: If the service call fails.
+        RBACClientError: If the service call fails or user_id is invalid.
     """
+    # Convert user_id to int - Auth API requires integer user IDs
+    try:
+        user_id_int = int(user_id)
+    except (ValueError, TypeError) as e:
+        raise RBACClientError(f"Invalid user_id format: {user_id}") from e
+
     url = (base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip("/") + "/api/authz/check_access"
     try:
         resp = requests.post(
             url,
             json={
-                "user_id": user_id,
+                "user_id": user_id_int,
                 "action": action,
                 "resource": resource,
             },

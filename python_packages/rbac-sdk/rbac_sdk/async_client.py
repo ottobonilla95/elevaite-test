@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 import os
 import httpx
 
@@ -9,7 +9,7 @@ DEFAULT_AUTHZ_SERVICE_URL = os.getenv("AUTHZ_SERVICE_URL", "http://localhost:800
 
 async def check_access_async(
     *,
-    user_id: int,
+    user_id: Union[int, str],
     action: str,
     resource: Dict[str, Any],
     base_url: Optional[str] = None,
@@ -24,7 +24,7 @@ async def check_access_async(
     3. Calls OPA to evaluate the policy
 
     Args:
-        user_id: Integer user ID from Auth API users table.
+        user_id: User ID (int or string that can be converted to int).
         action: Action string (e.g., "view_project", "update_project").
         resource: Dict with keys: type, id, organization_id, account_id (optional).
         base_url: Override base URL (default uses AUTHZ_SERVICE_URL env).
@@ -32,10 +32,17 @@ async def check_access_async(
 
     Returns:
         True if allowed, False otherwise.
-        Fails closed: network errors/timeouts return False.
+        Fails closed: network errors/timeouts/invalid user_id return False.
     """
+    # Convert user_id to int - Auth API requires integer user IDs
+    try:
+        user_id_int = int(user_id)
+    except (ValueError, TypeError):
+        # Fail closed - invalid user ID format
+        return False
+
     url = f"{(base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip('/')}/api/authz/check_access"
-    payload = {"user_id": user_id, "action": action, "resource": resource}
+    payload = {"user_id": user_id_int, "action": action, "resource": resource}
 
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:

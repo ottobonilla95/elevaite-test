@@ -180,9 +180,9 @@ class TestUsagePatterns:
             mock_response.json.return_value = {"allowed": True}
             mock_post.return_value = mock_response
 
-            # Sync version
+            # Sync version - user_id must be an integer (Auth API requirement)
             allowed = check_access(
-                user_id="user-123",
+                user_id=123,
                 action="view_project",
                 resource={
                     "type": "project",
@@ -204,9 +204,9 @@ class TestUsagePatterns:
             mock_client.__aexit__ = AsyncMock(return_value=None)
             mock_client_class.return_value = mock_client
 
-            # Async version
+            # Async version - user_id must be an integer (Auth API requirement)
             allowed = await check_access_async(
-                user_id="user-123",
+                user_id=123,
                 action="view_project",
                 resource={
                     "type": "project",
