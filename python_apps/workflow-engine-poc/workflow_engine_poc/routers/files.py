@@ -8,7 +8,7 @@ from typing import Optional
 from pathlib import Path
 from datetime import datetime
 
-from ..execution_context import ExecutionContext, UserContext
+from workflow_core_sdk.execution.context_impl import ExecutionContext, UserContext
 from ..util import api_key_or_user_guard
 from ..schemas import FileUploadResponse
 

@@ -89,7 +89,7 @@ class TestListStepMessages:
             patch.object(
                 authenticated_client.app.state.workflow_engine, "get_execution_context", new_callable=AsyncMock
             ) as mock_get_ctx,
-            patch("workflow_engine_poc.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
+            patch("workflow_core_sdk.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
         ):
             mock_get_ctx.return_value = mock_execution_context
             mock_list.return_value = sample_messages
@@ -112,7 +112,7 @@ class TestListStepMessages:
             patch.object(
                 authenticated_client.app.state.workflow_engine, "get_execution_context", new_callable=AsyncMock
             ) as mock_get_ctx,
-            patch("workflow_engine_poc.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
+            patch("workflow_core_sdk.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
         ):
             mock_get_ctx.return_value = mock_execution_context
             mock_list.return_value = sample_messages[:2]
@@ -136,7 +136,7 @@ class TestListStepMessages:
             patch.object(
                 authenticated_client.app.state.workflow_engine, "get_execution_context", new_callable=AsyncMock
             ) as mock_get_ctx,
-            patch("workflow_engine_poc.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
+            patch("workflow_core_sdk.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
         ):
             mock_get_ctx.return_value = None
             mock_get_exec.return_value = None
@@ -154,7 +154,7 @@ class TestListStepMessages:
             patch.object(
                 authenticated_client.app.state.workflow_engine, "get_execution_context", new_callable=AsyncMock
             ) as mock_get_ctx,
-            patch("workflow_engine_poc.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
+            patch("workflow_core_sdk.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
         ):
             mock_get_ctx.return_value = mock_execution_context
             mock_list.return_value = []
@@ -178,8 +178,8 @@ class TestListStepMessages:
             patch.object(
                 authenticated_client.app.state.workflow_engine, "get_execution_context", new_callable=AsyncMock
             ) as mock_get_ctx,
-            patch("workflow_engine_poc.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
-            patch("workflow_engine_poc.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
+            patch("workflow_core_sdk.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
+            patch("workflow_core_sdk.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
         ):
             mock_get_ctx.return_value = None
             mock_get_exec.return_value = mock_execution_details
@@ -228,13 +228,13 @@ class TestCreateStepMessage:
             patch.object(
                 authenticated_client.app.state.workflow_engine, "resume_execution", new_callable=AsyncMock
             ) as mock_resume,
-            patch("workflow_engine_poc.services.workflows_service.WorkflowsService.create_agent_message") as mock_create,
-            patch("workflow_engine_poc.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
+            patch("workflow_core_sdk.services.workflows_service.WorkflowsService.create_agent_message") as mock_create,
+            patch("workflow_core_sdk.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
             patch(
-                "workflow_engine_poc.services.workflows_service.WorkflowsService.update_execution_status"
+                "workflow_core_sdk.services.workflows_service.WorkflowsService.update_execution_status"
             ) as mock_update_status,
-            patch("workflow_engine_poc.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
-            patch("workflow_engine_poc.streaming.stream_manager") as mock_stream,
+            patch("workflow_core_sdk.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
+            patch("workflow_core_sdk.streaming.stream_manager") as mock_stream,
         ):
             mock_get_ctx.return_value = mock_execution_context
             mock_create.return_value = created_message["id"]
@@ -272,7 +272,7 @@ class TestCreateStepMessage:
             patch.object(
                 authenticated_client.app.state.workflow_engine, "get_execution_context", new_callable=AsyncMock
             ) as mock_get_ctx,
-            patch("workflow_engine_poc.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
+            patch("workflow_core_sdk.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
         ):
             mock_get_ctx.return_value = None
             mock_get_exec.return_value = None
@@ -314,11 +314,11 @@ class TestCreateStepMessage:
             patch.object(
                 authenticated_client.app.state.workflow_engine, "resume_execution", new_callable=AsyncMock
             ) as mock_resume,
-            patch("workflow_engine_poc.services.workflows_service.WorkflowsService.create_agent_message") as mock_create,
-            patch("workflow_engine_poc.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
-            patch("workflow_engine_poc.services.workflows_service.WorkflowsService.update_execution_status"),
-            patch("workflow_engine_poc.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
-            patch("workflow_engine_poc.streaming.stream_manager") as mock_stream,
+            patch("workflow_core_sdk.services.workflows_service.WorkflowsService.create_agent_message") as mock_create,
+            patch("workflow_core_sdk.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
+            patch("workflow_core_sdk.services.workflows_service.WorkflowsService.update_execution_status"),
+            patch("workflow_core_sdk.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
+            patch("workflow_core_sdk.streaming.stream_manager") as mock_stream,
         ):
             mock_get_ctx.return_value = mock_execution_context
             mock_create.return_value = created_message["id"]

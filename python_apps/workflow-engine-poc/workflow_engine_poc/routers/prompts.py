@@ -6,9 +6,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
-from ..db.database import get_db_session
-from ..db.models import PromptCreate, PromptRead, PromptUpdate
-from ..services.prompts_service import PromptsService, PromptsQuery
+from workflow_core_sdk.db.database import get_db_session
+from workflow_core_sdk.db.models import PromptCreate, PromptRead, PromptUpdate
+from workflow_core_sdk.services.prompts_service import PromptsService, PromptsQuery
 from ..util import api_key_or_user_guard
 
 router = APIRouter(prefix="/prompts", tags=["prompts"])

@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlmodel import Session
-from ..db.database import get_db_session
-from ..db.models import (
+from workflow_core_sdk.db.database import get_db_session
+from workflow_core_sdk.db.models import (
     Tool,
     ToolCreate,
     ToolRead,
@@ -20,12 +20,84 @@ from ..db.models import (
     MCPServerRead,
     MCPServerUpdate,
 )
-from ..tools.registry import tool_registry
-from ..services.tools_service import ToolsService
+from workflow_core_sdk import tool_registry
+from workflow_core_sdk.services.tools_service import ToolsService
 from ..util import api_key_or_user_guard
 from ..schemas import ToolStubUpdate
 
 router = APIRouter(prefix="/tools", tags=["tools"])
+
+
+# --------- Helper functions for ToolRead conversion ---------
+def _tool_read_from_db(record: Tool) -> ToolRead:
+    """Convert a DB Tool record to ToolRead."""
+    return ToolRead(
+        id=record.id,
+        name=record.name,
+        display_name=record.display_name,
+        description=record.description,
+        version=record.version,
+        tool_type=record.tool_type,  # type: ignore[arg-type]
+        execution_type=record.execution_type,  # type: ignore[arg-type]
+        parameters_schema=record.parameters_schema or {"type": "object", "properties": {}, "required": []},
+        return_schema=record.return_schema,
+        module_path=record.module_path,
+        function_name=record.function_name,
+        mcp_server_id=record.mcp_server_id,
+        remote_name=record.remote_name,
+        api_endpoint=record.api_endpoint,
+        http_method=record.http_method,  # type: ignore[arg-type]
+        headers=record.headers,
+        auth_required=record.auth_required,
+        category_id=record.category_id,
+        tags=record.tags or [],
+        documentation=record.documentation,
+        examples=record.examples,
+        is_active=record.is_active,
+        is_available=record.is_available,
+        last_used=record.last_used,
+        usage_count=record.usage_count,
+        created_at=record.created_at,
+        updated_at=record.updated_at,
+        source="db",
+        uri=f"db://{record.id}",
+    )
+
+
+def _tool_read_from_local(name: str, description: str, parameters: Dict[str, Any], source: str = "local") -> ToolRead:
+    """Convert a local/registry tool to ToolRead."""
+    now = datetime.now(timezone.utc)
+    return ToolRead(
+        id=uuid.uuid5(uuid.NAMESPACE_URL, f"{source}:{name}"),
+        name=name,
+        display_name=None,
+        description=description,
+        version="1.0.0",
+        tool_type="local" if source == "local" else "mcp",  # type: ignore[arg-type]
+        execution_type="function",  # type: ignore[arg-type]
+        parameters_schema=parameters,
+        return_schema=None,
+        module_path=None,
+        function_name=name,
+        mcp_server_id=None,
+        remote_name=None,
+        api_endpoint=None,
+        http_method=None,  # type: ignore[arg-type]
+        headers=None,
+        auth_required=False,
+        category_id=None,
+        tags=[],
+        documentation=None,
+        examples=None,
+        is_active=True,
+        is_available=True,
+        last_used=None,
+        usage_count=0,
+        created_at=now,
+        updated_at=now,
+        source=source,
+        uri=f"{source}://{name}",
+    )
 
 
 # --------- Read-only endpoints (available now) ---------
@@ -40,90 +112,21 @@ async def list_tools(
     """Unified list of tools from DB + Local (+ MCP in future) as ToolRead objects.
     DB entries take precedence on name collisions. Includes source and uri fields.
     """
-
-    def to_tool_read_from_db(record: Tool) -> ToolRead:
-        return ToolRead(
-            id=record.id,
-            name=record.name,
-            display_name=record.display_name,
-            description=record.description,
-            version=record.version,
-            tool_type=record.tool_type,  # type: ignore[arg-type]
-            execution_type=record.execution_type,  # type: ignore[arg-type]
-            parameters_schema=record.parameters_schema or {"type": "object", "properties": {}, "required": []},
-            return_schema=record.return_schema,
-            module_path=record.module_path,
-            function_name=record.function_name,
-            mcp_server_id=record.mcp_server_id,
-            remote_name=record.remote_name,
-            api_endpoint=record.api_endpoint,
-            http_method=record.http_method,  # type: ignore[arg-type]
-            headers=record.headers,
-            auth_required=record.auth_required,
-            category_id=record.category_id,
-            tags=record.tags or [],
-            documentation=record.documentation,
-            examples=record.examples,
-            is_active=record.is_active,
-            is_available=record.is_available,
-            last_used=record.last_used,
-            usage_count=record.usage_count,
-            created_at=record.created_at,
-            updated_at=record.updated_at,
-            source="db",
-            uri=f"db://{record.id}",
-        )
-
-    def to_tool_read_local(name: str, description: str, parameters: Dict[str, Any]) -> ToolRead:
-        now = datetime.now(timezone.utc)
-        return ToolRead(
-            id=uuid.uuid5(uuid.NAMESPACE_URL, f"local:{name}"),
-            name=name,
-            display_name=None,
-            description=description,
-            version="1.0.0",
-            tool_type="local",  # type: ignore[arg-type]
-            execution_type="function",  # type: ignore[arg-type]
-            parameters_schema=parameters,
-            return_schema=None,
-            module_path=None,
-            function_name=name,
-            mcp_server_id=None,
-            remote_name=None,
-            api_endpoint=None,
-            http_method=None,  # type: ignore[arg-type]
-            headers=None,
-            auth_required=False,
-            category_id=None,
-            tags=[],
-            documentation=None,
-            examples=None,
-            is_active=True,
-            is_available=True,
-            last_used=None,
-            usage_count=0,
-            created_at=now,
-            updated_at=now,
-            source="local",
-            uri=f"local://{name}",
-        )
-
     unified = tool_registry.get_unified_tools(session)
     items: List[ToolRead] = []
     for ut in unified:
         if ut.source == "db" and ut.db_id is not None:
             db_record = ToolsService.get_db_tool_by_id(session, str(ut.db_id))
             if db_record:
-                items.append(to_tool_read_from_db(db_record))
+                items.append(_tool_read_from_db(db_record))
                 continue
-        items.append(to_tool_read_local(ut.name, ut.description, ut.parameters_schema))
+        items.append(_tool_read_from_local(ut.name, ut.description, ut.parameters_schema, ut.source))
 
     if q:
         ql = q.lower()
         items = [it for it in items if ql in (it.name or "").lower()]
     items.sort(key=lambda x: x.name or "")
-    items = items[offset : offset + limit]
-    return items
+    return items[offset : offset + limit]
 
 
 # --------- Stubs for full CRUD and registration (future) ---------
@@ -337,73 +340,12 @@ async def get_tool(
     # Prefer DB with enriched ToolRead
     db_tool = ToolsService.get_db_tool_by_name(session, tool_name)
     if db_tool:
-        return ToolRead(
-            id=db_tool.id,
-            name=db_tool.name,
-            display_name=db_tool.display_name,
-            description=db_tool.description,
-            version=db_tool.version,
-            tool_type=db_tool.tool_type,  # type: ignore[arg-type]
-            execution_type=db_tool.execution_type,  # type: ignore[arg-type]
-            parameters_schema=db_tool.parameters_schema or {"type": "object", "properties": {}, "required": []},
-            return_schema=db_tool.return_schema,
-            module_path=db_tool.module_path,
-            function_name=db_tool.function_name,
-            mcp_server_id=db_tool.mcp_server_id,
-            remote_name=db_tool.remote_name,
-            api_endpoint=db_tool.api_endpoint,
-            http_method=db_tool.http_method,  # type: ignore[arg-type]
-            headers=db_tool.headers,
-            auth_required=db_tool.auth_required,
-            category_id=db_tool.category_id,
-            tags=db_tool.tags or [],
-            documentation=db_tool.documentation,
-            examples=db_tool.examples,
-            is_active=db_tool.is_active,
-            is_available=db_tool.is_available,
-            last_used=db_tool.last_used,
-            usage_count=db_tool.usage_count,
-            created_at=db_tool.created_at,
-            updated_at=db_tool.updated_at,
-            source="db",
-            uri=f"db://{db_tool.id}",
-        )
+        return _tool_read_from_db(db_tool)
 
     # Fallback to local via registry
     ut = tool_registry.get_tool_by_name(session, tool_name)
     if ut:
-        now = datetime.now(timezone.utc)
-        return ToolRead(
-            id=uuid.uuid5(uuid.NAMESPACE_URL, f"{ut.source}:{ut.name}"),
-            name=ut.name,
-            display_name=None,
-            description=ut.description,
-            version=ut.version,
-            tool_type=("local" if ut.source == "local" else "mcp"),  # type: ignore[arg-type]
-            execution_type=ut.execution_type,  # type: ignore[arg-type]
-            parameters_schema=ut.parameters_schema,
-            return_schema=ut.return_schema,
-            module_path=None,
-            function_name=ut.name,
-            mcp_server_id=None,
-            remote_name=None,
-            api_endpoint=None,
-            http_method=None,  # type: ignore[arg-type]
-            headers=None,
-            auth_required=False,
-            category_id=None,
-            tags=[],
-            documentation=None,
-            examples=None,
-            is_active=True,
-            is_available=True,
-            last_used=None,
-            usage_count=0,
-            created_at=now,
-            updated_at=now,
-            source=ut.source,
-            uri=ut.uri,
-        )
+        return _tool_read_from_local(ut.name, ut.description, ut.parameters_schema, ut.source)
 
     raise HTTPException(status_code=404, detail="Tool not found")
 

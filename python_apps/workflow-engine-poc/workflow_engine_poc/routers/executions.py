@@ -10,17 +10,17 @@ from fastapi.responses import StreamingResponse
 from fastapi.security.api_key import APIKeyHeader
 from typing import Optional
 from sqlmodel import Session
-from ..db.database import get_db_session
-from ..services.executions_service import ExecutionsService
-from ..services.workflows_service import WorkflowsService
-from ..streaming import (
+from workflow_core_sdk.db.database import get_db_session
+from workflow_core_sdk.services.executions_service import ExecutionsService
+from workflow_core_sdk.services.workflows_service import WorkflowsService
+from workflow_core_sdk.streaming import (
     stream_manager,
     create_sse_stream,
     get_sse_headers,
     create_status_event,
 )
 
-from ..workflow_engine import WorkflowEngine
+from workflow_core_sdk import WorkflowEngine
 from ..util import api_key_or_user_guard
 
 from rbac_sdk import (

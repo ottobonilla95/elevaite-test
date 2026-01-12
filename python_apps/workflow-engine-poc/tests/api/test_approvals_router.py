@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch, AsyncMock
 from fastapi.testclient import TestClient
 
-from workflow_engine_poc.db.models import ApprovalStatus
+from workflow_core_sdk.db.models import ApprovalStatus
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ class TestListApprovals:
     @pytest.mark.api
     def test_list_all_approvals(self, authenticated_client: TestClient, multiple_approvals):
         """Test listing all approval requests"""
-        with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
+        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
             mock_list.return_value = multiple_approvals
 
             response = authenticated_client.get("/approvals")
@@ -82,7 +82,7 @@ class TestListApprovals:
         """Test filtering approvals by execution_id"""
         execution_id = sample_approval_data["execution_id"]
 
-        with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
+        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
             mock_list.return_value = [sample_approval_data]
 
             response = authenticated_client.get(f"/approvals?execution_id={execution_id}")
@@ -100,7 +100,7 @@ class TestListApprovals:
         """Test filtering approvals by status"""
         approved_only = [a for a in multiple_approvals if a["status"] == ApprovalStatus.APPROVED]
 
-        with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
+        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
             mock_list.return_value = approved_only
 
             response = authenticated_client.get("/approvals?status=approved")
@@ -116,7 +116,7 @@ class TestListApprovals:
     @pytest.mark.api
     def test_list_approvals_with_pagination(self, authenticated_client: TestClient, multiple_approvals):
         """Test pagination parameters"""
-        with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
+        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
             mock_list.return_value = multiple_approvals[:2]
 
             response = authenticated_client.get("/approvals?limit=2&offset=0")
@@ -132,7 +132,7 @@ class TestListApprovals:
     @pytest.mark.api
     def test_list_approvals_empty_result(self, authenticated_client: TestClient):
         """Test listing when no approvals exist"""
-        with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
+        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
             mock_list.return_value = []
 
             response = authenticated_client.get("/approvals")
@@ -150,7 +150,7 @@ class TestGetApproval:
         """Test getting a specific approval request"""
         approval_id = sample_approval_data["id"]
 
-        with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
+        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
             mock_get.return_value = sample_approval_data
 
             response = authenticated_client.get(f"/approvals/{approval_id}")
@@ -167,7 +167,7 @@ class TestGetApproval:
         """Test getting non-existent approval returns 404"""
         approval_id = str(uuid.uuid4())
 
-        with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
+        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
             mock_get.return_value = None
 
             response = authenticated_client.get(f"/approvals/{approval_id}")
@@ -191,8 +191,8 @@ class TestApproveRequest:
         }
 
         with (
-            patch("workflow_engine_poc.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
-            patch("workflow_engine_poc.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
+            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
+            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
             patch.object(
                 authenticated_client.app.state.workflow_engine, "resume_execution", new_callable=AsyncMock
             ) as mock_resume,
@@ -228,8 +228,8 @@ class TestApproveRequest:
         }
 
         with (
-            patch("workflow_engine_poc.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
-            patch("workflow_engine_poc.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
+            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
+            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
         ):
             mock_get.return_value = sample_approval_data
             mock_update.return_value = True
@@ -250,7 +250,7 @@ class TestApproveRequest:
         approval_id = str(uuid.uuid4())
         decision_body = {"decided_by": "user123"}
 
-        with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
+        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
             mock_get.return_value = None
 
             response = authenticated_client.post(f"/approvals/{approval_id}/approve", json=decision_body)
@@ -263,8 +263,8 @@ class TestApproveRequest:
         approval_id = sample_approval_data["id"]
 
         with (
-            patch("workflow_engine_poc.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
-            patch("workflow_engine_poc.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
+            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
+            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
             patch.object(authenticated_client.app.state.workflow_engine, "resume_execution", new_callable=AsyncMock),
         ):
             mock_get.return_value = sample_approval_data
@@ -290,8 +290,8 @@ class TestDenyRequest:
         }
 
         with (
-            patch("workflow_engine_poc.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
-            patch("workflow_engine_poc.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
+            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
+            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
             patch.object(
                 authenticated_client.app.state.workflow_engine, "resume_execution", new_callable=AsyncMock
             ) as mock_resume,
@@ -324,8 +324,8 @@ class TestDenyRequest:
         decision_body = {"decided_by": "user123"}
 
         with (
-            patch("workflow_engine_poc.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
-            patch("workflow_engine_poc.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
+            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
+            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
         ):
             mock_get.return_value = sample_approval_data
             mock_update.return_value = True
@@ -343,7 +343,7 @@ class TestDenyRequest:
         approval_id = str(uuid.uuid4())
         decision_body = {"decided_by": "user123"}
 
-        with patch("workflow_engine_poc.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
+        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
             mock_get.return_value = None
 
             response = authenticated_client.post(f"/approvals/{approval_id}/deny", json=decision_body)

@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 
 from workflow_engine_poc.main import app
-from workflow_engine_poc.db.models import Agent, AgentRead, AgentToolBinding, Prompt
+from workflow_core_sdk.db.models import Agent, AgentRead, AgentToolBinding, Prompt
 
 client = TestClient(app)
 
@@ -596,7 +596,7 @@ class TestDetachToolFromAgent:
 class TestExecuteAgent:
     """Tests for POST /agents/{agent_id}/execute"""
 
-    @patch("workflow_engine_poc.steps.ai_steps.AgentStep")
+    @patch("workflow_core_sdk.steps.ai_steps.AgentStep")
     @pytest.mark.api
     def test_execute_agent_success(self, mock_agent_step_class, test_client, session, sample_agent, sample_prompt):
         """Test executing an agent with a query"""

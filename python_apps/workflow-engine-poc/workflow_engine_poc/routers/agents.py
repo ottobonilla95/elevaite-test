@@ -14,8 +14,8 @@ from enum import Enum
 
 from workflow_engine_poc.util import api_key_or_user_guard
 
-from ..db.database import get_db_session
-from ..db.models import (
+from workflow_core_sdk.db.database import get_db_session
+from workflow_core_sdk.db.models import (
     Agent,
     AgentCreate,
     AgentRead,
@@ -23,7 +23,7 @@ from ..db.models import (
     AgentToolBinding,
     Prompt,
 )
-from ..services.agents_service import AgentsService, AgentsListQuery
+from workflow_core_sdk.services.agents_service import AgentsService, AgentsListQuery
 from ..schemas import AgentToolBindingCreate, AgentToolBindingUpdate
 
 from rbac_sdk import (
@@ -42,49 +42,28 @@ class ProviderType(str, Enum):
     on_prem_textgen = "on-prem_textgen"
 
 
-class OpenAIConfig(BaseModel):
-    provider_type: ProviderType = ProviderType.openai_textgen
+class ProviderConfig(BaseModel):
+    """Base configuration for all LLM providers."""
+
+    provider_type: ProviderType
     model_name: Optional[str] = None
     temperature: Optional[float] = 0.5
     max_tokens: Optional[int] = 100
 
 
-class GeminiConfig(BaseModel):
-    provider_type: ProviderType = ProviderType.gemini_textgen
-    model_name: Optional[str] = None
-    temperature: Optional[float] = 0.5
-    max_tokens: Optional[int] = 100
-
-
-class BedrockConfig(BaseModel):
-    provider_type: ProviderType = ProviderType.bedrock_textgen
-    model_name: Optional[str] = None
-    temperature: Optional[float] = 0.5
-    max_tokens: Optional[int] = 100
-
-
-class OnPremConfig(BaseModel):
-    provider_type: ProviderType = ProviderType.on_prem_textgen
-    model_name: Optional[str] = None
-    temperature: Optional[float] = 0.5
-    max_tokens: Optional[int] = 100
-
-
-ProviderConfigUnion = OpenAIConfig | GeminiConfig | BedrockConfig | OnPremConfig
+# Provider-specific configs map to ProviderConfig
+_PROVIDER_CONFIG_MAP: Dict[ProviderType, type[ProviderConfig]] = {pt: ProviderConfig for pt in ProviderType}
 
 
 def validate_provider_config(provider_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate and normalize provider configuration."""
     try:
-        if provider_type == ProviderType.openai_textgen:
-            parsed = OpenAIConfig(**config)
-        elif provider_type == ProviderType.gemini_textgen:
-            parsed = GeminiConfig(**config)
-        elif provider_type == ProviderType.bedrock_textgen:
-            parsed = BedrockConfig(**config)
-        elif provider_type == ProviderType.on_prem_textgen:
-            parsed = OnPremConfig(**config)
-        else:
-            raise HTTPException(status_code=400, detail=f"Unknown provider_type: {provider_type}")
+        pt = ProviderType(provider_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Unknown provider_type: {provider_type}")
+
+    try:
+        parsed = ProviderConfig(provider_type=pt, **config)
         return parsed.model_dump()
     except ValidationError as ve:
         raise HTTPException(status_code=422, detail=ve.errors())
@@ -301,7 +280,7 @@ async def detach_tool_from_agent(
 async def available_tools():
     # For now, read from step_registry definitions in memory
     # A more advanced version could expose the database StepType table
-    from ..step_registry import StepRegistry
+    from workflow_core_sdk import StepRegistry
 
     # The running app holds a single registry; import-only fallback here
     registry = StepRegistry()
@@ -337,7 +316,7 @@ async def execute_agent(
     """
     import json
 
-    from ..steps.ai_steps import AgentStep
+    from workflow_core_sdk.steps.ai_steps import AgentStep
 
     # Resolve agent by id
     from uuid import UUID

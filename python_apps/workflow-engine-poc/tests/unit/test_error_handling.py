@@ -10,7 +10,7 @@ import time
 from typing import Dict, Any
 import pytest
 
-from workflow_engine_poc.error_handling import (
+from workflow_core_sdk.error_handling import (
     error_handler,
     RetryConfig,
     RetryStrategy,

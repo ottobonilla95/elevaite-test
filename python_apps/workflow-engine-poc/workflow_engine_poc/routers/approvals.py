@@ -2,19 +2,16 @@
 Approvals API router: list, get, approve, deny
 """
 
-from __future__ import annotations
-
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
 from sqlmodel import Session
 
-from ..db.database import get_db_session
-from ..services.approvals_service import ApprovalsService
-from ..db.models import ApprovalStatus, ApprovalRequestRead
-from ..workflow_engine import WorkflowEngine
+from workflow_core_sdk.db.database import get_db_session
+from workflow_core_sdk.services.approvals_service import ApprovalsService
+from workflow_core_sdk.db.models import ApprovalStatus, ApprovalRequestRead
+from workflow_core_sdk import WorkflowEngine
 from ..util import api_key_or_user_guard
 from ..schemas import ApprovalDecisionRequest, ApprovalDecisionResponse
 

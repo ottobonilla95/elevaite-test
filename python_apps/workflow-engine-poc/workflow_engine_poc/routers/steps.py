@@ -4,9 +4,8 @@ Step registration and management endpoints
 
 import logging
 from fastapi import APIRouter, Request, HTTPException, Depends
-from typing import Dict, Any
 
-from ..step_registry import StepRegistry
+from workflow_core_sdk import StepRegistry
 from ..util import api_key_or_user_guard
 from ..schemas import StepConfigCreate, StepRegistrationResponse, RegisteredStepsResponse, StepInfoResponse
 

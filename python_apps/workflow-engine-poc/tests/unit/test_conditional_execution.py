@@ -9,16 +9,15 @@ import asyncio
 from typing import Dict, Any
 import pytest
 
-from workflow_engine_poc.condition_evaluator import (
+from workflow_core_sdk.condition_evaluator import (
     condition_evaluator,
     Condition,
     ConditionalExpression,
     ConditionOperator,
     LogicalOperator,
 )
-from workflow_engine_poc.execution_context import ExecutionContext, UserContext
-from workflow_engine_poc.workflow_engine import WorkflowEngine
-from workflow_engine_poc.step_registry import StepRegistry
+from workflow_core_sdk.execution_context import ExecutionContext, UserContext
+from workflow_core_sdk import WorkflowEngine, StepRegistry
 
 
 @pytest.mark.unit

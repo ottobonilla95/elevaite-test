@@ -9,7 +9,7 @@ from sqlmodel import Session
 
 from workflow_engine_poc.util import api_key_or_user_guard
 
-from ..db.database import get_db_session
+from workflow_core_sdk.db.database import get_db_session
 from workflow_core_sdk.db.models import A2AAgentCreate, A2AAgentUpdate, A2AAgentRead
 from workflow_core_sdk.db.models.a2a_agents import A2AAgent
 from workflow_core_sdk.services import A2AAgentsService

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Request, HTTPException, Response
 from typing import Optional
 
 from workflow_core_sdk.monitoring import monitoring
-from ..error_handling import error_handler
+from workflow_core_sdk.error_handling import error_handler
 
 logger = logging.getLogger(__name__)
 

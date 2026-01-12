@@ -10,10 +10,10 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from sqlmodel import Session
 
-from ..db.database import get_db_session
-from ..services.workflows_service import WorkflowsService
-from ..services.executions_service import ExecutionsService
-from ..workflow_engine import WorkflowEngine
+from workflow_core_sdk.db.database import get_db_session
+from workflow_core_sdk.services.workflows_service import WorkflowsService
+from workflow_core_sdk.services.executions_service import ExecutionsService
+from workflow_core_sdk import WorkflowEngine
 from ..util import api_key_or_user_guard
 
 logger = logging.getLogger(__name__)
@@ -165,7 +165,7 @@ async def create_step_message(
             logger.debug(f"Non-fatal: failed to persist running status (post-send) for {execution_id}: {_upd2}")
 
         # Emit status/step event to wake up clients regardless (helps UI reflect running)
-        from ..streaming import stream_manager, create_step_event, create_status_event
+        from workflow_core_sdk.streaming import stream_manager, create_step_event, create_status_event
 
         try:
             # Read-back status for debugging

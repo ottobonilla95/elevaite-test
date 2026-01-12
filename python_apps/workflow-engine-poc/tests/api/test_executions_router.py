@@ -106,7 +106,7 @@ class TestGetExecutionStatus:
     @pytest.mark.api
     def test_get_execution_status_from_db(self, test_client, auth_headers, mock_app_state, session):
         """Test getting execution status from database when not in memory"""
-        from workflow_engine_poc.services.workflows_service import WorkflowsService
+        from workflow_core_sdk.services.workflows_service import WorkflowsService
 
         execution_id = str(uuid.uuid4())
         workflow_id = str(uuid.uuid4())
@@ -183,7 +183,7 @@ class TestGetExecutionResults:
     @pytest.mark.api
     def test_get_execution_results_from_db(self, test_client, auth_headers, mock_app_state, session):
         """Test getting execution results from database when not in memory"""
-        from workflow_engine_poc.services.workflows_service import WorkflowsService
+        from workflow_core_sdk.services.workflows_service import WorkflowsService
 
         execution_id = str(uuid.uuid4())
         workflow_id = str(uuid.uuid4())
@@ -233,7 +233,7 @@ class TestGetExecutionAnalytics:
     @pytest.mark.api
     def test_get_execution_analytics_success(self, test_client, auth_headers, mock_app_state, session):
         """Test getting execution analytics"""
-        from workflow_engine_poc.services.workflows_service import WorkflowsService
+        from workflow_core_sdk.services.workflows_service import WorkflowsService
 
         # Create some executions in DB
         for i in range(3):
@@ -266,7 +266,7 @@ class TestGetExecutionAnalytics:
     @pytest.mark.api
     def test_get_execution_analytics_with_filters(self, test_client, auth_headers, mock_app_state, session):
         """Test getting execution analytics with filters"""
-        from workflow_engine_poc.services.workflows_service import WorkflowsService
+        from workflow_core_sdk.services.workflows_service import WorkflowsService
         from workflow_core_sdk.db.service import DatabaseService
 
         workflow_id = str(uuid.uuid4())

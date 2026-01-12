@@ -11,9 +11,8 @@ from typing import Dict, Any
 import pytest
 
 from workflow_core_sdk.monitoring import monitoring, MetricData, TraceData
-from workflow_engine_poc.execution_context import ExecutionContext, UserContext
-from workflow_engine_poc.workflow_engine import WorkflowEngine
-from workflow_engine_poc.step_registry import StepRegistry
+from workflow_core_sdk.execution_context import ExecutionContext, UserContext
+from workflow_core_sdk import WorkflowEngine, StepRegistry
 
 
 @pytest.mark.unit
@@ -203,9 +202,8 @@ async def test_monitoring_api_endpoints():
     from workflow_engine_poc.main import app
 
     # Initialize app state
-    from workflow_engine_poc.step_registry import StepRegistry
-    from workflow_engine_poc.workflow_engine import WorkflowEngine
-    from workflow_engine_poc.db.database import get_database
+    from workflow_core_sdk import StepRegistry, WorkflowEngine
+    from workflow_core_sdk.db.database import get_database
 
     database = await get_database()
     step_registry = StepRegistry()

@@ -5,9 +5,9 @@ Health and system status endpoints
 import logging
 from fastapi import APIRouter, Request
 
-from ..step_registry import StepRegistry
+from workflow_core_sdk import StepRegistry
 from workflow_core_sdk.monitoring import monitoring
-from ..error_handling import error_handler
+from workflow_core_sdk.error_handling import error_handler
 
 logger = logging.getLogger(__name__)
 

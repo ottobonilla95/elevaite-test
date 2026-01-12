@@ -69,7 +69,7 @@ _superadmin_tenant_patcher = patch("workflow_engine_poc.tenant_admin.superadmin_
 _superadmin_tenant_patcher.start()
 
 from workflow_engine_poc.main import app
-from workflow_engine_poc.db.database import get_db_session
+from workflow_core_sdk.db.database import get_db_session
 
 
 # ============================================================================
@@ -357,7 +357,7 @@ async def async_client_fixture(engine, auth_headers: Dict[str, str], mock_rbac_a
     # Patch BOTH the SDK's and PoC's database engines so steps use the test engine
     # This is critical for steps like human_approval that create their own sessions
     # We patch at the module level where the engine is defined
-    with patch("workflow_core_sdk.db.database.engine", engine), patch("workflow_engine_poc.db.database.engine", engine):
+    with patch("workflow_core_sdk.db.database.engine", engine):
         # Use LifespanManager to trigger lifespan events
         async with LifespanManager(app) as manager:
             async with AsyncClient(
