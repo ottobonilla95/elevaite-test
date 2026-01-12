@@ -41,9 +41,9 @@ def check_server_available():
 
 def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
     """Make HTTP request to the API"""
-    # Add /api prefix if not already present
-    if not path.startswith("/api/"):
-        path = "/api" + path
+    # Ensure path starts with /
+    if not path.startswith("/"):
+        path = "/" + path
     url = BASE_URL + path
     headers = {
         "X-elevAIte-apikey": "e2e-test-apikey",
@@ -557,7 +557,7 @@ class TestA2AAgentStreaming:
                     async with httpx.AsyncClient(timeout=30.0) as client:
                         async with client.stream(
                             "GET",
-                            f"{BASE_URL}/api/workflows/{workflow_id}/stream",
+                            f"{BASE_URL}/workflows/{workflow_id}/stream",
                             headers=headers,
                         ) as resp:
                             if resp.status_code != 200:

@@ -37,9 +37,9 @@ TIMEOUT = float(os.environ.get("SMOKE_TIMEOUT", "25"))
 
 
 def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
-    # Add /api prefix if not already present
-    if not path.startswith("/api/"):
-        path = "/api" + path
+    # Ensure path starts with /
+    if not path.startswith("/"):
+        path = "/" + path
     url = BASE_URL + path
     with httpx.Client(timeout=TIMEOUT) as client:
         resp = client.request(method, url, json=json_body)
