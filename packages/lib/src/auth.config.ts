@@ -13,6 +13,45 @@ class TokenRefreshError extends Error {
   }
 }
 
+// RBAC types
+export interface RoleAssignment {
+  user_id: number;
+  role_id: string;
+  resource_id: string;
+  resource_type: "organization" | "account" | "project";
+  created_at: string;
+  role_name?: string;
+}
+
+export interface GroupMembership {
+  user_id: number;
+  group_id: string;
+  resource_id: string;
+  resource_type: string;
+  created_at: string;
+  group?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+}
+
+export interface PermissionOverride {
+  user_id: number;
+  resource_id: string;
+  resource_type: string;
+  allow_actions: string[];
+  deny_actions: string[];
+}
+
+export interface UserRbac {
+  user_id: number;
+  is_superuser: boolean;
+  role_assignments: RoleAssignment[];
+  group_memberships: GroupMembership[];
+  permission_overrides: PermissionOverride[];
+}
+
 declare module "next-auth/jwt" {
   interface JWT {
     access_token: string | undefined;
@@ -20,6 +59,8 @@ declare module "next-auth/jwt" {
     refresh_token: string | undefined;
     provider: "google" | "credentials";
     error?: "RefreshAccessTokenError";
+    rbac?: UserRbac | null;
+    rbac_fetched_at?: number;
   }
 }
 
@@ -29,6 +70,7 @@ declare module "next-auth" {
     user?: {
       accountMemberships?: UserAccountMembershipObject[];
       rbacId?: string;
+      rbac?: UserRbac;
     } & DefaultSession["user"];
   }
 
@@ -159,6 +201,52 @@ async function refreshAuthApiToken(token: JWT): Promise<JWT> {
   return refreshedToken;
 }
 
+// RBAC cache duration in seconds (5 minutes)
+const RBAC_CACHE_DURATION = 5 * 60;
+
+async function fetchUserRbac(accessToken: string): Promise<UserRbac | null> {
+  const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
+  if (!AUTH_API_URL) {
+    // RBAC fetching is optional - if no auth API URL, skip silently
+    return null;
+  }
+
+  const apiUrl = AUTH_API_URL.replace("localhost", "127.0.0.1");
+  const TENANT_ID = process.env.AUTH_TENANT_ID ?? "default";
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 5000);
+
+    const response = await fetch(`${apiUrl}/api/rbac/me`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        "X-Tenant-ID": TENANT_ID,
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      // Don't throw on RBAC fetch failure - it's non-critical
+      // eslint-disable-next-line no-console -- Need this for debugging
+      console.warn("Failed to fetch RBAC:", response.status);
+      return null;
+    }
+
+    return (await response.json()) as UserRbac;
+  } catch (error) {
+    // eslint-disable-next-line no-console -- Need this for debugging
+    console.warn("Error fetching RBAC:", error);
+    return null;
+  }
+}
+
 const _config = {
   callbacks: {
     async jwt({ account, token, user }): Promise<JWT> {
@@ -228,65 +316,34 @@ const _config = {
         return token;
       }
     },
-    // eslint-disable-next-line @typescript-eslint/require-await -- temp
     async session({ session, token, user }) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- you never know
       session.user ? (session.user.id = token.sub ?? user.id) : null;
       Object.assign(session, { authToken: token.access_token });
       Object.assign(session, { error: token.error });
-      // const authToken = token.access_token;
-      // const RBAC_URL = process.env.RBAC_BACKEND_URL;
-      // if (!RBAC_URL)
-      //   throw new Error("RBAC_BACKEND_URL does not exist in the env");
-      // const registerURL = new URL(`${RBAC_URL}/auth/register`);
-      // const registerHeaders = new Headers();
-      // registerHeaders.append("Content-Type", "application/json");
-      // if (!authToken) throw Error("authToken doesn't exist");
-      // registerHeaders.append("Authorization", `Bearer ${authToken}`);
-      // const body = JSON.stringify({
-      //   // org_id: ORG_ID,
-      //   firstname: "",
-      //   lastname: "",
-      //   // email,
-      // });
-      // const registerRes = await fetch(registerURL, {
-      //   body,
-      //   headers: registerHeaders,
-      //   method: "POST",
-      // });
-      // if (!registerRes.ok) {
-      //   // eslint-disable-next-line no-console -- Need this in case this breaks like that.
-      //   console.error(registerRes.statusText);
-      //   throw new Error("Something went wrong.", { cause: registerRes });
-      // }
-      // const dbUser: unknown = await registerRes.json();
-      // if (isDBUser(dbUser)) {
-      //   const url = new URL(`${RBAC_URL}/users/${dbUser.id}/profile`);
-      //   const headers = new Headers();
-      //   headers.append("Content-Type", "application/json");
-      //   headers.append("Authorization", `Bearer ${authToken ? authToken : ""}`);
-      //   const response = await fetch(url, {
-      //     method: "GET",
-      //     headers,
-      //     cache: "no-store",
-      //   });
-      //   if (!response.ok) {
-      //     if (response.status === 422) {
-      //       const errorData: unknown = await response.json();
-      //       // eslint-disable-next-line no-console -- Need this in case this breaks like that.
-      //       console.dir(errorData, { depth: null });
-      //     }
-      //     throw new Error("Failed to fetch projects");
-      //   }
-      //   const fullUser: unknown = await response.json();
-      //   if (isUserObject(fullUser)) {
-      //     Object.assign(session.user, {
-      //       accountMemberships: fullUser.account_memberships,
-      //     });
-      //     Object.assign(session.user, { roles: fullUser.roles });
-      //     Object.assign(session.user, { rbacId: fullUser.id });
-      //   }
-      // }
+
+      // Fetch RBAC if we have an access token and cache is stale
+      if (token.access_token) {
+        const now = Math.floor(Date.now() / 1000);
+        const rbacStale =
+          !token.rbac_fetched_at ||
+          now - token.rbac_fetched_at > RBAC_CACHE_DURATION;
+
+        if (rbacStale) {
+          const rbac = await fetchUserRbac(token.access_token);
+          if (rbac) {
+            token.rbac = rbac;
+            token.rbac_fetched_at = now;
+          }
+        }
+
+        // Always add RBAC to session if available
+        if (token.rbac) {
+          session.user.rbac = token.rbac;
+          session.user.rbacId = String(token.rbac.user_id);
+        }
+      }
+
       return session;
     },
   },
@@ -305,48 +362,9 @@ export interface DBUser {
   updated_at: string;
 }
 
-function isObject(item: unknown): item is object {
-  return Boolean(item) && item !== null && typeof item === "object";
-}
-
-function isDBUser(obj: unknown): obj is DBUser {
-  return isObject(obj) && "is_superadmin" in obj && "organization_id" in obj;
-}
-
-function isUserObject(item: unknown): item is UserObject {
-  return (
-    isObject(item) &&
-    "id" in item &&
-    "organization_id" in item &&
-    "firstname" in item &&
-    "lastname" in item &&
-    "email" in item &&
-    "is_superadmin" in item &&
-    "created_at" in item &&
-    "updated_at" in item
-  );
-}
-
-interface UserObject {
-  id: string;
-  organization_id: string;
-  firstname?: string;
-  lastname?: string;
-  email?: string;
-  is_superadmin: boolean;
-  created_at: string;
-  updated_at: string;
-  is_account_admin?: boolean;
-  roles?: UserRoleObject[];
-  account_memberships?: UserAccountMembershipObject[];
-}
-interface UserRoleObject {
-  id: string;
-  name: string;
-}
 interface UserAccountMembershipObject {
   account_id: string;
   account_name: string;
   is_admin: boolean;
-  roles: UserRoleObject[];
+  roles: { id: string; name: string }[];
 }
