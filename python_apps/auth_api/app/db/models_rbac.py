@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, Dict, List, Any
+from typing import Optional, List
 
 from sqlalchemy import ForeignKey, String, DateTime, CheckConstraint, Boolean, Index, text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -387,8 +387,8 @@ class PermissionOverride(Base):
     )
     resource_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, nullable=False)
     resource_type: Mapped[str] = mapped_column(String(), nullable=False)
-    allow_actions: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True, default=list)
-    deny_actions: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True, default=list)
+    allow_actions: Mapped[List[str]] = mapped_column(JSONB, nullable=False, default=list)
+    deny_actions: Mapped[List[str]] = mapped_column(JSONB, nullable=False, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
 

@@ -36,6 +36,7 @@ class OPAService:
         action: str,
         resource: Dict[str, Any],
         permission_overrides: Optional[Dict[str, Any]] = None,
+        user_groups: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
         Check if a user has access to perform an action on a resource.
@@ -47,6 +48,7 @@ class OPAService:
             action: Action to perform (e.g., "view_project", "edit_project")
             resource: Resource being accessed (type, id, organization_id, account_id)
             permission_overrides: Optional permission overrides (allow/deny lists)
+            user_groups: Optional list of group memberships with permissions
 
         Returns:
             Dict with:
@@ -70,6 +72,10 @@ class OPAService:
         # Add permission overrides if provided
         if permission_overrides:
             user_data["overrides"] = permission_overrides
+
+        # Add group memberships if provided
+        if user_groups:
+            user_data["groups"] = user_groups
 
         opa_input = {
             "input": {

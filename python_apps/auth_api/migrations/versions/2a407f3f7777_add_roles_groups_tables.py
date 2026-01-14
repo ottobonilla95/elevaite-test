@@ -171,14 +171,16 @@ def _seed_system_roles() -> None:
 
         # Insert role
         op.execute(f"""
-            INSERT INTO roles (id, name, description, base_type, scope_type, is_system)
+            INSERT INTO roles (id, name, description, base_type, scope_type, is_system, created_at, updated_at)
             VALUES (
                 '{role_id}',
                 '{role_def["name"]}',
                 'System-defined {role_def["base_type"]} role for {role_def["scope_type"]} scope',
                 '{role_def["base_type"]}',
                 '{role_def["scope_type"]}',
-                true
+                true,
+                NOW(),
+                NOW()
             )
         """)
 
@@ -186,11 +188,13 @@ def _seed_system_roles() -> None:
         actions = ROLE_PERMISSIONS[role_def["base_type"]]
         actions_json = json.dumps(actions)
         op.execute(f"""
-            INSERT INTO role_permissions (role_id, service_name, allowed_actions)
+            INSERT INTO role_permissions (role_id, service_name, allowed_actions, created_at, updated_at)
             VALUES (
                 '{role_id}',
                 'workflow_engine',
-                '{actions_json}'
+                '{actions_json}',
+                NOW(),
+                NOW()
             )
         """)
 

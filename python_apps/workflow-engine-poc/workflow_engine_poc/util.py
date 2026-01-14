@@ -17,8 +17,11 @@ from rbac_sdk import (
 # Allow bypassing RBAC for E2E testing (set SKIP_RBAC=true)
 _SKIP_RBAC = os.getenv("SKIP_RBAC", "false").lower() in {"1", "true", "yes"}
 
+# Allow insecure API key as principal (dev only - NOT for production)
+_ALLOW_INSECURE_APIKEY = os.getenv("RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL", "false").lower() in {"1", "true", "yes"}
 
-async def _noop_guard(request: Request) -> None:
+
+async def _noop_guard(_request: Request) -> None:
     """No-op guard that allows all requests (for testing)."""
     pass
 
@@ -33,7 +36,7 @@ def api_key_or_user_guard(action: str) -> Callable[[Request], Awaitable[None]]:
             account_header=HDR_ACCOUNT_ID,
             org_header=HDR_ORG_ID,
         ),
-        principal_resolver=principal_resolvers.api_key_or_user(allow_insecure_apikey_as_principal=allow_insecure),
+        principal_resolver=principal_resolvers.api_key_or_user(allow_insecure_apikey_as_principal=_ALLOW_INSECURE_APIKEY),
     )
 
 

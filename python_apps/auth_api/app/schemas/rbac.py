@@ -218,3 +218,187 @@ class PermissionOverrideListResponse(BaseModel):
 
     overrides: List[PermissionOverrideResponse]
     total: int | None
+
+
+# ============================================================================
+# Role schemas (system-defined and custom roles)
+# ============================================================================
+
+
+class RolePermissionResponse(BaseModel):
+    """Schema for role permission response."""
+
+    id: UUID
+    role_id: UUID
+    service_name: str
+    allowed_actions: List[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RoleResponse(BaseModel):
+    """Schema for role response."""
+
+    id: UUID
+    name: str
+    description: Optional[str]
+    base_type: str
+    scope_type: str
+    is_system: bool
+    created_at: datetime
+    updated_at: datetime
+    permissions: Optional[List[RolePermissionResponse]] = None
+
+    class Config:
+        from_attributes = True
+
+
+class RoleListResponse(BaseModel):
+    """Schema for list of roles."""
+
+    roles: List[RoleResponse]
+    total: int | None
+
+
+class RoleCreate(BaseModel):
+    """Schema for creating a custom role."""
+
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    base_type: RoleType = Field(..., description="Base permission type")
+    scope_type: ResourceType = Field(..., description="Scope level for this role")
+
+
+class RolePermissionCreate(BaseModel):
+    """Schema for adding permissions to a role."""
+
+    service_name: str = Field(..., min_length=1, max_length=100)
+    allowed_actions: List[str] = Field(..., description="List of allowed actions for this service")
+
+
+# ============================================================================
+# Group schemas (organization-defined permission groups)
+# ============================================================================
+
+
+class GroupPermissionResponse(BaseModel):
+    """Schema for group permission response."""
+
+    id: UUID
+    group_id: UUID
+    service_name: str
+    allow_actions: List[str]
+    deny_actions: List[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class GroupResponse(BaseModel):
+    """Schema for group response."""
+
+    id: UUID
+    organization_id: UUID
+    name: str
+    description: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+    permissions: Optional[List[GroupPermissionResponse]] = None
+
+    class Config:
+        from_attributes = True
+
+
+class GroupListResponse(BaseModel):
+    """Schema for list of groups."""
+
+    groups: List[GroupResponse]
+    total: int | None
+
+
+class GroupCreate(BaseModel):
+    """Schema for creating a group."""
+
+    organization_id: UUID = Field(..., description="Organization this group belongs to")
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+
+
+class GroupUpdate(BaseModel):
+    """Schema for updating a group."""
+
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+
+
+class GroupPermissionCreate(BaseModel):
+    """Schema for adding permissions to a group."""
+
+    service_name: str = Field(..., min_length=1, max_length=100)
+    allow_actions: List[str] = Field(default_factory=list, description="Actions allowed by this group")
+    deny_actions: List[str] = Field(default_factory=list, description="Actions denied by this group (restricts role)")
+
+
+class GroupPermissionUpdate(BaseModel):
+    """Schema for updating group permissions."""
+
+    allow_actions: Optional[List[str]] = None
+    deny_actions: Optional[List[str]] = None
+
+
+# ============================================================================
+# User Group Membership schemas
+# ============================================================================
+
+
+class UserGroupMembershipResponse(BaseModel):
+    """Schema for user group membership response."""
+
+    user_id: int
+    group_id: UUID
+    resource_id: UUID
+    resource_type: str
+    created_at: datetime
+    group: Optional[GroupResponse] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UserGroupMembershipListResponse(BaseModel):
+    """Schema for list of user group memberships."""
+
+    memberships: List[UserGroupMembershipResponse]
+    total: int | None
+
+
+class UserGroupMembershipCreate(BaseModel):
+    """Schema for adding a user to a group."""
+
+    user_id: int = Field(..., description="User ID to add to group")
+    resource_id: UUID = Field(..., description="Resource ID where this membership applies")
+    resource_type: ResourceType = Field(..., description="Type of resource")
+
+
+# ============================================================================
+# Current User RBAC Response (for /me/rbac endpoint)
+# ============================================================================
+
+
+class UserRbacResponse(BaseModel):
+    """Complete RBAC information for the current user."""
+
+    user_id: int = Field(..., description="User ID")
+    is_superuser: bool = Field(..., description="Whether user is a superuser")
+    role_assignments: List[UserRoleAssignmentResponse] = Field(
+        default_factory=list, description="User's role assignments across resources"
+    )
+    group_memberships: List[UserGroupMembershipResponse] = Field(default_factory=list, description="User's group memberships")
+    permission_overrides: List[PermissionOverrideResponse] = Field(
+        default_factory=list, description="User's permission overrides"
+    )

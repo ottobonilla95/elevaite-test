@@ -689,9 +689,14 @@ async def login(
     try:
         from app.services.email_mfa import email_mfa_service
 
+        # Refresh user to reload all attributes after any commits in authenticate_user
+        # This is needed because commits expire object attributes in async SQLAlchemy
+        await session.refresh(user)
+
         grace_period_info = email_mfa_service.get_grace_period_info(user)
     except Exception as e:
-        logger.error(f"Error getting grace period info for user {user.id}: {str(e)}")
+        # Get user_id safely - use login_data.email since user object may be expired
+        logger.error(f"Error getting grace period info for user {login_data.email}: {str(e)}")
 
     # Build and return response
     response = {
