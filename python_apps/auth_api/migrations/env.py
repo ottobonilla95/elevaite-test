@@ -20,6 +20,7 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from app.db.models import Base
+from app.db import models_rbac  # noqa: F401 - Import RBAC models for autogenerate
 from app.core.config import settings
 
 target_metadata = Base.metadata
@@ -39,9 +40,7 @@ else:
         db_url = settings.DATABASE_URI
 
 if not db_url:
-    raise ValueError(
-        "Database URL not provided. Set SQLALCHEMY_DATABASE_URL environment variable."
-    )
+    raise ValueError("Database URL not provided. Set SQLALCHEMY_DATABASE_URL environment variable.")
 
 # Strip any accidental surrounding quotes from env files
 _db_url_clean = db_url.strip().strip('"').strip("'")

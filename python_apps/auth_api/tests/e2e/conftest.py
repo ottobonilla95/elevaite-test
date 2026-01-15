@@ -22,7 +22,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--auth-api-url",
         action="store",
-        default="http://localhost:8004/auth-api",
+        default="http://localhost:8004",
         help="Auth API URL for E2E tests",
     )
 
@@ -39,4 +39,3 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "e2e" in item.keywords or "test_e2e" in item.nodeid:
                 item.add_marker(skip_e2e)
-

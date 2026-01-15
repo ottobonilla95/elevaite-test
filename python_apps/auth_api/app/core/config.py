@@ -27,33 +27,19 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(32)
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
-        os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "180")
-    )
-    REFRESH_TOKEN_EXPIRE_MINUTES: int = int(
-        os.environ.get("REFRESH_TOKEN_EXPIRE_MINUTES", "43200")
-    )
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "180"))
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = int(os.environ.get("REFRESH_TOKEN_EXPIRE_MINUTES", "43200"))
     ALGORITHM: str = "HS256"
 
     # API Key configuration
-    API_KEY_ALGORITHM: str = os.environ.get(
-        "API_KEY_ALGORITHM", "HS256"
-    )  # e.g., HS256 or RS256
+    API_KEY_ALGORITHM: str = os.environ.get("API_KEY_ALGORITHM", "HS256")  # e.g., HS256 or RS256
     API_KEY_SECRET: str | None = os.environ.get("API_KEY_SECRET")  # for HS*
-    API_KEY_PUBLIC_KEY: str | None = os.environ.get(
-        "API_KEY_PUBLIC_KEY"
-    )  # PEM for RS*/ES*
+    API_KEY_PUBLIC_KEY: str | None = os.environ.get("API_KEY_PUBLIC_KEY")  # PEM for RS*/ES*
 
     # Session Management Configuration
-    INACTIVITY_TIMEOUT_MINUTES: int = int(
-        os.environ.get("SESSION_INACTIVITY_TIMEOUT_MINUTES", "180")
-    )
-    ACTIVITY_CHECK_INTERVAL_MINUTES: int = int(
-        os.environ.get("ACTIVITY_CHECK_INTERVAL_MINUTES", "10")
-    )
-    SESSION_EXTENSION_MINUTES: int = int(
-        os.environ.get("SESSION_EXTENSION_MINUTES", "180")
-    )
+    INACTIVITY_TIMEOUT_MINUTES: int = int(os.environ.get("SESSION_INACTIVITY_TIMEOUT_MINUTES", "180"))
+    ACTIVITY_CHECK_INTERVAL_MINUTES: int = int(os.environ.get("ACTIVITY_CHECK_INTERVAL_MINUTES", "10"))
+    SESSION_EXTENSION_MINUTES: int = int(os.environ.get("SESSION_EXTENSION_MINUTES", "180"))
 
     # 32-bytes key for HMAC operations (e.g., CSRF token)
     SECURITY_KEY: str = secrets.token_urlsafe(32)
@@ -72,18 +58,17 @@ class Settings(BaseSettings):
     OPA_TIMEOUT: float = float(os.environ.get("OPA_TIMEOUT", "5.0"))
 
     # Rate limiting - More restrictive for security
-    RATE_LIMIT_PER_MINUTE: int = 10  # Reduced from 60 to 10 for better security
-    RATE_LIMIT_LOGIN_PER_MINUTE: int = 5  # Specific limit for login attempts
-    RATE_LIMIT_PASSWORD_RESET_PER_MINUTE: int = 3  # Specific limit for password reset
+    # Can be overridden via environment variables for testing
+    RATE_LIMIT_PER_MINUTE: int = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "10"))
+    RATE_LIMIT_LOGIN_PER_MINUTE: int = int(os.environ.get("RATE_LIMIT_LOGIN_PER_MINUTE", "5"))
+    RATE_LIMIT_PASSWORD_RESET_PER_MINUTE: int = int(os.environ.get("RATE_LIMIT_PASSWORD_RESET_PER_MINUTE", "3"))
 
     # MFA - Authenticator App
     MFA_ISSUER: str = os.environ.get("BRANDING_NAME", "ElevAIte")
     MFA_ENABLED: bool = True
 
     # MFA - Email
-    EMAIL_MFA_GRACE_PERIOD_DAYS: int = int(
-        os.environ.get("EMAIL_MFA_GRACE_PERIOD_DAYS", "30")
-    )
+    EMAIL_MFA_GRACE_PERIOD_DAYS: int = int(os.environ.get("EMAIL_MFA_GRACE_PERIOD_DAYS", "30"))
 
     # MFA Auto-Enable Configuration
     # Specifies which MFA method to auto-enable after grace period expires
@@ -99,9 +84,7 @@ class Settings(BaseSettings):
     # Branding Configuration
     BRANDING_NAME: str = os.environ.get("BRANDING_NAME", "ElevAIte")
     BRANDING_ORG: str = os.environ.get("BRANDING_ORG", "ElevAIte")
-    BRANDING_SUPPORT_EMAIL: str = os.environ.get(
-        "BRANDING_SUPPORT_EMAIL", "ElevAIte"
-    ).lower()
+    BRANDING_SUPPORT_EMAIL: str = os.environ.get("BRANDING_SUPPORT_EMAIL", "ElevAIte").lower()
 
     # CORS
     CORS_ORIGINS: Union[str, List[str]] = []
@@ -139,9 +122,7 @@ class Settings(BaseSettings):
 
     # Email settings for SMTP
     SMTP_TLS: bool = os.environ.get("SMTP_TLS", "True").lower() in ("true", "1", "t")
-    SMTP_PORT: int = int(
-        os.environ.get("SMTP_PORT", "587")
-    )  # Default to port 587 (TLS)
+    SMTP_PORT: int = int(os.environ.get("SMTP_PORT", "587"))  # Default to port 587 (TLS)
     SMTP_HOST: str = os.environ.get("SMTP_HOST", "")
     SMTP_USER: str = os.environ.get("SMTP_USER", "")
     SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")

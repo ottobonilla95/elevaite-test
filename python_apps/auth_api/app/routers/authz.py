@@ -6,10 +6,11 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.db.models import User
-from app.db.models_rbac import UserRoleAssignment, PermissionOverride
+from app.db.models_rbac import UserRoleAssignment, PermissionOverride, UserGroupMembership
 from app.db.tenant_db import get_tenant_async_db
 from app.schemas.rbac import AccessCheckRequest, AccessCheckResponse
 from app.services.opa_service import get_opa_service
@@ -105,6 +106,42 @@ async def check_access(
             f"allow={override.allow_actions}, deny={override.deny_actions}"
         )
 
+    # Step 3.6: Get user's group memberships for this resource
+    # Include groups at the resource level and parent levels (org, account)
+    group_memberships_result = await session.execute(
+        select(UserGroupMembership)
+        .options(selectinload(UserGroupMembership.group).selectinload("permissions"))
+        .where(UserGroupMembership.user_id == request.user_id)
+    )
+    group_memberships = group_memberships_result.scalars().all()
+
+    # Convert group memberships to OPA format
+    user_groups = []
+    for membership in group_memberships:
+        group = membership.group
+        if group:
+            group_data = {
+                "group_id": str(group.id),
+                "group_name": group.name,
+                "resource_id": str(membership.resource_id),
+                "resource_type": membership.resource_type,
+                "permissions": [],
+            }
+            # Include group permissions
+            if group.permissions:
+                for perm in group.permissions:
+                    group_data["permissions"].append(
+                        {
+                            "service_name": perm.service_name,
+                            "allow_actions": perm.allow_actions or [],
+                            "deny_actions": perm.deny_actions or [],
+                        }
+                    )
+            user_groups.append(group_data)
+
+    if user_groups:
+        logger.info(f"User {user.id} has {len(user_groups)} group memberships")
+
     # Step 4: Call OPA for policy evaluation
     # Convert resource to dict and ensure all UUIDs are strings for JSON serialization
     resource_dict = request.resource.dict()
@@ -121,6 +158,7 @@ async def check_access(
         action=request.action,
         resource=resource_dict,
         permission_overrides=permission_overrides,
+        user_groups=user_groups if user_groups else None,
     )
 
     # Step 5: Return result
