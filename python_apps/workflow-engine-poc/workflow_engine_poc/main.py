@@ -58,7 +58,13 @@ try:
 
     _dbos_db_url_early = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
     _app_name_early = os.getenv("DBOS_APPLICATION_NAME") or "workflow-engine-poc-sdk"
-    _cfg_early = _DBOSConfig_EARLY(database_url=_dbos_db_url_early, name=_app_name_early)
+    _app_version_early = os.getenv("DBOS_APPLICATION_VERSION")  # Fixed version for recovery
+    _cfg_early: _DBOSConfig_EARLY = {
+        "name": _app_name_early,
+        "system_database_url": _dbos_db_url_early,
+    }
+    if _app_version_early:
+        _cfg_early["application_version"] = _app_version_early
     _DBOS_EARLY(config=_cfg_early)
     logging.getLogger(__name__).info("✅ DBOS pre-initialized (SDK version)")
 except Exception as _e:
@@ -253,10 +259,16 @@ if not os.getenv("TESTING"):
 
         _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
         _app_name = os.getenv("DBOS_APPLICATION_NAME") or "workflow-engine-poc-sdk"
-        _cfg = _DBOSConfig(database_url=_dbos_db_url, name=_app_name)
+        _app_version = os.getenv("DBOS_APPLICATION_VERSION")  # Fixed version for recovery
+        _cfg: _DBOSConfig = {
+            "name": _app_name,
+            "system_database_url": _dbos_db_url,
+        }
+        if _app_version:
+            _cfg["application_version"] = _app_version
         _dbos_inst = _DBOS(config=_cfg, fastapi=app)
         app.state.dbos = _dbos_inst
-        logger.info(f"✅ DBOS initialized for {_dbos_db_url} (app={_app_name})")
+        logger.info(f"✅ DBOS initialized for {_dbos_db_url} (app={_app_name}, version={_app_version or 'auto'})")
     except Exception as _e:
         logger.warning(f"DBOS not initialized: {_e}")
 else:

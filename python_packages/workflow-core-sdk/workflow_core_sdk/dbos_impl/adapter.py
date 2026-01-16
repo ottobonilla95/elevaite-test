@@ -8,7 +8,7 @@ import os
 from dbos import DBOS, DBOSConfig
 from .steps import DBOSStepResult
 from .workflows import DBOSWorkflowResult, dbos_execute_workflow_durable
-from ..step_registry import StepRegistry
+from ..execution.registry_impl import StepRegistry
 from ..execution_context import ExecutionContext, UserContext
 from workflow_core_sdk.models import StepStatus
 # from .monitoring import monitoring  # currently unused

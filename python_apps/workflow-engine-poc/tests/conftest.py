@@ -32,7 +32,9 @@ def anyio_backend():
 if not os.getenv("TEST_INGESTION_SERVICE"):
     os.environ["TESTING"] = "true"
     os.environ["ENVIRONMENT"] = "test"
-    os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+    # Only set sqlite if DATABASE_URL not already set (preserve postgres for DBOS tests)
+    if not os.getenv("DATABASE_URL"):
+        os.environ["DATABASE_URL"] = "sqlite:///:memory:"
     os.environ["OTEL_SDK_DISABLED"] = "true"
     os.environ["SKIP_EXTERNAL_SERVICES"] = "true"
 
@@ -503,7 +505,6 @@ def setup_test_environment():
         test_env = {
             "TESTING": "true",
             "ENVIRONMENT": "test",
-            "DATABASE_URL": "sqlite:///:memory:",
             "OTEL_SDK_DISABLED": "true",
             "SKIP_EXTERNAL_SERVICES": "true",
             "OPENAI_API_KEY": "sk-test-mock-key",
@@ -511,6 +512,9 @@ def setup_test_environment():
             "REDIS_HOST": "localhost",
             "REDIS_PORT": "6379",
         }
+        # Only set sqlite if DATABASE_URL not already set (preserve postgres for DBOS tests)
+        if not os.getenv("DATABASE_URL"):
+            test_env["DATABASE_URL"] = "sqlite:///:memory:"
 
         os.environ.update(test_env)
 
