@@ -47,6 +47,7 @@ from workflow_core_sdk.streaming import (
 )
 
 from workflow_core_sdk.execution.context_impl import ExecutionContext, UserContext
+from db_core.middleware import get_current_tenant_id
 from ..schemas.workflows import WorkflowConfig, ExecutionRequest
 from ..util import api_key_or_user_guard
 
@@ -339,6 +340,8 @@ async def execute_workflow_by_id(
 
         if chosen_backend == "dbos":
             # Execute via DBOS adapter and persist normalized results using helper
+            # Get current tenant_id for multitenancy support in DBOS workflows
+            current_tenant = get_current_tenant_id()
             try:
                 execution_id = await execute_and_persist_dbos_result(
                     session,
@@ -349,6 +352,7 @@ async def execute_workflow_by_id(
                         "user_id": user_id,
                         "session_id": session_id_val,
                         "organization_id": organization_id,
+                        "tenant_id": current_tenant,  # Pass tenant_id for DBOS persistence
                     },
                     execution_id=execution_id,
                     wait=wait,
