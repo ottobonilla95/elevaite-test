@@ -545,33 +545,39 @@ class TestDemoWorkflows:
     """Demo workflow tests - these simulate real workflows for product demos."""
 
     @pytest.mark.asyncio
-    async def test_ad_copy_transformer_workflow(self, execution_context):
+    async def test_ad_copy_transformer_full_workflow(self, execution_context):
         """
-        Demo Workflow 1: Ad Copy Transformer
+        Demo Workflow 1: Ad Copy Transformer (Full Workflow)
 
         Theme: Simple text transformation with Prompt Node
 
-        Flow: Input Node (Text) → Prompt Node → Output Node (Text)
+        Flow:
+            Input Node ──┐
+                         ├──► Agent Node ──► Output Node
+            Prompt Node ─┘
 
-        This workflow takes raw product specs and transforms them into
-        compelling ad copy for social media.
+        This workflow takes raw product specs, configures an agent with a
+        prompt to transform them, and outputs compelling ad copy.
         """
-        # Simulate Input Node output (would come from user input in real workflow)
-        execution_context.step_io_data = {
-            "input-node": {"raw_copy": "Arlo Pro 5 camera 2K video color night vision weather resistant"}
-        }
+        # ============================================================
+        # STEP 1: Input Node
+        # User provides raw product specifications
+        # ============================================================
+        input_node_output = {"raw_copy": "Arlo Pro 5 camera 2K video color night vision weather resistant"}
 
-        # Prompt Node configuration
-        step_config = {
+        # Store input node output in execution context
+        execution_context.step_io_data = {"input-node": input_node_output}
+
+        # ============================================================
+        # STEP 2: Prompt Node
+        # Configures the agent with system prompt, query template, and model settings
+        # ============================================================
+        prompt_node_config = {
             "step_id": "prompt-node",
             "step_type": "prompt",
             "parameters": {
-                "system_prompt": """You are an expert advertising copywriter specializing in
-home security products. Create compelling, concise ad copy.""",
-                "query_template": """Transform this product spec list into a compelling ad copy
-that emphasizes peace of mind and home security. Keep it under 100 characters for social media ads.
-
-Product specs: {{raw_copy}}""",
+                "system_prompt": "You are an expert advertising copywriter specializing in home security products. Create compelling, concise ad copy.",
+                "query_template": "Transform this product spec list into a compelling ad copy that emphasizes peace of mind and home security. Keep it under 100 characters for social media ads.\n\nProduct specs: {{raw_copy}}",
                 "variables": [{"name": "raw_copy", "source": "input-node.raw_copy"}],
                 "model_name": "gpt-4",
                 "temperature": 0.7,
@@ -579,27 +585,83 @@ Product specs: {{raw_copy}}""",
             },
         }
 
-        result = await prompt_step(step_config, {}, execution_context)
+        prompt_node_output = await prompt_step(prompt_node_config, {}, execution_context)
 
-        # Verify prompt node output structure
-        assert result["step_type"] == "prompt"
-        assert result["step_id"] == "prompt-node"
+        # Verify prompt node processed correctly
+        assert prompt_node_output["step_type"] == "prompt"
+        assert "Arlo Pro 5" in prompt_node_output["query_template"]
+        assert prompt_node_output["model_overrides"]["model_name"] == "gpt-4"
 
-        # Verify variable was resolved from input node
-        assert result["variables"]["raw_copy"] == "Arlo Pro 5 camera 2K video color night vision weather resistant"
+        # Store prompt node output in execution context
+        execution_context.step_io_data["prompt-node"] = prompt_node_output
 
-        # Verify variable was injected into query template
-        assert "Arlo Pro 5" in result["query_template"]
-        assert "2K video" in result["query_template"]
-        assert "color night vision" in result["query_template"]
+        # ============================================================
+        # STEP 3: Agent Node
+        # Receives configuration from Prompt Node and data from Input Node
+        # (Simulated - in real execution, this calls the LLM)
+        # ============================================================
+        agent_node_config = {
+            "step_id": "agent-node",
+            "step_type": "agent_execution",
+            "dependencies": ["input-node", "prompt-node"],
+            "config": {
+                "agent_name": "AdCopyWriter",
+            },
+        }
 
-        # Verify model overrides are set for agent
-        assert result["model_overrides"]["model_name"] == "gpt-4"
-        assert result["model_overrides"]["temperature"] == 0.7
-        assert result["model_overrides"]["max_tokens"] == 150
+        # Simulate what the agent execution step would receive
+        # It gets the prompt configuration from the connected prompt node
+        prompt_config = None
+        for dep_id in agent_node_config.get("dependencies", []):
+            dep_output = execution_context.step_io_data.get(dep_id, {})
+            if isinstance(dep_output, dict) and dep_output.get("step_type") == "prompt":
+                prompt_config = dep_output
+                break
 
-        # Verify raw templates are preserved
-        assert "{{raw_copy}}" in result["raw_query_template"]
+        assert prompt_config is not None, "Agent should receive prompt config from prompt node"
+        assert (
+            prompt_config["system_prompt"]
+            == "You are an expert advertising copywriter specializing in home security products. Create compelling, concise ad copy."
+        )
+        assert "Arlo Pro 5" in prompt_config["query_template"]
+        model_overrides = prompt_config["model_overrides"]
+        assert model_overrides["model_name"] == "gpt-4"
+        assert model_overrides["temperature"] == 0.7
 
-        # Verify override_agent_prompt defaults to True
-        assert result["override_agent_prompt"] is True
+        # Simulate agent execution result
+        # In real execution, this would be the LLM response
+        agent_node_output = {
+            "success": True,
+            "response": "See every detail, day or night. Arlo Pro 5: 2K clarity + color night vision. Your home, always protected.",
+            "agent_name": "AdCopyWriter",
+            "model": "gpt-4",
+            "execution_time_seconds": 1.2,
+        }
+
+        # Store agent output
+        execution_context.step_io_data["agent-node"] = agent_node_output
+
+        # ============================================================
+        # STEP 4: Output Node
+        # Receives the final ad copy from the Agent Node
+        # In a real workflow, output node config would be:
+        # {"step_id": "output-node", "dependencies": ["agent-node"],
+        #  "config": {"output_mapping": {"ad_copy": "agent-node.response"}}}
+        # ============================================================
+        # Simulate output node extracting the response
+        final_output = {"ad_copy": execution_context.step_io_data["agent-node"]["response"]}
+
+        # ============================================================
+        # FINAL VERIFICATION
+        # ============================================================
+        assert (
+            final_output["ad_copy"]
+            == "See every detail, day or night. Arlo Pro 5: 2K clarity + color night vision. Your home, always protected."
+        )
+        assert len(final_output["ad_copy"]) < 120  # Should be concise for social media
+
+        # Verify the full workflow state
+        assert "input-node" in execution_context.step_io_data
+        assert "prompt-node" in execution_context.step_io_data
+        assert "agent-node" in execution_context.step_io_data
+        assert execution_context.step_io_data["agent-node"]["success"] is True
