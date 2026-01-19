@@ -132,12 +132,24 @@ def test_ad_copy_transformer_workflow_e2e(authenticated_client: TestClient, back
     assert "agent-node" in step_results, "agent-node step should be in results"
     agent_result = step_results.get("agent-node", {})
     agent_output = agent_result.get("output_data", {})
+    print(f"Agent output: {agent_output}")
     # Agent should have received the prompt config and executed
     # Check for success or response in output_data (handles both real LLM and mock scenarios)
     has_response = agent_output.get("success") is True or "response" in agent_output
     # Also accept error case if API key is not configured (test environment)
     has_error = "error" in agent_output
     assert has_response or has_error, f"Agent should have response or error: {agent_output}"
+
+    # Validate output-node executed (final step in the workflow)
+    assert "output-node" in step_results, "output-node step should be in results"
+    output_result = step_results.get("output-node", {})
+    output_data = output_result.get("output_data", {})
+    assert output_data.get("success") is True, "Output step should succeed"
+    assert output_data.get("label") == "Ad Copy Result", "Output should have correct label"
+    assert output_data.get("format") == "text", "Output should have correct format"
+    # Output step should pass through agent's data
+    assert "data" in output_data, "Output should contain data from agent"
+    print(f"Output node data: {output_data}")
 
 
 @pytest.mark.integration

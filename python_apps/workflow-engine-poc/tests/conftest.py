@@ -507,8 +507,9 @@ def setup_test_environment():
             "ENVIRONMENT": "test",
             "OTEL_SDK_DISABLED": "true",
             "SKIP_EXTERNAL_SERVICES": "true",
-            "OPENAI_API_KEY": "sk-test-mock-key",
-            "ANTHROPIC_API_KEY": "sk-ant-test-mock-key",
+            # Only use mock keys if real keys not already set
+            "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY") or "sk-test-mock-key",
+            "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_API_KEY") or "sk-ant-test-mock-key",
             "REDIS_HOST": "localhost",
             "REDIS_PORT": "6379",
         }

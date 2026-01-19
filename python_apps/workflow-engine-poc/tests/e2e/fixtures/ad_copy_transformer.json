@@ -54,6 +54,17 @@
         "interactive": false,
         "force_real_llm": false
       }
+    },
+    {
+      "step_id": "output-node",
+      "step_type": "output",
+      "dependencies": [
+        "agent-node"
+      ],
+      "parameters": {
+        "label": "Ad Copy Result",
+        "format": "text"
+      }
     }
   ]
 }
