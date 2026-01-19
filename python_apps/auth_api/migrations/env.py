@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 import os
 import sys
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
 
 from alembic import context
 
@@ -24,6 +24,11 @@ from app.db import models_rbac  # noqa: F401 - Import RBAC models for autogenera
 from app.core.config import settings
 
 target_metadata = Base.metadata
+
+# Tenant schema support:
+# Set ALEMBIC_SCHEMA env var to run migrations in a specific schema
+# Example: ALEMBIC_SCHEMA=auth_iopex alembic upgrade head
+target_schema = os.getenv("ALEMBIC_SCHEMA")
 
 # Resolve the database URL used by Alembic in this order:
 # 1) Value provided via Alembic Config (e.g., programmatic runs)
@@ -82,6 +87,7 @@ def run_migrations_online() -> None:
     In this scenario we need to create an Engine
     and associate a connection with the context.
 
+    Supports tenant schema migrations via ALEMBIC_SCHEMA env var.
     """
     # Handle the asyncpg case - create a sync engine for Alembic to work
     db_url = config.get_main_option("sqlalchemy.url")
@@ -97,7 +103,17 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        # Set search_path for tenant schema if specified
+        if target_schema:
+            connection.execute(text(f'SET search_path TO "{target_schema}", public'))
+            connection.commit()
+            print(f"Running migrations in schema: {target_schema}")
+
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            version_table_schema=target_schema,  # Store alembic_version in tenant schema
+        )
 
         with context.begin_transaction():
             context.run_migrations()
