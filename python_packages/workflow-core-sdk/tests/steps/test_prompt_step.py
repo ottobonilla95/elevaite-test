@@ -539,3 +539,67 @@ Process this task appropriately.""",
         assert result["variables"]["task_name"] == "Quick Task"
         assert result["variables"]["priority"] == "medium"
         assert result["variables"]["deadline"] == "not specified"
+
+
+class TestDemoWorkflows:
+    """Demo workflow tests - these simulate real workflows for product demos."""
+
+    @pytest.mark.asyncio
+    async def test_ad_copy_transformer_workflow(self, execution_context):
+        """
+        Demo Workflow 1: Ad Copy Transformer
+
+        Theme: Simple text transformation with Prompt Node
+
+        Flow: Input Node (Text) → Prompt Node → Output Node (Text)
+
+        This workflow takes raw product specs and transforms them into
+        compelling ad copy for social media.
+        """
+        # Simulate Input Node output (would come from user input in real workflow)
+        execution_context.step_io_data = {
+            "input-node": {"raw_copy": "Arlo Pro 5 camera 2K video color night vision weather resistant"}
+        }
+
+        # Prompt Node configuration
+        step_config = {
+            "step_id": "prompt-node",
+            "step_type": "prompt",
+            "parameters": {
+                "system_prompt": """You are an expert advertising copywriter specializing in
+home security products. Create compelling, concise ad copy.""",
+                "query_template": """Transform this product spec list into a compelling ad copy
+that emphasizes peace of mind and home security. Keep it under 100 characters for social media ads.
+
+Product specs: {{raw_copy}}""",
+                "variables": [{"name": "raw_copy", "source": "input-node.raw_copy"}],
+                "model_name": "gpt-4",
+                "temperature": 0.7,
+                "max_tokens": 150,
+            },
+        }
+
+        result = await prompt_step(step_config, {}, execution_context)
+
+        # Verify prompt node output structure
+        assert result["step_type"] == "prompt"
+        assert result["step_id"] == "prompt-node"
+
+        # Verify variable was resolved from input node
+        assert result["variables"]["raw_copy"] == "Arlo Pro 5 camera 2K video color night vision weather resistant"
+
+        # Verify variable was injected into query template
+        assert "Arlo Pro 5" in result["query_template"]
+        assert "2K video" in result["query_template"]
+        assert "color night vision" in result["query_template"]
+
+        # Verify model overrides are set for agent
+        assert result["model_overrides"]["model_name"] == "gpt-4"
+        assert result["model_overrides"]["temperature"] == 0.7
+        assert result["model_overrides"]["max_tokens"] == 150
+
+        # Verify raw templates are preserved
+        assert "{{raw_copy}}" in result["raw_query_template"]
+
+        # Verify override_agent_prompt defaults to True
+        assert result["override_agent_prompt"] is True
