@@ -68,14 +68,19 @@ async def check_access(
             user_status=user.status,
         )
 
-    # Step 3: Get user's role assignments
-    assignments_result = await session.execute(select(UserRoleAssignment).where(UserRoleAssignment.user_id == request.user_id))
+    # Step 3: Get user's role assignments (with role relationship for base_type)
+    assignments_result = await session.execute(
+        select(UserRoleAssignment)
+        .options(selectinload(UserRoleAssignment.role_ref))
+        .where(UserRoleAssignment.user_id == request.user_id)
+    )
     assignments = assignments_result.scalars().all()
 
     # Convert assignments to OPA format
+    # Use role_ref.base_type if available, fall back to legacy role string
     user_assignments = [
         {
-            "role": assignment.role,
+            "role": assignment.role_ref.base_type if assignment.role_ref else assignment.role,
             "resource_type": assignment.resource_type,
             "resource_id": str(assignment.resource_id),
         }
