@@ -39,3 +39,8 @@ packages = ["workflow_core_sdk"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.uv.sources]
+elevaite-logger = { workspace = true }
+elevaite-ingestion = { workspace = true }
+db-core = { workspace = true }

@@ -6,7 +6,12 @@ readme = "README.md"
 authors = [{ name = "Elevaite", email = "dev@elevaite.ai" }]
 requires-python = ">=3.10"
 # Avoid adding new external deps for now; use stdlib + requests which is already in the repo
-dependencies = ["requests>=2.31.0", "fastapi>=0.103.0", "httpx>=0.24.1"]
+dependencies = [
+    "requests>=2.31.0",
+    "fastapi>=0.103.0",
+    "httpx>=0.24.1",
+    "python-jose[cryptography]>=3.3.0",
+]
 
 [project.optional-dependencies]
 test = [

@@ -315,82 +315,124 @@ class TestApiKeyHttpValidatorCaching:
 
 
 class TestApiKeyJwtValidator:
-    """Test JWT-based API key validator."""
+    """Test JWT-based API key validator using real jose library."""
 
     def test_jwt_validator_success_hs256(self):
         """Test successful JWT validation with HS256."""
-        mock_jwt_module = Mock()
-        mock_jwt_module.decode.return_value = {"type": "api_key", "sub": "service-account-123"}
+        from jose import jwt
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
-            validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret")
-            request = Mock()
-            user_id = validator("test.jwt.token", request)
+        secret = "test-secret-key-for-hs256-validation"
+        token = jwt.encode(
+            {"type": "api_key", "sub": "service-account-123"},
+            secret,
+            algorithm="HS256",
+        )
 
-            assert user_id == "service-account-123"
-            mock_jwt_module.decode.assert_called_once()
+        validator = api_key_jwt_validator(algorithm="HS256", secret=secret)
+        request = Mock()
+        user_id = validator(token, request)
+
+        assert user_id == "service-account-123"
 
     def test_jwt_validator_success_rs256(self):
         """Test successful JWT validation with RS256."""
-        mock_jwt_module = Mock()
-        mock_jwt_module.decode.return_value = {"type": "api_key", "sub": "service-account-456"}
+        from jose import jwt
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.hazmat.backends import default_backend
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
-            validator = api_key_jwt_validator(algorithm="RS256", public_key="test-public-key")
-            request = Mock()
-            user_id = validator("test.jwt.token", request)
+        # Generate RSA key pair
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend(),
+        )
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        ).decode("utf-8")
+        public_pem = (
+            private_key.public_key()
+            .public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+            .decode("utf-8")
+        )
 
-            assert user_id == "service-account-456"
+        token = jwt.encode(
+            {"type": "api_key", "sub": "service-account-456"},
+            private_pem,
+            algorithm="RS256",
+        )
+
+        validator = api_key_jwt_validator(algorithm="RS256", public_key=public_pem)
+        request = Mock()
+        user_id = validator(token, request)
+
+        assert user_id == "service-account-456"
 
     def test_jwt_validator_invalid_type(self):
         """Test that wrong token type returns None."""
-        mock_jwt_module = Mock()
-        mock_jwt_module.decode.return_value = {"type": "access_token", "sub": "user-123"}
+        from jose import jwt
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
-            validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret", require_type="api_key")
-            request = Mock()
-            user_id = validator("test.jwt.token", request)
+        secret = "test-secret-key"
+        token = jwt.encode(
+            {"type": "access_token", "sub": "user-123"},
+            secret,
+            algorithm="HS256",
+        )
 
-            assert user_id is None
+        validator = api_key_jwt_validator(algorithm="HS256", secret=secret, require_type="api_key")
+        request = Mock()
+        user_id = validator(token, request)
+
+        assert user_id is None
 
     def test_jwt_validator_missing_sub(self):
         """Test that missing 'sub' claim returns None."""
-        mock_jwt_module = Mock()
-        mock_jwt_module.decode.return_value = {"type": "api_key"}  # No 'sub'
+        from jose import jwt
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
-            validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret")
-            request = Mock()
-            user_id = validator("test.jwt.token", request)
+        secret = "test-secret-key"
+        token = jwt.encode(
+            {"type": "api_key"},  # No 'sub'
+            secret,
+            algorithm="HS256",
+        )
+
+        validator = api_key_jwt_validator(algorithm="HS256", secret=secret)
+        request = Mock()
+        user_id = validator(token, request)
 
         assert user_id is None
 
     def test_jwt_validator_decode_error(self):
-        """Test that JWT decode errors return None."""
-        from jose import JWTError
+        """Test that JWT decode errors return None (invalid signature)."""
+        from jose import jwt
 
-        mock_jwt_module = Mock()
-        mock_jwt_module.decode.side_effect = JWTError("Invalid signature")
+        secret = "correct-secret"
+        wrong_secret = "wrong-secret"
+        token = jwt.encode(
+            {"type": "api_key", "sub": "user-123"},
+            secret,
+            algorithm="HS256",
+        )
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
-            validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret")
-            request = Mock()
-            user_id = validator("invalid.jwt.token", request)
+        # Try to validate with wrong secret
+        validator = api_key_jwt_validator(algorithm="HS256", secret=wrong_secret)
+        request = Mock()
+        user_id = validator(token, request)
 
-            assert user_id is None
+        assert user_id is None
 
-    def test_jwt_validator_generic_exception(self):
-        """Test that generic exceptions return None."""
-        mock_jwt_module = Mock()
-        mock_jwt_module.decode.side_effect = RuntimeError("Unexpected error")
+    def test_jwt_validator_malformed_token(self):
+        """Test that malformed tokens return None."""
+        validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret")
+        request = Mock()
+        user_id = validator("not.a.valid.jwt.token.at.all", request)
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
-            validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret")
-            request = Mock()
-            user_id = validator("test.jwt.token", request)
-
-            assert user_id is None
+        assert user_id is None
 
     def test_jwt_validator_jose_not_installed(self):
         """Test that missing jose library returns None."""
@@ -403,37 +445,45 @@ class TestApiKeyJwtValidator:
 
     def test_jwt_validator_no_type_requirement(self):
         """Test that type requirement can be disabled."""
-        mock_jwt_module = Mock()
-        mock_jwt_module.decode.return_value = {"sub": "user-123"}  # No 'type' field
+        from jose import jwt
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
-            validator = api_key_jwt_validator(algorithm="HS256", secret="test-secret", require_type=None)
-            request = Mock()
-            user_id = validator("test.jwt.token", request)
+        secret = "test-secret-key"
+        token = jwt.encode(
+            {"sub": "user-123"},  # No 'type' field
+            secret,
+            algorithm="HS256",
+        )
 
-            assert user_id == "user-123"
+        validator = api_key_jwt_validator(algorithm="HS256", secret=secret, require_type=None)
+        request = Mock()
+        user_id = validator(token, request)
 
-    @patch.dict(os.environ, {"API_KEY_ALGORITHM": "HS256", "API_KEY_SECRET": "env-secret"})
+        assert user_id == "user-123"
+
+    @patch.dict(os.environ, {"API_KEY_ALGORITHM": "HS256", "API_KEY_SECRET": "env-secret-key"})
     def test_jwt_validator_uses_env_vars(self):
         """Test that environment variables are used when parameters not provided."""
-        mock_jwt_module = Mock()
-        mock_jwt_module.decode.return_value = {"type": "api_key", "sub": "user-123"}
+        from jose import jwt
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
-            validator = api_key_jwt_validator()
-            request = Mock()
-            user_id = validator("test.jwt.token", request)
+        token = jwt.encode(
+            {"type": "api_key", "sub": "user-123"},
+            "env-secret-key",
+            algorithm="HS256",
+        )
 
-            assert user_id == "user-123"
-            # Verify it used the env var secret
-            call_args = mock_jwt_module.decode.call_args
-            assert call_args[0][1] == "env-secret"
+        validator = api_key_jwt_validator()
+        request = Mock()
+        user_id = validator(token, request)
+
+        assert user_id == "user-123"
 
     def test_jwt_validator_missing_secret_for_hs(self):
         """Test that missing secret for HS algorithm returns None."""
-        mock_jwt_module = Mock()
+        with patch.dict(os.environ, {}, clear=False):
+            # Ensure no env var fallback
+            if "API_KEY_SECRET" in os.environ:
+                del os.environ["API_KEY_SECRET"]
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="HS256", secret=None)
             request = Mock()
             user_id = validator("test.jwt.token", request)
@@ -442,9 +492,11 @@ class TestApiKeyJwtValidator:
 
     def test_jwt_validator_missing_public_key_for_rs(self):
         """Test that missing public key for RS algorithm returns None."""
-        mock_jwt_module = Mock()
+        with patch.dict(os.environ, {}, clear=False):
+            # Ensure no env var fallback
+            if "API_KEY_PUBLIC_KEY" in os.environ:
+                del os.environ["API_KEY_PUBLIC_KEY"]
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
             validator = api_key_jwt_validator(algorithm="RS256", public_key=None)
             request = Mock()
             user_id = validator("test.jwt.token", request)
@@ -453,11 +505,8 @@ class TestApiKeyJwtValidator:
 
     def test_jwt_validator_unsupported_algorithm(self):
         """Test that unsupported algorithm returns None."""
-        mock_jwt_module = Mock()
+        validator = api_key_jwt_validator(algorithm="UNSUPPORTED", secret="test-secret")
+        request = Mock()
+        user_id = validator("test.jwt.token", request)
 
-        with patch.dict("sys.modules", {"jose": Mock(jwt=mock_jwt_module)}):
-            validator = api_key_jwt_validator(algorithm="UNSUPPORTED", secret="test-secret")
-            request = Mock()
-            user_id = validator("test.jwt.token", request)
-
-            assert user_id is None
+        assert user_id is None
