@@ -1163,3 +1163,203 @@ class TestGetMyRbac:
         )
 
         assert len(result.role_assignments) == 3
+
+
+class TestCheckAccessRoleResolution:
+    """Tests for check_access endpoint role resolution.
+
+    These tests verify that the check_access endpoint correctly resolves
+    role names from either:
+    1. role_ref.base_type (new FK-based approach)
+    2. role string field (legacy approach)
+    """
+
+    @pytest.mark.asyncio
+    async def test_check_access_uses_role_ref_base_type(self, mock_superuser, mock_session):
+        """Test that check_access uses role_ref.base_type when role_id FK is set."""
+        from app.routers.authz import check_access
+        from app.schemas.rbac import AccessCheckRequest, ResourceInfo
+
+        # Mock user query
+        user_result = MagicMock()
+        user_result.scalars.return_value.first.return_value = mock_superuser
+
+        # Create mock role with base_type
+        mock_role = MagicMock(spec=Role)
+        mock_role.base_type = "superadmin"
+
+        # Create mock assignment with role_ref (FK approach) but NO legacy role string
+        mock_assignment = MagicMock(spec=UserRoleAssignment)
+        mock_assignment.user_id = mock_superuser.id
+        mock_assignment.role = None  # Legacy field is NULL
+        mock_assignment.role_ref = mock_role  # FK relationship is set
+        mock_assignment.resource_type = "organization"
+        mock_assignment.resource_id = uuid4()
+
+        assignments_result = MagicMock()
+        assignments_result.scalars.return_value.all.return_value = [mock_assignment]
+
+        # Mock permission overrides (empty)
+        overrides_result = MagicMock()
+        overrides_result.scalars.return_value.first.return_value = None
+
+        # Mock group memberships (empty)
+        memberships_result = MagicMock()
+        memberships_result.scalars.return_value.all.return_value = []
+
+        mock_session.execute = AsyncMock(
+            side_effect=[
+                user_result,
+                assignments_result,
+                overrides_result,
+                memberships_result,
+            ]
+        )
+
+        # Mock OPA service
+        with patch("app.routers.authz.get_opa_service") as mock_opa:
+            mock_opa_instance = MagicMock()
+            mock_opa_instance.check_access = AsyncMock(return_value={"allowed": True})
+            mock_opa.return_value = mock_opa_instance
+
+            request = AccessCheckRequest(
+                user_id=mock_superuser.id,
+                action="view_workflow",
+                resource=ResourceInfo(
+                    type="project",
+                    id=str(uuid4()),
+                    organization_id=str(uuid4()),
+                ),
+            )
+
+            result = await check_access(request=request, session=mock_session)
+
+            # Verify OPA was called with correct role from role_ref.base_type
+            call_args = mock_opa_instance.check_access.call_args
+            user_assignments = call_args.kwargs["user_assignments"]
+            assert len(user_assignments) == 1
+            assert user_assignments[0]["role"] == "superadmin"
+
+    @pytest.mark.asyncio
+    async def test_check_access_falls_back_to_legacy_role_string(self, mock_superuser, mock_session):
+        """Test that check_access falls back to legacy role string when role_ref is None."""
+        from app.routers.authz import check_access
+        from app.schemas.rbac import AccessCheckRequest, ResourceInfo
+
+        # Mock user query
+        user_result = MagicMock()
+        user_result.scalars.return_value.first.return_value = mock_superuser
+
+        # Create mock assignment with legacy role string but NO role_ref
+        mock_assignment = MagicMock(spec=UserRoleAssignment)
+        mock_assignment.user_id = mock_superuser.id
+        mock_assignment.role = "admin"  # Legacy field is set
+        mock_assignment.role_ref = None  # FK relationship is NOT set
+        mock_assignment.resource_type = "organization"
+        mock_assignment.resource_id = uuid4()
+
+        assignments_result = MagicMock()
+        assignments_result.scalars.return_value.all.return_value = [mock_assignment]
+
+        # Mock permission overrides (empty)
+        overrides_result = MagicMock()
+        overrides_result.scalars.return_value.first.return_value = None
+
+        # Mock group memberships (empty)
+        memberships_result = MagicMock()
+        memberships_result.scalars.return_value.all.return_value = []
+
+        mock_session.execute = AsyncMock(
+            side_effect=[
+                user_result,
+                assignments_result,
+                overrides_result,
+                memberships_result,
+            ]
+        )
+
+        # Mock OPA service
+        with patch("app.routers.authz.get_opa_service") as mock_opa:
+            mock_opa_instance = MagicMock()
+            mock_opa_instance.check_access = AsyncMock(return_value={"allowed": True})
+            mock_opa.return_value = mock_opa_instance
+
+            request = AccessCheckRequest(
+                user_id=mock_superuser.id,
+                action="view_workflow",
+                resource=ResourceInfo(
+                    type="project",
+                    id=str(uuid4()),
+                    organization_id=str(uuid4()),
+                ),
+            )
+
+            result = await check_access(request=request, session=mock_session)
+
+            # Verify OPA was called with correct role from legacy string
+            call_args = mock_opa_instance.check_access.call_args
+            user_assignments = call_args.kwargs["user_assignments"]
+            assert len(user_assignments) == 1
+            assert user_assignments[0]["role"] == "admin"
+
+    @pytest.mark.asyncio
+    async def test_check_access_handles_both_role_fields_null(self, mock_superuser, mock_session):
+        """Test that check_access handles edge case where both role fields are null."""
+        from app.routers.authz import check_access
+        from app.schemas.rbac import AccessCheckRequest, ResourceInfo
+
+        # Mock user query
+        user_result = MagicMock()
+        user_result.scalars.return_value.first.return_value = mock_superuser
+
+        # Create mock assignment with BOTH fields null (edge case / data issue)
+        mock_assignment = MagicMock(spec=UserRoleAssignment)
+        mock_assignment.user_id = mock_superuser.id
+        mock_assignment.role = None  # Legacy field is NULL
+        mock_assignment.role_ref = None  # FK relationship is also NULL
+        mock_assignment.resource_type = "organization"
+        mock_assignment.resource_id = uuid4()
+
+        assignments_result = MagicMock()
+        assignments_result.scalars.return_value.all.return_value = [mock_assignment]
+
+        # Mock permission overrides (empty)
+        overrides_result = MagicMock()
+        overrides_result.scalars.return_value.first.return_value = None
+
+        # Mock group memberships (empty)
+        memberships_result = MagicMock()
+        memberships_result.scalars.return_value.all.return_value = []
+
+        mock_session.execute = AsyncMock(
+            side_effect=[
+                user_result,
+                assignments_result,
+                overrides_result,
+                memberships_result,
+            ]
+        )
+
+        # Mock OPA service
+        with patch("app.routers.authz.get_opa_service") as mock_opa:
+            mock_opa_instance = MagicMock()
+            mock_opa_instance.check_access = AsyncMock(return_value={"allowed": False, "deny_reason": "no_matching_role"})
+            mock_opa.return_value = mock_opa_instance
+
+            request = AccessCheckRequest(
+                user_id=mock_superuser.id,
+                action="view_workflow",
+                resource=ResourceInfo(
+                    type="project",
+                    id=str(uuid4()),
+                    organization_id=str(uuid4()),
+                ),
+            )
+
+            result = await check_access(request=request, session=mock_session)
+
+            # Verify OPA was called with null role (will be denied by OPA)
+            call_args = mock_opa_instance.check_access.call_args
+            user_assignments = call_args.kwargs["user_assignments"]
+            assert len(user_assignments) == 1
+            assert user_assignments[0]["role"] is None
