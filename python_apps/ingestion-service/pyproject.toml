@@ -13,6 +13,7 @@ dependencies = [
     "httpx>=0.25.0",
     "python-dotenv>=1.0.0",
     "elevaite-ingestion",
+    "litellm>=1.0.0",
 ]
 
 [project.optional-dependencies]
