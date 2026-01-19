@@ -343,3 +343,173 @@ class TestGetStepInfo:
 
             assert response.status_code == 200
             assert response.json()["step_type"] == "custom-processor_v2"
+
+
+@pytest.mark.api
+class TestListBuiltinVariables:
+    """Tests for GET /steps/variables/builtin endpoint"""
+
+    @pytest.mark.api
+    def test_list_builtin_variables_success(self, authenticated_client: TestClient):
+        """Test listing all builtin variables returns expected structure"""
+        response = authenticated_client.get("/steps/variables/builtin")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check response structure
+        assert "variables" in data
+        assert "total" in data
+        assert isinstance(data["variables"], list)
+        assert data["total"] == len(data["variables"])
+        assert data["total"] > 0
+
+    @pytest.mark.api
+    def test_builtin_variables_have_required_fields(self, authenticated_client: TestClient):
+        """Test that each variable has all required fields"""
+        response = authenticated_client.get("/steps/variables/builtin")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        for var in data["variables"]:
+            assert "name" in var, f"Variable missing 'name' field"
+            assert "description" in var, f"Variable {var.get('name')} missing 'description'"
+            assert "category" in var, f"Variable {var.get('name')} missing 'category'"
+            assert "source" in var, f"Variable {var.get('name')} missing 'source'"
+            # example is optional but should be present for most
+            assert "example" in var, f"Variable {var.get('name')} missing 'example'"
+
+    @pytest.mark.api
+    def test_builtin_variables_include_time_variables(self, authenticated_client: TestClient):
+        """Test that time-related variables are included"""
+        response = authenticated_client.get("/steps/variables/builtin")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        var_names = [v["name"] for v in data["variables"]]
+
+        # Check core time variables
+        assert "current_time" in var_names
+        assert "current_date" in var_names
+        assert "current_timestamp" in var_names
+        assert "current_year" in var_names
+        assert "current_month" in var_names
+        assert "current_day" in var_names
+
+        # Check UTC/local variants
+        assert "current_time_utc" in var_names
+        assert "current_date_utc" in var_names
+        assert "current_time_local" in var_names
+        assert "current_date_local" in var_names
+
+    @pytest.mark.api
+    def test_builtin_variables_include_context_variables(self, authenticated_client: TestClient):
+        """Test that context variables are included"""
+        response = authenticated_client.get("/steps/variables/builtin")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        var_names = [v["name"] for v in data["variables"]]
+
+        # Check context variables
+        assert "execution_id" in var_names
+        assert "workflow_id" in var_names
+        assert "user_id" in var_names
+        assert "user_name" in var_names
+        assert "session_id" in var_names
+
+    @pytest.mark.api
+    def test_builtin_variables_include_identifiers(self, authenticated_client: TestClient):
+        """Test that identifier variables are included"""
+        response = authenticated_client.get("/steps/variables/builtin")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        var_names = [v["name"] for v in data["variables"]]
+
+        assert "uuid" in var_names
+
+    @pytest.mark.api
+    def test_builtin_variables_valid_categories(self, authenticated_client: TestClient):
+        """Test that all variables have valid categories"""
+        response = authenticated_client.get("/steps/variables/builtin")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        valid_categories = {"time", "context", "identifier", "other"}
+
+        for var in data["variables"]:
+            assert var["category"] in valid_categories, f"Variable {var['name']} has invalid category: {var['category']}"
+
+    @pytest.mark.api
+    def test_builtin_variables_valid_sources(self, authenticated_client: TestClient):
+        """Test that all variables have valid source types"""
+        response = authenticated_client.get("/steps/variables/builtin")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        valid_sources = {"builtin", "context"}
+
+        for var in data["variables"]:
+            assert var["source"] in valid_sources, f"Variable {var['name']} has invalid source: {var['source']}"
+
+    @pytest.mark.api
+    def test_builtin_variables_sorted_by_category(self, authenticated_client: TestClient):
+        """Test that variables are sorted by category then name"""
+        response = authenticated_client.get("/steps/variables/builtin")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Extract category-name tuples
+        category_names = [(v["category"], v["name"]) for v in data["variables"]]
+
+        # Check that list is sorted
+        assert category_names == sorted(category_names), "Variables should be sorted by category then name"
+
+    @pytest.mark.api
+    def test_builtin_variables_context_source_correct(self, authenticated_client: TestClient):
+        """Test that context variables have source='context'"""
+        response = authenticated_client.get("/steps/variables/builtin")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        context_vars = ["workflow_id", "user_id", "user_name", "session_id", "execution_id"]
+
+        for var in data["variables"]:
+            if var["name"] in context_vars:
+                assert var["source"] == "context", f"Variable {var['name']} should have source='context'"
+
+    @pytest.mark.api
+    def test_builtin_variables_time_source_correct(self, authenticated_client: TestClient):
+        """Test that time variables have source='builtin'"""
+        response = authenticated_client.get("/steps/variables/builtin")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        time_vars = [
+            "current_time",
+            "current_time_utc",
+            "current_time_local",
+            "current_date",
+            "current_date_utc",
+            "current_date_local",
+            "current_timestamp",
+            "current_year",
+            "current_month",
+            "current_day",
+            "current_hour",
+            "current_minute",
+        ]
+
+        for var in data["variables"]:
+            if var["name"] in time_vars:
+                assert var["source"] == "builtin", f"Variable {var['name']} should have source='builtin'"
