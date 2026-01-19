@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
 from app.db.models import User
-from app.db.models_rbac import UserRoleAssignment, PermissionOverride, UserGroupMembership
+from app.db.models_rbac import UserRoleAssignment, PermissionOverride, UserGroupMembership, Group
 from app.db.tenant_db import get_tenant_async_db
 from app.schemas.rbac import AccessCheckRequest, AccessCheckResponse
 from app.services.opa_service import get_opa_service
@@ -110,7 +110,7 @@ async def check_access(
     # Include groups at the resource level and parent levels (org, account)
     group_memberships_result = await session.execute(
         select(UserGroupMembership)
-        .options(selectinload(UserGroupMembership.group).selectinload("permissions"))
+        .options(selectinload(UserGroupMembership.group).selectinload(Group.permissions))
         .where(UserGroupMembership.user_id == request.user_id)
     )
     group_memberships = group_memberships_result.scalars().all()
