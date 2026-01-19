@@ -4,18 +4,33 @@
   "scripts": {
     "superfrontploy": "node superfrontploy.mjs",
     "build": "turbo build",
-    "dev": "turbo dev --concurrency=20",
+    "dev": "bash scripts/dev.sh",
+    "dev:raw": "concurrently -k -n infra,backend,frontend -c blue,yellow,green \"npm run dev:infra\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:turbo": "turbo dev --concurrency=20",
+    "dev:infra": "docker-compose -f docker-compose.dev.yaml up postgres redis qdrant",
+    "dev:backend": "wait-on tcp:5433 tcp:16379 tcp:6333 && docker-compose -f docker-compose.dev.yaml up auth-api workflow-engine ingestion",
+    "dev:frontend": "wait-on tcp:8004 tcp:8006 tcp:8001 && turbo run dev --filter=auth --filter=elevaite",
+    "dev:down": "docker-compose -f docker-compose.dev.yaml down",
+    "dev:clean": "docker-compose -f docker-compose.dev.yaml down -v",
+    "dev:logs": "docker-compose -f docker-compose.dev.yaml logs -f",
+    "dev:death": "docker-compose -f docker-compose.dev.yaml down -v --remove-orphans; docker rm -f $(docker ps -aq) 2>/dev/null; docker network prune -f; echo '💀 Everything is dead'",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
+    "test": "npm run test:frontend && npm run test:python",
+    "test:frontend": "turbo test --filter=auth --filter=elevaite",
+    "test:python": "pytest --tb=short",
+    "test:python:cov": "pytest --cov=python_apps --cov=python_packages --cov-report=html --cov-report=term",
     "clean": "turbo clean",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
+    "concurrently": "^8.2.2",
     "eslint": "^8",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
-    "turbo": "^2.5.3"
+    "turbo": "^2.5.3",
+    "wait-on": "^7.2.0"
   },
   "engines": {
     "node": ">=18"

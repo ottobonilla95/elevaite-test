@@ -116,9 +116,11 @@ async def lifespan(app: FastAPI):
         logger.info(f"✅ Tenant cache initialized with {len(DEFAULT_TENANTS)} tenants")
     except Exception as e:
         logger.error(f"Failed to initialize tenant schemas: {e}")
-        # Fall back to non-tenant database initialization
-        create_db_and_tables()
         logger.warning("⚠️  Falling back to non-tenant database mode")
+
+    # ALWAYS create tables in public schema for scheduler (it queries without tenant context)
+    create_db_and_tables()
+    logger.info("✅ Public schema tables ensured (for scheduler)")
 
     # Initialize step registry using SDK
     logger.info("Initializing step registry from SDK...")

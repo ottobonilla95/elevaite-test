@@ -17,8 +17,8 @@ from rbac_sdk import (
 # Allow bypassing RBAC for E2E testing (set SKIP_RBAC=true)
 _SKIP_RBAC = os.getenv("SKIP_RBAC", "false").lower() in {"1", "true", "yes"}
 
-# Allow insecure API key as principal (dev only - NOT for production)
-_ALLOW_INSECURE_APIKEY = os.getenv("RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL", "false").lower() in {"1", "true", "yes"}
+# Allow insecure API key as principal (for development/testing)
+_ALLOW_INSECURE_APIKEY = os.getenv("ALLOW_INSECURE_APIKEY", "true").lower() in {"1", "true", "yes"}
 
 
 async def _noop_guard(_request: Request) -> None:

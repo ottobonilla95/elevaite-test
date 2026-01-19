@@ -56,6 +56,12 @@
       "cache": false
     },
     "type-check": {},
+    "test": {
+      "cache": false,
+      "outputs": [
+        "coverage/**"
+      ]
+    },
     "dev": {
       "cache": false,
       "persistent": true

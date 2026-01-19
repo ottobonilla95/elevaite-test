@@ -1,0 +1,170 @@
+# Elevaite Platform - Deploy to Production
+# Manual deployment only with required approval
+# NEVER auto-deploys to production
+
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy'
+        required: true
+        type: choice
+        options:
+          - all
+          - auth-api
+          - workflow-engine
+          - ingestion
+      confirm:
+        description: 'Type "DEPLOY" to confirm production deployment'
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-west-2' }}
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+
+jobs:
+  # ============================================================
+  # VALIDATION
+  # Ensures intentional deployment
+  # ============================================================
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate deployment confirmation
+        run: |
+          if [[ "${{ github.event.inputs.confirm }}" != "DEPLOY" ]]; then
+            echo "ERROR: You must type 'DEPLOY' to confirm production deployment"
+            echo "You entered: '${{ github.event.inputs.confirm }}'"
+            exit 1
+          fi
+          echo "Production deployment confirmed"
+
+      - name: Check branch
+        run: |
+          if [[ "${{ github.ref }}" != "refs/heads/main" ]] && \
+             [[ "${{ github.ref }}" != "refs/heads/develop" ]]; then
+            echo "WARNING: Deploying from branch ${{ github.ref }}"
+            echo "Production deployments should typically come from main or develop"
+          fi
+
+  # ============================================================
+  # BUILD AND PUSH IMAGES
+  # ============================================================
+  build-and-push:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: auth-api
+            dockerfile: python_apps/auth_api/Dockerfile
+            image: elevaite-auth-api
+          - service: workflow-engine
+            dockerfile: python_apps/workflow-engine-poc/Dockerfile
+            image: elevaite-workflow-engine
+          - service: ingestion
+            dockerfile: python_apps/ingestion-service/Dockerfile
+            image: elevaite-ingestion
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check if service should be deployed
+        id: check
+        run: |
+          if [[ "${{ github.event.inputs.service }}" == "all" ]] || \
+             [[ "${{ github.event.inputs.service }}" == "${{ matrix.service }}" ]]; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure AWS credentials
+        if: steps.check.outputs.should_deploy == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: steps.check.outputs.should_deploy == 'true'
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push ${{ matrix.service }}
+        if: steps.check.outputs.should_deploy == 'true'
+        run: |
+          IMAGE_TAG="${{ env.ECR_REGISTRY }}/${{ matrix.image }}:prod-${{ github.sha }}"
+          IMAGE_LATEST="${{ env.ECR_REGISTRY }}/${{ matrix.image }}:prod-latest"
+
+          docker build \
+            -f ${{ matrix.dockerfile }} \
+            -t $IMAGE_TAG \
+            -t $IMAGE_LATEST \
+            .
+
+          docker push $IMAGE_TAG
+          docker push $IMAGE_LATEST
+
+          echo "Pushed ${{ matrix.service }} to ECR with production tags"
+
+  # ============================================================
+  # DEPLOY TO PRODUCTION
+  # Add your deployment steps here
+  # ============================================================
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    # Consider adding environment protection rules in GitHub
+    # environment:
+    #   name: production
+    #   url: https://your-prod-url.com
+    steps:
+      - name: Deploy to production environment
+        run: |
+          echo "Deploying to PRODUCTION..."
+          echo "Images pushed with tag: prod-${{ github.sha }}"
+          echo "Service: ${{ github.event.inputs.service }}"
+          echo ""
+          echo "TODO: Add deployment steps for your infrastructure"
+
+      # Example ECS deployment (uncomment and configure):
+      # - name: Deploy to ECS
+      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      #   with:
+      #     task-definition: task-definition-prod.json
+      #     service: elevaite-production
+      #     cluster: elevaite-cluster-prod
+      #     wait-for-service-stability: true
+
+  # ============================================================
+  # NOTIFY
+  # ============================================================
+  notify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify deployment status
+        run: |
+          echo "========================================"
+          echo "PRODUCTION DEPLOYMENT RESULT"
+          echo "========================================"
+          echo "Service: ${{ github.event.inputs.service }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Status: ${{ needs.deploy.result }}"
+          echo "========================================"
+
+          if [[ "${{ needs.deploy.result }}" != "success" ]]; then
+            echo "PRODUCTION DEPLOYMENT FAILED"
+            exit 1
+          fi

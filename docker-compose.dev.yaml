@@ -1,0 +1,147 @@
+# Elevaite Platform - Local Development Environment
+# Usage: docker-compose -f docker-compose.dev.yaml up -d
+# Or simply: npm run dev
+
+# Load environment variables from .env file (create from .env.example)
+# Contains: OPENAI_API_KEY, GEMINI_API_KEY, GOOGLE_CLIENT_ID, etc.
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+
+services:
+  # ============================================================
+  # INFRASTRUCTURE
+  # ============================================================
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: elevaite-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: elevaite
+      POSTGRES_PASSWORD: elevaite
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elevaite"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: elevaite-redis
+    ports:
+      - "16379:6379"  # Use 16379 externally to avoid conflicts with local Redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: elevaite-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    # No healthcheck - Qdrant is slow to start and services retry connections anyway
+
+  # ============================================================
+  # BACKEND SERVICES
+  # ============================================================
+
+  auth-api:
+    build:
+      context: .
+      dockerfile: python_apps/auth_api/Dockerfile
+    container_name: elevaite-auth-api
+    ports:
+      - "8004:8004"
+    env_file:
+      - .env
+    environment:
+      SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/auth
+      DEBUG: "1"
+      LOG_LEVEL: DEBUG
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  workflow-engine:
+    build:
+      context: .
+      dockerfile: python_apps/workflow-engine-poc/Dockerfile
+    container_name: elevaite-workflow-engine
+    ports:
+      - "8006:8006"
+    env_file:
+      - .env
+    environment:
+      SQLALCHEMY_DATABASE_URL: postgresql://elevaite:elevaite@postgres:5432/workflow_engine
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      INGESTION_SERVICE_URL: http://ingestion:8000
+      LOG_LEVEL: DEBUG
+      SCHEDULER_POLL_SECONDS: "2"
+      # Dummy AWS creds to skip slow EC2 metadata lookup in local dev
+      AWS_ACCESS_KEY_ID: "local-dev-key"
+      AWS_SECRET_ACCESS_KEY: "local-dev-secret"
+      AWS_DEFAULT_REGION: "us-east-1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  ingestion:
+    build:
+      context: .
+      dockerfile: python_apps/ingestion-service/Dockerfile
+    container_name: elevaite-ingestion
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://elevaite:elevaite@postgres:5432/elevaite_ingestion
+      DBOS_DATABASE_URL: postgresql://elevaite:elevaite@postgres:5432/elevaite_ingestion
+      SERVICE_HOST: "0.0.0.0"
+      SERVICE_PORT: "8000"
+      WORKFLOW_ENGINE_URL: http://workflow-engine:8006
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: "6333"
+      LOG_LEVEL: DEBUG
+      # Dummy AWS creds to skip slow EC2 metadata lookup in local dev
+      AWS_ACCESS_KEY_ID: "local-dev-key"
+      AWS_SECRET_ACCESS_KEY: "local-dev-secret"
+      AWS_DEFAULT_REGION: "us-east-1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

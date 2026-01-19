@@ -26,6 +26,7 @@ COPY python_packages/db-core ./python_packages/db-core
 COPY python_packages/elevaite_ingestion ./python_packages/elevaite_ingestion
 COPY python_packages/fastapi-logger ./python_packages/fastapi-logger
 COPY python_packages/llm-gateway ./python_packages/llm-gateway
+COPY python_packages/rbac-sdk ./python_packages/rbac-sdk
 COPY python_packages/workflow-core-sdk ./python_packages/workflow-core-sdk
 
 # Copy workflow-engine-poc project files
@@ -54,6 +55,7 @@ COPY --from=builder /elevaite/python_packages/db-core /elevaite/python_packages/
 COPY --from=builder /elevaite/python_packages/elevaite_ingestion /elevaite/python_packages/elevaite_ingestion
 COPY --from=builder /elevaite/python_packages/fastapi-logger /elevaite/python_packages/fastapi-logger
 COPY --from=builder /elevaite/python_packages/llm-gateway /elevaite/python_packages/llm-gateway
+COPY --from=builder /elevaite/python_packages/rbac-sdk /elevaite/python_packages/rbac-sdk
 COPY --from=builder /elevaite/python_packages/workflow-core-sdk /elevaite/python_packages/workflow-core-sdk
 # Copy the virtual environment to runtime
 COPY --from=builder /opt/venv /opt/venv

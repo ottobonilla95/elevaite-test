@@ -1,0 +1,268 @@
+# Elevaite Platform - Continuous Integration Pipeline
+# Runs on every PR and push to develop
+# Validates code quality before merge
+
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # PR TITLE VALIDATION
+  # Ensures PR titles follow conventional commits format
+  # ============================================================
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            chore
+            refactor
+            test
+            style
+            perf
+            ci
+            build
+          requireScope: false
+          subjectPattern: ^.{1,80}$
+          subjectPatternError: |
+            PR title must be less than 80 characters.
+
+  # ============================================================
+  # DETECT CHANGES
+  # Only run checks for what actually changed
+  # ============================================================
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      python: ${{ steps.filter.outputs.python }}
+      auth-api: ${{ steps.filter.outputs.auth-api }}
+      workflow-engine: ${{ steps.filter.outputs.workflow-engine }}
+      ingestion: ${{ steps.filter.outputs.ingestion }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'apps/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+            python:
+              - 'python_apps/**'
+              - 'python_packages/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+            auth-api:
+              - 'python_apps/auth_api/**'
+              - 'python_packages/**'
+            workflow-engine:
+              - 'python_apps/workflow-engine-poc/**'
+              - 'python_packages/**'
+            ingestion:
+              - 'python_apps/ingestion-service/**'
+              - 'python_packages/**'
+
+  # ============================================================
+  # FRONTEND CHECKS
+  # Lint, type-check, build, and test frontend apps
+  # ============================================================
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run type check
+        run: npm run type-check
+
+      - name: Build apps
+        run: npm run build
+
+      - name: Run frontend tests
+        run: npm run test:frontend
+
+  # ============================================================
+  # PYTHON CHECKS
+  # Lint, format check, and test Python code with coverage
+  # ============================================================
+  python:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python with uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run Ruff linter
+        run: uv run ruff check python_apps/ python_packages/
+
+      - name: Run Ruff formatter check
+        run: uv run ruff format --check python_apps/ python_packages/
+
+  # ============================================================
+  # PYTHON TESTS
+  # Run pytest with coverage reporting
+  # ============================================================
+  python-tests:
+    needs: [changes, python]
+    if: |
+      always() &&
+      (needs.python.result == 'success' || needs.python.result == 'skipped') &&
+      needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python with uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run Python tests with coverage
+        run: |
+          uv run pytest \
+            --tb=short \
+            --cov=python_apps \
+            --cov=python_packages \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=40 \
+            -q
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 7
+
+  # ============================================================
+  # BUILD DOCKER IMAGES
+  # Validates that Docker images build successfully
+  # Only runs on push to develop (not on PRs to save time)
+  # ============================================================
+  build-auth-api:
+    needs: [changes, python, python-tests]
+    if: |
+      always() &&
+      (needs.python.result == 'success' || needs.python.result == 'skipped') &&
+      (needs.python-tests.result == 'success' || needs.python-tests.result == 'skipped') &&
+      needs.changes.outputs.auth-api == 'true' &&
+      github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Auth API image
+        run: |
+          docker build \
+            -f python_apps/auth_api/Dockerfile \
+            -t elevaite-auth-api:${{ github.sha }} \
+            .
+
+  build-workflow-engine:
+    needs: [changes, python, python-tests]
+    if: |
+      always() &&
+      (needs.python.result == 'success' || needs.python.result == 'skipped') &&
+      (needs.python-tests.result == 'success' || needs.python-tests.result == 'skipped') &&
+      needs.changes.outputs.workflow-engine == 'true' &&
+      github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Workflow Engine image
+        run: |
+          docker build \
+            -f python_apps/workflow-engine-poc/Dockerfile \
+            -t elevaite-workflow-engine:${{ github.sha }} \
+            .
+
+  build-ingestion:
+    needs: [changes, python, python-tests]
+    if: |
+      always() &&
+      (needs.python.result == 'success' || needs.python.result == 'skipped') &&
+      (needs.python-tests.result == 'success' || needs.python-tests.result == 'skipped') &&
+      needs.changes.outputs.ingestion == 'true' &&
+      github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Ingestion Service image
+        run: |
+          docker build \
+            -f python_apps/ingestion-service/Dockerfile \
+            -t elevaite-ingestion:${{ github.sha }} \
+            .
+
+  # ============================================================
+  # CI STATUS CHECK
+  # Required status check for branch protection
+  # ============================================================
+  ci-status:
+    needs: [pr-title, frontend, python, python-tests, build-auth-api, build-workflow-engine, build-ingestion]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check CI status
+        run: |
+          if [[ "${{ needs.pr-title.result }}" == "failure" ]] || \
+             [[ "${{ needs.frontend.result }}" == "failure" ]] || \
+             [[ "${{ needs.python.result }}" == "failure" ]] || \
+             [[ "${{ needs.python-tests.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-auth-api.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-workflow-engine.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-ingestion.result }}" == "failure" ]]; then
+            echo "CI failed"
+            exit 1
+          fi
+          echo "CI passed"

@@ -1,67 +1,78 @@
-# iOPEX elevAIte Suite Monorepo
+# Elevaite Platform
 
-## Structure
+> AI Workflow Automation Platform - Build, deploy, and interact with intelligent agents.
 
-This repository utilizes [Turborepo](https://turbo.build/repo/docs) on NodeJS for JavaScript/TypeScript applications and packages and [uv](https://docs.astral.sh/uv/) for Python APIs and middleware programs.
-
-### Turborepo Setup
-
-The JavaScript/TypeScript portion of the repository is structured in an [npm workspace](https://docs.npmjs.com/cli/v7/using-npm/workspaces) like this:
-
-    |> package.json
-    |> turbo.json
-    |> apps
-    |  |> {...javascript applications}
-    |> packages
-    |  |> {...javascript packages}
-    |> ...
-
-The `package.json` file defines the workspace as well as dependencies required for the build system.
-The `turbo.json` file defines the turborepo setup, some common tasks and their dependencies, as well as environmental variables to be use in the applications.
-The `apps` directory contains all (at the moment [Next.JS](https://nextjs.org/)) applications.
-The `packages` directory contains the internal packages to be used in the applications, like configurations and common ui components.
-**The `.env` file contains enviromental variables for all the apps, please don't forget to add placeholders here when creating new variables for the frontend.**
-
-### Python Setup
-
-Python apps and packages are located in the `python_apps` and `python_packages` directories respectively.
-
-#### Installing Python Dependencies
-
-To install all Python dependencies for the backend, you can use the provided installation script:
+## Quick Start
 
 ```bash
-# Install all dependencies (including development/testing dependencies)
-./install_backend_deps.sh
+# Clone and install
+git clone git@github.com:iopexses/elevaite.git
+cd elevaite
+npm install
 
-# Install only production dependencies (skip development/testing dependencies)
-./install_backend_deps.sh --skip-dev
+# Create your .env file
+cp .env.example .env
+# Edit .env with your API keys (OpenAI, Google OAuth, etc.)
+
+# Start everything
+npm run dev
 ```
 
-or install them manually using [uv](https://docs.astral.sh/uv/):
+Once running, open:
+- **Auth App:** http://localhost:3005
+- **Elevaite App:** http://localhost:3001
+
+## Documentation
+
+| Document | When to Read |
+|----------|--------------|
+| 📦 **[Local Setup](docs/LOCAL_SETUP.md)** | Get running locally, troubleshoot issues |
+| 👩‍💻 **[Developer Guide](docs/DEVELOPER_GUIDE.md)** | Before contributing: branching, testing, PRs |
+| ☁️ **[Infrastructure](docs/INFRASTRUCTURE_PROPOSAL.md)** | Understand production architecture |
+
+## Repository Structure
+
+```
+elevaite/
+├── apps/                    # Frontend applications (Next.js)
+│   ├── auth/               # Authentication UI
+│   └── elevaite/           # Main application UI
+├── packages/               # Shared frontend packages
+│   └── ui/                 # Component library
+├── python_apps/            # Backend services
+│   ├── auth_api/           # Authentication API
+│   ├── workflow-engine-poc/ # Workflow execution engine
+│   └── ingestion-service/  # Document processing
+├── python_packages/        # Shared Python libraries
+│   ├── workflow-core-sdk/  # Workflow SDK
+│   └── rbac-sdk/           # Authorization SDK
+└── docs/                   # Documentation
+```
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14, React, TypeScript, Tailwind CSS |
+| Backend | Python 3.11, FastAPI, SQLModel |
+| Database | PostgreSQL, Redis, Qdrant (Vector DB) |
+| Infrastructure | Docker, AWS ECS (prod), Vercel (frontend) |
+
+## Common Commands
 
 ```bash
-# Install all dependencies (including development/testing dependencies)
-uv sync --all-extras --all-packages
-
-# Install only production dependencies (skip development/testing dependencies)
-uv sync --all-packages
+npm run dev          # Start all services with status feedback
+npm run dev:down     # Stop everything
+npm run dev:death    # Nuclear reset (wipes all data)
+npm run lint         # Run linters
+npm run test:python  # Run Python tests
 ```
 
-## Branch Strategy
+## Contributing
 
-**This repository follows a modified Git Flow branch strategy.**
+1. Read the [Developer Guide](docs/DEVELOPER_GUIDE.md)
+2. Create a branch following our naming convention
+3. Make your changes with tests
+4. Submit a PR with a [conventional commit](https://www.conventionalcommits.org/) title
 
-### What is Git Flow
-
-Git Flow was [introduced in 2010 by Vincent Driessen in their blog](https://nvie.com/posts/a-successful-git-branching-model/). Please read the blogpost for further clarification.
-![Git Flow Diagram](https://nvie.com/img/git-model@2x.png)
-
-### Modifications
-
-- `master` branch renamed to `main`, to match Github's rules
-- Prefer linear history as it has a more manageable tree
-- For the time being we are not tagging releases
-- [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) preferred
-
-> Written with [StackEdit](https://stackedit.io/).
+---
