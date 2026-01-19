@@ -68,6 +68,28 @@ class StepRegistrationResponse(BaseModel):
 
 
 # ============================================================================
+# Builtin Variables Responses
+# ============================================================================
+
+
+class BuiltinVariableInfo(BaseModel):
+    """Information about a single builtin variable"""
+
+    name: str = Field(description="Variable name (use in templates as {{name}})")
+    description: str = Field(description="Description of what the variable provides")
+    example: Optional[str] = Field(default=None, description="Example value")
+    category: str = Field(description="Variable category (time, context, identifier)")
+    source: Literal["builtin", "context"] = Field(description="Whether variable is auto-generated or from execution context")
+
+
+class BuiltinVariablesResponse(BaseModel):
+    """Response model for listing builtin variables"""
+
+    variables: List[BuiltinVariableInfo] = Field(description="List of available builtin variables")
+    total: int = Field(description="Total number of builtin variables")
+
+
+# ============================================================================
 # Approval Responses
 # ============================================================================
 
@@ -317,4 +339,3 @@ class ExecutionResultsResponse(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(default=None, description="Execution metadata")
     started_at: Optional[str] = Field(default=None, description="Start timestamp")
     completed_at: Optional[str] = Field(default=None, description="Completion timestamp")
-

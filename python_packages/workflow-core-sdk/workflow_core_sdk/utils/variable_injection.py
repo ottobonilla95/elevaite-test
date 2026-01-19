@@ -29,15 +29,21 @@ def get_builtin_variables() -> Dict[str, Callable[[], Any]]:
         Dict mapping variable names to callables that produce their values.
     """
     return {
-        # Time-related variables
+        # Time-related variables (UTC)
         "current_time": lambda: datetime.now(timezone.utc).isoformat(),
+        "current_time_utc": lambda: datetime.now(timezone.utc).isoformat(),
         "current_date": lambda: datetime.now(timezone.utc).date().isoformat(),
+        "current_date_utc": lambda: datetime.now(timezone.utc).date().isoformat(),
         "current_timestamp": lambda: int(datetime.now(timezone.utc).timestamp()),
         "current_year": lambda: datetime.now(timezone.utc).year,
         "current_month": lambda: datetime.now(timezone.utc).month,
         "current_day": lambda: datetime.now(timezone.utc).day,
         "current_hour": lambda: datetime.now(timezone.utc).hour,
         "current_minute": lambda: datetime.now(timezone.utc).minute,
+        # Time-related variables (local - requires timezone from context)
+        # These are placeholders that return UTC; actual local time requires context
+        "current_time_local": lambda: datetime.now().astimezone().isoformat(),
+        "current_date_local": lambda: datetime.now().astimezone().date().isoformat(),
         # Unique identifiers
         "uuid": lambda: str(uuid.uuid4()),
         "execution_id": lambda: str(uuid.uuid4()),  # Can be overridden by context
@@ -88,6 +94,8 @@ def resolve_variable(
             return str(execution_context.workflow_id)
         if var_name == "user_id" and hasattr(execution_context, "user_id"):
             return str(execution_context.user_id)
+        if var_name == "user_name" and hasattr(execution_context, "user_name"):
+            return str(execution_context.user_name)
         if var_name == "session_id" and hasattr(execution_context, "session_id"):
             return str(execution_context.session_id)
 

@@ -33,6 +33,9 @@ from .responses import (
     StepInfoResponse,
     RegisteredStepsResponse,
     StepRegistrationResponse,
+    # Builtin Variables
+    BuiltinVariableInfo,
+    BuiltinVariablesResponse,
     # Approvals
     ApprovalDecisionResponse,
     # Monitoring & Analytics
@@ -82,6 +85,8 @@ __all__ = [
     "StepInfoResponse",
     "RegisteredStepsResponse",
     "StepRegistrationResponse",
+    "BuiltinVariableInfo",
+    "BuiltinVariablesResponse",
     "ApprovalDecisionResponse",
     "MetricsResponse",
     "TraceInfo",
@@ -107,4 +112,3 @@ __all__ = [
     "ExecutionStatusResponse",
     "ExecutionResultsResponse",
 ]
-
