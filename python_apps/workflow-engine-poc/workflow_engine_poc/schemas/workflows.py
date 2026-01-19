@@ -124,7 +124,51 @@ class TriggerStepConfig(StepBase):
     parameters: TriggerParameters
 
 
-StepConfig = Union[TriggerStepConfig, StepBase]
+class PromptVariable(BaseModel):
+    """Definition of a variable that can be used in prompts."""
+
+    name: str = Field(..., description="Variable name (used as {{name}} in prompt)")
+    description: Optional[str] = Field(None, description="Description of the variable")
+    default_value: Optional[str] = Field(None, description="Default value if not provided")
+    required: bool = Field(default=False, description="Whether the variable is required")
+    source: Optional[str] = Field(
+        None,
+        description="Source for the variable value (e.g., 'step_id.field', 'input.message')",
+    )
+
+
+class PromptStepParameters(BaseModel):
+    """Parameters for prompt node steps."""
+
+    system_prompt: Optional[str] = Field(
+        None,
+        description="System prompt template for the agent. Supports {{variable}} syntax.",
+    )
+    query_template: Optional[str] = Field(
+        None,
+        description="Query template for the agent. Supports {{variable}} syntax.",
+    )
+    variables: List[PromptVariable] = Field(
+        default_factory=list,
+        description="Variable definitions for the prompt template",
+    )
+    override_agent_prompt: bool = Field(
+        default=True,
+        description="If True, replace agent's prompt. If False, append to it.",
+    )
+    model_name: Optional[str] = Field(None, description="Override model name")
+    temperature: Optional[float] = Field(None, description="Override temperature")
+    max_tokens: Optional[int] = Field(None, description="Override max tokens")
+
+
+class PromptStepConfig(StepBase):
+    """Prompt node step configuration."""
+
+    step_type: Literal["prompt"] = "prompt"
+    parameters: PromptStepParameters = Field(default_factory=PromptStepParameters)
+
+
+StepConfig = Union[TriggerStepConfig, PromptStepConfig, StepBase]
 
 
 class WorkflowConfig(BaseModel):

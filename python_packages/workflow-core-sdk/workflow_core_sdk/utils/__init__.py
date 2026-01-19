@@ -21,6 +21,13 @@ from .schema_utils import (
     infer_output_schema_from_function,
     extract_output_fields,
 )
+from .variable_injection import (
+    inject_variables,
+    extract_variables,
+    resolve_variable,
+    get_builtin_variables,
+    VARIABLE_PATTERN,
+)
 
 
 def ensure_uuid_str(value: Any) -> str:
@@ -46,4 +53,10 @@ __all__ = [
     "generate_encryption_key",
     "get_encryption_key",
     "is_encrypted",
+    # Variable injection utilities
+    "inject_variables",
+    "extract_variables",
+    "resolve_variable",
+    "get_builtin_variables",
+    "VARIABLE_PATTERN",
 ]

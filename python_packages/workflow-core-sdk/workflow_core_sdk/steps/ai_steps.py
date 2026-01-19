@@ -20,6 +20,7 @@ from workflow_core_sdk.db.service import DatabaseService
 from workflow_core_sdk.tools.basic_tools import get_tool_by_name as get_tool_function
 from ..db.database import get_db_session
 from ..utils import decrypt_if_encrypted
+from ..utils.variable_injection import inject_variables
 from workflow_core_sdk import AgentsService
 
 # DB access for dynamic agent tools
@@ -881,6 +882,34 @@ async def _execute_a2a_agent(
         return {"success": False, "error": str(e), "a2a_agent_id": str(agent.id)}
 
 
+def _get_connected_prompt_config(
+    step_config: Dict[str, Any],
+    execution_context: ExecutionContext,
+) -> Optional[Dict[str, Any]]:
+    """
+    Check if any dependency is a prompt step and return its configuration.
+
+    This allows agent steps to receive prompt configuration from connected
+    prompt nodes, enabling dynamic prompt configuration with variable injection.
+
+    Args:
+        step_config: The agent step configuration
+        execution_context: The workflow execution context
+
+    Returns:
+        The prompt step output if found, None otherwise
+    """
+    dependencies = step_config.get("dependencies", [])
+
+    for dep_id in dependencies:
+        # Check if this dependency's output is from a prompt step
+        dep_output = execution_context.step_io_data.get(dep_id, {})
+        if isinstance(dep_output, dict) and dep_output.get("step_type") == "prompt":
+            return dep_output
+
+    return None
+
+
 async def agent_execution_step(
     step_config: Dict[str, Any],
     input_data: Dict[str, Any],
@@ -905,10 +934,38 @@ async def agent_execution_step(
     if a2a_agent_id:
         return await _execute_a2a_agent(step_config, input_data, execution_context)
 
+    # Check for connected prompt step and apply its configuration
+    prompt_config = _get_connected_prompt_config(step_config, execution_context)
+
     # Get agent configuration
     agent_name = config.get("agent_name", "Assistant")
     system_prompt = config.get("system_prompt", "You are a helpful assistant.")
     query_template = config.get("query", "")
+
+    # Apply prompt step configuration if available
+    if prompt_config:
+        # Override or append system prompt based on prompt step settings
+        if prompt_config.get("system_prompt"):
+            if prompt_config.get("override_agent_prompt", True):
+                system_prompt = prompt_config["system_prompt"]
+            else:
+                # Append to existing prompt
+                system_prompt = f"{system_prompt}\n\n{prompt_config['system_prompt']}"
+
+        # Override query template if provided by prompt step
+        if prompt_config.get("query_template") and not query_template:
+            query_template = prompt_config["query_template"]
+
+        # Apply model overrides from prompt step
+        model_overrides = prompt_config.get("model_overrides", {})
+        if model_overrides:
+            # These will be used later when configuring the LLM
+            if "model_name" in model_overrides and not config.get("model_name"):
+                config["model_name"] = model_overrides["model_name"]
+            if "temperature" in model_overrides and config.get("temperature") is None:
+                config["temperature"] = model_overrides["temperature"]
+            if "max_tokens" in model_overrides and config.get("max_tokens") is None:
+                config["max_tokens"] = model_overrides["max_tokens"]
     force_real_llm = config.get("force_real_llm", False)
 
     # Load agent from database if agent_id is provided to get provider_config
@@ -1078,19 +1135,37 @@ async def agent_execution_step(
     except Exception as e:
         logger.debug(f"Could not include messages in agent context: {e}")
 
-    # Process query template with input data (e.g., "{current_message}")
+    # Process query template with input data
+    # First, apply {{variable}} injection (new syntax with built-in variables)
     query = query_template
-    if isinstance(query_template, str) and "{" in query_template:
+    if isinstance(query_template, str) and "{{" in query_template:
+        query = inject_variables(
+            query_template,
+            custom_variables=input_data,
+            execution_context=execution_context,
+            preserve_unresolved=False,
+        )
+
+    # Also apply {variable} format (legacy syntax for backwards compatibility)
+    if isinstance(query, str) and "{" in query and "{{" not in query:
         try:
 
             class _Safe(dict):
                 def __missing__(self, k):  # replace missing vars with empty string
                     return ""
 
-            query = query_template.format_map(_Safe(input_data))
+            query = query.format_map(_Safe(input_data))
         except Exception as e:
             logger.debug(f"Template formatting failed; using raw template. Error: {e}")
-            query = query_template
+
+    # Apply variable injection to system_prompt as well
+    if isinstance(system_prompt, str) and "{{" in system_prompt:
+        system_prompt = inject_variables(
+            system_prompt,
+            custom_variables=input_data,
+            execution_context=execution_context,
+            preserve_unresolved=False,
+        )
 
     # Create agent; remove step-config tool support and rely on DB-bound tools only
     connected_agents = config.get("connected_agents", [])

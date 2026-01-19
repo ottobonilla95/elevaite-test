@@ -668,4 +668,87 @@ class StepRegistry:
             }
         )
 
+        # Register input node step (multi-trigger entry point)
+        await self.register_step(
+            {
+                "step_type": "input",
+                "name": "Input Node",
+                "description": "Data entry point for multi-trigger workflows",
+                "function_reference": "workflow_core_sdk.steps.input_steps.input_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "kind": {"type": "string", "enum": ["manual", "chat", "webhook", "file", "schedule", "gmail", "slack"]},
+                        "schema": {"type": "object"},
+                        "need_history": {"type": "boolean"},
+                    },
+                },
+            }
+        )
+
+        # Register output node step (pass-through for canvas display)
+        await self.register_step(
+            {
+                "step_type": "output",
+                "name": "Output Node",
+                "description": "Output endpoint for workflow results",
+                "function_reference": "workflow_core_sdk.steps.output_steps.output_step",
+                "execution_type": "local",
+            }
+        )
+
+        # Register merge node step (combine multiple inputs)
+        await self.register_step(
+            {
+                "step_type": "merge",
+                "name": "Merge Node",
+                "description": "Combines multiple inputs with OR/AND logic",
+                "function_reference": "workflow_core_sdk.steps.merge_steps.merge_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "mode": {"type": "string", "enum": ["first_available", "wait_all"]},
+                        "combine_mode": {"type": "string", "enum": ["object", "array", "first"]},
+                    },
+                },
+            }
+        )
+
+        # Register prompt node step (prompt configuration for agents)
+        await self.register_step(
+            {
+                "step_type": "prompt",
+                "name": "Prompt Node",
+                "description": "Provides prompt configuration for connected Agent steps with variable injection",
+                "function_reference": "workflow_core_sdk.steps.prompt_steps.prompt_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "system_prompt": {"type": "string", "description": "System prompt template with {{variable}} syntax"},
+                        "query_template": {"type": "string", "description": "Query template with {{variable}} syntax"},
+                        "variables": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "description": {"type": "string"},
+                                    "default_value": {"type": "string"},
+                                    "required": {"type": "boolean"},
+                                    "source": {"type": "string"},
+                                },
+                            },
+                        },
+                        "override_agent_prompt": {"type": "boolean"},
+                        "model_name": {"type": "string"},
+                        "temperature": {"type": "number"},
+                        "max_tokens": {"type": "integer"},
+                    },
+                },
+            }
+        )
+
         logger.info("Built-in steps registered successfully")

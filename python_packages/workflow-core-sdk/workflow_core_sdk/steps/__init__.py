@@ -11,6 +11,7 @@ This package contains all step implementations organized by domain:
 - input_steps: Input node entry points
 - output_steps: Output node endpoints (pass-through for canvas display)
 - merge_steps: Merge node for combining multiple inputs
+- prompt_steps: Prompt node for configuring agent prompts with variable injection
 - tool_steps: Tool execution
 - human_steps: Human approval/interaction
 - ingestion_steps: Ingestion service integration
@@ -41,10 +42,11 @@ __all__ = [
     "subflow_step",
     # Trigger steps
     "trigger_step",
-    # Input/Output/Merge steps (multi-trigger support)
+    # Input/Output/Merge/Prompt steps (multi-trigger support)
     "input_step",
     "output_step",
     "merge_step",
+    "prompt_step",
     # Tool steps
     "tool_execution_step",
     # Human steps
