@@ -50,6 +50,7 @@ Workers are the same codebase as Workflow Engine, running in "worker mode" - pol
 | Component | Purpose |
 |-----------|---------|
 | **PostgreSQL (RDS)** | Primary database - users, tenants, agents, workflows, execution logs |
+| **Qdrant Cloud** | Vector database - document embeddings for RAG (retrieval) |
 | **S3** | File storage - uploaded files, generated reports |
 | **SQS** | Message queues for async task processing |
 
@@ -113,10 +114,10 @@ Workers are the same codebase as Workflow Engine, running in "worker mode" - pol
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                           EXTERNAL SERVICES                                     │
 │                                                                                 │
-│     ┌──────────┐      ┌──────────┐      ┌──────────┐      ┌──────────┐        │
-│     │  OpenAI  │      │  Slack   │      │  Email   │      │   ...    │        │
-│     │   API    │      │   API    │      │  (SMTP)  │      │          │        │
-│     └──────────┘      └──────────┘      └──────────┘      └──────────┘        │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │  OpenAI  │  │  Qdrant  │  │  Slack   │  │  Email   │  │   ...    │        │
+│  │   API    │  │  Cloud   │  │   API    │  │  (SMTP)  │  │          │        │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -406,6 +407,7 @@ terraform/
 |---------|------|-----------|
 | ECS Fargate | 2 services + 1 worker | ~$30-50 |
 | RDS Postgres | db.t3.micro | ~$15 |
+| Qdrant Cloud | Starter tier | ~$25 |
 | S3 | < 10GB | ~$1 |
 | SQS | Low volume | ~$1 |
 | **Total Staging** | | **~$50-70/mo** |
@@ -417,8 +419,9 @@ terraform/
 | ECS Fargate | 2 services (1 vCPU, 2GB each) | ~$80-100 |
 | ECS Workers | 2-5 workers, auto-scaling | ~$50-100 |
 | RDS Postgres | db.t3.small, Multi-AZ | ~$50-70 |
+| Qdrant Cloud | Standard tier | ~$50-100 |
 | S3 | Depends on usage | ~$10-20 |
-| SQS | Medium volume | ~$5 |
+| SQS | Medium volume | ~$5 |gs
 | ALB | 1 load balancer | ~$20 |
 | Secrets Manager | ~10 secrets | ~$5 |
 | **Total Production** | | **~$250-350/mo** |
@@ -489,6 +492,7 @@ A: All use the Queue + Workers pattern, which aligns with this recommendation. S
 | **ECR** | Container Registry - stores Docker images |
 | **ECS Fargate** | Runs containers (Auth API, Workflow Engine, Workers) |
 | **RDS PostgreSQL** | Primary database |
+| **Qdrant Cloud** | Vector database for RAG embeddings (managed, external) |
 | **S3** | File storage |
 | **SQS** | Message queues |
 | **Secrets Manager** | API keys, database credentials |
