@@ -33,7 +33,7 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
             raise NotImplementedError("File search is only supported by the OpenAI provider")
         model_name = model_name or "gemini-1.5-flash"
         temperature = temperature or 0.5
-        max_tokens = max_tokens or 100
+        max_tokens = max_tokens or 10000  # Higher default to accommodate Gemini 2.5's thinking tokens
         prompt = prompt or ""
         retries = retries or 5
         config = config or {}
@@ -43,34 +43,46 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         if tools:
             gemini_tools = self._convert_tools_to_gemini_format(tools)
 
-        # Create generation config
+        # Extract system instruction from messages or sys_msg
+        system_instruction = None
+        if messages and isinstance(messages, list) and len(messages) > 0:
+            # Check if first message is a system message
+            if messages[0].get("role") == "system":
+                system_instruction = messages[0].get("content", "")
+        if not system_instruction and sys_msg:
+            system_instruction = sys_msg
+
+        # Create generation config with system instruction
+        # Note: Gemini 2.5+ models have a "thinking" feature that uses tokens from max_output_tokens.
+        # We use a higher default (10k) to accommodate both thinking and response generation.
         generation_config = types.GenerateContentConfig(
             temperature=temperature,
             max_output_tokens=max_tokens,
+            system_instruction=system_instruction if system_instruction else None,
         )
 
         if gemini_tools:
             generation_config.tools = gemini_tools
 
-        # Create content with system instruction or use provided messages
+        # Create content with messages (excluding system messages, which go in system_instruction)
         contents = []
         if messages and isinstance(messages, list) and len(messages) > 0:
             # Map generic {role, content} messages to Gemini's Content/Part
-            role_map = {"system": "user", "user": "user", "assistant": "model", "tool": "user"}
+            role_map = {"user": "user", "assistant": "model", "tool": "user"}
             for m in messages:
-                role = role_map.get(str(m.get("role", "user")).lower(), "user")
+                msg_role = str(m.get("role", "user")).lower()
+                # Skip system messages - they're handled via system_instruction
+                if msg_role == "system":
+                    continue
+                role = role_map.get(msg_role, "user")
                 text = m.get("content")
                 if text is None:
                     continue
                 contents.append(types.Content(role=role, parts=[types.Part(text=str(text))]))
         else:
             if sys_msg:
-                contents.append(
-                    types.Content(
-                        role="user",
-                        parts=[types.Part(text=f"System: {sys_msg}\n\nUser: {prompt}")],
-                    )
-                )
+                # sys_msg already set as system_instruction, just add the user prompt
+                contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
             else:
                 contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
 
@@ -108,13 +120,15 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                 if hasattr(response, "text") and response.text:
                     text_content = response.text
 
-                # Get token counts (if available)
-                tokens_in = getattr(response, "input_tokens", len(prompt.split()))
-                tokens_out = getattr(
-                    response,
-                    "output_tokens",
-                    len(text_content.split()) if text_content else 0,
-                )
+                # Get token counts from usage_metadata (Gemini's response structure)
+                tokens_in = len(prompt.split())  # fallback
+                tokens_out = len(text_content.split()) if text_content else 0  # fallback
+                if hasattr(response, "usage_metadata") and response.usage_metadata:
+                    usage = response.usage_metadata
+                    if hasattr(usage, "prompt_token_count") and usage.prompt_token_count:
+                        tokens_in = usage.prompt_token_count
+                    if hasattr(usage, "candidates_token_count") and usage.candidates_token_count:
+                        tokens_out = usage.candidates_token_count
 
                 return TextGenerationResponse(
                     text=text_content.strip(),

@@ -1,0 +1,86 @@
+{
+  "name": "E2E Multi-Channel Campaign Generator",
+  "description": "Demo workflow: Input → Agent (strategy) → Prompt → Agent (copy) → Output. Generates platform-specific ad copy from campaign brief.",
+  "steps": [
+    {
+      "step_id": "input-node",
+      "step_type": "data_input",
+      "dependencies": [],
+      "config": {
+        "input_type": "static",
+        "data": {
+          "campaign_brief": "Product: Arlo Total Security Bundle (3x Pro 5 cameras + Video Doorbell)\nTarget: Homeowners 35-55, suburban, families with kids, security-conscious\nKey Features: 2K HDR video, 160° view, color night vision, 2-way audio, person/vehicle/package detection, no monthly fees\nPromotion: Holiday Bundle - Save $200 + Free 3-month Arlo Secure trial\nChannels: Meta, Google Ads, Email to existing customers\nBrand Voice: Reassuring, protective, premium quality (not fear-based)"
+        }
+      }
+    },
+    {
+      "step_id": "strategist-agent",
+      "step_type": "agent_execution",
+      "dependencies": [
+        "input-node"
+      ],
+      "input_mapping": {
+        "query": "input-node.data.campaign_brief"
+      },
+      "config": {
+        "agent_name": "Campaign Strategist",
+        "system_prompt": "You are a campaign strategist for home security products. Read this campaign brief and identify the 3 most compelling selling points for the target audience. Explain why each matters to suburban families with kids. Be concise but insightful.",
+        "provider": "gemini_textgen",
+        "model_name": "gemini-2.5-flash",
+        "temperature": 0.5,
+        "max_tokens": 10000,
+        "interactive": false,
+        "force_real_llm": true
+      }
+    },
+    {
+      "step_id": "prompt-node",
+      "step_type": "prompt",
+      "dependencies": [
+        "input-node",
+        "strategist-agent"
+      ],
+      "parameters": {
+        "system_prompt": "You are an expert multi-channel advertising copywriter. Using these strategic insights and the original brief, create platform-specific ad copy. Keep the reassuring, protective tone—avoid fear-based language.\n\nBrief: {{campaign_brief}}\n\nStrategy: {{agent_strategy}}\n\nFormat your response as:\nMETA ADS (125 char primary text, use emoji sparingly):\nGOOGLE SEARCH AD (Headline + Description):\nEMAIL SUBJECT (existing customers, 50 char):",
+        "variables": [
+          {
+            "name": "campaign_brief",
+            "source": "input-node.data.campaign_brief"
+          },
+          {
+            "name": "agent_strategy",
+            "source": "strategist-agent.response"
+          }
+        ],
+        "provider": "gemini_textgen",
+        "model_name": "gemini-2.5-flash",
+        "temperature": 0.7,
+        "max_tokens": 10000
+      }
+    },
+    {
+      "step_id": "copywriter-agent",
+      "step_type": "agent_execution",
+      "dependencies": [
+        "prompt-node"
+      ],
+      "config": {
+        "agent_name": "Multi-Channel Copywriter",
+        "query": "Generate the multi-channel ad copy now.",
+        "interactive": false,
+        "force_real_llm": true
+      }
+    },
+    {
+      "step_id": "output-node",
+      "step_type": "output",
+      "dependencies": [
+        "copywriter-agent"
+      ],
+      "parameters": {
+        "label": "Multi-Channel Campaign Copy",
+        "format": "text"
+      }
+    }
+  ]
+}
