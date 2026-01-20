@@ -957,21 +957,25 @@ async def agent_execution_step(
         if prompt_config.get("query_template") and not query_template:
             query_template = prompt_config["query_template"]
 
-        # Apply model overrides from prompt step
+        # Apply model overrides from prompt step (prompt step takes precedence)
         model_overrides = prompt_config.get("model_overrides", {})
         if model_overrides:
-            # These will be used later when configuring the LLM
-            if "model_name" in model_overrides and not config.get("model_name"):
+            # Prompt step overrides agent config when present
+            if "provider" in model_overrides:
+                config["provider"] = model_overrides["provider"]
+            if "model_name" in model_overrides:
                 config["model_name"] = model_overrides["model_name"]
-            if "temperature" in model_overrides and config.get("temperature") is None:
+            if "temperature" in model_overrides:
                 config["temperature"] = model_overrides["temperature"]
-            if "max_tokens" in model_overrides and config.get("max_tokens") is None:
+            if "max_tokens" in model_overrides:
                 config["max_tokens"] = model_overrides["max_tokens"]
     force_real_llm = config.get("force_real_llm", False)
 
     # Load agent from database if agent_id is provided to get provider_config
-    agent_provider_type = None
-    agent_provider_config = None
+    # Otherwise use model overrides from config (set by prompt step)
+    # Provider defaults to openai_textgen if not specified
+    agent_provider_type = config.get("provider", "openai_textgen") if config.get("model_name") else None
+    agent_provider_config = {"model_name": config["model_name"]} if config.get("model_name") else None
     agent_id = config.get("agent_id")
 
     if agent_id:

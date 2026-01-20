@@ -120,6 +120,8 @@ async def prompt_step(
 
     # Model overrides
     model_overrides = {}
+    if params.get("provider"):
+        model_overrides["provider"] = params["provider"]
     if params.get("model_name"):
         model_overrides["model_name"] = params["model_name"]
     if params.get("temperature") is not None:

@@ -128,7 +128,7 @@ def test_ad_copy_transformer_workflow_e2e(authenticated_client: TestClient, back
     assert "advertising copywriter" in system_prompt, f"Expected copywriter in system_prompt: {system_prompt}"
     assert "under 100 characters" in system_prompt, "Instructions should be in system prompt"
     model_overrides = prompt_output.get("model_overrides", {})
-    assert model_overrides.get("model_name") == "gpt-4"
+    assert model_overrides.get("model_name") == "gpt-5.2"
 
     # Validate agent-node executed
     assert "agent-node" in step_results, "agent-node step should be in results"

@@ -156,6 +156,7 @@ class PromptStepParameters(BaseModel):
         default=True,
         description="If True, replace agent's prompt. If False, append to it.",
     )
+    provider: Optional[str] = Field(None, description="Override provider type (e.g., openai_textgen, gemini, bedrock)")
     model_name: Optional[str] = Field(None, description="Override model name")
     temperature: Optional[float] = Field(None, description="Override temperature")
     max_tokens: Optional[int] = Field(None, description="Override max tokens")

@@ -291,6 +291,9 @@ class PromptStepParameters(BaseModel):
     )
 
     # Model configuration overrides
+    provider: Optional[str] = Field(
+        None, description="Override provider type for the agent (e.g., openai_textgen, gemini, bedrock)"
+    )
     model_name: Optional[str] = Field(None, description="Override model name for the agent")
     temperature: Optional[float] = Field(None, description="Override temperature setting")
     max_tokens: Optional[int] = Field(None, description="Override max tokens setting")
