@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+from pprint import pprint
 import time
 from pathlib import Path
 from typing import Any, Dict
@@ -76,10 +77,9 @@ def test_ad_copy_transformer_workflow_e2e(authenticated_client: TestClient, back
     wf = _load_fixture("ad_copy_transformer.json")
     workflow_id = _create_workflow(authenticated_client, wf)
 
-    # Execute with webhook trigger
+    # Execute the workflow (triggerless)
     body = {
         "backend": backend,
-        "trigger": {"kind": "webhook"},
         "input_data": {},
         "wait": True,
     }
@@ -123,8 +123,10 @@ def test_ad_copy_transformer_workflow_e2e(authenticated_client: TestClient, back
     prompt_result = step_results.get("prompt-node", {})
     prompt_output = prompt_result.get("output_data", {})
     assert prompt_output.get("step_type") == "prompt"
-    query_template = prompt_output.get("query_template", "")
-    assert "Arlo Pro 5" in query_template, f"Expected Arlo Pro 5 in query_template: {query_template}"
+    # System prompt contains the instructions (no query_template in this workflow)
+    system_prompt = prompt_output.get("system_prompt", "")
+    assert "advertising copywriter" in system_prompt, f"Expected copywriter in system_prompt: {system_prompt}"
+    assert "under 100 characters" in system_prompt, "Instructions should be in system prompt"
     model_overrides = prompt_output.get("model_overrides", {})
     assert model_overrides.get("model_name") == "gpt-4"
 
@@ -149,24 +151,24 @@ def test_ad_copy_transformer_workflow_e2e(authenticated_client: TestClient, back
     assert output_data.get("format") == "text", "Output should have correct format"
     # Output step should pass through agent's data
     assert "data" in output_data, "Output should contain data from agent"
-    print(f"Output node data: {output_data}")
+    pprint("Output node data:")
+    pprint(output_data)
 
 
 @pytest.mark.integration
 @pytest.mark.parametrize("backend", ["local"])
 def test_ad_copy_transformer_variable_injection(authenticated_client: TestClient, backend: str):
     """
-    Verify that the prompt node correctly injects variables from the input node.
+    Verify that the agent node correctly injects the input data as the query.
 
     This tests the core variable injection feature:
-    {{raw_copy}} in query_template should be replaced with actual product specs.
+    {{input-node.data.raw_copy}} in agent query config should be replaced with actual product specs.
     """
     wf = _load_fixture("ad_copy_transformer.json")
     workflow_id = _create_workflow(authenticated_client, wf)
 
     body = {
         "backend": backend,
-        "trigger": {"kind": "webhook"},
         "input_data": {},
         "wait": True,
     }
@@ -183,18 +185,19 @@ def test_ad_copy_transformer_variable_injection(authenticated_client: TestClient
     results = _get_results(authenticated_client, execution_id)
     step_results = results.get("step_results") or {}
 
-    # Verify variable injection in prompt node
-    # Note: step results are wrapped in output_data
+    # Verify agent received the input data as the query
+    agent_result = step_results.get("agent-node", {})
+    agent_output = agent_result.get("output_data", {})
+    query = agent_output.get("query", "")
+
+    # The {{input-node.data.raw_copy}} should have been replaced with actual product specs
+    assert "{{" not in query, "Variable should be injected"
+    assert "Arlo Pro 5" in query, "Product name should be in query"
+    assert "2K video" in query, "Product specs should be in query"
+    assert "color night vision" in query, "Product specs should be in query"
+
+    # Verify the prompt step provided system prompt to agent
     prompt_result = step_results.get("prompt-node", {})
     prompt_output = prompt_result.get("output_data", {})
-    query_template = prompt_output.get("query_template", "")
-
-    # The {{raw_copy}} should have been replaced with actual product specs
-    assert "{{raw_copy}}" not in query_template, "Variable should be injected"
-    assert "Arlo Pro 5" in query_template, "Product name should be in query"
-    assert "2K video" in query_template, "Product specs should be in query"
-    assert "color night vision" in query_template, "Product specs should be in query"
-
-    # Raw template should be preserved
-    raw_template = prompt_output.get("raw_query_template", "")
-    assert "{{raw_copy}}" in raw_template, "Raw template should preserve variables"
+    system_prompt = prompt_output.get("system_prompt", "")
+    assert "advertising copywriter" in system_prompt, "System prompt should have instructions"

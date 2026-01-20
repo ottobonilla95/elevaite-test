@@ -249,14 +249,24 @@ class ExecutionContext:
         # Process input mappings
         for input_key, source_spec in input_mapping.items():
             if isinstance(source_spec, str) and "." in source_spec:
-                # Format: "step_id.field_name"
-                source_step_id, field_name = source_spec.split(".", 1)
+                # Format: "step_id.field.nested.path"
+                parts = source_spec.split(".")
+                source_step_id = parts[0]
+                field_path = parts[1:]  # Remaining parts form nested path
                 if source_step_id in self.step_io_data:
                     source_data = self.step_io_data[source_step_id]
-                    if isinstance(source_data, dict) and field_name in source_data:
-                        input_data[input_key] = source_data[field_name]
+                    # Traverse the nested path
+                    value = source_data
+                    for field in field_path:
+                        if isinstance(value, dict) and field in value:
+                            value = value[field]
+                        else:
+                            value = None
+                            break
+                    if value is not None:
+                        input_data[input_key] = value
                     else:
-                        # If field doesn't exist, use the whole source data
+                        # If path doesn't exist, use the whole source data
                         input_data[input_key] = source_data
             elif isinstance(source_spec, str) and source_spec in self.step_io_data:
                 # Direct step reference

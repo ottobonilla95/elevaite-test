@@ -940,7 +940,8 @@ async def agent_execution_step(
     # Get agent configuration
     agent_name = config.get("agent_name", "Assistant")
     system_prompt = config.get("system_prompt", "You are a helpful assistant.")
-    query_template = config.get("query", "")
+    # Query can come from config or input_data (via input_mapping)
+    query_template = config.get("query", "") or input_data.get("query", "")
 
     # Apply prompt step configuration if available
     if prompt_config:

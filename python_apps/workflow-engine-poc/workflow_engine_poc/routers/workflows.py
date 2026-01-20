@@ -171,15 +171,12 @@ async def execute_workflow_by_id(
             wait,
         )
 
-        # Extract trigger config from workflow (enforce presence)
+        # Extract trigger config from workflow (optional - triggerless workflows are supported)
         steps = workflow.get("steps", [])
         trigger_cfg = next((s for s in steps if s.get("step_type") == "trigger"), None)
-        if not trigger_cfg:
-            raise HTTPException(status_code=400, detail="Workflow is missing required 'trigger' step")
-        trigger_params = trigger_cfg.get("parameters", {})
-        kind = (
-            body_data.get("trigger", {}).get("kind") or body_data.get("kind") or trigger_params.get("kind") or "webhook"
-        ).lower()
+        trigger_params = trigger_cfg.get("parameters", {}) if trigger_cfg else {}
+        body_trigger = body_data.get("trigger") or {}
+        kind = (body_trigger.get("kind") or body_data.get("kind") or trigger_params.get("kind") or "webhook").lower()
 
         # Limits and MIME rules
         max_files = int(trigger_params.get("max_files", MAX_FILES_DEFAULT))

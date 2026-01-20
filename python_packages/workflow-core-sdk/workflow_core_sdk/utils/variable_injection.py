@@ -73,16 +73,24 @@ def resolve_variable(
         value = custom_variables[var_name]
         return str(value) if value is not None else None
 
-    # Check for dot notation (e.g., "step_id.field_name")
+    # Check for dot notation (e.g., "step_id.field_name" or "step_id.data.nested.field")
     if "." in var_name and execution_context:
-        parts = var_name.split(".", 1)
-        step_id, field_name = parts[0], parts[1]
+        parts = var_name.split(".")
+        step_id = parts[0]
+        field_path = parts[1:]  # Remaining parts form the nested path
 
         # Try to get from execution context step_io_data
         if hasattr(execution_context, "step_io_data"):
             step_data = execution_context.step_io_data.get(step_id, {})
             if isinstance(step_data, dict):
-                value = step_data.get(field_name)
+                # Traverse nested path
+                value = step_data
+                for field in field_path:
+                    if isinstance(value, dict):
+                        value = value.get(field)
+                    else:
+                        value = None
+                        break
                 if value is not None:
                     return str(value)
 
