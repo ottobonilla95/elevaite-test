@@ -5,9 +5,10 @@
 This document outlines the recommended cloud infrastructure for the ElevAIte AI workflow automation platform. The architecture prioritizes **simplicity, scalability, and cost-effectiveness** using proven patterns from the industry.
 
 **Key decisions:**
-- **ECS Fargate** for backend services.
+- **ECS Fargate** for backend services
 - **Vercel** for frontend (automatic PR previews)
 - **Queue + Workers** pattern for task execution (not pod-per-workflow)
+- **Code Execution Sandbox** for running user/AI-generated code securely
 - **Terraform** for infrastructure as code
 
 ---
@@ -36,6 +37,7 @@ ElevAIte is an AI workflow automation platform where users:
 |---------|------|---------|
 | **Auth API** | 8004 | Authentication, authorization, user/tenant management |
 | **Workflow Engine** | 8006 | Agent execution, chat handling, tool orchestration |
+| **Code Execution Service** | 8007 | Sandboxed execution of user/AI-generated code (internal only) |
 
 ### Workers (Python on ECS Fargate)
 
@@ -88,9 +90,15 @@ Workers are the same codebase as Workflow Engine, running in "worker mode" - pol
                                           │  │  ┌───────────────────────────┐  │  │
                                           │  │  │         WORKERS           │  │  │
                                           │  │  │  • Poll SQS for tasks     │  │  │
-                                          │  │  │  • Execute long jobs      │  │  │
+                                          │  │  │  • Execute workflow steps │  │  │
                                           │  │  │  • Auto-scale on demand   │  │  │
-                                          │  │  └───────────────────────────┘  │  │
+                                          │  │  └─────────────┬─────────────┘  │  │
+                                          │  │                │                │  │
+                                          │  │        ┌───────▼───────┐        │  │
+                                          │  │        │ Code Exec Svc │        │  │
+                                          │  │        │    (8007)     │        │  │
+                                          │  │        │  [Sandboxed]  │        │  │
+                                          │  │        └───────────────┘        │  │
                                           │  └─────────────────────────────────┘  │
                                           │                  │                    │
                                           │  ┌───────────────▼─────────────────┐  │
@@ -177,6 +185,214 @@ User sees: "Working on it, I'll notify you when ready"
        ▼
 User notified: "Your report is ready! [Download]"
 ```
+
+---
+
+## Code Execution Sandbox
+
+Agents can execute code in two ways:
+1. **AI-generated code** - LLM writes Python to analyze data, perform calculations
+2. **User-written code** - Users create custom code blocks in their workflows
+
+Both require secure, isolated execution. We use a **self-hosted sandbox** (no external dependencies).
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Workflow Engine (8006)                                                     │
+│                                                                             │
+│  • Receives user request                                                    │
+│  • Validates and queues task to SQS                                         │
+│  • Returns immediately: "Working on it..."                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SQS Queue                                                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Worker                                                                     │
+│                                                                             │
+│  Picks up job, executes workflow steps:                                     │
+│  • API calls, database queries, email/Slack (trusted operations)            │
+│                                                                             │
+│  When it hits a "Run Code" node:                                            │
+│         │                                                                   │
+│         ▼                                                                   │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  Code Execution Service (8007) - SANDBOXED                           │   │
+│  │                                                                      │   │
+│  │  • User's custom Python code                                         │   │
+│  │  • AI-generated code                                                 │   │
+│  │                                                                      │   │
+│  │  Isolated with Nsjail:                                               │   │
+│  │  • No network access                                                 │   │
+│  │  • No filesystem access (except /tmp)                                │   │
+│  │  • Memory/CPU/time limits                                            │   │
+│  │  • No access to secrets/credentials                                  │   │
+│  │  • Syscall filtering (seccomp)                                       │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│         │                                                                   │
+│         ▼                                                                   │
+│  Continue to next workflow step                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why Self-Hosted (Not External Services)
+
+| Factor | Self-Hosted (Nsjail) | External (E2B, Modal) |
+|--------|----------------------|----------------------|
+| **Cost** | ~$36-72/mo (fixed) | $0.10-0.20/execution (variable) |
+| **Dependencies** | None | External service dependency |
+| **Latency** | ~10-50ms | ~100-500ms (network round-trip) |
+| **Control** | Full | Limited |
+| **10K executions/mo** | ~$36-72 | ~$1,000-2,000 |
+
+### Security Layers (Defense in Depth)
+
+```
+User writes/AI generates code
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  LAYER 1: Pre-Execution Validation (in Workflow Engine or Worker)           │
+│                                                                             │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐ │
+│  │ Static Analysis │  │ Blocklist Check │  │ AI Guardrails (LLM review)  │ │
+│  │ (AST parsing)   │  │ (regex patterns)│  │ (~$0.001/review)            │ │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────────────┘ │
+│                              │                                              │
+│                        Pass / Reject                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼ (only if passed, queued to SQS, picked up by Worker)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  LAYER 2: Fargate microVM (automatic)                                       │
+│  • VM-level isolation from other containers/host                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼ (Worker calls Code Execution Service)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  LAYER 3: Nsjail Process Sandbox (in Code Execution Service)                │
+│  • Linux namespaces (PID, network, mount, user)                             │
+│  • seccomp-bpf syscall filtering                                            │
+│  • cgroups resource limits                                                  │
+│  • Read-only filesystem                                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Pre-Execution Validation
+
+Before code reaches the sandbox, we validate it:
+
+**1. Static Analysis (Free, Instant)**
+- Parse code with Python AST
+- Block dangerous imports: `os`, `subprocess`, `socket`, `requests`
+- Block dangerous functions: `eval`, `exec`, `compile`, `open`
+
+**2. Blocklist Patterns (Free, Instant)**
+- Regex patterns for known bad code
+- `__globals__`, `__class__`, dunder method access
+- Shell command patterns
+
+**3. AI Guardrails (Optional, ~$0.001/review)**
+- LLM reviews code for malicious intent
+- Catches obfuscated attacks static analysis misses
+- Explains rejection reason to user
+
+### What Users CAN Do
+
+```python
+# ALLOWED - Safe data processing
+import pandas as pd
+import numpy as np
+import json
+
+data = json.loads(input_data)
+df = pd.DataFrame(data)
+result = df.groupby('category').sum()
+print(result.to_json())
+```
+
+### What Users CANNOT Do
+
+```python
+# BLOCKED - No network
+import requests
+requests.get("https://evil.com")  # ❌ Fails
+
+# BLOCKED - No filesystem
+open("/etc/passwd").read()  # ❌ Fails
+
+# BLOCKED - No secrets
+import os
+os.environ["DATABASE_URL"]  # ❌ Empty
+
+# BLOCKED - No system access
+import subprocess
+subprocess.run(["rm", "-rf", "/"])  # ❌ Blocked
+
+# BLOCKED - Resource exhaustion
+while True: pass  # ❌ Killed after timeout
+```
+
+### API Interface
+
+```
+POST /execute
+{
+  "language": "python",
+  "code": "import pandas as pd\n...",
+  "timeout_seconds": 30,
+  "memory_mb": 256,
+  "input_data": {"rows": [...]}
+}
+
+Response:
+{
+  "stdout": "Result: 42\n",
+  "stderr": "",
+  "exit_code": 0,
+  "execution_time_ms": 1523
+}
+```
+
+### Why Not Pod-per-Workflow?
+
+An alternative approach is spawning a fresh Kubernetes pod for every workflow execution:
+
+| Factor | Pod-per-Workflow | Code Execution Service |
+|--------|------------------|------------------------|
+| **Startup latency** | 3-30+ seconds | ~10-50ms |
+| **User experience** | Slow | Fast |
+| **What's isolated** | Everything (overkill) | Only code execution |
+| **Infrastructure** | Kubernetes required | Just another ECS service |
+| **Cost** | Higher (K8s overhead) | Lower |
+
+**Conclusion:** Most workflow operations (send email, call API, query DB) don't need isolation—they use your trusted code running in Workers. Only arbitrary code execution needs sandboxing. Pod-per-workflow isolates everything unnecessarily.
+
+**Our approach:** Workflow Engine queues → Workers execute trusted operations → Workers call Code Execution Service only for user/AI code.
+
+### Implementation Phases
+
+**Phase 1: MVP** (1-2 weeks)
+- Code Execution Service with Docker isolation
+- Python support only
+- Basic timeout/memory limits
+- Integration with Workflow Engine
+
+**Phase 2: Hardening** (1 week)
+- Add Nsjail for process-level sandboxing
+- Pre-execution validation (static analysis + blocklist)
+- AI guardrails integration
+
+**Phase 3: Features** (as needed)
+- JavaScript/Node.js support
+- File input/output (S3 integration)
+- Additional language support
 
 ---
 
@@ -405,26 +621,29 @@ terraform/
 
 | Service | Spec | Est. Cost |
 |---------|------|-----------|
-| ECS Fargate | 2 services + 1 worker | ~$30-50 |
+| ECS Fargate | 3 services + 1 worker | ~$50-70 |
+| Code Execution Service | 0.5 vCPU, 1GB | ~$15-20 |
 | RDS Postgres | db.t3.micro | ~$15 |
 | Qdrant Cloud | Starter tier | ~$25 |
 | S3 | < 10GB | ~$1 |
 | SQS | Low volume | ~$1 |
-| **Total Staging** | | **~$50-70/mo** |
+| **Total Staging** | | **~$85-110/mo** |
 
 ### Production Environment
 
 | Service | Spec | Est. Cost |
 |---------|------|-----------|
-| ECS Fargate | 2 services (1 vCPU, 2GB each) | ~$80-100 |
+| ECS Fargate | 3 services (1 vCPU, 2GB each) | ~$110-130 |
+| Code Execution Service | 1 vCPU, 2GB (auto-scale) | ~$36-72 |
 | ECS Workers | 2-5 workers, auto-scaling | ~$50-100 |
 | RDS Postgres | db.t3.small, Multi-AZ | ~$50-70 |
 | Qdrant Cloud | Standard tier | ~$50-100 |
 | S3 | Depends on usage | ~$10-20 |
-| SQS | Medium volume | ~$5 |gs
+| SQS | Medium volume | ~$5 |
 | ALB | 1 load balancer | ~$20 |
 | Secrets Manager | ~10 secrets | ~$5 |
-| **Total Production** | | **~$250-350/mo** |
+| AI Guardrails (code review) | ~10K reviews/mo | ~$10 |
+| **Total Production** | | **~$350-450/mo** |
 
 ### Frontend (Vercel)
 
@@ -450,10 +669,18 @@ terraform/
 - [ ] Monitoring and alerting
 - [ ] Auto-scaling for workers
 
-### Phase 3: Scale (As Needed)
+### Phase 3: Code Execution Sandbox
+- [ ] Code Execution Service (Docker isolation MVP)
+- [ ] Pre-execution validation (static analysis + blocklist)
+- [ ] Nsjail integration for hardened sandboxing
+- [ ] AI guardrails for code review
+- [ ] Integration with Workflow Engine
+
+### Phase 4: Scale (As Needed)
 - [ ] Add Redis for caching and distributed locks
 - [ ] Performance optimization
 - [ ] Cost optimization review
+- [ ] Additional language support (JavaScript, etc.)
 
 ---
 
@@ -472,7 +699,7 @@ terraform/
 ## FAQ
 
 **Q: Why not Kubernetes from the start?**
-A: With only 2 services and workers, Kubernetes introduces unnecessary complexity. ECS provides containerization and auto-scaling without the operational overhead.
+A: With only 3 services and workers, Kubernetes introduces unnecessary complexity. ECS provides containerization and auto-scaling without the operational overhead.
 
 **Q: What if more isolation is needed later?**
 A: EKS can be added for isolated execution if enterprise customers require it. The current architecture supports this evolution.
@@ -483,6 +710,15 @@ A: Database-level isolation (tenant_id on all queries). Tenant credentials store
 **Q: How does this compare to n8n, Airflow, Zapier?**
 A: All use the Queue + Workers pattern, which aligns with this recommendation. See Industry Validation section for details.
 
+**Q: Why not use external code execution services (E2B, Modal)?**
+A: Cost and dependency concerns. External services charge per-execution (~$0.10-0.20 each), which adds up quickly. Self-hosted with Nsjail has fixed infrastructure costs (~$36-72/mo) regardless of execution volume, and no external dependencies.
+
+**Q: How is user/AI-generated code secured?**
+A: Three-layer defense: (1) Pre-execution validation with static analysis, blocklist patterns, and optional AI review; (2) Fargate microVM isolation (automatic); (3) Nsjail process sandbox with no network, limited filesystem, resource limits, and syscall filtering. See Code Execution Sandbox section for details.
+
+**Q: Why Nsjail instead of just Docker?**
+A: Fargate already provides container/microVM isolation between services. Nsjail adds intra-container protection—controlling what user code can do *inside* the Code Execution container (no network, no secrets access, resource limits per execution).
+
 ---
 
 ## Appendix: Required AWS Services
@@ -490,7 +726,7 @@ A: All use the Queue + Workers pattern, which aligns with this recommendation. S
 | Service | Purpose |
 |---------|---------|
 | **ECR** | Container Registry - stores Docker images |
-| **ECS Fargate** | Runs containers (Auth API, Workflow Engine, Workers) |
+| **ECS Fargate** | Runs containers (Auth API, Workflow Engine, Code Execution, Workers) |
 | **RDS PostgreSQL** | Primary database |
 | **Qdrant Cloud** | Vector database for RAG embeddings (managed, external) |
 | **S3** | File storage |
@@ -500,5 +736,60 @@ A: All use the Queue + Workers pattern, which aligns with this recommendation. S
 | **ALB** | Application Load Balancer |
 | **Route53** | DNS management |
 | **ACM** | SSL/TLS certificates |
+
+---
+
+## Appendix: Code Execution Service Files
+
+```
+python_apps/
+├── auth_api/                  # Existing
+├── workflow-engine-poc/       # Existing
+└── code_execution/            # NEW
+    ├── Dockerfile
+    ├── pyproject.toml
+    ├── nsjail.cfg             # Sandbox configuration
+    └── code_execution/
+        ├── __init__.py
+        ├── main.py            # FastAPI app
+        ├── sandbox.py         # Nsjail wrapper
+        └── validation.py      # Pre-execution checks
+```
+
+### docker-compose.dev.yaml Addition
+
+```yaml
+services:
+  code-execution:
+    build: ./python_apps/code_execution
+    ports:
+      - "8007:8007"
+    privileged: true  # Required for Nsjail
+    networks:
+      - internal      # Workers can reach this service
+
+  # Workers call Code Execution Service for user/AI code
+  worker:
+    build: ./python_apps/workflow-engine-poc
+    command: ["python", "-m", "workflow_engine_poc.worker"]
+    environment:
+      - CODE_EXECUTION_URL=http://code-execution:8007
+    networks:
+      - internal
+```
+
+### Terraform Module
+
+```hcl
+module "code_execution" {
+  source = "./modules/ecs-service"
+  
+  name     = "code-execution"
+  port     = 8007
+  cpu      = 1024   # 1 vCPU
+  memory   = 2048   # 2GB
+  internal = true   # No public access
+}
+```
 
 ---
