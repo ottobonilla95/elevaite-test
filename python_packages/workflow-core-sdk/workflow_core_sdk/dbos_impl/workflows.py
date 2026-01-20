@@ -195,6 +195,26 @@ async def dbos_execute_workflow_durable(
         step_input = step.get("input", {})
         if isinstance(step_input, dict):
             data.update(step_input)
+
+        # Process input_mapping to resolve paths like "input-node.data.raw_copy"
+        input_mapping = step.get("input_mapping") or step.get("config", {}).get("input_mapping") or {}
+        step_io_data = execution_context_data.get("step_io_data", {})
+        for input_key, source_spec in input_mapping.items():
+            if isinstance(source_spec, str) and "." in source_spec:
+                parts = source_spec.split(".")
+                source_step_id = parts[0]
+                field_path = parts[1:]
+                if source_step_id in step_io_data:
+                    value = step_io_data[source_step_id]
+                    for field in field_path:
+                        if isinstance(value, dict) and field in value:
+                            value = value[field]
+                        else:
+                            value = None
+                            break
+                    if value is not None:
+                        data[input_key] = value
+
         return data
 
     def _slugify(txt: str) -> str:

@@ -225,10 +225,23 @@ async def get_execution_results(
             status_str = "unknown"
         else:
             status_str = getattr(status_val, "value", status_val)
+
+        # Build step_results from step_io_data for parity between local and DBOS backends
+        step_io_data = details.get("step_io_data") or {}
+        step_results = {}
+        for step_id, output_data in step_io_data.items():
+            step_results[step_id] = {
+                "step_id": step_id,
+                "status": "completed" if isinstance(output_data, dict) and output_data.get("success") else "unknown",
+                "output_data": output_data,
+                "error_message": output_data.get("error") if isinstance(output_data, dict) else None,
+                "execution_time_ms": None,  # Not tracked in step_io_data
+            }
+
         return {
             "execution_id": details.get("execution_id"),
             "status": status_str,
-            "step_results": {},  # No per-step timing in DB record; consumers should treat as unavailable
+            "step_results": step_results,
             "global_variables": {},
             "execution_summary": {
                 "execution_id": details.get("execution_id"),

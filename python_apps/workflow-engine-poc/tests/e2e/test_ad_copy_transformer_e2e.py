@@ -1,12 +1,18 @@
 """
-E2E Test: Ad Copy Transformer Demo Workflow
+E2E Test: Ad Copy Transformer Demo Workflow (Live Server)
 
-This test validates the complete workflow execution for the demo:
+This test validates the complete workflow execution against a LIVE server:
   Input Node → Prompt Node → Agent Node → Output
 
 The workflow transforms product specifications into compelling social media ad copy.
 
-Requires OPENAI_API_KEY environment variable for real LLM execution.
+How to run:
+- Start the workflow-engine-poc FastAPI server (default http://127.0.0.1:8006)
+- Set SMOKE_DBOS=1 to enable this test
+- Optionally set BASE_URL to override the default server URL
+
+Example:
+  SMOKE_DBOS=1 BASE_URL=http://127.0.0.1:8006 pytest tests/e2e/test_ad_copy_transformer_e2e.py -v -s
 """
 
 from __future__ import annotations
@@ -16,12 +22,24 @@ import os
 from pprint import pprint
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
+import httpx
 import pytest
-from fastapi.testclient import TestClient
+
+BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8006")
+SMOKE_DBOS = os.environ.get("SMOKE_DBOS", "0")
+TIMEOUT = float(os.environ.get("SMOKE_TIMEOUT", "60"))
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+
+def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
+    if not path.startswith("/"):
+        path = "/" + path
+    url = BASE_URL + path
+    with httpx.Client(timeout=TIMEOUT) as client:
+        return client.request(method, url, json=json_body)
 
 
 def _load_fixture(name: str) -> Dict[str, Any]:
@@ -29,36 +47,45 @@ def _load_fixture(name: str) -> Dict[str, Any]:
         return json.load(f)
 
 
-def _create_workflow(client: TestClient, payload: Dict[str, Any]) -> str:
-    r = client.post("/workflows/", json=payload)
-    r.raise_for_status()
+def _create_workflow(payload: Dict[str, Any]) -> str:
+    r = _http("POST", "/workflows/", payload)
+    assert r.status_code == 200, f"Failed to create workflow: {r.text}"
     data = r.json()
     return data.get("id") or data.get("workflow_id")
 
 
-def _execute_workflow(client: TestClient, workflow_id: str, body: Dict[str, Any]) -> str:
-    r = client.post(f"/workflows/{workflow_id}/execute", json=body)
-    r.raise_for_status()
+def _execute_workflow(workflow_id: str, body: Dict[str, Any]) -> str:
+    r = _http("POST", f"/workflows/{workflow_id}/execute", body)
+    assert r.status_code == 200, f"Failed to execute workflow: {r.text}"
     return r.json().get("id") or r.json().get("execution_id")
 
 
-def _get_status(client: TestClient, execution_id: str) -> Dict[str, Any]:
-    r = client.get(f"/executions/{execution_id}")
-    r.raise_for_status()
+def _get_status(execution_id: str) -> Dict[str, Any]:
+    r = _http("GET", f"/executions/{execution_id}")
+    assert r.status_code == 200, f"Failed to get status: {r.text}"
     return r.json()
 
 
-def _get_results(client: TestClient, execution_id: str) -> Dict[str, Any]:
-    r = client.get(f"/executions/{execution_id}/results")
-    r.raise_for_status()
+def _get_results(execution_id: str) -> Dict[str, Any]:
+    r = _http("GET", f"/executions/{execution_id}/results")
+    assert r.status_code == 200, f"Failed to get results: {r.text}"
     return r.json()
 
 
-@pytest.mark.integration
-@pytest.mark.parametrize("backend", ["local"])
-def test_ad_copy_transformer_workflow_e2e(authenticated_client: TestClient, backend: str):
+def _check_server():
+    """Check if live server is reachable."""
+    try:
+        r = _http("GET", "/health")
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
+@pytest.mark.skipif(SMOKE_DBOS != "1", reason="SMOKE_DBOS=1 required for live server tests")
+@pytest.mark.parametrize("backend", ["dbos"])
+def test_ad_copy_transformer_workflow_e2e(backend: str):
     """
-    E2E test for the Ad Copy Transformer demo workflow.
+    E2E test for the Ad Copy Transformer demo workflow against live DBOS server.
 
     Flow:
         Input Node (raw_copy) ──┐
@@ -67,37 +94,40 @@ def test_ad_copy_transformer_workflow_e2e(authenticated_client: TestClient, back
 
     Validates:
     1. Workflow creation succeeds
-    2. Execution completes successfully
+    2. Execution completes successfully with DBOS backend
     3. Input node provides raw_copy data
     4. Prompt node processes template with variable injection
     5. Agent node receives prompt configuration from connected prompt node
-    6. Agent generates a response (mocked in test environment)
+    6. Agent generates a response via real LLM
     """
+    if not _check_server():
+        pytest.skip(f"Server not reachable at {BASE_URL}")
+
     # Load the workflow fixture
     wf = _load_fixture("ad_copy_transformer.json")
-    workflow_id = _create_workflow(authenticated_client, wf)
+    workflow_id = _create_workflow(wf)
 
-    # Execute the workflow (triggerless)
+    # Execute the workflow with DBOS backend
     body = {
         "backend": backend,
         "input_data": {},
         "wait": True,
     }
-    execution_id = _execute_workflow(authenticated_client, workflow_id, body)
+    execution_id = _execute_workflow(workflow_id, body)
 
     # Poll for completion
-    deadline = time.time() + 30
+    deadline = time.time() + 60
     last_status = None
     while time.time() < deadline:
-        status_response = _get_status(authenticated_client, execution_id)
+        status_response = _get_status(execution_id)
         last_status = status_response.get("status")
         if last_status in ("completed", "failed", "cancelled"):
             break
         time.sleep(0.5)
 
-    # Get results
-    results = _get_results(authenticated_client, execution_id)
-    step_results = results.get("step_results") or {}
+    # Get results - step_results now has parity between local and DBOS
+    results = _get_results(execution_id)
+    step_results = results.get("step_results", {})
 
     # Debug output
     print(f"Execution status: {last_status}")
@@ -111,19 +141,14 @@ def test_ad_copy_transformer_workflow_e2e(authenticated_client: TestClient, back
     assert last_status == "completed", f"Expected completed, got {last_status}"
 
     # Validate input-node executed and provided raw_copy
-    # Note: data_input step wraps output in output_data.data structure
     assert "input-node" in step_results, "input-node step should be in results"
-    input_result = step_results.get("input-node", {})
-    input_data = input_result.get("output_data", {}).get("data", {})
-    assert input_data.get("raw_copy") == "Arlo Pro 5 camera 2K video color night vision weather resistant"
+    input_output = step_results.get("input-node", {}).get("output_data", {})
+    assert input_output.get("data", {}).get("raw_copy") == "Arlo Pro 5 camera 2K video color night vision weather resistant"
 
     # Validate prompt-node executed with proper structure
-    # Note: step results are wrapped in output_data
     assert "prompt-node" in step_results, "prompt-node step should be in results"
-    prompt_result = step_results.get("prompt-node", {})
-    prompt_output = prompt_result.get("output_data", {})
+    prompt_output = step_results.get("prompt-node", {}).get("output_data", {})
     assert prompt_output.get("step_type") == "prompt"
-    # System prompt contains the instructions (no query_template in this workflow)
     system_prompt = prompt_output.get("system_prompt", "")
     assert "advertising copywriter" in system_prompt, f"Expected copywriter in system_prompt: {system_prompt}"
     assert "under 100 characters" in system_prompt, "Instructions should be in system prompt"
@@ -132,24 +157,17 @@ def test_ad_copy_transformer_workflow_e2e(authenticated_client: TestClient, back
 
     # Validate agent-node executed
     assert "agent-node" in step_results, "agent-node step should be in results"
-    agent_result = step_results.get("agent-node", {})
-    agent_output = agent_result.get("output_data", {})
+    agent_output = step_results.get("agent-node", {}).get("output_data", {})
     print(f"Agent output: {agent_output}")
-    # Agent should have received the prompt config and executed
-    # Check for success or response in output_data (handles both real LLM and mock scenarios)
-    has_response = agent_output.get("success") is True or "response" in agent_output
-    # Also accept error case if API key is not configured (test environment)
-    has_error = "error" in agent_output
-    assert has_response or has_error, f"Agent should have response or error: {agent_output}"
+    assert agent_output.get("success") is True, f"Agent should succeed: {agent_output}"
+    assert "response" in agent_output, f"Agent should have response: {agent_output}"
 
     # Validate output-node executed (final step in the workflow)
     assert "output-node" in step_results, "output-node step should be in results"
-    output_result = step_results.get("output-node", {})
-    output_data = output_result.get("output_data", {})
+    output_data = step_results.get("output-node", {}).get("output_data", {})
     assert output_data.get("success") is True, "Output step should succeed"
     assert output_data.get("label") == "Ad Copy Result", "Output should have correct label"
     assert output_data.get("format") == "text", "Output should have correct format"
-    # Output step should pass through agent's data
     assert "data" in output_data, "Output should contain data from agent"
     pprint("Output node data:")
     pprint(output_data)

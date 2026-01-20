@@ -28,9 +28,9 @@ async def dbos_execute_step_durable(
     execution_context_data: Dict[str, Any],
 ) -> DBOSStepResult:
     print("Executing step under DBOS:", step_type)
-    pprint(step_config)
-    pprint(input_data)
-    pprint(execution_context_data)
+    # pprint(step_config)
+    # pprint(input_data)
+    # pprint(execution_context_data)
     adapter = await get_dbos_adapter()
     if not adapter:
         raise RuntimeError("DBOS adapter not available")
