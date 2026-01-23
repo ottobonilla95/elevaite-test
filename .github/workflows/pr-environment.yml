@@ -1,0 +1,318 @@
+# =============================================================================
+# PR Environment Workflow
+# Creates/destroys ephemeral environments for pull requests
+# Cloud-agnostic: Works with AWS/Azure/GCP
+# Database-per-PR pattern with shared managed infrastructure
+# =============================================================================
+
+name: PR Environment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches: [develop, main]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+env:
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+  NAMESPACE: pr-${{ github.event.pull_request.number }}
+  CLOUD_PROVIDER: ${{ vars.CLOUD_PROVIDER || 'aws' }}
+
+jobs:
+  # ===========================================================================
+  # Create/Update PR Environment
+  # ===========================================================================
+  deploy:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      # --- Cloud Authentication (based on CLOUD_PROVIDER) ---
+      - name: Configure AWS credentials
+        if: env.CLOUD_PROVIDER == 'aws'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Configure kubectl for AWS
+        if: env.CLOUD_PROVIDER == 'aws'
+        run: aws eks update-kubeconfig --name elevaite-dev --region ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Configure Azure credentials
+        if: env.CLOUD_PROVIDER == 'azure'
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure kubectl for Azure
+        if: env.CLOUD_PROVIDER == 'azure'
+        run: az aks get-credentials --resource-group elevaite-dev --name elevaite-dev
+
+      - name: Configure GCP credentials
+        if: env.CLOUD_PROVIDER == 'gcp'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Configure kubectl for GCP
+        if: env.CLOUD_PROVIDER == 'gcp'
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: elevaite-dev
+          location: ${{ vars.GCP_REGION || 'us-central1' }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          terraform_wrapper: false
+
+      - name: Get Terraform outputs
+        id: terraform
+        run: |
+          cd terraform/environments/dev/${{ env.CLOUD_PROVIDER }}
+          terraform init
+          echo "db_host=$(terraform output -raw database_host)" >> $GITHUB_OUTPUT
+          echo "rabbitmq_host=$(terraform output -raw rabbitmq_host)" >> $GITHUB_OUTPUT
+          echo "storage_bucket=$(terraform output -raw storage_bucket)" >> $GITHUB_OUTPUT
+
+      - name: Create PR Database
+        env:
+          DB_HOST: ${{ steps.terraform.outputs.db_host }}
+          DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+          DB_USER: elevaite
+          DB_ADMIN_DATABASE: elevaite_dev
+        run: |
+          # Install psql
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          
+          # Create database for this PR
+          PGPASSWORD="$DB_PASSWORD" psql \
+            -h "$DB_HOST" \
+            -U "$DB_USER" \
+            -d "$DB_ADMIN_DATABASE" \
+            -c "CREATE DATABASE pr_${{ env.PR_NUMBER }};" || echo "Database may already exist"
+          
+          # Run migrations
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
+          cd python_apps/workflow-engine-poc
+          uv sync
+          uv run alembic upgrade head
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker Images
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }} \
+            -f python_apps/Dockerfile.rbac python_apps/
+          docker build -t ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }} \
+            -f python_apps/workflow-engine-poc/Dockerfile python_apps/
+          docker build -t ghcr.io/${{ github.repository }}/ingestion:pr-${{ env.PR_NUMBER }} \
+            -f python_apps/ingestion-service/Dockerfile python_apps/
+          
+          docker push ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }}
+          docker push ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }}
+          docker push ghcr.io/${{ github.repository }}/ingestion:pr-${{ env.PR_NUMBER }}
+
+      - name: Create Kubernetes namespace
+        run: |
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create Kubernetes secrets
+        run: |
+          kubectl create secret generic elevaite-db-credentials \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=POSTGRES_USER=elevaite \
+            --from-literal=POSTGRES_PASSWORD=${{ secrets.DEV_DB_PASSWORD }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          kubectl create secret generic elevaite-rabbitmq-credentials \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=RABBITMQ_USER=elevaite \
+            --from-literal=RABBITMQ_PASSWORD=${{ secrets.DEV_RABBITMQ_PASSWORD }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          kubectl create secret generic elevaite-storage-credentials \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.DEV_STORAGE_ACCESS_KEY }} \
+            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_STORAGE_SECRET_KEY }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Qdrant credentials (optional - for vector database)
+          if [ -n "${{ secrets.DEV_QDRANT_API_KEY }}" ]; then
+            kubectl create secret generic elevaite-qdrant-credentials \
+              --namespace ${{ env.NAMESPACE }} \
+              --from-literal=QDRANT_API_KEY=${{ secrets.DEV_QDRANT_API_KEY }} \
+              --dry-run=client -o yaml | kubectl apply -f -
+          fi
+          
+          # Application secrets (API keys, JWT, etc.)
+          kubectl create secret generic elevaite-secrets \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            --from-literal=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install elevaite-pr-${{ env.PR_NUMBER }} ./helm/elevaite \
+            --namespace ${{ env.NAMESPACE }} \
+            --values ./helm/elevaite/values-pr.yaml \
+            --set global.imageRegistry=ghcr.io/${{ github.repository }} \
+            --set global.environment=pr \
+            --set authApi.image.tag=pr-${{ env.PR_NUMBER }} \
+            --set workflowEngine.image.tag=pr-${{ env.PR_NUMBER }} \
+            --set ingestion.image.tag=pr-${{ env.PR_NUMBER }} \
+            --set worker.image.tag=pr-${{ env.PR_NUMBER }} \
+            --set postgresql.host=${{ steps.terraform.outputs.db_host }} \
+            --set postgresql.database=pr_${{ env.PR_NUMBER }} \
+            --set rabbitmq.host=${{ steps.terraform.outputs.rabbitmq_host }} \
+            --set rabbitmq.vhost=/pr_${{ env.PR_NUMBER }} \
+            --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
+            --wait \
+            --timeout 10m
+
+      - name: Post deployment URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🚀 PR Environment Deployed\n\n**Cloud:** ${{ env.CLOUD_PROVIDER }}\n**Database:** \`pr_${{ env.PR_NUMBER }}\`\n**Namespace:** \`${{ env.NAMESPACE }}\`\n\nThis environment will be automatically destroyed when the PR is closed.`
+            })
+
+  # ===========================================================================
+  # Cleanup PR Environment
+  # ===========================================================================
+  cleanup:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- Cloud Authentication ---
+      - name: Configure AWS credentials
+        if: env.CLOUD_PROVIDER == 'aws'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Configure kubectl for AWS
+        if: env.CLOUD_PROVIDER == 'aws'
+        run: aws eks update-kubeconfig --name elevaite-dev --region ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Configure Azure credentials
+        if: env.CLOUD_PROVIDER == 'azure'
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure kubectl for Azure
+        if: env.CLOUD_PROVIDER == 'azure'
+        run: az aks get-credentials --resource-group elevaite-dev --name elevaite-dev
+
+      - name: Configure GCP credentials
+        if: env.CLOUD_PROVIDER == 'gcp'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Configure kubectl for GCP
+        if: env.CLOUD_PROVIDER == 'gcp'
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: elevaite-dev
+          location: ${{ vars.GCP_REGION || 'us-central1' }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          terraform_wrapper: false
+
+      - name: Get Terraform outputs
+        id: terraform
+        run: |
+          cd terraform/environments/dev/${{ env.CLOUD_PROVIDER }}
+          terraform init
+          echo "db_host=$(terraform output -raw database_host)" >> $GITHUB_OUTPUT
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Delete Helm release
+        run: |
+          helm uninstall elevaite-pr-${{ env.PR_NUMBER }} --namespace ${{ env.NAMESPACE }} || true
+
+      - name: Delete Kubernetes namespace
+        run: |
+          kubectl delete namespace ${{ env.NAMESPACE }} --ignore-not-found
+
+      - name: Drop PR Database
+        env:
+          DB_HOST: ${{ steps.terraform.outputs.db_host }}
+          DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+          DB_USER: elevaite
+          DB_ADMIN_DATABASE: elevaite_dev
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          
+          # Terminate connections
+          PGPASSWORD="$DB_PASSWORD" psql \
+            -h "$DB_HOST" \
+            -U "$DB_USER" \
+            -d "$DB_ADMIN_DATABASE" \
+            -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'pr_${{ env.PR_NUMBER }}';" || true
+          
+          # Drop database
+          PGPASSWORD="$DB_PASSWORD" psql \
+            -h "$DB_HOST" \
+            -U "$DB_USER" \
+            -d "$DB_ADMIN_DATABASE" \
+            -c "DROP DATABASE IF EXISTS pr_${{ env.PR_NUMBER }};"
+
+      - name: Post cleanup comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🧹 PR Environment Cleaned Up\n\n- ✅ Kubernetes namespace deleted\n- ✅ Database \`pr_${{ env.PR_NUMBER }}\` dropped\n- ✅ Helm release removed`
+            })

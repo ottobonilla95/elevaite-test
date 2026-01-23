@@ -1,0 +1,131 @@
+# ElevAIte Helm Chart - PR Environment
+# Ephemeral environment for pull request testing
+# Uses shared dev managed database with database-per-PR isolation
+
+# =============================================================================
+# GLOBAL
+# =============================================================================
+global:
+  imageRegistry: "ghcr.io/your-org"  # Update with your registry
+  environment: "pr"
+
+# =============================================================================
+# APPLICATION SERVICES (Minimal resources for PR envs)
+# =============================================================================
+authApi:
+  replicaCount: 1
+  image:
+    tag: "pr"  # Set dynamically: pr-${PR_NUMBER}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  env:
+    LOG_LEVEL: DEBUG
+
+workflowEngine:
+  replicaCount: 1
+  image:
+    tag: "pr"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    LOG_LEVEL: DEBUG
+    SCHEDULER_POLL_SECONDS: "10"
+
+ingestion:
+  replicaCount: 1
+  image:
+    tag: "pr"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  env:
+    LOG_LEVEL: DEBUG
+
+worker:
+  replicaCount: 1  # Single worker for PR envs
+  image:
+    tag: "pr"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: false
+
+# =============================================================================
+# INGRESS (Dynamic hostname per PR)
+# =============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+  hosts:
+    - host: pr-${PR_NUMBER}.dev.elevaite.ai  # Set dynamically
+      paths:
+        - path: /api/auth
+          pathType: Prefix
+          service: auth-api
+        - path: /
+          pathType: Prefix
+          service: workflow-engine
+  tls:
+    - secretName: elevaite-pr-${PR_NUMBER}-tls
+      hosts:
+        - pr-${PR_NUMBER}.dev.elevaite.ai
+
+# =============================================================================
+# EXTERNAL SERVICES (Shared Dev Infrastructure)
+# PR environments use database-per-PR on shared managed PostgreSQL
+# =============================================================================
+
+# PostgreSQL - Shared dev managed instance, unique database per PR
+postgresql:
+  host: ""  # Shared dev database host from Terraform
+  port: 5432
+  database: "pr_${PR_NUMBER}"  # Set dynamically: CREATE DATABASE pr_123
+  sslMode: "require"
+  existingSecret: "elevaite-db-credentials"
+
+# RabbitMQ - Shared dev instance with unique vhost per PR
+rabbitmq:
+  host: ""  # Shared dev RabbitMQ host from Terraform
+  port: 5672
+  vhost: "pr_${PR_NUMBER}"  # Set dynamically
+  existingSecret: "elevaite-rabbitmq-credentials"
+
+# Object Storage - Shared dev bucket with prefix per PR
+objectStorage:
+  provider: "aws"
+  bucket: "elevaite-dev-files"
+  region: "us-east-1"
+  # Files are stored under prefix: pr-${PR_NUMBER}/
+  existingSecret: "elevaite-storage-credentials"
+
+# Qdrant - Disabled for PR environments
+qdrant:
+  enabled: false
+
+# =============================================================================
+# SERVICE ACCOUNT
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}

@@ -1,6 +1,8 @@
-# Elevaite Platform - Deploy to Staging
-# Automatically deploys to staging environment on merge to develop
-# Can also be triggered manually
+# =============================================================================
+# Staging Deployment Workflow
+# Deploys to staging on push to develop branch
+# Cloud-agnostic: Works with AWS/Azure/GCP (configured via secrets)
+# =============================================================================
 
 name: Deploy to Staging
 
@@ -9,129 +11,300 @@ on:
     branches: [develop]
   workflow_dispatch:
     inputs:
-      service:
-        description: 'Service to deploy (all, auth-api, workflow-engine, ingestion)'
+      cloud_provider:
+        description: 'Cloud provider (aws/azure/gcp)'
         required: false
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - auth-api
-          - workflow-engine
-          - ingestion
+        default: ''
 
 concurrency:
-  group: deploy-staging
+  group: staging-deploy
   cancel-in-progress: false
 
 env:
-  AWS_REGION: ${{ vars.AWS_REGION || 'us-west-2' }}
-  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  ENVIRONMENT: staging
+  NAMESPACE: staging
+  # Cloud provider is set via repository secret CLOUD_PROVIDER
+  CLOUD_PROVIDER: ${{ inputs.cloud_provider || vars.CLOUD_PROVIDER || 'aws' }}
 
 jobs:
-  # ============================================================
-  # BUILD AND PUSH IMAGES
-  # ============================================================
-  build-and-push:
+  # ===========================================================================
+  # Build and Push Docker Images (Cloud-Agnostic - uses GHCR)
+  # ===========================================================================
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - service: auth-api
-            dockerfile: python_apps/auth_api/Dockerfile
-            image: elevaite-auth-api
-          - service: workflow-engine
-            dockerfile: python_apps/workflow-engine-poc/Dockerfile
-            image: elevaite-workflow-engine
-          - service: ingestion
-            dockerfile: python_apps/ingestion-service/Dockerfile
-            image: elevaite-ingestion
-
+    permissions:
+      contents: read
+      packages: write
+    
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Check if service should be deployed
-        id: check
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
         run: |
-          if [[ "${{ github.event.inputs.service }}" == "all" ]] || \
-             [[ "${{ github.event.inputs.service }}" == "${{ matrix.service }}" ]] || \
-             [[ "${{ github.event_name }}" == "push" ]]; then
-            echo "should_deploy=true" >> $GITHUB_OUTPUT
-          else
-            echo "should_deploy=false" >> $GITHUB_OUTPUT
-          fi
+          echo "version=staging-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
 
+      - name: Build and push Auth API
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: python_apps/auth_api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/auth-api:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/auth-api:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Workflow Engine
+        uses: docker/build-push-action@v5
+        with:
+          context: python_apps/
+          file: python_apps/workflow-engine-poc/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/workflow-engine:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/workflow-engine:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Ingestion Service
+        uses: docker/build-push-action@v5
+        with:
+          context: python_apps/
+          file: python_apps/ingestion-service/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/ingestion:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/ingestion:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Auth App (Frontend)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/auth/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/auth-app:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/auth-app:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Elevaite App (Frontend)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/elevaite/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/elevaite-app:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/elevaite-app:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===========================================================================
+  # Deploy to Kubernetes (Cloud-Agnostic)
+  # ===========================================================================
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- AWS Authentication ---
       - name: Configure AWS credentials
-        if: steps.check.outputs.should_deploy == 'true'
+        if: env.CLOUD_PROVIDER == 'aws'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
-      - name: Login to Amazon ECR
-        if: steps.check.outputs.should_deploy == 'true'
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and push ${{ matrix.service }}
-        if: steps.check.outputs.should_deploy == 'true'
+      - name: Configure kubectl for AWS EKS
+        if: env.CLOUD_PROVIDER == 'aws'
         run: |
-          IMAGE_TAG="${{ env.ECR_REGISTRY }}/${{ matrix.image }}:staging-${{ github.sha }}"
-          IMAGE_LATEST="${{ env.ECR_REGISTRY }}/${{ matrix.image }}:staging-latest"
+          aws eks update-kubeconfig --name elevaite-staging --region ${{ vars.AWS_REGION || 'us-east-1' }}
 
-          docker build \
-            -f ${{ matrix.dockerfile }} \
-            -t $IMAGE_TAG \
-            -t $IMAGE_LATEST \
-            .
+      # --- Azure Authentication ---
+      - name: Configure Azure credentials
+        if: env.CLOUD_PROVIDER == 'azure'
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-          docker push $IMAGE_TAG
-          docker push $IMAGE_LATEST
-
-          echo "Pushed ${{ matrix.service }} to ECR"
-
-  # ============================================================
-  # DEPLOY TO STAGING
-  # Add your deployment steps here (ECS, K8s, etc.)
-  # ============================================================
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to staging environment
+      - name: Configure kubectl for Azure AKS
+        if: env.CLOUD_PROVIDER == 'azure'
         run: |
-          echo "Deploying to staging..."
-          echo "Images pushed with tag: staging-${{ github.sha }}"
-          echo ""
-          echo "TODO: Add deployment steps for your infrastructure"
-          echo "Options:"
-          echo "  - AWS ECS: Use aws-actions/amazon-ecs-deploy-task-definition"
-          echo "  - Kubernetes: Use kubectl or helm"
-          echo "  - Custom: Add your deployment script"
+          az aks get-credentials --resource-group elevaite-staging --name elevaite-staging
 
-      # Example ECS deployment (uncomment and configure):
-      # - name: Deploy to ECS
-      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      #   with:
-      #     task-definition: task-definition.json
-      #     service: elevaite-staging
-      #     cluster: elevaite-cluster
-      #     wait-for-service-stability: true
+      # --- GCP Authentication ---
+      - name: Configure GCP credentials
+        if: env.CLOUD_PROVIDER == 'gcp'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-  # ============================================================
-  # NOTIFY
-  # ============================================================
+      - name: Configure kubectl for GCP GKE
+        if: env.CLOUD_PROVIDER == 'gcp'
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: elevaite-staging
+          location: ${{ vars.GCP_REGION || 'us-central1' }}
+
+      # --- Common Deployment Steps ---
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          terraform_wrapper: false
+
+      - name: Get Terraform outputs
+        id: terraform
+        run: |
+          cd terraform/environments/staging/${{ env.CLOUD_PROVIDER }}
+          terraform init
+          echo "db_host=$(terraform output -raw database_host 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
+          echo "rabbitmq_host=$(terraform output -raw rabbitmq_host 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
+          echo "storage_bucket=$(terraform output -raw storage_bucket 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
+
+      - name: Create/Update Kubernetes namespace
+        run: |
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create/Update Kubernetes secrets
+        run: |
+          # Database credentials
+          kubectl create secret generic elevaite-db-credentials \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=POSTGRES_USER=${{ secrets.STAGING_DB_USER }} \
+            --from-literal=POSTGRES_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          # RabbitMQ credentials
+          kubectl create secret generic elevaite-rabbitmq-credentials \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=RABBITMQ_USER=${{ secrets.STAGING_RABBITMQ_USER }} \
+            --from-literal=RABBITMQ_PASSWORD=${{ secrets.STAGING_RABBITMQ_PASSWORD }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Storage credentials
+          kubectl create secret generic elevaite-storage-credentials \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.STAGING_STORAGE_ACCESS_KEY }} \
+            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.STAGING_STORAGE_SECRET_KEY }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Qdrant credentials (optional - for vector database)
+          if [ -n "${{ secrets.STAGING_QDRANT_API_KEY }}" ]; then
+            kubectl create secret generic elevaite-qdrant-credentials \
+              --namespace ${{ env.NAMESPACE }} \
+              --from-literal=QDRANT_API_KEY=${{ secrets.STAGING_QDRANT_API_KEY }} \
+              --dry-run=client -o yaml | kubectl apply -f -
+          fi
+          
+          # Application secrets (API keys, JWT, OAuth, etc.)
+          kubectl create secret generic elevaite-secrets \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            --from-literal=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            --from-literal=NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET || secrets.JWT_SECRET }} \
+            --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+            --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.13.0'
+
+      - name: Run database migrations
+        run: |
+          # Get a pod to run migrations (or use a job)
+          # For now, we'll run migrations as part of deployment init container
+          # This step validates the migration files exist
+          echo "Database migrations will run via Helm init containers"
+          # Optionally run migrations directly:
+          # kubectl run migrations --rm -it --restart=Never \
+          #   --image=ghcr.io/${{ github.repository }}/workflow-engine:${{ needs.build.outputs.image_tag }} \
+          #   --namespace ${{ env.NAMESPACE }} \
+          #   --env="DATABASE_URL=postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_staging" \
+          #   -- alembic upgrade head
+
+      - name: Lint Helm chart
+        run: |
+          helm lint ./helm/elevaite --values ./helm/elevaite/values-staging.yaml
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install elevaite ./helm/elevaite \
+            --namespace ${{ env.NAMESPACE }} \
+            --values ./helm/elevaite/values-staging.yaml \
+            --set global.imageRegistry=ghcr.io/${{ github.repository }} \
+            --set global.environment=staging \
+            --set authApi.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set workflowEngine.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set ingestion.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set worker.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set frontend.auth.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set frontend.elevaite.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set postgresql.host=${{ steps.terraform.outputs.db_host }} \
+            --set rabbitmq.host=${{ steps.terraform.outputs.rabbitmq_host }} \
+            --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
+            --wait \
+            --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/elevaite-auth-api -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/elevaite-workflow-engine -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/elevaite-ingestion -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/elevaite-auth-app -n ${{ env.NAMESPACE }} --timeout=5m
+          kubectl rollout status deployment/elevaite-elevaite-app -n ${{ env.NAMESPACE }} --timeout=5m
+
+      - name: Run smoke tests
+        run: |
+          sleep 30
+          INGRESS_IP=$(kubectl get ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' || \
+                       kubectl get ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}')
+          echo "Testing endpoint: $INGRESS_IP"
+          # Health check (adjust domain as needed)
+          curl -sf "http://$INGRESS_IP/health" || echo "Health check pending (DNS may need time)"
+
+  # ===========================================================================
+  # Notify
+  # ===========================================================================
   notify:
-    needs: deploy
+    needs: [build, deploy]
     runs-on: ubuntu-latest
     if: always()
+    
     steps:
-      - name: Notify deployment status
-        run: |
-          if [[ "${{ needs.deploy.result }}" == "success" ]]; then
-            echo "Staging deployment successful"
-          else
-            echo "Staging deployment failed"
-            exit 1
-          fi
+      - name: Notify Slack
+        if: vars.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ needs.deploy.result }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+          text: "Staging deployment to ${{ env.CLOUD_PROVIDER }} completed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}

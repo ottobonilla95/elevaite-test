@@ -9,6 +9,14 @@ requires-python = "==3.11.11"
 readme = "README.md"
 dependencies = []
 
+[dependency-groups]
+dev = [
+	"ruff>=0.14.0",
+	"pytest>=8.0.0",
+	"pytest-cov>=4.0.0",
+	"pytest-asyncio>=0.23.0",
+]
+
 
 [tool.uv.workspace]
 members = ["python_apps/*", "python_packages/*"]

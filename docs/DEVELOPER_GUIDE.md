@@ -404,6 +404,27 @@ Every PR triggers:
 | **Staging** | `develop` | Automatic on merge | `https://staging.elevaite.io` |
 | **Production** | `main` | Manual approval | `https://app.elevaite.io` |
 
+### Kubernetes Deployment
+
+Deployments use **Helm charts** located in `helm/elevaite/`.
+
+```bash
+# Deploy to staging (automatic on merge to develop)
+helm upgrade --install elevaite ./helm/elevaite \
+  -f ./helm/elevaite/values-staging.yaml \
+  --namespace elevaite-staging
+
+# Deploy to production (manual, requires typing "DEPLOY" to confirm)
+# Triggered via GitHub Actions workflow_dispatch
+```
+
+**Helm values files:**
+- `values.yaml` - Default values
+- `values-staging.yaml` - Staging overrides
+- `values-production.yaml` - Production overrides
+
+For infrastructure details, see [INFRASTRUCTURE.md](./INFRASTRUCTURE.md).
+
 ### Running CI Locally
 
 Before pushing, run the same checks CI will run:

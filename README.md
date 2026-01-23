@@ -28,7 +28,7 @@ Once running, open:
 |----------|--------------|
 | 📦 **[Local Setup](docs/LOCAL_SETUP.md)** | Get running locally, troubleshoot issues |
 | 👩‍💻 **[Developer Guide](docs/DEVELOPER_GUIDE.md)** | Before contributing: branching, testing, PRs |
-| ☁️ **[Infrastructure](docs/INFRASTRUCTURE_PROPOSAL.md)** | Understand production architecture |
+| ☁️ **[Infrastructure](docs/INFRASTRUCTURE.md)** | Understand production architecture |
 
 ## Repository Structure
 

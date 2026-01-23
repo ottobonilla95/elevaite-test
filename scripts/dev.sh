@@ -10,17 +10,19 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Start infrastructure first
-echo "📦 Starting infrastructure (PostgreSQL, Redis, Qdrant)..."
-docker-compose -f docker-compose.dev.yaml up -d postgres redis qdrant
+echo "📦 Starting infrastructure (PostgreSQL, Qdrant, RabbitMQ, MinIO)..."
+docker-compose -f docker-compose.dev.yaml up -d postgres qdrant rabbitmq minio
 
 # Wait for infra
 echo "⏳ Waiting for infrastructure..."
 until nc -z localhost 5433 2>/dev/null; do sleep 1; done
 echo "  ✅ PostgreSQL ready"
-until nc -z localhost 16379 2>/dev/null; do sleep 1; done
-echo "  ✅ Redis ready"
 until nc -z localhost 6333 2>/dev/null; do sleep 1; done
 echo "  ✅ Qdrant ready"
+until nc -z localhost 5672 2>/dev/null; do sleep 1; done
+echo "  ✅ RabbitMQ ready"
+until nc -z localhost 9000 2>/dev/null; do sleep 1; done
+echo "  ✅ MinIO ready"
 
 echo ""
 echo "🔧 Starting backend services..."
@@ -115,6 +117,8 @@ echo "     Elevaite App:    http://localhost:3001"
 echo "     Auth API Docs:   http://localhost:8004/docs"
 echo "     Workflow Docs:   http://localhost:8006/docs"
 echo "     Qdrant UI:       http://localhost:6333/dashboard"
+echo "     RabbitMQ UI:     http://localhost:15672  (elevaite/elevaite)"
+echo "     MinIO Console:   http://localhost:9001   (minioadmin/minioadmin)"
 echo ""
 echo "  💡 Commands:"
 echo "     npm run dev:logs   - View all logs"

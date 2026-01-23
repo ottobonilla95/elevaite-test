@@ -2,31 +2,46 @@
   "name": "elevaite-repo",
   "private": true,
   "scripts": {
+    "prepare": "husky",
     "superfrontploy": "node superfrontploy.mjs",
-    "build": "turbo build",
+    "build": "turbo build --filter=auth --filter=elevaite",
+    "build:all": "turbo build",
     "dev": "bash scripts/dev.sh",
     "dev:raw": "concurrently -k -n infra,backend,frontend -c blue,yellow,green \"npm run dev:infra\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:turbo": "turbo dev --concurrency=20",
-    "dev:infra": "docker-compose -f docker-compose.dev.yaml up postgres redis qdrant",
-    "dev:backend": "wait-on tcp:5433 tcp:16379 tcp:6333 && docker-compose -f docker-compose.dev.yaml up auth-api workflow-engine ingestion",
+    "dev:infra": "docker-compose -f docker-compose.dev.yaml up postgres qdrant rabbitmq minio",
+    "dev:backend": "wait-on tcp:5433 tcp:6333 tcp:5672 tcp:9000 && docker-compose -f docker-compose.dev.yaml up auth-api workflow-engine ingestion",
     "dev:frontend": "wait-on tcp:8004 tcp:8006 tcp:8001 && turbo run dev --filter=auth --filter=elevaite",
     "dev:down": "docker-compose -f docker-compose.dev.yaml down",
     "dev:clean": "docker-compose -f docker-compose.dev.yaml down -v",
     "dev:logs": "docker-compose -f docker-compose.dev.yaml logs -f",
     "dev:death": "docker-compose -f docker-compose.dev.yaml down -v --remove-orphans; docker rm -f $(docker ps -aq) 2>/dev/null; docker network prune -f; echo '💀 Everything is dead'",
-    "lint": "turbo lint",
-    "type-check": "turbo type-check",
+    "lint": "turbo lint --filter=auth --filter=elevaite",
+    "lint:frontend": "turbo lint --filter=auth --filter=elevaite",
+    "lint:frontend:all": "turbo lint",
+    "lint:python": "uv run ruff check python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/",
+    "lint:python:fix": "uv run ruff check python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/ --fix",
+    "lint:python:all": "uv run ruff check python_apps/ python_packages/",
+    "lint:all": "npm run lint && npm run lint:python",
+    "type-check": "turbo type-check --filter=auth --filter=elevaite",
+    "type-check:all": "turbo type-check",
     "test": "npm run test:frontend && npm run test:python",
     "test:frontend": "turbo test --filter=auth --filter=elevaite",
-    "test:python": "pytest --tb=short",
-    "test:python:cov": "pytest --cov=python_apps --cov=python_packages --cov-report=html --cov-report=term",
+    "test:python": "uv run pytest --tb=short",
+    "test:python:cov": "uv run pytest --cov=python_apps --cov=python_packages --cov-report=html --cov-report=term",
     "clean": "turbo clean",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format:python": "uv run ruff format python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/",
+    "format:python:check": "uv run ruff format --check python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/",
+    "format:python:all": "uv run ruff format python_apps/ python_packages/",
+    "format:all": "npm run format && npm run format:python"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
     "concurrently": "^8.2.2",
     "eslint": "^8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
     "turbo": "^2.5.3",
@@ -45,5 +60,19 @@
     "@repo/sass-config": "file:packages/config-sass",
     "@repo/typescript-config": "file:packages/config-typescript",
     "@repo/eslint-config": "file:packages/config-eslint"
+  },
+  "lint-staged": {
+    "python_apps/{auth_api,workflow-engine-poc,ingestion-service}/**/*.py": [
+      "uv run ruff check --fix",
+      "uv run ruff format"
+    ],
+    "python_packages/**/*.py": [
+      "uv run ruff check --fix",
+      "uv run ruff format"
+    ],
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

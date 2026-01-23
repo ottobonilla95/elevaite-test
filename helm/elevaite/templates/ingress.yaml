@@ -1,0 +1,139 @@
+{{- if .Values.ingress.enabled }}
+# =============================================================================
+# API INGRESS (Backend Services)
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "elevaite.fullname" . }}-api
+  labels:
+    {{- include "elevaite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api-ingress
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.api.host | quote }}
+      http:
+        paths:
+          {{- range .Values.ingress.api.paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                {{- if eq .service "auth-api" }}
+                name: {{ include "elevaite.fullname" $ }}-auth-api
+                port:
+                  number: {{ $.Values.authApi.service.port }}
+                {{- else if eq .service "workflow-engine" }}
+                name: {{ include "elevaite.fullname" $ }}-workflow-engine
+                port:
+                  number: {{ $.Values.workflowEngine.service.port }}
+                {{- else if eq .service "ingestion" }}
+                name: {{ include "elevaite.fullname" $ }}-ingestion
+                port:
+                  number: {{ $.Values.ingestion.service.port }}
+                {{- end }}
+          {{- end }}
+
+---
+# =============================================================================
+# AUTH APP INGRESS (Login/Signup Frontend)
+# =============================================================================
+{{- if and .Values.ingress.authApp.enabled .Values.frontend.auth.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "elevaite.fullname" . }}-auth-app
+  labels:
+    {{- include "elevaite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: auth-app-ingress
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    {{- if has $.Values.ingress.authApp.host .hosts }}
+    - hosts:
+        - {{ $.Values.ingress.authApp.host | quote }}
+      secretName: {{ .secretName }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.authApp.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "elevaite.fullname" . }}-auth-app
+                port:
+                  number: {{ .Values.frontend.auth.service.port }}
+{{- end }}
+
+---
+# =============================================================================
+# MAIN APP INGRESS (Elevaite Frontend)
+# =============================================================================
+{{- if and .Values.ingress.mainApp.enabled .Values.frontend.elevaite.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "elevaite.fullname" . }}-main-app
+  labels:
+    {{- include "elevaite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: main-app-ingress
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    {{- if has $.Values.ingress.mainApp.host .hosts }}
+    - hosts:
+        - {{ $.Values.ingress.mainApp.host | quote }}
+      secretName: {{ .secretName }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.mainApp.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "elevaite.fullname" . }}-elevaite-app
+                port:
+                  number: {{ .Values.frontend.elevaite.service.port }}
+{{- end }}
+{{- end }}

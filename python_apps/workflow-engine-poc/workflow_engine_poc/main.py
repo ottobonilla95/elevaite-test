@@ -56,9 +56,13 @@ try:
     from dbos import DBOS as _DBOS_EARLY, DBOSConfig as _DBOSConfig_EARLY
     from workflow_core_sdk.db.database import DATABASE_URL as _ENGINE_DB_URL
 
-    _dbos_db_url_early = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
+    _dbos_db_url_early = (
+        os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
+    )
     _app_name_early = os.getenv("DBOS_APPLICATION_NAME") or "workflow-engine-poc-sdk"
-    _app_version_early = os.getenv("DBOS_APPLICATION_VERSION")  # Fixed version for recovery
+    _app_version_early = os.getenv(
+        "DBOS_APPLICATION_VERSION"
+    )  # Fixed version for recovery
     _cfg_early: _DBOSConfig_EARLY = {
         "name": _app_name_early,
         "system_database_url": _dbos_db_url_early,
@@ -164,7 +168,9 @@ async def lifespan(app: FastAPI):
         try:
             from workflow_core_sdk.scheduler import WorkflowScheduler
 
-            scheduler = WorkflowScheduler(poll_interval_seconds=int(os.getenv("SCHEDULER_POLL_SECONDS", "15")))
+            scheduler = WorkflowScheduler(
+                poll_interval_seconds=int(os.getenv("SCHEDULER_POLL_SECONDS", "15"))
+            )
             app.state.scheduler = scheduler
             await scheduler.start(app)
             logger.info("✅ Scheduler started (SDK)")
@@ -259,9 +265,15 @@ if not os.getenv("TESTING"):
         from dbos import DBOS as _DBOS, DBOSConfig as _DBOSConfig
         from workflow_core_sdk.db.database import DATABASE_URL as _ENGINE_DB_URL
 
-        _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
+        _dbos_db_url = (
+            os.getenv("DBOS_DATABASE_URL")
+            or os.getenv("DATABASE_URL")
+            or _ENGINE_DB_URL
+        )
         _app_name = os.getenv("DBOS_APPLICATION_NAME") or "workflow-engine-poc-sdk"
-        _app_version = os.getenv("DBOS_APPLICATION_VERSION")  # Fixed version for recovery
+        _app_version = os.getenv(
+            "DBOS_APPLICATION_VERSION"
+        )  # Fixed version for recovery
         _cfg: _DBOSConfig = {
             "name": _app_name,
             "system_database_url": _dbos_db_url,
@@ -270,7 +282,9 @@ if not os.getenv("TESTING"):
             _cfg["application_version"] = _app_version
         _dbos_inst = _DBOS(config=_cfg, fastapi=app)
         app.state.dbos = _dbos_inst
-        logger.info(f"✅ DBOS initialized for {_dbos_db_url} (app={_app_name}, version={_app_version or 'auto'})")
+        logger.info(
+            f"✅ DBOS initialized for {_dbos_db_url} (app={_app_name}, version={_app_version or 'auto'})"
+        )
     except Exception as _e:
         logger.warning(f"DBOS not initialized: {_e}")
 else:
@@ -300,3 +314,4 @@ if __name__ == "__main__":
             "*/node_modules/*",
         ],
     )
+# test

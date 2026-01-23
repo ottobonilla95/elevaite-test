@@ -1,0 +1,124 @@
+# ElevAIte Helm Chart - Staging Environment
+# Uses managed services provisioned by Terraform
+
+# =============================================================================
+# GLOBAL
+# =============================================================================
+global:
+  imageRegistry: "ghcr.io/your-org"  # Update with your registry
+  environment: "staging"
+
+# =============================================================================
+# APPLICATION SERVICES
+# =============================================================================
+authApi:
+  replicaCount: 1
+  image:
+    tag: "staging"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    LOG_LEVEL: DEBUG
+
+workflowEngine:
+  replicaCount: 1
+  image:
+    tag: "staging"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  env:
+    LOG_LEVEL: DEBUG
+    SCHEDULER_POLL_SECONDS: "5"
+
+ingestion:
+  replicaCount: 1
+  image:
+    tag: "staging"
+  env:
+    LOG_LEVEL: DEBUG
+
+worker:
+  replicaCount: 2
+  image:
+    tag: "staging"
+  autoscaling:
+    enabled: false
+
+# =============================================================================
+# INGRESS
+# =============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  hosts:
+    - host: api-staging.elevaite.ai
+      paths:
+        - path: /api/auth
+          pathType: Prefix
+          service: auth-api
+        - path: /
+          pathType: Prefix
+          service: workflow-engine
+  tls:
+    - secretName: elevaite-staging-tls
+      hosts:
+        - api-staging.elevaite.ai
+
+# =============================================================================
+# EXTERNAL SERVICES (Managed by Terraform)
+# Connection details injected from Terraform outputs
+# =============================================================================
+
+# PostgreSQL - AWS RDS / Azure DB / Google Cloud SQL
+# Staging uses smaller instance (db.t3.medium or equivalent)
+postgresql:
+  # Host injected from Terraform: ${terraform_output.database_host}
+  host: ""  # Set via --set or CI/CD from Terraform output
+  port: 5432
+  database: "elevaite_staging"
+  sslMode: "require"
+  existingSecret: "elevaite-db-credentials"
+
+# RabbitMQ - CloudAMQP or Amazon MQ
+# Staging uses smaller instance
+rabbitmq:
+  host: ""  # Set via --set or CI/CD from Terraform output
+  port: 5672
+  vhost: "staging"
+  existingSecret: "elevaite-rabbitmq-credentials"
+
+# Object Storage - S3 / GCS / Azure Blob
+objectStorage:
+  provider: "aws"  # or gcp, azure
+  bucket: "elevaite-staging-files"
+  region: "us-east-1"
+  existingSecret: "elevaite-storage-credentials"
+
+# Qdrant - Qdrant Cloud (optional for staging)
+qdrant:
+  enabled: false
+  host: ""
+  existingSecret: "elevaite-qdrant-credentials"
+
+# =============================================================================
+# SERVICE ACCOUNT
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  # AWS example:
+  # annotations:
+  #   eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/elevaite-staging-role

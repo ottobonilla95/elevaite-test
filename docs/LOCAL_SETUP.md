@@ -30,10 +30,11 @@ npm run dev
 You'll see status feedback as services start:
 
 ```
-📦 Starting infrastructure (PostgreSQL, Redis, Qdrant)...
+📦 Starting infrastructure (PostgreSQL, Qdrant, RabbitMQ, MinIO)...
   ✅ PostgreSQL ready
-  ✅ Redis ready
   ✅ Qdrant ready
+  ✅ RabbitMQ ready
+  ✅ MinIO ready
 
 🔧 Starting backend services...
   ✅ auth-api ready (port 8004)
@@ -52,6 +53,8 @@ You'll see status feedback as services start:
 | Auth API Docs | http://localhost:8004/docs | API documentation |
 | Workflow Engine Docs | http://localhost:8006/docs | API documentation |
 | Qdrant Dashboard | http://localhost:6333/dashboard | Vector DB UI |
+| RabbitMQ UI | http://localhost:15672 | Message queue management (elevaite/elevaite) |
+| MinIO Console | http://localhost:9001 | Object storage UI (minioadmin/minioadmin) |
 
 ## Environment Variables
 
@@ -100,7 +103,6 @@ docker-compose -f docker-compose.dev.yaml logs ingestion
 ```bash
 # Find what's using a port
 lsof -i :5433   # PostgreSQL
-lsof -i :16379  # Redis
 lsof -i :8004   # Auth API
 
 # Kill the process or use dev:death to clean up
@@ -147,4 +149,4 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
 ## Next Steps
 
 - **[Developer Guide](./DEVELOPER_GUIDE.md)** - Branching, testing, CI/CD, code style
-- **[Infrastructure Proposal](./INFRASTRUCTURE_PROPOSAL.md)** - Cloud architecture
+- **[Infrastructure](./INFRASTRUCTURE.md)** - Cloud architecture

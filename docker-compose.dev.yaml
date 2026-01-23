@@ -7,8 +7,9 @@
 
 volumes:
   postgres_data:
-  redis_data:
   qdrant_data:
+  rabbitmq_data:
+  minio_data:
 
 services:
   # ============================================================
@@ -32,19 +33,6 @@ services:
       timeout: 3s
       retries: 10
 
-  redis:
-    image: redis:7-alpine
-    container_name: elevaite-redis
-    ports:
-      - "16379:6379"  # Use 16379 externally to avoid conflicts with local Redis
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 3s
-      timeout: 3s
-      retries: 10
-
   qdrant:
     image: qdrant/qdrant:latest
     container_name: elevaite-qdrant
@@ -53,7 +41,47 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
-    # No healthcheck - Qdrant is slow to start and services retry connections anyway
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: elevaite-rabbitmq
+    ports:
+      - "5672:5672"    # AMQP protocol
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: elevaite
+      RABBITMQ_DEFAULT_PASS: elevaite
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: elevaite-minio
+    ports:
+      - "9000:9000"    # S3 API
+      - "9001:9001"    # Console UI
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # ============================================================
   # BACKEND SERVICES
@@ -92,12 +120,17 @@ services:
     env_file:
       - .env
     environment:
-      SQLALCHEMY_DATABASE_URL: postgresql://elevaite:elevaite@postgres:5432/workflow_engine
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
+      SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/workflow_engine
       INGESTION_SERVICE_URL: http://ingestion:8000
       LOG_LEVEL: DEBUG
       SCHEDULER_POLL_SECONDS: "2"
+      # RabbitMQ for async task queues
+      RABBITMQ_URL: amqp://elevaite:elevaite@rabbitmq:5672/
+      # MinIO for S3-compatible object storage
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_SECURE: "false"
       # Dummy AWS creds to skip slow EC2 metadata lookup in local dev
       AWS_ACCESS_KEY_ID: "local-dev-key"
       AWS_SECRET_ACCESS_KEY: "local-dev-secret"
@@ -105,7 +138,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
+      rabbitmq:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      ingestion:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
@@ -122,14 +159,21 @@ services:
     ports:
       - "8001:8000"
     environment:
-      DATABASE_URL: postgresql://elevaite:elevaite@postgres:5432/elevaite_ingestion
-      DBOS_DATABASE_URL: postgresql://elevaite:elevaite@postgres:5432/elevaite_ingestion
+      DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/elevaite_ingestion
+      DBOS_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/elevaite_ingestion
       SERVICE_HOST: "0.0.0.0"
       SERVICE_PORT: "8000"
       WORKFLOW_ENGINE_URL: http://workflow-engine:8006
       QDRANT_HOST: qdrant
       QDRANT_PORT: "6333"
       LOG_LEVEL: DEBUG
+      # RabbitMQ for async task queues
+      RABBITMQ_URL: amqp://elevaite:elevaite@rabbitmq:5672/
+      # MinIO for S3-compatible object storage
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_SECURE: "false"
       # Dummy AWS creds to skip slow EC2 metadata lookup in local dev
       AWS_ACCESS_KEY_ID: "local-dev-key"
       AWS_SECRET_ACCESS_KEY: "local-dev-secret"
@@ -139,6 +183,8 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 5s

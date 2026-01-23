@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = "==3.11.11"
 resolution-markers = [
     "sys_platform == 'win32'",
@@ -1508,6 +1508,24 @@ name = "elevaite"
 version = "2.0"
 source = { virtual = "." }
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", specifier = ">=0.23.0" },
+    { name = "pytest-cov", specifier = ">=4.0.0" },
+    { name = "ruff", specifier = ">=0.14.0" },
+]
+
 [[package]]
 name = "elevaite-client"
 version = "0.1.2"
@@ -2472,11 +2490,13 @@ name = "ingestion-service"
 version = "0.1.0"
 source = { editable = "python_apps/ingestion-service" }
 dependencies = [
+    { name = "alembic" },
     { name = "dbos" },
     { name = "elevaite-ingestion" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "litellm" },
+    { name = "psycopg2-binary" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
@@ -2495,12 +2515,14 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "alembic", specifier = ">=1.12.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
     { name = "dbos", specifier = ">=0.9.0" },
     { name = "elevaite-ingestion", editable = "python_packages/elevaite_ingestion" },
     { name = "fastapi", specifier = ">=0.104.0" },
     { name = "httpx", specifier = ">=0.25.0" },
     { name = "litellm", specifier = ">=1.0.0" },
+    { name = "psycopg2-binary", specifier = ">=2.9.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
     { name = "pydantic-settings", specifier = ">=2.1.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.0" },

@@ -1,0 +1,387 @@
+# ElevAIte Helm Chart - Default Values
+# Override these in values-staging.yaml or values-production.yaml
+#
+# IMPORTANT: All data services (PostgreSQL, RabbitMQ, etc.) are
+# EXTERNAL MANAGED SERVICES. No databases run in containers.
+
+# =============================================================================
+# GLOBAL SETTINGS
+# =============================================================================
+global:
+  # Container registry (e.g., ghcr.io/your-org, your-account.dkr.ecr.region.amazonaws.com)
+  imageRegistry: ""
+  # Pull secrets for private registries
+  imagePullSecrets: []
+  # Common labels applied to all resources
+  labels: {}
+  # Environment name (dev, staging, production)
+  environment: "dev"
+
+# =============================================================================
+# SECRETS (Disabled by default - created externally via CI/CD)
+# =============================================================================
+secrets:
+  # Set to true to create secrets via Helm (for local dev only)
+  create: false
+  # Only used when secrets.create is true
+  postgresql:
+    user: "elevaite"
+    password: ""
+  rabbitmq:
+    user: "elevaite"
+    password: ""
+  storage:
+    accessKey: ""
+    secretKey: ""
+  app: {}
+
+# =============================================================================
+# AUTH API
+# =============================================================================
+authApi:
+  enabled: true
+  replicaCount: 1
+  
+  image:
+    repository: elevaite-auth-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8004
+  
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  env:
+    LOG_LEVEL: INFO
+    DEBUG: "0"
+  
+  # Additional environment variables from secrets
+  envFromSecrets:
+    - elevaite-secrets
+
+# =============================================================================
+# WORKFLOW ENGINE
+# =============================================================================
+workflowEngine:
+  enabled: true
+  replicaCount: 1
+  
+  image:
+    repository: elevaite-workflow-engine
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8006
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  env:
+    LOG_LEVEL: INFO
+    SCHEDULER_POLL_SECONDS: "5"
+  
+  envFromSecrets:
+    - elevaite-secrets
+
+# =============================================================================
+# INGESTION SERVICE
+# =============================================================================
+ingestion:
+  enabled: true
+  replicaCount: 1
+  
+  image:
+    repository: elevaite-ingestion
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8000
+  
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  env:
+    LOG_LEVEL: INFO
+  
+  envFromSecrets:
+    - elevaite-secrets
+
+# =============================================================================
+# WORKERS (Background Job Processors)
+# =============================================================================
+worker:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: elevaite-workflow-engine
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  # Command override to run in worker mode
+  command: ["python", "-m", "workflow_engine_poc.worker"]
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  env:
+    LOG_LEVEL: INFO
+  
+  envFromSecrets:
+    - elevaite-secrets
+
+# =============================================================================
+# CODE EXECUTION SERVICE (Sandboxed)
+# =============================================================================
+codeExecution:
+  enabled: false  # Enable when ready
+  replicaCount: 1
+  
+  image:
+    repository: elevaite-code-execution
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8007
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  # Security context for Nsjail (requires privileged or specific capabilities)
+  securityContext:
+    privileged: false  # Set to true if using Nsjail
+    capabilities:
+      add: []
+  
+  env:
+    LOG_LEVEL: INFO
+    EXECUTION_TIMEOUT_SECONDS: "30"
+    MAX_MEMORY_MB: "256"
+
+# =============================================================================
+# FRONTEND APPS (Next.js)
+# =============================================================================
+frontend:
+  # Auth App - Login/Signup UI
+  auth:
+    enabled: true
+    replicaCount: 1
+    
+    image:
+      repository: elevaite-auth-app
+      tag: latest
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 3000
+      targetPort: 3105
+    
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    
+    # Public URLs (accessible from browser)
+    nextAuthUrl: "https://auth.elevaite.local"
+    publicAuthApiUrl: "https://api.elevaite.local"
+    
+    # Google OAuth
+    googleAuth:
+      enabled: true
+    
+    env: {}
+  
+  # Elevaite App - Main Application UI
+  elevaite:
+    enabled: true
+    replicaCount: 1
+    
+    image:
+      repository: elevaite-app
+      tag: latest
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 3001
+      targetPort: 3101
+    
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    
+    # Public URLs (accessible from browser)
+    nextAuthUrl: "https://app.elevaite.local"
+    publicAuthApiUrl: "https://api.elevaite.local"
+    publicWorkflowApiUrl: "https://api.elevaite.local"
+    
+    env: {}
+
+# =============================================================================
+# INGRESS
+# =============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  
+  annotations:
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  
+  # API Ingress (backend services)
+  api:
+    host: api.elevaite.local
+    paths:
+      - path: /api/auth
+        pathType: Prefix
+        service: auth-api
+      - path: /
+        pathType: Prefix
+        service: workflow-engine
+  
+  # Auth App Ingress (login/signup frontend)
+  authApp:
+    enabled: true
+    host: auth.elevaite.local
+  
+  # Main App Ingress (elevaite frontend)
+  mainApp:
+    enabled: true
+    host: app.elevaite.local
+  
+  tls: []
+  # - secretName: elevaite-api-tls
+  #   hosts:
+  #     - api.elevaite.local
+  # - secretName: elevaite-auth-tls
+  #   hosts:
+  #     - auth.elevaite.local
+  # - secretName: elevaite-app-tls
+  #   hosts:
+  #     - app.elevaite.local
+
+# =============================================================================
+# EXTERNAL POSTGRESQL (Managed Service - REQUIRED)
+# =============================================================================
+# All environments use managed PostgreSQL (AWS RDS, Azure DB, Google Cloud SQL)
+# Connection details are provided via Terraform outputs or secrets
+postgresql:
+  # Host from managed service (e.g., xxx.rds.amazonaws.com)
+  host: ""
+  port: 5432
+  database: "elevaite"
+  # SSL mode for secure connections
+  sslMode: "require"
+  # Secret containing username and password
+  # Secret should have keys: POSTGRES_USER, POSTGRES_PASSWORD
+  existingSecret: "elevaite-db-credentials"
+
+# =============================================================================
+# EXTERNAL RABBITMQ (Managed Service - REQUIRED)
+# =============================================================================
+# CloudAMQP, Amazon MQ, or self-hosted RabbitMQ cluster
+rabbitmq:
+  host: ""
+  port: 5672
+  vhost: "/"
+  # Secret containing username and password
+  # Secret should have keys: RABBITMQ_USER, RABBITMQ_PASSWORD
+  existingSecret: "elevaite-rabbitmq-credentials"
+
+# =============================================================================
+# EXTERNAL OBJECT STORAGE (S3/GCS/Azure Blob - REQUIRED)
+# =============================================================================
+# AWS S3, Google Cloud Storage, Azure Blob Storage
+objectStorage:
+  # Provider: aws, gcp, azure
+  provider: "aws"
+  # S3-compatible endpoint (leave empty for native AWS S3)
+  endpoint: ""
+  bucket: "elevaite-files"
+  region: "us-east-1"
+  # Secret containing access credentials
+  # Secret should have keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (or equivalent)
+  existingSecret: "elevaite-storage-credentials"
+
+# =============================================================================
+# EXTERNAL QDRANT (Vector Database - OPTIONAL)
+# =============================================================================
+# Qdrant Cloud or self-hosted Qdrant cluster
+qdrant:
+  enabled: false
+  host: ""
+  port: 6333
+  # Use gRPC for better performance
+  grpcPort: 6334
+  # Secret containing API key
+  # Secret should have key: QDRANT_API_KEY
+  existingSecret: "elevaite-qdrant-credentials"
+
+# =============================================================================
+# SERVICE ACCOUNT
+# =============================================================================
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  # AWS: eks.amazonaws.com/role-arn: arn:aws:iam::xxx:role/elevaite-role
+  # GCP: iam.gke.io/gcp-service-account: elevaite@project.iam.gserviceaccount.com
+
+# =============================================================================
+# POD SETTINGS
+# =============================================================================
+podAnnotations: {}
+podSecurityContext: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

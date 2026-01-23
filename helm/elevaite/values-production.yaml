@@ -1,0 +1,162 @@
+# ElevAIte Helm Chart - Production Environment
+# Uses managed services provisioned by Terraform
+
+# =============================================================================
+# GLOBAL
+# =============================================================================
+global:
+  imageRegistry: "ghcr.io/your-org"  # Update with your registry
+  environment: "production"
+
+# =============================================================================
+# APPLICATION SERVICES
+# =============================================================================
+authApi:
+  replicaCount: 2  # HA: multiple replicas
+  image:
+    tag: "latest"  # Or pinned version
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  env:
+    LOG_LEVEL: INFO
+    DEBUG: "0"
+
+workflowEngine:
+  replicaCount: 2  # HA: multiple replicas
+  image:
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  env:
+    LOG_LEVEL: INFO
+    SCHEDULER_POLL_SECONDS: "3"
+
+ingestion:
+  replicaCount: 2  # HA: multiple replicas
+  image:
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  env:
+    LOG_LEVEL: INFO
+
+worker:
+  replicaCount: 3  # More workers for production load
+  image:
+    tag: "latest"
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# =============================================================================
+# INGRESS
+# =============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+  hosts:
+    - host: api.elevaite.ai
+      paths:
+        - path: /api/auth
+          pathType: Prefix
+          service: auth-api
+        - path: /
+          pathType: Prefix
+          service: workflow-engine
+  tls:
+    - secretName: elevaite-prod-tls
+      hosts:
+        - api.elevaite.ai
+
+# =============================================================================
+# EXTERNAL SERVICES (Managed by Terraform)
+# All connection details injected from Terraform outputs
+# =============================================================================
+
+# PostgreSQL - AWS RDS / Azure DB / Google Cloud SQL
+# Production uses Multi-AZ, larger instance (db.r6g.large or equivalent)
+postgresql:
+  host: ""  # Set via --set or CI/CD from Terraform output
+  port: 5432
+  database: "elevaite"
+  sslMode: "require"
+  existingSecret: "elevaite-db-credentials"
+
+# RabbitMQ - CloudAMQP or Amazon MQ
+# Production uses clustered/HA setup
+rabbitmq:
+  host: ""  # Set via --set or CI/CD from Terraform output
+  port: 5672
+  vhost: "production"
+  existingSecret: "elevaite-rabbitmq-credentials"
+
+# Object Storage - S3 / GCS / Azure Blob
+objectStorage:
+  provider: "aws"  # or gcp, azure
+  bucket: "elevaite-production-files"
+  region: "us-east-1"
+  existingSecret: "elevaite-storage-credentials"
+
+# Qdrant - Qdrant Cloud or managed
+qdrant:
+  enabled: true
+  host: ""  # Set via --set or CI/CD from Terraform output
+  existingSecret: "elevaite-qdrant-credentials"
+
+# =============================================================================
+# SERVICE ACCOUNT
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  # AWS example:
+  # annotations:
+  #   eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/elevaite-prod-role
+
+# =============================================================================
+# POD SETTINGS (Production hardening)
+# =============================================================================
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: elevaite
+          topologyKey: kubernetes.io/hostname
