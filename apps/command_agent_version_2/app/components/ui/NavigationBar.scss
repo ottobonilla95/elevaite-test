@@ -1,0 +1,68 @@
+
+
+.navigation-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 14px;    
+    padding: 4px 14px;
+    
+    background-color: var(--ev-colors-primary);
+    border-radius: 50px;
+
+
+    .navigation-bar-button {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        padding: 10px;
+
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--ev-colors-text);
+        background-color: var(--ev-colors-primary);
+        border: 1px solid var(--ev-colors-primary);
+        border-radius: 50px;
+
+        transition: gap 200ms ease;
+
+        &.active {
+            color: var(--ev-colors-highlight);
+            background-color: var(--ev-colors-background);
+            border-color: var(--ev-colors-borderColor);
+            gap: 4px;
+
+            .navigation-button-label {
+                max-width: 100px;
+            }
+        }
+
+        &.hover:hover {
+            gap: 4px;
+            .navigation-button-label {
+                max-width: 100px;
+            }
+        }
+        &.staticLabels {
+            gap: 4px;
+            .navigation-button-label {
+                max-width: 100px;
+            }
+        }
+
+
+        .navigation-button-label {
+            max-width: 0;
+            overflow: hidden;
+
+            transition: max-width 200ms ease;
+        }
+
+        .navigation-button-icon-container {
+            height: 16px;
+            width: 16px;
+            & > svg {
+                width: 100%;
+            }
+        }
+    }
+}

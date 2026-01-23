@@ -1,0 +1,25 @@
+
+
+.model-selection-container {
+
+
+}
+
+
+.model-selection-menu {
+
+    .model-tag {
+        padding: 0 6px;
+        border-radius: 4px;
+        // background-color: #EBF2FE;
+        // color: #0950C3;        
+        background-color: #FFEED7;
+        color: var(--ev-colors-highlight);
+        font-size: 12px;
+    }
+}
+
+
+body[style*="--ev-colors-type: dark"] .invert-on-dark {
+    filter: invert(1);
+}

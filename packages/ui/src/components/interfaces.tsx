@@ -13,6 +13,8 @@ export interface CommonSelectOption {
     icon?: React.ReactElement;
     disabled?: boolean;
     isSeparator?: React.ReactElement | boolean;
+    suffix?: React.ReactNode;
+    tooltip?: string | React.ReactNode;
     extras?: {
         prefix?: { label: string, tooltip?: string };
         postfix?: { label: string, tooltip?: string };

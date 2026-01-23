@@ -40,18 +40,7 @@
     "apps/*",
     "packages/*"
   ],
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.810.0",
-    "@aws-sdk/s3-request-presigner": "^3.810.0",
-    "aws-sdk": "^2.1692.0",
-    "fix": "^0.0.6",
-    "next": "^14.2.10",
-    "react-flow-renderer": "^10.3.17",
-    "react-markdown": "^10.1.0",
-    "react-range-slider-input": "^3.2.1",
-    "remark-gfm": "^4.0.1",
-    "sass": "^1.69.7"
-  },
+  "dependencies": {},
   "resolutions": {
     "@repo/sass-config": "file:packages/config-sass",
     "@repo/typescript-config": "file:packages/config-typescript",

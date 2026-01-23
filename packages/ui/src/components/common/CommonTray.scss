@@ -1,0 +1,19 @@
+
+
+.common-tray-container {    
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 200ms ease;
+
+    &.open {
+        grid-template-rows: 1fr;
+    }
+
+    .common-tray-content {
+        overflow: hidden;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+    }
+}

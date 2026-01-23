@@ -1,70 +1,94 @@
 
 
+@mixin menu-floating-styles {
+    z-index: 50;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 150ms ease-in-out;
+    pointer-events: none;
+    
+    &.open {
+        grid-template-rows: 1fr;
+        pointer-events: auto;
+    }
+
+    & .common-menu-accordion {
+        overflow: hidden;
+    }
+
+    & .common-menu-contents {
+        margin: 8px;
+        box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
+        color: var(--ev-colors-secondaryText);
+        background-color: var(--ev-colors-primary);
+        border-radius: 8px;
+        padding: 8px 0;
+        overflow-y: auto;
+        @include scrollbar();
+
+        & .common-tooltip-anchor {
+            width: 100%;
+        }
+
+        & .common-menu-item-button {
+            color: var(--ev-colors-text);
+            background-color: var(--ev-colors-primary);
+            border-radius: 0;
+            width: 100%;
+            padding: 5px 10px;
+
+            &:hover {
+                background-color: var(--ev-colors-secondary);
+                color: var(--ev-colors-highlight);
+            }
+
+            & .menu-label {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                &.short { max-width: 150px; }
+                &.medium { max-width: 300px; }
+                &.long { max-width: 450px; }
+            }
+        }
+        & .common-menu-item-category-label {
+            padding: 5px 10px;
+            cursor: default;
+            font-size: 14px;
+            color: var(--ev-colors-secondaryText);
+        }
+    }
+}
 
 
 
 .common-menu-container {
     position: relative;
 
-
     & .common-menu-button {
-
+        flex-shrink: 0;
     }
 
     & .common-menu-anchor {
         position: absolute;
-
+        min-width: 100%;
+        width: max-content;
+        
         &.top { bottom: 100%; }
         &.bottom { top: 100%; }
         &.left { right: 100%; &.side-cover { right: 0; } }
         &.right { left: 100%; &.side-cover {left: 0; } }
         
-        z-index: 50;
-        min-width: 100%;
-        width: max-content;
-        display: grid;
-        grid-template-columns: 1fr;
-        grid-template-rows: 0fr;
-        transition: grid-template-rows 150ms ease-in-out;
-        pointer-events: none;
-        
-        &.open {
-            grid-template-rows: 1fr;
-            pointer-events: all;
-        }
-
-        & .common-menu-accordion {
-            overflow: hidden;
-        }
-
-        & .common-menu-contents {
-            margin: 5px;
-            box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.5);
-            color: var(--ev-colors-secondaryText);
-            background-color: var(--ev-colors-primary);
-            border-radius: 8px;
-            padding: 8px 0;
-
-            & > button {
-                background-color: var(--ev-colors-primary);
-                border-radius: 0;
-                width: 100%;
-                padding: 5px 10px;
-
-                &:hover {
-                    background-color: var(--ev-colors-secondary);
-                    color: var(--ev-colors-highlight);
-                }
-
-                & .menu-label {
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                    &.short { max-width: 150px; }
-                    &.medium { max-width: 300px; }
-                    &.long { max-width: 450px; }
-                }
-            }
-        }
+        @include menu-floating-styles;
     }
 }
+
+// Portal-based floating menu
+.common-menu-floating {
+    min-width: max-content;
+    width: max-content;
+    @include menu-floating-styles;
+}
+
+

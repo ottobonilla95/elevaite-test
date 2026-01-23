@@ -1,4 +1,5 @@
 "use client";
+import type { JSX } from "react";
 import { useContext, useEffect, useRef, useState } from "react";
 import { ColorContext } from "../../contexts";
 import SVGMagnifyingGlass from "../icons/elevaite/svgMagnifyingGlass";

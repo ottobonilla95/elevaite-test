@@ -1,0 +1,7 @@
+.command-edge {
+  stroke: var(--ev-colors-borderColor);
+  transition: stroke 0.2s ease;
+}
+.command-edge.active {
+  stroke: var(--ev-colors-highlight);
+}

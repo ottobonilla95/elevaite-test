@@ -297,5 +297,6 @@ if __name__ == "__main__":
             "logs/*",
             "data/*",
             "*.json",
+            "*/node_modules/*",
         ],
     )

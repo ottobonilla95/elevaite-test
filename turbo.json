@@ -39,7 +39,8 @@
     "AUTH_TENANT_ID",
     "AUTH_API_URL",
     "AUTH_COOKIE_PREFIX",
-    "BACKEND_URL"
+    "BACKEND_URL",
+    "ELEVAITE_API_KEY"
   ],
   "tasks": {
     "build": {

@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import "./CommonToggle.scss";
 
 interface CommonToggleProps {

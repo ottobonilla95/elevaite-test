@@ -3,6 +3,7 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 
 
+from .config.thinking import apply_thinking_defaults
 from .models.provider import ModelProviderFactory
 from .models.embeddings.core.base import BaseEmbeddingProvider
 from .models.vision.core.base import BaseVisionProvider
@@ -56,14 +57,16 @@ class TextGenerationService:
         response_format: Optional[Dict[str, Any]] = None,
         files: Optional[List[str]] = None,
     ) -> TextGenerationResponse:
-        provider = self.factory.get_provider(config["type"])
+        # Apply thinking defaults based on provider type
+        processed_config = apply_thinking_defaults(config)
+        provider = self.factory.get_provider(processed_config["type"])
 
         try:
             if not isinstance(provider, BaseTextGenerationProvider):
                 raise TypeError(f"Provider is not a BaseTextGenerationProvider")
             return provider.generate_text(
                 prompt=prompt,
-                config=config,
+                config=processed_config,
                 max_tokens=max_tokens,
                 model_name=model_name,
                 sys_msg=sys_msg,
@@ -98,13 +101,15 @@ class TextGenerationService:
         """Yield streaming events from the provider. Events are dicts like:
         {"type": "delta", "text": "..."} and a final {"type": "final", "response": {...}}.
         """
-        provider = self.factory.get_provider(config["type"])
+        # Apply thinking defaults based on provider type
+        processed_config = apply_thinking_defaults(config)
+        provider = self.factory.get_provider(processed_config["type"])
         try:
             if not isinstance(provider, BaseTextGenerationProvider):
                 raise TypeError("Provider is not a BaseTextGenerationProvider")
             yield from provider.stream_text(
                 prompt=prompt,
-                config=config,
+                config=processed_config,
                 max_tokens=max_tokens,
                 model_name=model_name,
                 sys_msg=sys_msg,
@@ -209,9 +214,11 @@ class UniversalService:
             elif request_type == RequestType.TEXT_GENERATION:
                 if not isinstance(provider, BaseTextGenerationProvider):
                     raise TypeError(f"Provider is not a BaseTextGenerationProvider")
+                # Apply thinking defaults based on provider type
+                processed_config = apply_thinking_defaults(kwargs.get("config"))
                 return provider.generate_text(
                     prompt=kwargs.get("prompt"),
-                    config=kwargs.get("config"),
+                    config=processed_config,
                     max_tokens=kwargs.get("max_tokens"),
                     model_name=kwargs.get("model_name"),
                     sys_msg=kwargs.get("sys_msg"),

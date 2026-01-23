@@ -1,0 +1,17 @@
+
+
+
+.command-agent-confirmation-dialog.common-dialog-contents {
+
+    .controls-container {
+        justify-content: flex-end;
+        button {
+            min-width: 0;
+            padding: 10px 20px;
+
+            &.submit {
+                color: var(--ev-colors-background);
+            }
+        }
+    }
+}

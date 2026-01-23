@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { CommonSelectOption } from "../interfaces";
 import "./AdvancedSelectOption.scss";
 import { CommonButton } from "./CommonButton";

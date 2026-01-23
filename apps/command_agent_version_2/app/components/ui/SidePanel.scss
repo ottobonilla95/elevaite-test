@@ -1,0 +1,115 @@
+
+
+.side-panel-container {
+    position: absolute;
+    left: 16px; top: 16px; bottom: 16px;
+
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+
+    color: var(--ev-colors-text);
+    background-color: var(--ev-colors-background);
+    border: 1px solid var(--ev-colors-borderColor);
+    border-radius: 16px;
+
+
+    .side-panel-contents {
+        flex-grow: 1;
+        width: 290px;
+        margin: 16px 8px;
+        max-width: 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 0;
+
+        transition: max-width 200ms ease, margin 200ms ease;
+
+        &.open, &:hover, &:focus-within {
+            max-width: 290px;
+
+            .side-panel-header {
+                border-bottom-color: transparent;
+                .side-panel-search-bar-container {
+                    .simple-input-container {
+                        border-color: var(--ev-colors-borderColor);
+                        padding: 8px 16px;
+
+                        &:focus-within {
+                            border-color: var(--ev-colors-highlight);
+                        }
+                    }
+                }
+            }
+        }
+
+
+        .side-panel-header {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            gap: 8px;
+            overflow-x: hidden;
+            border-bottom: 1px solid var(--ev-colors-borderColor);
+
+
+            .side-panel-search-bar-container {
+                flex-grow: 1;
+
+                .simple-input-container {
+                    padding: 8px;
+                    border-radius: 8px;
+                    border-color: transparent;
+                    transition: padding 200ms ease;
+                    
+                    .simple-input-contents {
+                        gap: 8px;
+                        font-size: 14px;
+
+                        & > svg {
+                            flex-shrink: 0;
+                            color: var(--ev-colors-highlight);
+                        }
+                        & > input {
+                            width: 100%;
+                            &::placeholder {
+                                color: var(--ev-colors-highlight);
+                            }
+                        }
+                    }
+                }
+            }
+
+            & > button {
+                flex-shrink: 0;
+                height: 25px;
+                width: 25px;
+                justify-content: center;
+                background-color: var(--ev-colors-background);
+
+                &.active {
+                    color: var(--ev-colors-highlight);
+                }
+            }
+        }
+
+
+        .side-panel-scroller {
+            flex-grow: 1;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding-right: 8px;
+            margin-right: -8px;
+            @include scrollbar();
+            scrollbar-gutter: stable;
+        }
+
+        .side-panel-scroller-contents {
+            display: flex;
+            flex-direction: column;
+        }
+    }
+    
+}

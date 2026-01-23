@@ -62,12 +62,24 @@ async def get_execution_status(
 
         if execution_context:
             summary = execution_context.get_execution_summary()
+            # Build per-step status dict for UI node status indicators
+            step_statuses: Dict[str, str] = {}
+            for step_id in execution_context.completed_steps:
+                step_statuses[step_id] = "completed"
+            for step_id in execution_context.failed_steps:
+                step_statuses[step_id] = "failed"
+            for step_id in execution_context.pending_steps:
+                step_statuses[step_id] = "pending"
+            # Current step is "running"
+            if execution_context.current_step:
+                step_statuses[execution_context.current_step] = "running"
             # For backwards compatibility, expose both flattened fields and nested
             # summary, and include step_io_data so clients can inspect step outputs.
             return {
                 **summary,
                 "execution_summary": summary,
                 "step_io_data": execution_context.step_io_data,
+                "step_statuses": step_statuses,
             }
 
         # Fallback to DB record
@@ -138,11 +150,14 @@ async def get_execution_status(
             # Logging must never break the endpoint
             pass
 
+        # Extract current_step from execution_metadata (set by DBOS workflow during execution)
+        current_step_from_meta = metadata.get("current_step") if isinstance(metadata, dict) else None
+
         execution_summary = {
             "execution_id": details.get("execution_id"),
             "workflow_id": details.get("workflow_id"),
             "status": status_str,
-            "current_step": None,
+            "current_step": current_step_from_meta,
             "completed_steps": summary_meta.get("completed_steps"),
             "failed_steps": summary_meta.get("failed_steps"),
             "pending_steps": None,
@@ -158,12 +173,33 @@ async def get_execution_status(
             },
         }
 
+        # Build step_statuses from step_io_data for DB fallback
+        # Derive status from output_data.success field
+        step_statuses: Dict[str, str] = {}
+        for step_id, output_data in step_io_from_db.items():
+            if isinstance(output_data, dict):
+                if output_data.get("success") is True:
+                    step_statuses[step_id] = "completed"
+                elif output_data.get("success") is False:
+                    step_statuses[step_id] = "failed"
+                else:
+                    # Has output but no explicit success field - assume completed
+                    step_statuses[step_id] = "completed"
+            else:
+                # Non-dict output - assume completed
+                step_statuses[step_id] = "completed"
+
+        # Mark current_step as "running" if set and not already in step_statuses
+        if current_step_from_meta and current_step_from_meta not in step_statuses:
+            step_statuses[current_step_from_meta] = "running"
+
         # Keep top-level summary fields for backwards compatibility and also expose
         # nested execution_summary and step_io_data from the DB record.
         return {
             **execution_summary,
             "execution_summary": execution_summary,
             "step_io_data": step_io_from_db,
+            "step_statuses": step_statuses,
             "execution_metadata": metadata,
         }
 

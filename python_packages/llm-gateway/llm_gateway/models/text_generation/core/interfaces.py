@@ -56,3 +56,4 @@ class TextGenerationResponse(BaseModel):
     tokens_out: int
     tool_calls: Optional[List[ToolCall]] = None
     finish_reason: Optional[str] = None
+    thinking_content: Optional[str] = None  # Reasoning/thinking data from models that support it

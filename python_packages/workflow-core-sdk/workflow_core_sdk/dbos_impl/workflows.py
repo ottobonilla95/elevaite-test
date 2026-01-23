@@ -80,6 +80,55 @@ def _persist_execution_status(
         logger.warning(f"Failed to persist DBOS status for {execution_id}: {e}", exc_info=True)
 
 
+def _topological_sort_steps(steps: list) -> list:
+    """
+    Topologically sort steps so dependencies execute before dependents.
+    Uses Kahn's algorithm for stable ordering.
+    """
+    if not steps:
+        return steps
+
+    # Build step lookup and dependency graph
+    step_by_id = {s.get("step_id"): s for s in steps if s.get("step_id")}
+    step_ids = set(step_by_id.keys())
+
+    # Build in-degree map and outgoing edges
+    in_degree: Dict[str, int] = {sid: 0 for sid in step_ids}
+    outgoing: Dict[str, list] = {sid: [] for sid in step_ids}
+
+    for step in steps:
+        step_id = step.get("step_id")
+        if not step_id:
+            continue
+        deps = step.get("dependencies") or []
+        for dep in deps:
+            if dep in step_ids:
+                in_degree[step_id] = in_degree.get(step_id, 0) + 1
+                outgoing.setdefault(dep, []).append(step_id)
+
+    # Start with steps that have no dependencies
+    queue = [sid for sid, degree in in_degree.items() if degree == 0]
+    sorted_ids: list = []
+
+    while queue:
+        current = queue.pop(0)
+        sorted_ids.append(current)
+        for neighbor in outgoing.get(current, []):
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+
+    # Append any remaining steps (cycles or missing step_id) in original order
+    sorted_id_set = set(sorted_ids)
+    for step in steps:
+        sid = step.get("step_id")
+        if sid and sid not in sorted_id_set:
+            sorted_ids.append(sid)
+
+    # Return steps in sorted order
+    return [step_by_id[sid] for sid in sorted_ids if sid in step_by_id]
+
+
 class DBOSWorkflowResult(TypedDict, total=False):
     success: bool | None
     execution_id: str
@@ -172,6 +221,10 @@ async def dbos_execute_workflow_durable(
         logger.warning(f"Failed to record DBOS wf_id for exec={execution_id}: {_rec_err}")
 
     steps = workflow_config.get("steps", [])
+
+    # Topologically sort steps so dependencies execute before dependents
+    steps = _topological_sort_steps(steps)
+
     if not steps:
         # Emit error event
         try:
@@ -204,6 +257,7 @@ async def dbos_execute_workflow_durable(
                 parts = source_spec.split(".")
                 source_step_id = parts[0]
                 field_path = parts[1:]
+                # Look in step_io_data for the source step's output
                 if source_step_id in step_io_data:
                     value = step_io_data[source_step_id]
                     for field in field_path:
@@ -242,6 +296,33 @@ async def dbos_execute_workflow_durable(
         # Inner loop to handle interactive WAITING steps by polling for new messages
         while True:
             input_data = _prepare_step_input(step)
+            # Persist current_step in execution_metadata before executing so polling can show "running"
+            try:
+                from ..db.service import DatabaseService as _DBSCurrent
+                from ..db.database import get_db_session as _get_sess_current
+                from sqlmodel import select as _sel_current
+                from ..db.models import WorkflowExecution as _WECurrent
+                import uuid as _uuid_current
+
+                _dbs_current = _DBSCurrent()
+                _sess_current = _get_sess_current()
+                try:
+                    # Fetch current metadata and merge current_step into it
+                    _exec_row = _sess_current.exec(
+                        _sel_current(_WECurrent).where(_WECurrent.id == _uuid_current.UUID(execution_id))
+                    ).first()
+                    if _exec_row:
+                        _meta = dict(_exec_row.execution_metadata or {})
+                        _meta["current_step"] = step_id
+                        _dbs_current.update_execution(
+                            _sess_current,
+                            execution_id,
+                            {"execution_metadata": _meta},
+                        )
+                finally:
+                    _sess_current.close()
+            except Exception as _curr_err:
+                adapter.logger.warning(f"Failed to persist current_step for {execution_id}: {_curr_err}")
             try:
                 res = await dbos_execute_step_durable(
                     step_type=step_type,
@@ -272,8 +353,40 @@ async def dbos_execute_workflow_durable(
                 except Exception:
                     pass
 
-                # Completed -> proceed to next step
+                # Completed -> persist step progress and proceed to next step
                 if res.get("success"):
+                    # Persist step_io_data to DB after each step so polling sees intermediate progress
+                    # Also clear current_step from metadata since step is now complete
+                    try:
+                        from ..db.service import DatabaseService as _DBSPersist
+                        from ..db.database import get_db_session as _get_sess_persist
+                        from sqlmodel import select as _sel_persist
+                        from ..db.models import WorkflowExecution as _WEPersist
+                        import uuid as _uuid_persist
+
+                        _dbs_persist = _DBSPersist()
+                        _sess_persist = _get_sess_persist()
+                        try:
+                            # Fetch current metadata and clear current_step
+                            _exec_row_p = _sess_persist.exec(
+                                _sel_persist(_WEPersist).where(_WEPersist.id == _uuid_persist.UUID(execution_id))
+                            ).first()
+                            _meta_p = {}
+                            if _exec_row_p:
+                                _meta_p = dict(_exec_row_p.execution_metadata or {})
+                            _meta_p["current_step"] = None  # Clear after step completes
+                            _dbs_persist.update_execution(
+                                _sess_persist,
+                                execution_id,
+                                {
+                                    "step_io_data": execution_context_data["step_io_data"],
+                                    "execution_metadata": _meta_p,
+                                },
+                            )
+                        finally:
+                            _sess_persist.close()
+                    except Exception as _persist_err:
+                        adapter.logger.warning(f"Failed to persist step progress for {execution_id}: {_persist_err}")
                     break
 
                 # Not success -> either waiting or failed

@@ -1,0 +1,32 @@
+
+
+
+.subgroup-empty {
+    padding-left: 8px;
+    color: var(--ev-colors-secondaryText);
+    font-size: 14px;
+}
+
+.subgroup-error-message {
+    padding-left: 8px;
+    color: var(--ev-colors-danger);
+    font-size: 14px;
+}
+
+.subgroup-loading {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+
+    color: var(--ev-colors-secondaryText);
+    font-size: 12px;
+
+    & > svg {
+        color: var(--ev-colors-tertiary);
+        height: 25px;
+        width: 25px;
+    }
+}

@@ -1,0 +1,108 @@
+$main-padding: 8px;
+
+
+.command-node-wrapper {
+	color: var(--ev-colors-text);
+
+	.command-node-container {
+		width: 270px;
+		padding: $main-padding;
+		background-color: var(--ev-colors-background);
+		border: 1px solid var(--ev-colors-borderColor);
+		border-radius: 8px;
+
+		&.selected {
+			border-color: var(--ev-colors-highlight);
+		}
+
+		&.active {
+			border-color: var(--ev-colors-highlight);
+			box-shadow: 0px 0px 2.8px 2.8px #FF681F33;
+		}
+
+
+		.simple-view-container {
+			display: flex;
+			align-items: center;
+			min-width: 0;
+			gap: 10px;
+
+			&.static-handles {
+				position: relative;
+				margin: 0 calc(-1 * $main-padding);
+				padding: 0 $main-padding;
+			}
+
+			.command-node-icon {
+				flex-shrink: 0;
+				height: 25px;
+				width: 25px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+
+				.icon-wrapper {
+					height: 100%;
+					width: 100%;
+					padding: 4px;
+					border-radius: 4px;
+					color: white; //var(--ev-colors-background);
+				}
+
+				& svg {
+					height: 100%;
+					width: 100%;
+				}
+			}
+
+			.command-node-label {
+				flex-grow: 1;
+			}
+
+			.command-node-controls-container {
+				flex-shrink: 0;
+				display: flex;
+				align-items: center;
+				min-width: 0;
+				gap: 10px;
+
+
+				// Menu
+				.common-menu-container {
+
+					.common-menu-anchor {
+						top: 0;
+					}
+					.common-menu-contents {
+						color: var(--ev-colors-text);
+						background-color: var(--ev-colors-background);
+
+						& > .common-button {
+							background-color: var(--ev-colors-background);
+						}
+					}
+				}
+			}
+		}
+
+
+		.toggle-view-button {
+			height: 25px;
+			width: 25px;
+			background-color: var(--ev-colors-background);
+		}
+
+
+
+
+	}
+
+
+	.react-flow__handle {
+		z-index: -1;
+		height: 16px;
+		width: 16px;
+		background-color: var(--ev-colors-highlight);
+	}
+
+}

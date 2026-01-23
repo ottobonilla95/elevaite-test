@@ -1,4 +1,5 @@
 "use client";
+import type { JSX } from "react";
 import { type User } from "next-auth";
 import Image from "next/image";
 import Link from "next/link";

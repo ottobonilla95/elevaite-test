@@ -8,6 +8,7 @@ from botocore.exceptions import ClientError
 
 from .core.base import BaseTextGenerationProvider
 from .core.interfaces import TextGenerationResponse, ToolCall
+from ...tools.web_search import web_search, format_search_results
 
 
 class BedrockTextGenerationProvider(BaseTextGenerationProvider):
@@ -64,6 +65,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                 tools,
                 tool_choice,
                 messages,
+                config,
             )
         else:
             return self._generate_with_legacy_api(model_name, temperature, max_tokens, sys_msg, prompt, retries)
@@ -156,6 +158,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         tools: Optional[List[Dict[str, Any]]],
         tool_choice: Optional[str],
         messages: Optional[List[Dict[str, Any]]],
+        config: Optional[Dict[str, Any]] = None,
     ) -> TextGenerationResponse:
         """Generate text using Bedrock Converse API with tool support"""
 
@@ -197,6 +200,18 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                 if tool_config:
                     converse_params["toolConfig"] = tool_config
 
+                # Enable extended thinking if requested via config
+                # Config options: enable_thinking (bool), thinking_budget_tokens (int, default 1024)
+                # This is for Claude 3.5+ models with extended thinking capability
+                if config and config.get("enable_thinking"):
+                    budget_tokens = config.get("thinking_budget_tokens", 1024)
+                    converse_params["additionalModelRequestFields"] = {
+                        "thinking": {
+                            "type": "enabled",
+                            "budget_tokens": budget_tokens,
+                        }
+                    }
+
                 response = self.client.converse(**converse_params)
                 latency = time.time() - start_time
 
@@ -206,11 +221,15 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                 content = message.get("content", [])
 
                 text_content = ""
+                thinking_content = ""
                 tool_calls = []
                 finish_reason = response.get("stopReason", "stop")
 
                 for content_block in content:
-                    if "text" in content_block:
+                    # Claude extended thinking returns "thinking" content blocks
+                    if content_block.get("type") == "thinking":
+                        thinking_content += content_block.get("thinking", "")
+                    elif "text" in content_block:
                         text_content += content_block["text"]
                     elif "toolUse" in content_block:
                         tool_use = content_block["toolUse"]
@@ -234,6 +253,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                     latency=latency,
                     tool_calls=tool_calls if tool_calls else None,
                     finish_reason=finish_reason,
+                    thinking_content=thinking_content.strip() if thinking_content else None,
                 )
 
             except ClientError as e:
@@ -245,11 +265,45 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         raise RuntimeError(f"Text generation failed after {retries} attempts")
 
     def _convert_tools_to_bedrock_format(self, openai_tools: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Convert OpenAI-style tools to Bedrock toolConfig format"""
+        """Convert OpenAI-style tools to Bedrock toolConfig format.
+
+        Built-in tools like web_search are converted to function tools that
+        call our fallback implementation.
+        """
 
         tool_specs = []
         for tool in openai_tools:
-            if tool.get("type") == "function":
+            tool_type = tool.get("type")
+
+            # Handle web_search built-in tool by converting to a function
+            if tool_type == "web_search":
+                tool_spec = {
+                    "toolSpec": {
+                        "name": "web_search",
+                        "description": "Search the web for current information. Use this to find up-to-date information about any topic.",
+                        "inputSchema": {
+                            "json": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "The search query to look up on the web"
+                                    },
+                                    "num_results": {
+                                        "type": "integer",
+                                        "description": "Number of results to return (1-10)",
+                                        "default": 3
+                                    }
+                                },
+                                "required": ["query"]
+                            }
+                        },
+                    }
+                }
+                tool_specs.append(tool_spec)
+                logging.debug("Added web_search fallback tool for Bedrock")
+
+            elif tool_type == "function":
                 func_def = tool["function"]
 
                 tool_spec = {
@@ -262,6 +316,26 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                 tool_specs.append(tool_spec)
 
         return {"tools": tool_specs} if tool_specs else {}
+
+    def execute_web_search(self, query: str, num_results: int = 3) -> str:
+        """
+        Execute a web search using the fallback implementation.
+
+        This is called when the model requests a web_search tool call.
+
+        Args:
+            query: The search query
+            num_results: Number of results to return
+
+        Returns:
+            Formatted search results as a string
+        """
+        try:
+            results = web_search(query=query, num_results=num_results)
+            return format_search_results(results, include_content=True)
+        except Exception as e:
+            logging.error(f"Web search failed: {e}")
+            return f"Web search failed: {e}"
 
     def get_inference_profile_for_model(self, model_name: str) -> str:
         """

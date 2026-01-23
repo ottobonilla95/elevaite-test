@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import type { SVGProps } from "react";
 
 function SVGInfoMain(props: SVGProps<SVGSVGElement> & { color: string; size?: number }): JSX.Element {

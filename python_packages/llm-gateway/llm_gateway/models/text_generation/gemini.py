@@ -61,6 +61,18 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
             system_instruction=system_instruction if system_instruction else None,
         )
 
+        # Enable thinking/reasoning if requested via config
+        # Config options: enable_thinking (bool), thinking_budget (int), thinking_level (str)
+        if config.get("enable_thinking"):
+            thinking_config_params = {"include_thoughts": True}
+            # thinking_budget: number of tokens for thinking (Gemini 2.5)
+            if config.get("thinking_budget") is not None:
+                thinking_config_params["thinking_budget"] = config["thinking_budget"]
+            # thinking_level: "minimal", "low", "medium", "high" (Gemini 3)
+            if config.get("thinking_level"):
+                thinking_config_params["thinking_level"] = config["thinking_level"]
+            generation_config.thinking_config = types.ThinkingConfig(**thinking_config_params)
+
         if gemini_tools:
             generation_config.tools = gemini_tools
 
@@ -101,6 +113,7 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
 
                 # Handle response with potential function calls
                 text_content = ""
+                thinking_content = ""
                 tool_calls = []
                 finish_reason = "stop"
 
@@ -116,8 +129,23 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                         )
                         finish_reason = "tool_calls"
 
-                # Get text content
-                if hasattr(response, "text") and response.text:
+                # Extract text and thinking content from candidates/parts
+                # Gemini 2.5+ returns thinking in parts where part.thought=True
+                if hasattr(response, "candidates") and response.candidates:
+                    for candidate in response.candidates:
+                        if hasattr(candidate, "content") and candidate.content:
+                            if hasattr(candidate.content, "parts") and candidate.content.parts:
+                                for part in candidate.content.parts:
+                                    # Check if this is a thinking part
+                                    if hasattr(part, "thought") and part.thought:
+                                        if hasattr(part, "text") and part.text:
+                                            thinking_content += part.text
+                                    # Regular text part
+                                    elif hasattr(part, "text") and part.text:
+                                        text_content += part.text
+
+                # Fallback: get text content from response.text if not extracted from parts
+                if not text_content and hasattr(response, "text") and response.text:
                     text_content = response.text
 
                 # Get token counts from usage_metadata (Gemini's response structure)
@@ -137,6 +165,7 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     latency=latency,
                     tool_calls=tool_calls if tool_calls else None,
                     finish_reason=finish_reason,
+                    thinking_content=thinking_content.strip() if thinking_content else None,
                 )
 
             except Exception as e:
@@ -163,12 +192,32 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
             }
         }
 
+        Built-in tools:
+        - {"type": "web_search"} -> types.Tool(google_search=types.GoogleSearch())
+        - {"type": "google_search"} -> types.Tool(google_search=types.GoogleSearch())
+        - {"type": "code_execution"} -> types.Tool(code_execution=types.ToolCodeExecution())
+
         Gemini format uses google.genai.types.Tool
         """
         try:
+            gemini_tools = []
             gemini_functions = []
+
             for tool in openai_tools:
-                if tool.get("type") == "function":
+                tool_type = tool.get("type")
+
+                # Handle built-in web search tool
+                if tool_type in ("web_search", "google_search"):
+                    gemini_tools.append(types.Tool(google_search=types.GoogleSearch()))
+                    logging.debug("Added Google Search built-in tool for Gemini")
+
+                # Handle built-in code execution tool
+                elif tool_type == "code_execution":
+                    gemini_tools.append(types.Tool(code_execution=types.ToolCodeExecution()))
+                    logging.debug("Added Code Execution built-in tool for Gemini")
+
+                # Handle function tools
+                elif tool_type == "function":
                     func_def = tool["function"]
 
                     # Create Gemini function declaration
@@ -179,9 +228,11 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     )
                     gemini_functions.append(gemini_func)
 
-            # Return as Gemini Tool
+            # Add function declarations as a Tool if any exist
             if gemini_functions:
-                return [types.Tool(function_declarations=gemini_functions)]
+                gemini_tools.append(types.Tool(function_declarations=gemini_functions))
+
+            return gemini_tools
 
         except Exception as e:
             logging.warning(f"Could not convert tools to Gemini format: {e}")

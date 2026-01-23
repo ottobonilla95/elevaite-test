@@ -1,0 +1,43 @@
+
+
+.add-variable-container {
+    .add-variable-label {
+        font-size: 12px;
+        font-weight: 500;
+    }
+}
+
+
+.add-variable-menu {
+
+    .common-menu-contents {
+        max-height: 400px;
+        position: relative;
+
+        .common-menu-item-category-label {
+            position: sticky;
+            top: -10px;
+            z-index: 10;
+            background-color: var(--ev-colors-primary);
+        }
+    }
+
+    .common-menu-item-button {
+        justify-content: space-between;
+    }
+
+    .menu-label {
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .variable-category-tag {
+        padding: 0 6px;
+        border-radius: 4px;
+        background-color: #FFEED7;
+        color: var(--ev-colors-highlight);
+
+        font-size: 12px;
+        font-weight: 400;
+    }
+}

@@ -14,12 +14,17 @@ class TestGeminiTextGenerationProvider:
 
     def test_generate_text_success(self):
         """Test successful text generation"""
+        # Create mock usage_metadata with proper token counts
+        mock_usage_metadata = Mock()
+        mock_usage_metadata.prompt_token_count = 10
+        mock_usage_metadata.candidates_token_count = 5
+
         # Create mock response
         mock_response = Mock()
         mock_response.text = "This is a test response from Gemini"
         mock_response.function_calls = None  # Important: must be None, not a Mock
-        mock_response.input_tokens = 10
-        mock_response.output_tokens = 5
+        mock_response.candidates = None  # Set to None so fallback to response.text is used
+        mock_response.usage_metadata = mock_usage_metadata
 
         provider = GeminiTextGenerationProvider(api_key="test-key")
         provider.client.models.generate_content = Mock(return_value=mock_response)
@@ -47,12 +52,17 @@ class TestGeminiTextGenerationProvider:
         mock_function_call.name = "get_weather"
         mock_function_call.args = {"location": "NYC"}
 
+        # Create mock usage_metadata with proper token counts
+        mock_usage_metadata = Mock()
+        mock_usage_metadata.prompt_token_count = 20
+        mock_usage_metadata.candidates_token_count = 10
+
         # Create mock response with function_calls attribute
         mock_response = Mock()
         mock_response.text = ""
         mock_response.function_calls = [mock_function_call]  # List of function calls
-        mock_response.input_tokens = 20
-        mock_response.output_tokens = 10
+        mock_response.candidates = None  # Set to None so iteration doesn't fail
+        mock_response.usage_metadata = mock_usage_metadata
 
         provider = GeminiTextGenerationProvider(api_key="test-key")
         provider.client.models.generate_content = Mock(return_value=mock_response)
@@ -88,11 +98,16 @@ class TestGeminiTextGenerationProvider:
 
     def test_generate_text_with_messages(self):
         """Test text generation with message history"""
+        # Create mock usage_metadata with proper token counts
+        mock_usage_metadata = Mock()
+        mock_usage_metadata.prompt_token_count = 30
+        mock_usage_metadata.candidates_token_count = 8
+
         mock_response = Mock()
         mock_response.text = "I remember our previous conversation"
         mock_response.function_calls = None
-        mock_response.input_tokens = 30
-        mock_response.output_tokens = 8
+        mock_response.candidates = None  # Set to None so fallback to response.text is used
+        mock_response.usage_metadata = mock_usage_metadata
 
         provider = GeminiTextGenerationProvider(api_key="test-key")
         provider.client.models.generate_content = Mock(return_value=mock_response)
@@ -132,20 +147,54 @@ class TestGeminiTextGenerationProvider:
                 config={},
             )
 
-    def test_stream_text_not_implemented(self):
-        """Test that streaming raises NotImplementedError"""
-        provider = GeminiTextGenerationProvider(api_key="test-key")
+    def test_stream_text_success(self):
+        """Test successful text streaming"""
+        # Create mock usage_metadata
+        mock_usage_metadata = Mock()
+        mock_usage_metadata.prompt_token_count = 10
+        mock_usage_metadata.candidates_token_count = 5
 
-        with pytest.raises(NotImplementedError, match="Streaming not implemented"):
-            provider.stream_text(
-                model_name="gemini-1.5-flash",
-                temperature=0.7,
-                max_tokens=100,
-                sys_msg="You are a helpful assistant",
-                prompt="Hello",
-                retries=1,
-                config={},
-            )
+        # Create mock part with text
+        mock_part = Mock()
+        mock_part.text = "Hello from Gemini"
+        mock_part.thought = None  # Not a thought
+        mock_part.function_call = None
+
+        # Create mock content with parts
+        mock_content = Mock()
+        mock_content.parts = [mock_part]
+
+        # Create mock candidate
+        mock_candidate = Mock()
+        mock_candidate.content = mock_content
+
+        # Create mock chunk with proper structure
+        mock_chunk = Mock()
+        mock_chunk.candidates = [mock_candidate]
+        mock_chunk.function_calls = None
+        mock_chunk.usage_metadata = mock_usage_metadata
+
+        provider = GeminiTextGenerationProvider(api_key="test-key")
+        # Mock the streaming response as an iterable
+        provider.client.models.generate_content_stream = Mock(return_value=[mock_chunk])
+
+        # Call stream_text and collect results
+        results = list(provider.stream_text(
+            model_name="gemini-1.5-flash",
+            temperature=0.7,
+            max_tokens=100,
+            sys_msg="You are a helpful assistant",
+            prompt="Hello",
+            retries=1,
+            config={},
+        ))
+
+        # Should have delta and final chunks
+        assert len(results) >= 1
+        # Last result should be a final chunk with response
+        final_result = results[-1]
+        assert final_result["type"] == "final"
+        assert "response" in final_result
 
 
 class TestGeminiEmbeddingProvider:

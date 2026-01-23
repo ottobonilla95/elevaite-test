@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { ElevaiteIcons } from "../icons/elevaite";
 import { CommonButton } from "./CommonButton";
 import "./CommonDialog.scss";
@@ -16,6 +17,7 @@ interface CommonDialogProps {
     confirmTooltip?: string;
     dangerSubmit?: boolean;
     icon?: React.ReactNode;
+    innerClassName?: string;
     children?: React.ReactNode;
 }
 
@@ -33,7 +35,7 @@ export function CommonDialog(props: CommonDialogProps): JSX.Element {
     return (
         <div className="common-dialog-container">
             <CommonModal onClose={handleCancel}>
-                <div className={["common-dialog-contents", props.className].filter(Boolean).join(" ")}>
+                <div className={["common-dialog-contents", props.innerClassName].filter(Boolean).join(" ")}>
                     
                     <div className="dialog-header">
                         <div className="dialog-title">

@@ -1,0 +1,13 @@
+
+
+
+.agent-version-2-app-layout-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    & > main {
+        flex-grow: 1;
+    }
+    
+}

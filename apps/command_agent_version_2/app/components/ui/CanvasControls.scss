@@ -1,0 +1,68 @@
+
+
+.canvas-controls-container {
+    position: absolute;
+    bottom: 32px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+
+    .canvas-controls-contents {
+        pointer-events: all;
+        
+        height: 44px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 8px 16px;
+
+        color: var(--ev-colors-text);
+        background-color: var(--ev-colors-background);
+        border: 1px solid var(--ev-colors-borderColor);
+        border-radius: 50px;
+
+        .common-button {
+            height: 26px;
+            min-width: 26px;
+            background-color: var(--ev-colors-background);
+        }
+
+        .button-toggle {
+            &.active {
+                color: var(--ev-colors-highlight);
+            }
+        }
+
+        .separator {
+            height: 100%;
+            border-right: 1px solid var(--ev-colors-borderColor);
+        }
+
+        .grouped-buttons {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .paired-buttons {            
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 0 8px;
+            background-color: var(--ev-colors-primary);
+            border-radius: 50px;
+            
+            & > button {
+                background-color: var(--ev-colors-primary);
+            }
+
+            .view-toggle {
+                &.active {
+                    color: var(--ev-colors-highlight);
+                }
+            }
+        }
+    }
+
+}

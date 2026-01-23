@@ -1,4 +1,5 @@
 "use client";
+import type { JSX } from "react";
 import { type KeyboardEvent, type MutableRefObject, useEffect, useRef, useState } from "react";
 import { CommonButton } from "./CommonButton";
 import "./SimpleInput.scss";

@@ -1,9 +1,11 @@
 "use client";
+import type { JSX } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import "./LoginForm.scss";
-import { type SVGProps, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { SVGComponentProps } from "../../types/svg";
 import Link from "next/link";
 import { GoogleColorIcon } from "../icons/GoogleColor";
 import { CommonCheckbox } from "../common/CommonCheckbox";
@@ -59,7 +61,7 @@ type FormValues = z.infer<typeof formSchema>;
 interface LoginFormProps {
   authenticate: (
     prevstate: string,
-    formData: FormValues
+    formData: FormValues,
   ) => Promise<SimpleAuthResult>;
   authenticateGoogle?: () => Promise<SimpleAuthResult>;
 }
@@ -283,7 +285,7 @@ export function LogInForm({
   );
 }
 
-function PasswordIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
+function PasswordIcon(props: SVGComponentProps): JSX.Element {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -300,7 +302,7 @@ function PasswordIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   );
 }
 
-function EmailIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
+function EmailIcon(props: SVGComponentProps): JSX.Element {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

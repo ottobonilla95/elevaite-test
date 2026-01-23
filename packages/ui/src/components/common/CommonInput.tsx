@@ -1,4 +1,5 @@
 "use client";
+import type { JSX } from "react";
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { ElevaiteIcons } from "../icons";
 import "./CommonInput.scss";

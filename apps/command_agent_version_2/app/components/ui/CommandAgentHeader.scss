@@ -1,0 +1,63 @@
+
+$header-height: 72px;
+
+
+.command-agent-header-container {
+    height: $header-height;
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    padding: 0 20px;
+
+    background-color: var(--ev-colors-background);
+    border-bottom: 1px solid var(--ev-colors-borderColor);
+
+    .header-left { justify-self: start; }
+    .header-center { justify-self: center; }
+    .header-right { justify-self: right; }
+
+
+
+    .workflow-name {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        color: var(--ev-colors-text);
+        font-size: 14px;
+        font-weight: 600;
+
+        & > button {
+            background-color: var(--ev-colors-background);
+        }
+
+        .draft-label {
+            padding: 3px 6px;
+            border-radius: 4px;
+            background-color: rgb(from var(--ev-colors-highlight) r g b / 15%);
+
+            color: var(--ev-colors-highlight);
+            font-size: 12px;
+            user-select: none;
+        }
+    }
+
+
+    .workflow-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+
+        .workflow-controls-button {
+            padding: 5px 15px;
+            background-color: var(--ev-colors-highlight);
+            color: var(--ev-colors-background);
+
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+    }
+}

@@ -173,11 +173,15 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
 
         return responses_tools
 
-    def _extract_response_content(self, response) -> tuple[str, List[ToolCall], str]:
+    def _extract_response_content(self, response) -> tuple[str, List[ToolCall], str, str]:
         """
-        Extract content, tool calls, and finish reason from Responses API output.
+        Extract content, tool calls, finish reason, and reasoning content from Responses API output.
+
+        Returns:
+            tuple: (text_content, tool_calls, finish_reason, thinking_content)
         """
         text_content = ""
+        thinking_content = ""
         tool_calls = []
         finish_reason = "stop"
 
@@ -193,6 +197,14 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                         text_content += getattr(content_item, "text", "")
                     elif content_type == "refusal":
                         text_content += f"[Refusal: {getattr(content_item, 'refusal', '')}]"
+
+            elif item_type == "reasoning":
+                # Extract reasoning/thinking content from reasoning models (o1, o3, o4-mini)
+                # Reasoning items contain summary parts with the chain of thought
+                for summary_item in getattr(item, "summary", []):
+                    summary_type = getattr(summary_item, "type", None)
+                    if summary_type == "summary_text":
+                        thinking_content += getattr(summary_item, "text", "")
 
             elif item_type == "function_call":
                 # Extract function/tool call
@@ -215,7 +227,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 # The results are in the annotations of the message
                 logging.debug(f"File search performed with query: {getattr(item, 'queries', [])}")
 
-        return text_content.strip(), tool_calls, finish_reason
+        return text_content.strip(), tool_calls, finish_reason, thinking_content.strip()
 
     def _prepare_files_for_search(self, files: List[str], timeout_seconds: int = 60) -> str:
         """
@@ -385,6 +397,13 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                         }
                     logging.debug(f"Using response format: {response_format}")
 
+                # Enable reasoning/thinking if requested via config
+                # Config options: enable_thinking (bool), reasoning_summary (str: "auto", "concise", "detailed")
+                # This is for reasoning models like o1, o3, o4-mini
+                if config.get("enable_thinking"):
+                    reasoning_summary = config.get("reasoning_summary", "auto")
+                    api_params["reasoning"] = {"summary": reasoning_summary}
+
                 logging.debug(f"Responses API params: {api_params}")
                 response = self.client.responses.create(**api_params)
                 latency = time.time() - start_time
@@ -394,8 +413,8 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     tokens_in = getattr(response.usage, "input_tokens", -1)
                     tokens_out = getattr(response.usage, "output_tokens", -1)
 
-                # Extract content and tool calls
-                text_content, tool_calls, finish_reason = self._extract_response_content(response)
+                # Extract content, tool calls, and reasoning content
+                text_content, tool_calls, finish_reason, thinking_content = self._extract_response_content(response)
 
                 return TextGenerationResponse(
                     text=text_content,
@@ -404,6 +423,7 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     latency=latency,
                     tool_calls=tool_calls if tool_calls else None,
                     finish_reason=finish_reason,
+                    thinking_content=thinking_content if thinking_content else None,
                 )
 
             except NON_RETRYABLE_ERRORS as e:

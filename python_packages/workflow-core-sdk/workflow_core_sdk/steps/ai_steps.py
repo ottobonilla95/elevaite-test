@@ -541,7 +541,11 @@ class AgentStep:
             # LLM params
             _llm = (context or {}).get("_llm_params", {}) if isinstance(context, dict) else {}
             _max_tokens_val = _llm.get("max_tokens")
-            _max_tokens = _max_tokens_val if isinstance(_max_tokens_val, int) and _max_tokens_val > 0 else 4096
+            # Handle both int and float for max_tokens
+            try:
+                _max_tokens = int(_max_tokens_val) if _max_tokens_val is not None and int(_max_tokens_val) > 0 else 4096
+            except (TypeError, ValueError):
+                _max_tokens = 4096
             _temperature = _llm.get("temperature")
             _response_format = _llm.get("response_format")
 
@@ -1250,8 +1254,14 @@ async def agent_execution_step(
     try:
         llm_params: Dict[str, Any] = {}
         mt = config.get("max_tokens")
-        if isinstance(mt, int) and mt > 0:
-            llm_params["max_tokens"] = mt
+        # Handle both int and float (JSON often deserializes numbers as float)
+        if mt is not None:
+            try:
+                mt_int = int(mt)
+                if mt_int > 0:
+                    llm_params["max_tokens"] = mt_int
+            except (TypeError, ValueError):
+                pass
         try:
             temp = config.get("temperature")
             if temp is not None:
@@ -1282,7 +1292,11 @@ async def agent_execution_step(
             # LLM params
             _llm = input_data.get("_llm_params", {}) if isinstance(input_data, dict) else {}
             _max_tokens_val = _llm.get("max_tokens")
-            _max_tokens = _max_tokens_val if isinstance(_max_tokens_val, int) and _max_tokens_val > 0 else 4096
+            # Handle both int and float for max_tokens
+            try:
+                _max_tokens = int(_max_tokens_val) if _max_tokens_val is not None and int(_max_tokens_val) > 0 else 4096
+            except (TypeError, ValueError):
+                _max_tokens = 4096
             _temperature = _llm.get("temperature")
             _response_format = _llm.get("response_format")
 

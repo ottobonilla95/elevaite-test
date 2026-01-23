@@ -1,4 +1,5 @@
 "use client";
+import type { JSX } from "react";
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import Link from "next/link";

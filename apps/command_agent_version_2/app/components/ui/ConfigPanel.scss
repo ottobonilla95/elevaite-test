@@ -1,0 +1,132 @@
+
+
+.config-panel-container {    
+    position: absolute;
+    right: 16px; top: 16px; bottom: 16px;
+    width: 390px;
+    
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 16px;
+
+    color: var(--ev-colors-text);
+    background-color: var(--ev-colors-background);
+    border: 1px solid var(--ev-colors-borderColor);
+    border-radius: 16px;
+    
+    transform: translateX(150%);
+    transition: transform  200ms ease;
+
+    &.open {
+        transform: translateX(0);
+    }
+
+    .inner-config {
+        flex-grow: 1;
+        overflow-y: auto;
+        margin-right: -15px;
+        padding-right: 8px;
+        @include scrollbar();
+        scrollbar-gutter: stable;
+    }
+
+    .config-panel-contents {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 0;
+
+        transition: max-width 200ms ease, margin 200ms ease;
+
+
+        .config-panel-header {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-width: 0;
+            gap: 8px;
+
+
+            .config-panel-header-section {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+
+                .icon-wrapper {
+                    flex-shrink: 0;
+                    height: 25px;
+                    width: 25px;
+                    padding: 4px;
+                    border-radius: 4px;
+                    color: white;
+
+                    & > svg {
+                        height: 100%;
+                        width: 100%;
+                    }
+                }
+
+
+                .close-button > svg {
+                    height: 16px;
+                    width: 16px;
+                }
+
+                .header-title-input {
+                    flex: 1;
+                    min-width: 0;
+
+                    input {
+                        font-size: 14px;
+                        font-weight: 600;
+                        padding: 4px 8px;
+                        border: 1px solid transparent;
+                        border-radius: 4px;
+                        background-color: transparent;
+                        color: var(--ev-colors-text);
+                        transition: border-color 150ms ease, background-color 150ms ease;
+
+                        &:hover {
+                            border-color: var(--ev-colors-borderColor);
+                        }
+
+                        &:focus {
+                            border-color: var(--ev-colors-highlight);
+                            background-color: var(--ev-colors-backgroundSecondary);
+                            outline: none;
+                        }
+                    }
+                }
+            }
+
+        }
+
+        .config-panel-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+
+
+            .config-button {
+                padding: 3px 16px;
+                border: 1px solid var(--ev-colors-highlight);
+                border-radius: 6px;
+
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--ev-colors-highlight);
+
+                &.save {
+                    background-color: var(--ev-colors-highlight);
+                    color: var(--ev-colors-background);
+                }
+            }
+        }
+
+    }
+
+}

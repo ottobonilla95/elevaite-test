@@ -1,4 +1,5 @@
 "use client";
+import type { JSX } from "react";
 import React, { Children, useState } from "react";
 import SVGChevron from "../icons/elevaite/svgChevron";
 import "./CardHolder.scss";

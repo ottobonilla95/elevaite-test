@@ -1,0 +1,131 @@
+
+
+.side-panel-item-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: gap 200ms ease;
+
+    &.main {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        margin-bottom: 12px;
+    }
+
+    &.expanded {
+        gap: 8px;
+        button .side-panel-chevron {
+            transform: rotate(180deg);
+        }
+    }
+
+    .side-panel-item-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .side-panel-item-header-label {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            .label-tag {
+                padding: 4px 6px;
+                border-radius: 4px;
+                background-color: #EBF2FE;
+                color: #0950C3;
+                font-size: 12px;
+            }
+        }
+    }
+
+    button {
+        flex-grow: 1;
+        gap: 10px;
+        background-color: var(--ev-colors-background);
+
+        & > svg {
+            flex-shrink: 0;
+        }
+
+        & > span {
+            flex-grow: 1;
+            text-align: start;
+        }
+
+        .side-panel-chevron {
+            flex-shrink: 0;
+            margin-right: 10px;
+            transition: transform 200ms ease;
+        }
+    }
+
+
+    &.dragging {
+        transform: scale(0.95);
+
+        // button {
+        //     background-color: var(--ev-colors-background);
+        // }
+    }
+}
+
+
+
+.side-panel-item-list-container {
+
+    .common-tray-container {
+        margin-bottom: 0;
+        &.open {
+            margin-bottom: 12px;
+        }
+    }
+
+    .common-tray-content {
+        .side-panel-subgroup-container {
+            padding-left: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .side-panel-item-container {
+            button {
+                svg {
+                    height: 25px;
+                    width: 25px;
+                    color: var(--ev-colors-secondaryText);
+                    background-color: var(--ev-colors-primary);
+                    border: 1px solid var(--ev-colors-borderColor);
+                    border-radius: 8px;
+                    padding: 4px;
+                }
+                div {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                &.add-item-button {
+                    color: var(--ev-colors-highlight);
+                    svg {
+                        color: var(--ev-colors-highlight);
+                        background-color: var(--ev-colors-background);
+                        border-color: transparent;
+                    }
+                }
+            }
+        }
+        
+        .side-panel-subgroup-container.agents,
+        .side-panel-subgroup-container.external-agents {
+            .side-panel-item-container button:not(.add-item-button) svg {
+                border: none;
+                padding: 0;
+            }
+        }
+    }
+}

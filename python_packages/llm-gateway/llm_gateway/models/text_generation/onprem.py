@@ -10,6 +10,7 @@ from ...utilities.onprem import get_model_endpoint
 from ...utilities.tokens import count_tokens
 from .core.base import BaseTextGenerationProvider
 from .core.interfaces import TextGenerationResponse
+from ...tools.web_search import web_search, format_search_results
 
 
 class OnPremTextGenerationProvider(BaseTextGenerationProvider):
@@ -45,13 +46,29 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         retries = retries if retries is not None else 5
         config = config or {}
 
-        # Tools not yet supported in OnPrem provider
+        # Handle web_search tool specially - execute it and prepend results to prompt
+        web_search_results = None
         if tools:
-            logging.warning("Tools are not yet supported by the OnPrem provider. Ignoring tools parameter.")
+            has_web_search = any(t.get("type") == "web_search" for t in tools)
+            other_tools = [t for t in tools if t.get("type") != "web_search"]
+
+            if has_web_search:
+                # For On-Prem, we'll execute web search proactively if the prompt seems to need it
+                # The model can't call tools, so we provide context upfront
+                logging.info("Web search tool requested for OnPrem provider - will execute if query detected")
+                web_search_results = self._check_and_execute_web_search(prompt)
+
+            if other_tools:
+                logging.warning("Tools (except web_search) are not yet supported by the OnPrem provider. Ignoring tools parameter.")
 
         role: str = config.get("role", "assistant")
         task_prop: str = config.get("task", "")
         output_prop: str = config.get("output", "")
+
+        # Prepend web search results to prompt if available
+        effective_prompt = prompt
+        if web_search_results:
+            effective_prompt = f"**Web Search Results:**\n{web_search_results}\n\n**User Query:**\n{prompt}"
 
         onprem_prompt = ""
 
@@ -75,25 +92,25 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
             onprem_prompt = textwrap.dedent(
                 f"""
             <|begin_of_text|><|start_header_id|>system<|end_header_id|>
-            
+
             {sys_msg}
-            
+
             **Input:** {input}
-            
+
             **Task:** {task_prop}
-            
+
             **Output:** {output_prop}
-            
+
             {examples_string}
-            
+
             <|eot_id|><|start_header_id|>user<|end_header_id|>
-            
+
             <|context|>
-            
-            {prompt}
-            
+
+            {effective_prompt}
+
             <|context|>
-            
+
             <|start_header_id|>{role}<|end_header_id|>
             """
             )
@@ -174,3 +191,57 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         except AssertionError as e:
             logging.error(f"On-Prem Provider Validation Failed: {e}")
             return False
+
+    def _check_and_execute_web_search(self, prompt: str) -> Optional[str]:
+        """
+        Check if the prompt likely needs web search and execute if so.
+
+        Since On-Prem models can't call tools, we proactively search
+        when the prompt contains indicators of needing current information.
+
+        Args:
+            prompt: The user prompt
+
+        Returns:
+            Formatted search results or None
+        """
+        # Simple heuristics to detect if web search might be needed
+        search_indicators = [
+            "search for", "look up", "find information",
+            "current", "latest", "recent", "today",
+            "what is", "who is", "where is", "when is",
+            "news about", "updates on"
+        ]
+
+        prompt_lower = prompt.lower()
+        should_search = any(indicator in prompt_lower for indicator in search_indicators)
+
+        if not should_search:
+            return None
+
+        try:
+            # Extract a search query from the prompt (use first 100 chars as query)
+            query = prompt[:200].strip()
+            results = web_search(query=query, num_results=2)
+            return format_search_results(results, include_content=True)
+        except Exception as e:
+            logging.warning(f"Web search for OnPrem failed: {e}")
+            return None
+
+    def execute_web_search(self, query: str, num_results: int = 3) -> str:
+        """
+        Execute a web search using the fallback implementation.
+
+        Args:
+            query: The search query
+            num_results: Number of results to return
+
+        Returns:
+            Formatted search results as a string
+        """
+        try:
+            results = web_search(query=query, num_results=num_results)
+            return format_search_results(results, include_content=True)
+        except Exception as e:
+            logging.error(f"Web search failed: {e}")
+            return f"Web search failed: {e}"

@@ -1,0 +1,104 @@
+
+
+
+		
+$available-width: 100%;
+$tag-gap: 4px;
+
+.command-node-tags-container {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    
+    display: flex;
+    flex-direction: column;
+    gap: $tag-gap;
+    padding: 0 8px;
+
+    &[data-row-count="2"] {
+        .command-node-tags-row.top-row .command-node-tag {
+            border-radius: 4px;
+        }
+    }
+
+    .command-node-tags-row {
+        display: flex;
+        align-items: flex-end;
+        gap: $tag-gap;
+        justify-content: flex-start;
+        overflow: visible;
+        &[data-item-count="1"] .command-node-tag { max-width: $available-width; }
+        &[data-item-count="2"] .command-node-tag { max-width: calc(($available-width - $tag-gap) / 2); }
+        &[data-item-count="3"] .command-node-tag { max-width: calc(($available-width - $tag-gap * 2) / 3); }
+        &[data-item-count="4"] .command-node-tag { max-width: calc(($available-width - $tag-gap * 3) / 4); }
+    
+
+        .command-node-tag {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 4px 4px 0 0;
+            color: var(--ev-colors-text);
+            background-color: var(--ev-colors-background);
+            font-size: 12px;
+            max-width: 65px;
+            min-width: 0;
+
+            & > svg {
+                height: 10px;
+                width: auto;
+                flex-shrink: 0;
+            }
+
+            span {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                min-width: 0;
+            }
+        }
+
+        .overflow-tag {
+            position: relative;
+            cursor: default;
+            color: var(--ev-colors-highlight);
+            background-color: var(--ev-colors-tertiary);
+            
+            .overflow-popover {
+                z-index: 100;
+                position: absolute;
+                top: 0;
+                right: 100%;
+                
+                display: none;
+                flex-direction: column;
+                gap: 4px;
+                
+                background-color: var(--ev-colors-background);
+                border: 1px solid var(--ev-colors-borderColor);
+                border-radius: 8px;
+                padding: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                
+                min-width: 150px;
+                max-width: 250px;
+                max-height: 200px;
+                overflow-y: auto;
+                @include scrollbar();
+                
+                .command-node-tag {
+                    max-width: 100%;
+                    border-radius: 4px;
+                }
+            }
+
+            &:hover .overflow-popover {
+                display: flex;
+            }
+        }
+    }
+}
+

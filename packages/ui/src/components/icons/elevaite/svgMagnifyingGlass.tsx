@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import type { SVGProps } from "react"
 import { useThemes } from "../../../contexts/ColorContext";
 
