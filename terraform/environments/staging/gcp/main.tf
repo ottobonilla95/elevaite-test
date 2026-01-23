@@ -61,15 +61,15 @@ module "database" {
   gcp_project_id = var.project_id
   region         = var.region
   
-  # PostgreSQL Settings
+  # PostgreSQL Settings (Minimum for cost savings)
   database_name     = "elevaite_staging"
   database_version  = "POSTGRES_15"
-  instance_class    = "db-custom-2-7680"  # 2 vCPUs, 7.5GB RAM
-  disk_size_gb      = 50
-  backup_retention  = 14
-  
-  # High availability
-  high_availability = true
+  instance_class    = "db-f1-micro"  # Smallest instance
+  disk_size_gb      = 20
+  backup_retention  = 7
+
+  # No HA for cost savings
+  high_availability = false
   
   labels = {
     environment = var.environment
@@ -145,11 +145,11 @@ module "kubernetes" {
     default = {
       name           = "default-pool"
       node_count     = 2
-      machine_type   = "e2-standard-2"
+      machine_type   = "e2-micro"  # Smallest instance
       min_node_count = 2
-      max_node_count = 4
-      disk_size_gb   = 50
-      disk_type      = "pd-ssd"
+      max_node_count = 3
+      disk_size_gb   = 30
+      disk_type      = "pd-standard"
     }
   }
   

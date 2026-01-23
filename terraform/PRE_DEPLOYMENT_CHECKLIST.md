@@ -27,22 +27,26 @@ Before starting your AWS deployment, verify you have everything ready.
 
 ### 4. Cost Understanding
 
-**Staging environment estimated cost: ~$75-150/month**
+**Environment estimated cost (staging OR production): ~$150/month**
 
-Breakdown:
+Breakdown (AWS):
 - EKS cluster control plane: ~$75/month
 - EC2 nodes (2x t3.small): ~$30/month
 - RDS PostgreSQL (db.t4g.micro): ~$15/month
 - NAT Gateway: ~$30/month
 - CloudAMQP (free tier): $0
 - S3 storage: ~$5/month
-- **Total: ~$155/month**
+- **Total: ~$155/month per environment**
 
-**Production costs will be 2-3x higher due to:**
-- Larger instances
-- Multi-AZ deployments
-- More nodes
-- Higher storage
+Breakdown (Azure/GCP):
+- AKS/GKE control plane: Free
+- Nodes (2x small instances): ~$60/month
+- PostgreSQL (Basic tier): ~$20/month
+- CloudAMQP (free tier): $0
+- Object storage: ~$5/month
+- **Total: ~$100/month per environment**
+
+**Note:** Both staging and production use identical minimal resources. Scale up production later when needed based on actual usage.
 
 ---
 
@@ -145,13 +149,13 @@ curl -H "Authorization: Bearer $CLOUDAMQP_API_KEY" \
 # Expected: JSON response with instances (or empty array if none)
 
 # 3. Check AWS region
-aws ec2 describe-regions --region us-east-1
+aws ec2 describe-regions --region us-west-1
 
 # 4. Verify Terraform
 terraform version
 
 # 5. Check available EKS versions
-aws eks describe-addon-versions --region us-east-1 --query 'addons[0].addonVersions[0].compatibilities[*].clusterVersion' --output table
+aws eks describe-addon-versions --region us-west-1 --query 'addons[0].addonVersions[0].compatibilities[*].clusterVersion' --output table
 ```
 
 ---
@@ -186,7 +190,7 @@ terraform plan
 terraform apply
 
 # 4. Configure kubectl
-aws eks update-kubeconfig --name elevaite-staging --region us-east-1
+aws eks update-kubeconfig --name elevaite-staging --region us-west-1
 
 # 5. Verify
 kubectl get nodes
@@ -208,7 +212,7 @@ kubectl get pods -A
 
 1. **S3 bucket name conflicts** - Bucket names are globally unique. If `elevaite-terraform-state` is taken, add a suffix.
 
-2. **CloudAMQP regions** - Use format `amazon-web-services::us-east-1` not just `us-east-1`.
+2. **CloudAMQP regions** - Use format `amazon-web-services::us-west-1` not just `us-west-1`.
 
 3. **EKS creation is slow** - Takes 15-20 minutes. Don't interrupt it.
 
@@ -249,13 +253,13 @@ terraform init
 
 ```bash
 # Reconfigure kubectl
-aws eks update-kubeconfig --name elevaite-staging --region us-east-1
+aws eks update-kubeconfig --name elevaite-staging --region us-west-1
 
 # Verify cluster exists
-aws eks describe-cluster --name elevaite-staging --region us-east-1
+aws eks describe-cluster --name elevaite-staging --region us-west-1
 
 # Check IAM permissions
-aws eks list-clusters --region us-east-1
+aws eks list-clusters --region us-west-1
 ```
 
 ### Pods not starting

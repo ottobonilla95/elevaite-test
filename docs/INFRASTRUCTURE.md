@@ -1093,38 +1093,62 @@ All tools run in Kubernetes, no cloud vendor lock-in.
 
 ## Cost Estimate (Monthly)
 
-### Staging Environment
+### Per-Environment Cost (Staging OR Production)
+
+**Note:** Both staging and production now use identical minimal resources for initial deployment. Scale up production later based on actual usage.
+
+#### AWS (EKS)
 
 | Service | Spec | Est. Cost |
 |---------|------|-----------|
-| Kubernetes cluster | 2 nodes (2 vCPU, 4GB each) | ~$60-100 |
-| PostgreSQL | Small instance or in-cluster | ~$15-30 |
-| MinIO | In-cluster | ~$0 (uses node storage) |
-| RabbitMQ | In-cluster | ~$0 (uses node storage) |
-| Qdrant | Starter tier or in-cluster | ~$0-25 |
-| **Total Staging** | | **~$75-155/mo** |
+| EKS control plane | | ~$75 |
+| EC2 nodes | 2x t3.small | ~$30 |
+| RDS PostgreSQL | db.t4g.micro, single-AZ | ~$15 |
+| NAT Gateway | Single gateway | ~$30 |
+| CloudAMQP | Free tier (lemur) | $0 |
+| S3 storage | Standard | ~$5 |
+| **Total per environment** | | **~$155/mo** |
 
-### Production Environment
+#### Azure (AKS)
 
 | Service | Spec | Est. Cost |
 |---------|------|-----------|
-| Kubernetes cluster | 4-6 nodes (4 vCPU, 8GB each) | ~$200-400 |
-| PostgreSQL | Managed, Multi-AZ | ~$50-100 |
-| MinIO | Dedicated nodes or managed | ~$30-50 |
-| RabbitMQ | HA cluster (3 nodes) | ~$30-50 |
-| Qdrant | Standard tier | ~$50-100 |
-| Monitoring stack | Prometheus/Grafana/Loki | ~$30-50 |
-| Ingress/Load Balancer | | ~$20-30 |
-| **Total Production** | | **~$400-700/mo** |
+| AKS control plane | | $0 (free) |
+| VM nodes | 2x Standard_B2s | ~$60 |
+| Azure Database for PostgreSQL | B_Gen5_1, single-zone | ~$20 |
+| CloudAMQP | Free tier (lemur) | $0 |
+| Blob Storage | LRS | ~$5 |
+| Load Balancer | Standard | ~$15 |
+| **Total per environment** | | **~$100/mo** |
+
+#### GCP (GKE)
+
+| Service | Spec | Est. Cost |
+|---------|------|-----------|
+| GKE control plane | Zonal cluster | $0 (free) |
+| Compute nodes | 2x e2-micro | ~$60 |
+| Cloud SQL | db-f1-micro, single-zone | ~$20 |
+| CloudAMQP | Free tier (lemur) | $0 |
+| Cloud Storage | Standard | ~$5 |
+| Load Balancer | Standard | ~$15 |
+| **Total per environment** | | **~$100/mo** |
 
 ### Cloud Provider Comparison
 
-| Provider | K8s Control Plane | Estimated Total |
-|----------|-------------------|-----------------|
-| **AWS (EKS)** | $75/mo | ~$500-800/mo |
-| **Azure (AKS)** | Free | ~$400-700/mo |
-| **GCP (GKE)** | Free (Autopilot: pay per pod) | ~$400-700/mo |
-| **Self-hosted (k3s)** | Free | ~$200-400/mo + ops |
+| Provider | K8s Control Plane | Per-Environment Total | Notes |
+|----------|-------------------|----------------------|--------|
+| **AWS (EKS)** | $75/mo | **~$155/mo** | EKS control plane cost is fixed |
+| **Azure (AKS)** | Free | **~$100/mo** | Free control plane saves cost |
+| **GCP (GKE)** | Free (zonal) | **~$100/mo** | Free zonal control plane |
+| **Self-hosted (k3s)** | Free | ~$85/mo + ops | No control plane costs |
+
+### Scaling Up for Production
+
+When your production environment needs more resources:
+- **Database:** Upgrade to larger instance, enable Multi-AZ (~$50-150/mo additional)
+- **Kubernetes:** Add nodes, upgrade to larger instances (~$100-300/mo additional)
+- **RabbitMQ:** Upgrade to dedicated plan (~$30-50/mo additional)
+- **Monitoring:** Increase retention, add external storage (~$30-50/mo additional)
 
 ### Frontend (Kubernetes)
 

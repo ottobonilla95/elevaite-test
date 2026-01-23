@@ -34,7 +34,7 @@ class TestBedrockTextGenerationProvider:
         provider = BedrockTextGenerationProvider(
             aws_access_key_id="test-key",
             aws_secret_access_key="test-secret",
-            region_name="us-east-1",
+            region_name="us-west-1",
         )
 
         result = provider.generate_text(
@@ -71,7 +71,7 @@ class TestBedrockTextGenerationProvider:
         provider = BedrockTextGenerationProvider(
             aws_access_key_id="test-key",
             aws_secret_access_key="test-secret",
-            region_name="us-east-1",
+            region_name="us-west-1",
         )
 
         result = provider.generate_text(
@@ -117,7 +117,7 @@ class TestBedrockTextGenerationProvider:
         provider = BedrockTextGenerationProvider(
             aws_access_key_id="test-key",
             aws_secret_access_key="test-secret",
-            region_name="us-east-1",
+            region_name="us-west-1",
         )
 
         result = provider.generate_text(
@@ -160,7 +160,7 @@ class TestBedrockTextGenerationProvider:
         provider = BedrockTextGenerationProvider(
             aws_access_key_id="test-key",
             aws_secret_access_key="test-secret",
-            region_name="us-east-1",
+            region_name="us-west-1",
         )
 
         with pytest.raises(RuntimeError, match="Text generation failed after 1 attempts"):
@@ -189,7 +189,7 @@ class TestBedrockEmbeddingProvider:
         provider = BedrockEmbeddingProvider(
             aws_access_key_id="test-key",
             aws_secret_access_key="test-secret",
-            region_name="us-east-1",
+            region_name="us-west-1",
         )
 
         info = EmbeddingInfo(type=EmbeddingType.BEDROCK, name="amazon.titan-embed-text-v1")
@@ -212,7 +212,7 @@ class TestBedrockEmbeddingProvider:
         provider = BedrockEmbeddingProvider(
             aws_access_key_id="test-key",
             aws_secret_access_key="test-secret",
-            region_name="us-east-1",
+            region_name="us-west-1",
         )
 
         info = EmbeddingInfo(type=EmbeddingType.BEDROCK, name="amazon.titan-embed-text-v1")
@@ -235,7 +235,7 @@ class TestBedrockEmbeddingProvider:
         provider = BedrockEmbeddingProvider(
             aws_access_key_id="test-key",
             aws_secret_access_key="test-secret",
-            region_name="us-east-1",
+            region_name="us-west-1",
         )
 
         info = EmbeddingInfo(type=EmbeddingType.BEDROCK, name="amazon.titan-embed-text-v1")
@@ -267,7 +267,7 @@ class TestBedrockVisionProvider:
         provider = BedrockVisionProvider(
             aws_access_key_id="test-key",
             aws_secret_access_key="test-secret",
-            region_name="us-east-1",
+            region_name="us-west-1",
         )
 
         result = provider.generate_text(
@@ -313,7 +313,7 @@ class TestBedrockVisionProvider:
         provider = BedrockVisionProvider(
             aws_access_key_id="test-key",
             aws_secret_access_key="test-secret",
-            region_name="us-east-1",
+            region_name="us-west-1",
         )
 
         result = provider.generate_text(

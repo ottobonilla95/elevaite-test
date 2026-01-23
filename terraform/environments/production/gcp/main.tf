@@ -61,16 +61,16 @@ module "database" {
   gcp_project_id = var.project_id
   region         = var.region
   
-  # PostgreSQL Settings (Production - Higher specs)
+  # PostgreSQL Settings (Minimum for cost savings)
   database_name     = "elevaite_production"
   database_version  = "POSTGRES_15"
-  instance_class    = "db-custom-4-15360"  # 4 vCPUs, 15GB RAM
-  disk_size_gb      = 100
+  instance_class    = "db-f1-micro"  # Smallest instance
+  disk_size_gb      = 20
   disk_autoresize   = true
-  backup_retention  = 35
-  
-  # High availability
-  high_availability = true
+  backup_retention  = 7
+
+  # No HA for cost savings
+  high_availability = false
   
   labels = {
     environment = var.environment
@@ -114,8 +114,8 @@ module "rabbitmq" {
   environment    = var.environment
   project_name   = var.project_name
   
-  # CloudAMQP Settings (Production - Dedicated)
-  plan   = "tiger"
+  # CloudAMQP Settings (Minimum for cost savings)
+  plan   = "lemur"  # Free tier
   region = "google-compute-engine::us-central1"
   
   tags = {
@@ -139,19 +139,19 @@ module "kubernetes" {
   gcp_project_id = var.project_id
   region         = var.region
   
-  # GKE Settings (Production - Regional for HA)
+  # GKE Settings (Minimum for cost savings)
   kubernetes_version = "1.28"
-  regional           = true  # Regional cluster for production
-  
+  regional           = false  # Zonal cluster for cost savings
+
   node_pools = {
     default = {
       name           = "default-pool"
-      node_count     = 3
-      machine_type   = "e2-standard-4"
-      min_node_count = 3
-      max_node_count = 10
-      disk_size_gb   = 100
-      disk_type      = "pd-ssd"
+      node_count     = 2
+      machine_type   = "e2-micro"  # Smallest instance
+      min_node_count = 2
+      max_node_count = 3
+      disk_size_gb   = 30
+      disk_type      = "pd-standard"
     }
   }
   

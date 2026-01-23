@@ -32,9 +32,9 @@ variable "provider_type" {
 }
 
 variable "cloud_region" {
-  description = "Cloud region for CloudAMQP: amazon-web-services::us-east-1, azure-arm::eastus, google-compute-engine::us-central1"
+  description = "Cloud region for CloudAMQP: amazon-web-services::us-west-1, azure-arm::eastus, google-compute-engine::us-central1"
   type        = string
-  default     = "amazon-web-services::us-east-1"
+  default     = "amazon-web-services::us-west-1"
 }
 
 # Alias for multi-cloud compatibility

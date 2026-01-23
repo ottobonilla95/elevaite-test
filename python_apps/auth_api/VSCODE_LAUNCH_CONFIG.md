@@ -36,7 +36,7 @@ Add this configuration to your `.vscode/launch.json` to debug the Auth API in VS
         "MFA_DEVICE_BYPASS_HOURS": "24",
         "CORS_ORIGINS": "[\"http://localhost:3002\", \"http://localhost:8004\"]",
         "ALLOWED_HOSTS": "[\"localhost\", \"127.0.0.1\"]",
-        "AWS_REGION": "us-east-1",
+        "AWS_REGION": "us-west-1",
         "AWS_ACCESS_KEY_ID": "your-aws-access-key-id",
         "AWS_SECRET_ACCESS_KEY": "your-aws-secret-access-key",
         "SMS_SENDER_ID": "",
@@ -89,7 +89,7 @@ Add this configuration to your `.vscode/launch.json` to debug the Auth API in VS
 - **`MFA_EMAIL_PRIMARY_COLOR`**: Primary color for MFA emails (hex without #)
 
 ### AWS (for SMS MFA)
-- **`AWS_REGION`**: AWS region for SNS (default: us-east-1)
+- **`AWS_REGION`**: AWS region for SNS (default: us-west-1)
 - **`AWS_ACCESS_KEY_ID`**: AWS access key
 - **`AWS_SECRET_ACCESS_KEY`**: AWS secret key
 - **`SMS_SENDER_ID`**: Custom sender ID for SMS (optional)

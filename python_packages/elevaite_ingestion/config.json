@@ -97,7 +97,7 @@
       "pinecone": {
         "api_key": "pcsk_4JLFdb_",
         "cloud": "aws",
-        "region": "us-east-1",
+        "region": "us-west-1",
         "index_name": "kb-final10",
         "dimension": 1536
       },

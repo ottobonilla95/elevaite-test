@@ -134,7 +134,7 @@ services:
       # Dummy AWS creds to skip slow EC2 metadata lookup in local dev
       AWS_ACCESS_KEY_ID: "local-dev-key"
       AWS_SECRET_ACCESS_KEY: "local-dev-secret"
-      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_DEFAULT_REGION: "us-west-1"
     depends_on:
       postgres:
         condition: service_healthy
@@ -177,7 +177,7 @@ services:
       # Dummy AWS creds to skip slow EC2 metadata lookup in local dev
       AWS_ACCESS_KEY_ID: "local-dev-key"
       AWS_SECRET_ACCESS_KEY: "local-dev-secret"
-      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_DEFAULT_REGION: "us-west-1"
     depends_on:
       postgres:
         condition: service_healthy

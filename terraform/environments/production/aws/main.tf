@@ -28,7 +28,7 @@ terraform {
   backend "s3" {
     bucket         = "elevaite-terraform-state"
     key            = "production/aws/terraform.tfstate"
-    region         = "us-east-1"
+    region         = "us-west-1"
     encrypt        = true
     dynamodb_table = "elevaite-terraform-locks"
   }
@@ -56,7 +56,7 @@ provider "cloudamqp" {
 
 variable "aws_region" {
   type    = string
-  default = "us-east-1"
+  default = "us-west-1"
 }
 
 variable "domain_name" {
@@ -116,8 +116,7 @@ module "vpc" {
   public_subnets  = ["10.2.101.0/24", "10.2.102.0/24", "10.2.103.0/24"]
 
   enable_nat_gateway     = true
-  single_nat_gateway     = false  # HA: NAT per AZ
-  one_nat_gateway_per_az = true
+  single_nat_gateway     = true  # Cost saving: single NAT
 
   enable_dns_hostnames = true
   enable_dns_support   = true
@@ -162,12 +161,12 @@ module "database" {
   environment    = "production"
   name           = "elevaite"
 
-  instance_class    = "db.r6g.large"  # Production grade
-  allocated_storage = 100
+  instance_class    = "db.t4g.micro"  # Minimum for cost savings
+  allocated_storage = 20
   database_name     = "elevaite"
   username          = "elevaite"
   password          = var.db_password
-  multi_az          = true  # HA: Multi-AZ
+  multi_az          = false  # Cost saving: no Multi-AZ
 
   backup_retention_days = 30  # Longer retention for production
 
@@ -188,7 +187,7 @@ module "rabbitmq" {
   environment   = "production"
   name          = "elevaite"
 
-  plan = "bunny"  # Dedicated server for production
+  plan = "lemur"  # Free tier for cost savings
 }
 
 # =============================================================================
@@ -221,10 +220,10 @@ module "kubernetes" {
   name           = "elevaite"
 
   kubernetes_version = "1.28"
-  node_count         = 3
-  min_nodes          = 3
-  max_nodes          = 10
-  node_instance_type = "t3.xlarge"  # Production grade
+  node_count         = 2
+  min_nodes          = 2
+  max_nodes          = 3
+  node_instance_type = "t3.small"  # Minimum for cost savings
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets

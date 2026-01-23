@@ -316,7 +316,7 @@ async def vector_storage_step(
                 settings = {
                     "api_key": config.get("api_key") or os.getenv("PINECONE_API_KEY", ""),
                     "cloud": config.get("cloud", "aws"),
-                    "region": config.get("region", "us-east-1"),
+                    "region": config.get("region", "us-west-1"),
                     "index_name": config.get("index_name", collection_name),
                     "dimension": config.get("dimension", len(embeddings[0]) if embeddings else 1536),
                 }

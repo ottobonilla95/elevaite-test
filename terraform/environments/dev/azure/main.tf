@@ -72,10 +72,10 @@ module "database" {
   resource_group_name = azurerm_resource_group.main.name
   location            = var.location
   
-  # PostgreSQL Settings (Dev - Smaller instance)
+  # PostgreSQL Settings (Dev - Minimum instance)
   database_name      = "elevaite_dev"  # Admin database
-  instance_class     = "GP_Gen5_2"     # 2 vCores
-  storage_mb         = 32768           # 32GB
+  instance_class     = "B_Gen5_1"      # 1 vCore, Basic tier
+  storage_mb         = 20480           # 20GB
   backup_retention   = 7
   
   # No HA for dev (cost savings)
@@ -147,7 +147,7 @@ module "kubernetes" {
     default = {
       name       = "default"
       node_count = 2
-      vm_size    = "Standard_D2s_v3"
+      vm_size    = "Standard_B2s"  # Burstable, cheapest
       min_count  = 1
       max_count  = 4
     }

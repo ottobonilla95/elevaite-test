@@ -75,7 +75,7 @@ QDRANT_HOST=localhost
 QDRANT_PORT=6333
 
 # AWS (for Bedrock)
-AWS_DEFAULT_REGION=us-east-1
+AWS_DEFAULT_REGION=us-west-1
 
 # Disabled services
 OTLP_ENDPOINT=              # Disable OpenTelemetry

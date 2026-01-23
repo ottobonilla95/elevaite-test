@@ -22,7 +22,7 @@ class S3Connector:
             's3',
             aws_access_key_id=config["aws_access_key_id"],
             aws_secret_access_key=config["aws_secret_access_key"],
-            region_name=config.get("aws_region", "us-east-1"),
+            region_name=config.get("aws_region", "us-west-1"),
             verify=False  # Disable SSL verification for corporate networks
         )
         

@@ -23,7 +23,7 @@ if [ "$AWS_REQUIRED" = true ] && ([ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECR
   echo "Please set the following environment variables:"
   echo "  - AWS_ACCESS_KEY_ID"
   echo "  - AWS_SECRET_ACCESS_KEY"
-  echo "  - AWS_REGION (optional, defaults to us-east-1)"
+  echo "  - AWS_REGION (optional, defaults to us-west-1)"
   echo ""
   echo "If you want to skip AWS credential check, run with: --no-aws-check"
   exit 1

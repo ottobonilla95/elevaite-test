@@ -45,7 +45,7 @@ variable "cloud_provider" {
 }
 
 variable "region" {
-  description = "Cloud region (e.g., us-east-1, us-central1, eastus)"
+  description = "Cloud region (e.g., us-west-1, us-central1, eastus)"
   type        = string
 }
 

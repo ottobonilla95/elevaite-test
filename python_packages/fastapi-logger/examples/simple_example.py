@@ -51,7 +51,7 @@ print(f"Log Group: {log_group}")
 print(f"Log Stream: {log_stream}")
 print("\nTo view these logs, visit:")
 print(
-    f"https://console.aws.amazon.com/cloudwatch/home?region={os.environ.get('AWS_REGION', 'us-east-1')}#logsV2:log-groups/log-group/{log_group}/log-events/{log_stream}"
+    f"https://console.aws.amazon.com/cloudwatch/home?region={os.environ.get('AWS_REGION', 'us-west-1')}#logsV2:log-groups/log-group/{log_group}/log-events/{log_stream}"
 )
 print("\nPress Ctrl+C to quit")
 

@@ -69,7 +69,7 @@ if selected_vector_db != "Select a Vector DB":
         st.subheader("Pinecone Configuration")
         api_key = st.text_input("API Key", config["vector_db"]["databases"]["pinecone"].get("api_key", ""))
         cloud = st.text_input("Cloud", config["vector_db"]["databases"]["pinecone"].get("cloud", "aws"))
-        region = st.text_input("Region", config["vector_db"]["databases"]["pinecone"].get("region", "us-east-1"))
+        region = st.text_input("Region", config["vector_db"]["databases"]["pinecone"].get("region", "us-west-1"))
         index_name = st.text_input("Index Name", config["vector_db"]["databases"]["pinecone"].get("index_name", "kb-final-check"))
         dimension = st.number_input("Dimension", min_value=1, max_value=4096, value=config["vector_db"]["databases"]["pinecone"].get("dimension", 1536))
         if st.button("Save Pinecone Configuration"):

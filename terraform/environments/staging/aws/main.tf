@@ -28,7 +28,7 @@ terraform {
   backend "s3" {
     bucket = "elevaite-terraform-state"
     key    = "staging/aws/terraform.tfstate"
-    region = "us-east-1"
+    region = "us-west-1"
   }
 }
 
@@ -54,7 +54,7 @@ provider "cloudamqp" {
 
 variable "aws_region" {
   type    = string
-  default = "us-east-1"
+  default = "us-west-1"
 }
 
 variable "domain_name" {

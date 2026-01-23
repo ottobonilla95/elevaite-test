@@ -115,7 +115,7 @@ rabbitmq:
 objectStorage:
   provider: "aws"
   bucket: "elevaite-dev-files"
-  region: "us-east-1"
+  region: "us-west-1"
   # Files are stored under prefix: pr-${PR_NUMBER}/
   existingSecret: "elevaite-storage-credentials"
 

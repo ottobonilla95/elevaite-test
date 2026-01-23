@@ -108,7 +108,7 @@ module "qdrant" {
   environment    = "production"
   project_name   = "elevaite"
   cloud_provider = "aws"
-  region         = "us-east-1"
+  region         = "us-west-1"
 
   # Production settings
   cluster_size       = 3

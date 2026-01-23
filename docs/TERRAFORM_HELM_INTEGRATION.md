@@ -259,7 +259,7 @@ output "dns" {
 global:
   environment: staging
   cloudProvider: aws
-  region: us-east-1
+  region: us-west-1
 
 # Infrastructure endpoints (populated by Terraform)
 postgresql:
@@ -280,7 +280,7 @@ rabbitmq:
 storage:
   type: s3
   bucket: ""      # Injected by CI/CD
-  region: us-east-1
+  region: us-west-1
 
 qdrant:
   enabled: true
@@ -404,7 +404,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: us-west-1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -429,7 +429,7 @@ jobs:
         run: |
           aws eks update-kubeconfig \
             --name ${{ steps.terraform.outputs.cluster_name }} \
-            --region us-east-1
+            --region us-west-1
 
       - name: Build and push Docker images
         run: |
@@ -498,7 +498,7 @@ cd - > /dev/null
 echo "☸️  Configuring kubectl..."
 case "$CLOUD_PROVIDER" in
   aws)
-    aws eks update-kubeconfig --name "$CLUSTER_NAME" --region us-east-1
+    aws eks update-kubeconfig --name "$CLUSTER_NAME" --region us-west-1
     ;;
   azure)
     az aks get-credentials --resource-group "elevaite-${ENVIRONMENT}" --name "$CLUSTER_NAME"
@@ -593,7 +593,7 @@ CLUSTER_NAME=$(terraform output -raw kubernetes_cluster_name)
 
 ```bash
 # AWS
-aws eks update-kubeconfig --name "$CLUSTER_NAME" --region us-east-1
+aws eks update-kubeconfig --name "$CLUSTER_NAME" --region us-west-1
 
 # Azure
 az aks get-credentials --resource-group elevaite-staging --name "$CLUSTER_NAME"
@@ -733,7 +733,7 @@ kubectl rollout restart deployment/workflow-engine
 terraform output kubernetes_cluster_name
 
 # Re-configure kubectl
-aws eks update-kubeconfig --name <cluster-name> --region us-east-1
+aws eks update-kubeconfig --name <cluster-name> --region us-west-1
 
 # Verify
 kubectl cluster-info

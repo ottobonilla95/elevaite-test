@@ -62,7 +62,7 @@ class TestCloudWatchLogger(unittest.TestCase):
         print(f"Log Stream: {self.log_stream}")
         print("\nTo view these logs, visit:")
         print(
-            f"https://console.aws.amazon.com/cloudwatch/home?region={os.environ.get('AWS_REGION', 'us-east-1')}#logsV2:log-groups/log-group/{self.log_group}/log-events/{self.log_stream}"
+            f"https://console.aws.amazon.com/cloudwatch/home?region={os.environ.get('AWS_REGION', 'us-west-1')}#logsV2:log-groups/log-group/{self.log_group}/log-events/{self.log_stream}"
         )
         print("\nYou should see log entries including the test ID above.")
         print("Note: It may take a few seconds for logs to appear in CloudWatch.")

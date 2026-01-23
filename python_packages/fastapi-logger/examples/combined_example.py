@@ -114,7 +114,7 @@ print(f"Log Group: {log_group}")
 print(f"Log Stream: {log_stream}")
 print("\nTo view CloudWatch logs, visit:")
 print(
-    f"https://console.aws.amazon.com/cloudwatch/home?region={os.environ.get('AWS_REGION', 'us-east-1')}#logsV2:log-groups/log-group/{log_group}/log-events/{log_stream}"
+    f"https://console.aws.amazon.com/cloudwatch/home?region={os.environ.get('AWS_REGION', 'us-west-1')}#logsV2:log-groups/log-group/{log_group}/log-events/{log_stream}"
 )
 print("\nTo view traces, make sure you have an OpenTelemetry collector running.")
 print("If you're using Jaeger, visit: http://localhost:16686")

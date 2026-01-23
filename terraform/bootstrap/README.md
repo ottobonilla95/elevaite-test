@@ -43,7 +43,7 @@ terraform {
   backend "s3" {
     bucket         = "elevaite-terraform-state"
     key            = "staging/aws/terraform.tfstate"
-    region         = "us-east-1"
+    region         = "us-west-1"
     encrypt        = true
     dynamodb_table = "elevaite-terraform-locks"
   }

@@ -121,7 +121,7 @@ export GOOGLE_API_KEY="your-google-api-key"
 ```bash
 export AWS_ACCESS_KEY_ID="your-aws-access-key"
 export AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
-export AWS_DEFAULT_REGION="us-east-1"
+export AWS_DEFAULT_REGION="us-west-1"
 ```
 
 ### Agent Configuration Examples

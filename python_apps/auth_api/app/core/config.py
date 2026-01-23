@@ -130,7 +130,7 @@ class Settings(BaseSettings):
     EMAILS_FROM_NAME: str = os.environ.get("EMAILS_FROM_NAME", "")
 
     # AWS Configuration for SMS
-    AWS_REGION: str = os.environ.get("AWS_REGION", "us-east-1")
+    AWS_REGION: str = os.environ.get("AWS_REGION", "us-west-1")
     SMS_SENDER_ID: str = os.environ.get("SMS_SENDER_ID", "")
 
     @field_validator("CORS_ORIGINS")

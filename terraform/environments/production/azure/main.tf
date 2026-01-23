@@ -71,16 +71,14 @@ module "database" {
   resource_group_name = azurerm_resource_group.main.name
   location            = var.location
   
-  # PostgreSQL Settings (Production - Higher specs)
+  # PostgreSQL Settings (Minimum for cost savings)
   database_name      = "elevaite_production"
-  instance_class     = "GP_Gen5_4"  # 4 vCores, General Purpose
-  storage_mb         = 102400       # 100GB
-  backup_retention   = 35           # 35 days for production
-  
-  # High availability
-  high_availability           = true
-  geo_redundant_backup        = true
-  auto_grow_enabled           = true
+  instance_class     = "B_Gen5_1"   # 1 vCore, Basic tier
+  storage_mb         = 20480        # 20GB
+  backup_retention   = 7
+
+  # No HA for cost savings
+  high_availability           = false
   
   tags = azurerm_resource_group.main.tags
 }
@@ -99,9 +97,9 @@ module "storage" {
   resource_group_name = azurerm_resource_group.main.name
   location            = var.location
   
-  # Storage Settings (Production - GRS for redundancy)
+  # Storage Settings (Minimum for cost savings)
   account_tier             = "Standard"
-  account_replication_type = "GRS"  # Geo-redundant for production
+  account_replication_type = "LRS"  # Locally redundant
   
   tags = azurerm_resource_group.main.tags
 }
@@ -116,8 +114,8 @@ module "rabbitmq" {
   environment    = var.environment
   project_name   = var.project
   
-  # CloudAMQP Settings (Production - Dedicated)
-  plan   = "tiger"  # Dedicated instance for production
+  # CloudAMQP Settings (Minimum for cost savings)
+  plan   = "lemur"  # Free tier
   region = "azure-arm::eastus"
   
   tags = {
@@ -141,32 +139,18 @@ module "kubernetes" {
   resource_group_name = azurerm_resource_group.main.name
   location            = var.location
   
-  # AKS Settings (Production)
+  # AKS Settings (Minimum for cost savings)
   kubernetes_version = "1.28"
-  
+
   node_pools = {
-    system = {
-      name       = "system"
-      node_count = 3
-      vm_size    = "Standard_D4s_v3"
-      min_count  = 3
-      max_count  = 5
-      mode       = "System"
-    }
-    application = {
-      name       = "application"
-      node_count = 3
-      vm_size    = "Standard_D4s_v3"
-      min_count  = 3
-      max_count  = 10
-      mode       = "User"
+    default = {
+      name       = "default"
+      node_count = 2
+      vm_size    = "Standard_B2s"  # Burstable, cheapest
+      min_count  = 2
+      max_count  = 3
     }
   }
-  
-  # Production features
-  sku_tier         = "Standard"  # Uptime SLA
-  azure_policy     = true
-  private_cluster  = false
   
   tags = azurerm_resource_group.main.tags
 }

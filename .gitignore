@@ -85,4 +85,7 @@ python_packages/elevaite_ingestion/**/stage_*_status.json
 python_packages/elevaite_ingestion/config/logs/pipeline.log
 
 uploads
-logs
+logs.
+
+terraform/
+terraform.tfstate*

@@ -172,7 +172,7 @@ def setup_test_environment():
         # AWS (for Bedrock)
         "AWS_ACCESS_KEY_ID": os.getenv("TEST_AWS_ACCESS_KEY_ID", ""),
         "AWS_SECRET_ACCESS_KEY": os.getenv("TEST_AWS_SECRET_ACCESS_KEY", ""),
-        "AWS_DEFAULT_REGION": os.getenv("TEST_AWS_DEFAULT_REGION", "us-east-1"),
+        "AWS_DEFAULT_REGION": os.getenv("TEST_AWS_DEFAULT_REGION", "us-west-1"),
         # Other Services
         "WEATHER_API_KEY": os.getenv("TEST_WEATHER_API_KEY", ""),
         "QDRANT_HOST": os.getenv("TEST_QDRANT_HOST", "localhost"),

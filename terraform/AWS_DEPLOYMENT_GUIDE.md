@@ -17,7 +17,7 @@ aws configure
 # Enter your:
 # - AWS Access Key ID
 # - AWS Secret Access Key
-# - Default region (e.g., us-east-1)
+# - Default region (e.g., us-west-1)
 # - Default output format (json)
 ```
 
@@ -129,8 +129,8 @@ If you want to customize settings, create `terraform.tfvars`:
 
 ```bash
 cat > terraform.tfvars <<'EOF'
-# AWS Region (default: us-east-1)
-aws_region = "us-east-1"
+# AWS Region (default: us-west-1)
+aws_region = "us-west-1"
 
 # Domain name for DNS and SSL
 domain_name = "elevaite.ai"
@@ -176,7 +176,7 @@ terraform plan
 | cert-manager | Let's Encrypt | Automatic SSL certificates |
 | Monitoring | Prometheus/Grafana | Observability stack |
 
-**Cost estimate:** ~$75-150/month for staging (depends on usage)
+**Cost estimate:** ~$150/month per environment (staging or production)
 
 ---
 
@@ -216,7 +216,7 @@ Connect to your new Kubernetes cluster:
 
 ```bash
 # Get the kubeconfig command from outputs
-aws eks update-kubeconfig --name elevaite-staging --region us-east-1
+aws eks update-kubeconfig --name elevaite-staging --region us-west-1
 
 # Verify connection
 kubectl get nodes
@@ -327,7 +327,7 @@ resource "aws_s3_bucket" "terraform_state" {
 
 Update kubeconfig:
 ```bash
-aws eks update-kubeconfig --name elevaite-staging --region us-east-1
+aws eks update-kubeconfig --name elevaite-staging --region us-west-1
 ```
 
 ### Issue: Pods stuck in "Pending" state
@@ -373,11 +373,17 @@ terraform destroy
 
 ## Cost Optimization Tips
 
-**Staging environment:**
-- Uses smallest instances (t3.small, db.t4g.micro)
+**Both environments now use minimal resources:**
+- Smallest instances (t3.small nodes, db.t4g.micro RDS)
 - Single NAT Gateway instead of one per AZ
 - No Multi-AZ for RDS
 - CloudAMQP free tier
+
+**Scale up production when needed:**
+1. Monitor actual resource usage in production
+2. Increase instance sizes based on metrics
+3. Enable Multi-AZ after validating requirements
+4. Add auto-scaling when load patterns are understood
 
 **To reduce costs further:**
 1. Stop EKS node group when not in use
@@ -419,12 +425,12 @@ terraform plan
 terraform apply
 ```
 
-**Production differences:**
-- Larger instances (t3.medium nodes, db.t4g.small RDS)
-- Multi-AZ RDS for high availability
-- Multiple NAT Gateways (one per AZ)
-- 90-day monitoring retention
-- PagerDuty integration for critical alerts
+**Production configuration:**
+- Same minimal resources as staging initially
+- Monitor usage and scale up as needed
+- Consider enabling Multi-AZ for RDS when you have real users
+- Enable PagerDuty integration for critical alerts
+- Increase monitoring retention for compliance requirements
 
 ---
 

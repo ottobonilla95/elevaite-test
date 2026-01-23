@@ -104,7 +104,7 @@ rabbitmq:
 objectStorage:
   provider: "aws"  # or gcp, azure
   bucket: "elevaite-staging-files"
-  region: "us-east-1"
+  region: "us-west-1"
   existingSecret: "elevaite-storage-credentials"
 
 # Qdrant - Qdrant Cloud (optional for staging)

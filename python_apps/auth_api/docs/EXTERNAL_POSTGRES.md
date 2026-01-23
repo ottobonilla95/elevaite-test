@@ -130,7 +130,7 @@ SQLALCHEMY_DATABASE_URL=postgresql://auth_user:strong_password@your-postgres-hos
 # Examples:
 # Local PostgreSQL: postgresql://auth_user:pass@localhost:5432/auth_db
 # Remote server: postgresql://auth_user:pass@192.168.1.100:5432/auth_db
-# AWS RDS: postgresql://auth_user:pass@mydb.abc123.us-east-1.rds.amazonaws.com:5432/auth_db
+# AWS RDS: postgresql://auth_user:pass@mydb.abc123.us-west-1.rds.amazonaws.com:5432/auth_db
 # Cloud SQL: postgresql://auth_user:pass@10.1.2.3:5432/auth_db
 ```
 

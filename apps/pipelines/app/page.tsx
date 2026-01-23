@@ -29,7 +29,7 @@ export default function Home(): JSX.Element {
   const [enableFileUpload, setEnableFileUpload] = useState<boolean>(true);
   const [uploadEndpoint, setUploadEndpoint] = useState<string>(
     `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/files/upload` ||
-      "http://localhost:8000/api/files/upload"
+    "http://localhost:8000/api/files/upload"
   );
 
   // Parsing step state
@@ -728,97 +728,97 @@ export default function Home(): JSX.Element {
                         },
                         ...(dataSource === "s3"
                           ? [
-                              {
-                                id: "s3_bucket_name",
-                                children: (
-                                  <ConfigField label="S3 Bucket Name">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter bucket name"
-                                      defaultValue="kb-check-pdf"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "aws_region",
-                                children: (
-                                  <ConfigField label="AWS Region">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="e.g., us-east-1"
-                                      defaultValue="us-east-2"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "s3_bucket_name",
+                              children: (
+                                <ConfigField label="S3 Bucket Name">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="Enter bucket name"
+                                    defaultValue="kb-check-pdf"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "aws_region",
+                              children: (
+                                <ConfigField label="AWS Region">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="e.g., us-west-1"
+                                    defaultValue="us-east-2"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                         ...(dataSource === "local"
                           ? [
-                              {
-                                id: "input_directory",
-                                children: (
-                                  <ConfigField label="Input Directory">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter input directory path"
-                                      defaultValue="/elevaite_ingestion/INPUT"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "output_directory",
-                                children: (
-                                  <ConfigField label="Output Directory">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter output directory path"
-                                      defaultValue="/elevaite_ingestion/OUTPUT"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "input_directory",
+                              children: (
+                                <ConfigField label="Input Directory">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="Enter input directory path"
+                                    defaultValue="/elevaite_ingestion/INPUT"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "output_directory",
+                              children: (
+                                <ConfigField label="Output Directory">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="Enter output directory path"
+                                    defaultValue="/elevaite_ingestion/OUTPUT"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                         ...(dataSource === "upload"
                           ? [
-                              {
-                                id: "upload_endpoint",
-                                children: (
-                                  <ConfigField label="Upload Endpoint URL">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter upload endpoint URL"
-                                      defaultValue={uploadEndpoint}
-                                      onChange={(value) => {
-                                        setUploadEndpoint(value);
-                                        console.log("Upload endpoint:", value);
-                                      }}
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "enable_file_upload",
-                                children: (
-                                  <ConfigField label="Enable File Upload">
-                                    <input
-                                      type="checkbox"
-                                      checked={enableFileUpload}
-                                      onChange={(e) => {
-                                        setEnableFileUpload(e.target.checked);
-                                        console.log(
-                                          "Enable file upload:",
-                                          e.target.checked
-                                        );
-                                      }}
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "upload_endpoint",
+                              children: (
+                                <ConfigField label="Upload Endpoint URL">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="Enter upload endpoint URL"
+                                    defaultValue={uploadEndpoint}
+                                    onChange={(value) => {
+                                      setUploadEndpoint(value);
+                                      console.log("Upload endpoint:", value);
+                                    }}
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "enable_file_upload",
+                              children: (
+                                <ConfigField label="Enable File Upload">
+                                  <input
+                                    type="checkbox"
+                                    checked={enableFileUpload}
+                                    onChange={(e) => {
+                                      setEnableFileUpload(e.target.checked);
+                                      console.log(
+                                        "Enable file upload:",
+                                        e.target.checked
+                                      );
+                                    }}
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                       ]}
                     />
@@ -876,92 +876,92 @@ export default function Home(): JSX.Element {
                         },
                         ...(parsingMode === "custom_parser" && parserType
                           ? [
-                              {
-                                id: "parser_tool",
-                                children: (
-                                  <ConfigField label="Parser Tool">
-                                    <CustomDropdown
-                                      options={
-                                        parserType === "pdf"
-                                          ? [{ value: "none", label: "None" }]
-                                          : parserType === "docx" ||
-                                              parserType === "xlsx" ||
-                                              parserType === "html"
-                                            ? [
-                                                {
-                                                  value: "markitdown",
-                                                  label: "Markitdown",
-                                                },
-                                                {
-                                                  value: "docling",
-                                                  label: "Docling",
-                                                },
-                                                {
-                                                  value: "llamaparse",
-                                                  label: "LlamaParse",
-                                                },
-                                              ]
-                                            : [{ value: "none", label: "None" }]
-                                      }
-                                      defaultValue={
-                                        parserTool ||
-                                        (parserType === "pdf"
-                                          ? "none"
-                                          : "markitdown")
-                                      }
-                                      onChange={(value) => {
-                                        setParserTool(value);
-                                        console.log(
-                                          "Selected parser tool:",
-                                          value
-                                        );
-                                      }}
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "parser_tool",
+                              children: (
+                                <ConfigField label="Parser Tool">
+                                  <CustomDropdown
+                                    options={
+                                      parserType === "pdf"
+                                        ? [{ value: "none", label: "None" }]
+                                        : parserType === "docx" ||
+                                          parserType === "xlsx" ||
+                                          parserType === "html"
+                                          ? [
+                                            {
+                                              value: "markitdown",
+                                              label: "Markitdown",
+                                            },
+                                            {
+                                              value: "docling",
+                                              label: "Docling",
+                                            },
+                                            {
+                                              value: "llamaparse",
+                                              label: "LlamaParse",
+                                            },
+                                          ]
+                                          : [{ value: "none", label: "None" }]
+                                    }
+                                    defaultValue={
+                                      parserTool ||
+                                      (parserType === "pdf"
+                                        ? "none"
+                                        : "markitdown")
+                                    }
+                                    onChange={(value) => {
+                                      setParserTool(value);
+                                      console.log(
+                                        "Selected parser tool:",
+                                        value
+                                      );
+                                    }}
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                         ...(parsingMode === "custom_parser" && !parserType
                           ? [
-                              {
-                                id: "parser_tool_placeholder",
-                                children: (
-                                  <ConfigField label="Parser Tool">
-                                    <div
-                                      style={{
-                                        color: "#808080",
-                                        fontSize: "14px",
-                                      }}
-                                    >
-                                      Select a parser type first
-                                    </div>
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "parser_tool_placeholder",
+                              children: (
+                                <ConfigField label="Parser Tool">
+                                  <div
+                                    style={{
+                                      color: "#808080",
+                                      fontSize: "14px",
+                                    }}
+                                  >
+                                    Select a parser type first
+                                  </div>
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                         ...(parsingMode === "auto_parser"
                           ? [
-                              {
-                                id: "language",
-                                children: (
-                                  <ConfigField label="Language">
-                                    <CustomDropdown
-                                      options={[
-                                        { value: "en", label: "English" },
-                                        { value: "es", label: "Spanish" },
-                                        { value: "fr", label: "French" },
-                                      ]}
-                                      defaultValue="en"
-                                      onChange={(value) =>
-                                        console.log("Selected language:", value)
-                                      }
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "language",
+                              children: (
+                                <ConfigField label="Language">
+                                  <CustomDropdown
+                                    options={[
+                                      { value: "en", label: "English" },
+                                      { value: "es", label: "Spanish" },
+                                      { value: "fr", label: "French" },
+                                    ]}
+                                    defaultValue="en"
+                                    onChange={(value) =>
+                                      console.log("Selected language:", value)
+                                    }
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                       ]}
                     />
@@ -1044,105 +1044,105 @@ export default function Home(): JSX.Element {
                         },
                         ...(chunkingStrategy === "semantic_chunking"
                           ? [
-                              {
-                                id: "semantic_model",
-                                children: (
-                                  <ConfigField label="Semantic Model">
-                                    <CustomDropdown
-                                      options={[
-                                        {
-                                          value: "openai",
-                                          label: "OpenAI",
-                                        },
-                                        {
-                                          value: "cohere",
-                                          label: "Cohere",
-                                        },
-                                        {
-                                          value: "huggingface",
-                                          label: "HuggingFace",
-                                        },
-                                      ]}
-                                      defaultValue="openai"
-                                      onChange={(value) =>
-                                        console.log(
-                                          "Selected semantic model:",
-                                          value
-                                        )
-                                      }
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "threshold_type",
-                                children: (
-                                  <ConfigField label="Threshold Type">
-                                    <CustomDropdown
-                                      options={[
-                                        {
-                                          value: "percentile",
-                                          label: "Percentile",
-                                        },
-                                        { value: "fixed", label: "Fixed" },
-                                      ]}
-                                      defaultValue={thresholdType}
-                                      onChange={(value) => {
-                                        setThresholdType(value);
-                                        console.log(
-                                          "Threshold type changed:",
-                                          value
-                                        );
-                                      }}
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "threshold_amount",
-                                children: (
-                                  <ConfigField label="Threshold Amount">
-                                    <CustomNumberInput
-                                      defaultValue={thresholdAmount}
-                                      min={1}
-                                      max={100}
-                                      step={1}
-                                      onChange={(value) => {
-                                        setThresholdAmount(value);
-                                        console.log(
-                                          "Threshold amount changed:",
-                                          value
-                                        );
-                                      }}
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "semantic_model",
+                              children: (
+                                <ConfigField label="Semantic Model">
+                                  <CustomDropdown
+                                    options={[
+                                      {
+                                        value: "openai",
+                                        label: "OpenAI",
+                                      },
+                                      {
+                                        value: "cohere",
+                                        label: "Cohere",
+                                      },
+                                      {
+                                        value: "huggingface",
+                                        label: "HuggingFace",
+                                      },
+                                    ]}
+                                    defaultValue="openai"
+                                    onChange={(value) =>
+                                      console.log(
+                                        "Selected semantic model:",
+                                        value
+                                      )
+                                    }
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "threshold_type",
+                              children: (
+                                <ConfigField label="Threshold Type">
+                                  <CustomDropdown
+                                    options={[
+                                      {
+                                        value: "percentile",
+                                        label: "Percentile",
+                                      },
+                                      { value: "fixed", label: "Fixed" },
+                                    ]}
+                                    defaultValue={thresholdType}
+                                    onChange={(value) => {
+                                      setThresholdType(value);
+                                      console.log(
+                                        "Threshold type changed:",
+                                        value
+                                      );
+                                    }}
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "threshold_amount",
+                              children: (
+                                <ConfigField label="Threshold Amount">
+                                  <CustomNumberInput
+                                    defaultValue={thresholdAmount}
+                                    min={1}
+                                    max={100}
+                                    step={1}
+                                    onChange={(value) => {
+                                      setThresholdAmount(value);
+                                      console.log(
+                                        "Threshold amount changed:",
+                                        value
+                                      );
+                                    }}
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                         ...(chunkingStrategy === "sentence_chunking"
                           ? [
-                              {
-                                id: "max_chunk_size",
-                                children: (
-                                  <ConfigField label="Max Chunk Size">
-                                    <CustomNumberInput
-                                      defaultValue={maxChunkSize}
-                                      min={100}
-                                      max={5000}
-                                      step={100}
-                                      onChange={(value) => {
-                                        setMaxChunkSize(value);
-                                        console.log(
-                                          "Max chunk size changed:",
-                                          value
-                                        );
-                                      }}
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "max_chunk_size",
+                              children: (
+                                <ConfigField label="Max Chunk Size">
+                                  <CustomNumberInput
+                                    defaultValue={maxChunkSize}
+                                    min={100}
+                                    max={5000}
+                                    step={100}
+                                    onChange={(value) => {
+                                      setMaxChunkSize(value);
+                                      console.log(
+                                        "Max chunk size changed:",
+                                        value
+                                      );
+                                    }}
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                       ]}
                     />
@@ -1191,60 +1191,60 @@ export default function Home(): JSX.Element {
                                 options={
                                   embeddingProvider === "openai"
                                     ? [
-                                        {
-                                          value: "text-embedding-ada-002",
-                                          label:
-                                            "text-embedding-ada-002 (1536 dim)",
-                                        },
-                                        {
-                                          value: "text-embedding-3-small",
-                                          label:
-                                            "text-embedding-3-small (1536 dim)",
-                                        },
-                                        {
-                                          value: "text-embedding-3-large",
-                                          label:
-                                            "text-embedding-3-large (3072 dim)",
-                                        },
-                                      ]
+                                      {
+                                        value: "text-embedding-ada-002",
+                                        label:
+                                          "text-embedding-ada-002 (1536 dim)",
+                                      },
+                                      {
+                                        value: "text-embedding-3-small",
+                                        label:
+                                          "text-embedding-3-small (1536 dim)",
+                                      },
+                                      {
+                                        value: "text-embedding-3-large",
+                                        label:
+                                          "text-embedding-3-large (3072 dim)",
+                                      },
+                                    ]
                                     : embeddingProvider === "cohere"
                                       ? [
-                                          {
-                                            value: "embed-english-light-v3.0",
-                                            label:
-                                              "embed-english-light-v3.0 (1024 dim)",
-                                          },
-                                          {
-                                            value: "embed-english-v3.0",
-                                            label:
-                                              "embed-english-v3.0 (1024 dim)",
-                                          },
-                                          {
-                                            value: "embed-multilingual-v3.0",
-                                            label:
-                                              "embed-multilingual-v3.0 (1024 dim)",
-                                          },
-                                        ]
+                                        {
+                                          value: "embed-english-light-v3.0",
+                                          label:
+                                            "embed-english-light-v3.0 (1024 dim)",
+                                        },
+                                        {
+                                          value: "embed-english-v3.0",
+                                          label:
+                                            "embed-english-v3.0 (1024 dim)",
+                                        },
+                                        {
+                                          value: "embed-multilingual-v3.0",
+                                          label:
+                                            "embed-multilingual-v3.0 (1024 dim)",
+                                        },
+                                      ]
                                       : embeddingProvider === "local"
                                         ? [
-                                            {
-                                              value: "all-MiniLM-L6-v2",
-                                              label:
-                                                "all-MiniLM-L6-v2 (384 dim)",
-                                            },
-                                            {
-                                              value: "all-mpnet-base-v2",
-                                              label:
-                                                "all-mpnet-base-v2 (768 dim)",
-                                            },
-                                          ]
+                                          {
+                                            value: "all-MiniLM-L6-v2",
+                                            label:
+                                              "all-MiniLM-L6-v2 (384 dim)",
+                                          },
+                                          {
+                                            value: "all-mpnet-base-v2",
+                                            label:
+                                              "all-mpnet-base-v2 (768 dim)",
+                                          },
+                                        ]
                                         : embeddingProvider === "amazon_bedrock"
                                           ? [
-                                              {
-                                                value: "titan-embed-text-v1",
-                                                label: "Titan Embed Text v1",
-                                              },
-                                            ]
+                                            {
+                                              value: "titan-embed-text-v1",
+                                              label: "Titan Embed Text v1",
+                                            },
+                                          ]
                                           : [{ value: "none", label: "None" }]
                                 }
                                 defaultValue={embeddingModel}
@@ -1260,36 +1260,36 @@ export default function Home(): JSX.Element {
                           ),
                         },
                         ...(embeddingProvider === "openai" ||
-                        embeddingProvider === "cohere"
+                          embeddingProvider === "cohere"
                           ? [
-                              {
-                                id: "api_key",
-                                children: (
-                                  <ConfigField label="API Key">
-                                    <CustomInput
-                                      type="password"
-                                      placeholder="Enter API key"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "api_key",
+                              children: (
+                                <ConfigField label="API Key">
+                                  <CustomInput
+                                    type="password"
+                                    placeholder="Enter API key"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                         ...(embeddingProvider === "amazon_bedrock"
                           ? [
-                              {
-                                id: "aws_region",
-                                children: (
-                                  <ConfigField label="AWS Region">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="e.g., us-east-1"
-                                      defaultValue="us-east-2"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "aws_region",
+                              children: (
+                                <ConfigField label="AWS Region">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="e.g., us-west-1"
+                                    defaultValue="us-east-2"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                       ]}
                     />
@@ -1325,148 +1325,148 @@ export default function Home(): JSX.Element {
                         },
                         ...(vectorDb === "pinecone"
                           ? [
-                              {
-                                id: "pinecone_api_key",
-                                children: (
-                                  <ConfigField label="API Key">
-                                    <CustomInput
-                                      type="password"
-                                      placeholder="Enter Pinecone API key"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "pinecone_cloud",
-                                children: (
-                                  <ConfigField label="Cloud">
-                                    <CustomDropdown
-                                      options={[
-                                        { value: "aws", label: "AWS" },
-                                        { value: "gcp", label: "GCP" },
-                                        { value: "azure", label: "Azure" },
-                                      ]}
-                                      defaultValue="aws"
-                                      onChange={(value) =>
-                                        console.log("Selected cloud:", value)
-                                      }
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "pinecone_region",
-                                children: (
-                                  <ConfigField label="Region">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="e.g., us-east-1"
-                                      defaultValue="us-east-1"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "pinecone_index",
-                                children: (
-                                  <ConfigField label="Index Name">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter index name"
-                                      defaultValue="kb-final10"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "pinecone_dimension",
-                                children: (
-                                  <ConfigField label="Dimension">
-                                    <CustomNumberInput
-                                      defaultValue={1536}
-                                      min={1}
-                                      max={4096}
-                                      step={1}
-                                      onChange={(value) =>
-                                        console.log("Dimension changed:", value)
-                                      }
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "pinecone_api_key",
+                              children: (
+                                <ConfigField label="API Key">
+                                  <CustomInput
+                                    type="password"
+                                    placeholder="Enter Pinecone API key"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "pinecone_cloud",
+                              children: (
+                                <ConfigField label="Cloud">
+                                  <CustomDropdown
+                                    options={[
+                                      { value: "aws", label: "AWS" },
+                                      { value: "gcp", label: "GCP" },
+                                      { value: "azure", label: "Azure" },
+                                    ]}
+                                    defaultValue="aws"
+                                    onChange={(value) =>
+                                      console.log("Selected cloud:", value)
+                                    }
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "pinecone_region",
+                              children: (
+                                <ConfigField label="Region">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="e.g., us-west-1"
+                                    defaultValue="us-west-1"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "pinecone_index",
+                              children: (
+                                <ConfigField label="Index Name">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="Enter index name"
+                                    defaultValue="kb-final10"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "pinecone_dimension",
+                              children: (
+                                <ConfigField label="Dimension">
+                                  <CustomNumberInput
+                                    defaultValue={1536}
+                                    min={1}
+                                    max={4096}
+                                    step={1}
+                                    onChange={(value) =>
+                                      console.log("Dimension changed:", value)
+                                    }
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                         ...(vectorDb === "qdrant"
                           ? [
-                              {
-                                id: "qdrant_host",
-                                children: (
-                                  <ConfigField label="Host">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter host URL"
-                                      defaultValue="http://localhost"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "qdrant_port",
-                                children: (
-                                  <ConfigField label="Port">
-                                    <CustomNumberInput
-                                      defaultValue={5333}
-                                      min={1}
-                                      max={65535}
-                                      step={1}
-                                      onChange={(value) =>
-                                        console.log("Port changed:", value)
-                                      }
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "qdrant_collection",
-                                children: (
-                                  <ConfigField label="Collection Name">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter collection name"
-                                      defaultValue="toshiba_pdf_7"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "qdrant_host",
+                              children: (
+                                <ConfigField label="Host">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="Enter host URL"
+                                    defaultValue="http://localhost"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "qdrant_port",
+                              children: (
+                                <ConfigField label="Port">
+                                  <CustomNumberInput
+                                    defaultValue={5333}
+                                    min={1}
+                                    max={65535}
+                                    step={1}
+                                    onChange={(value) =>
+                                      console.log("Port changed:", value)
+                                    }
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "qdrant_collection",
+                              children: (
+                                <ConfigField label="Collection Name">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="Enter collection name"
+                                    defaultValue="toshiba_pdf_7"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                         ...(vectorDb === "chroma"
                           ? [
-                              {
-                                id: "chroma_db_path",
-                                children: (
-                                  <ConfigField label="Database Path">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter database path"
-                                      defaultValue="data/chroma_db"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                              {
-                                id: "chroma_collection",
-                                children: (
-                                  <ConfigField label="Collection Name">
-                                    <CustomInput
-                                      type="text"
-                                      placeholder="Enter collection name"
-                                      defaultValue="kb-chroma"
-                                    />
-                                  </ConfigField>
-                                ),
-                              },
-                            ]
+                            {
+                              id: "chroma_db_path",
+                              children: (
+                                <ConfigField label="Database Path">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="Enter database path"
+                                    defaultValue="data/chroma_db"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                            {
+                              id: "chroma_collection",
+                              children: (
+                                <ConfigField label="Collection Name">
+                                  <CustomInput
+                                    type="text"
+                                    placeholder="Enter collection name"
+                                    defaultValue="kb-chroma"
+                                  />
+                                </ConfigField>
+                              ),
+                            },
+                          ]
                           : []),
                       ]}
                     />

@@ -28,7 +28,7 @@ terraform {
   backend "s3" {
     bucket = "elevaite-terraform-state"
     key    = "dev/aws/terraform.tfstate"
-    region = "us-east-1"
+    region = "us-west-1"
   }
 }
 
@@ -55,7 +55,7 @@ provider "cloudamqp" {
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "us-east-1"
+  default     = "us-west-1"
 }
 
 variable "domain_name" {
@@ -138,7 +138,7 @@ module "database" {
   environment    = "dev"
   name           = "elevaite"
 
-  instance_class    = "db.t3.small"  # Smaller for dev
+  instance_class    = "db.t4g.micro"  # Minimum for dev
   allocated_storage = 20
   database_name     = "elevaite_dev"
   username          = "elevaite"

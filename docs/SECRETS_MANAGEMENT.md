@@ -111,7 +111,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 aws secretsmanager create-secret \
   --name /elevaite/staging/openai-api-key \
   --secret-string "sk-your-key-here" \
-  --region us-east-1
+  --region us-west-1
 
 aws secretsmanager create-secret \
   --name /elevaite/staging/google-oauth \
@@ -119,19 +119,19 @@ aws secretsmanager create-secret \
     "client_id": "your-id.apps.googleusercontent.com",
     "client_secret": "GOCSPX-your-secret"
   }' \
-  --region us-east-1
+  --region us-west-1
 
 # Database password
 aws secretsmanager create-secret \
   --name /elevaite/staging/database-password \
   --secret-string "$(openssl rand -base64 24)" \
-  --region us-east-1
+  --region us-west-1
 
 # JWT secret
 aws secretsmanager create-secret \
   --name /elevaite/staging/jwt-secret \
   --secret-string "$(openssl rand -hex 32)" \
-  --region us-east-1
+  --region us-west-1
 ```
 
 #### 2. Grant IAM Permissions
@@ -281,7 +281,7 @@ spec:
   provider:
     aws:
       service: SecretsManager
-      region: us-east-1
+      region: us-west-1
       auth:
         jwt:
           serviceAccountRef:
@@ -420,7 +420,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: us-west-1
 
       - name: Deploy to EKS
         run: |

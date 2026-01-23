@@ -348,7 +348,7 @@ objectStorage:
   # S3-compatible endpoint (leave empty for native AWS S3)
   endpoint: ""
   bucket: "elevaite-files"
-  region: "us-east-1"
+  region: "us-west-1"
   # Secret containing access credentials
   # Secret should have keys: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (or equivalent)
   existingSecret: "elevaite-storage-credentials"

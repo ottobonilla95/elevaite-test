@@ -108,7 +108,7 @@ Each environment requires these variables (set via `terraform.tfvars` or environ
 **AWS:**
 ```hcl
 # terraform.tfvars
-aws_region = "us-east-1"
+aws_region = "us-west-1"
 ```
 
 **Azure:**

@@ -49,11 +49,11 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
 
       - name: Configure kubectl for AWS
         if: env.CLOUD_PROVIDER == 'aws'
-        run: aws eks update-kubeconfig --name elevaite-dev --region ${{ vars.AWS_REGION || 'us-east-1' }}
+        run: aws eks update-kubeconfig --name elevaite-dev --region ${{ vars.AWS_REGION || 'us-west-1' }}
 
       - name: Configure Azure credentials
         if: env.CLOUD_PROVIDER == 'azure'
@@ -230,11 +230,11 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
 
       - name: Configure kubectl for AWS
         if: env.CLOUD_PROVIDER == 'aws'
-        run: aws eks update-kubeconfig --name elevaite-dev --region ${{ vars.AWS_REGION || 'us-east-1' }}
+        run: aws eks update-kubeconfig --name elevaite-dev --region ${{ vars.AWS_REGION || 'us-west-1' }}
 
       - name: Configure Azure credentials
         if: env.CLOUD_PROVIDER == 'azure'

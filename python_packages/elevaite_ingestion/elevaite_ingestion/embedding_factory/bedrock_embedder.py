@@ -13,13 +13,13 @@ def get_embedding(text: str, model: str | None = None, region: str | None = None
 
     - Requires boto3 and AWS credentials
     - model defaults to "amazon.titan-embed-text-v1" if not provided
-    - region defaults to AWS_REGION or us-east-1
+    - region defaults to AWS_REGION or us-west-1
     """
     if boto3 is None:
         raise ImportError("boto3 is not installed. Install boto3 to use bedrock embeddings.")
 
     model_id = model or os.getenv("BEDROCK_EMBED_MODEL", "amazon.titan-embed-text-v1")
-    aws_region = region or os.getenv("AWS_REGION", "us-east-1")
+    aws_region = region or os.getenv("AWS_REGION", "us-west-1")
 
     client = boto3.client("bedrock-runtime", region_name=aws_region)
 

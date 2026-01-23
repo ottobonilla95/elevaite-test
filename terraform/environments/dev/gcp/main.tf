@@ -148,7 +148,7 @@ module "kubernetes" {
     default = {
       name           = "default-pool"
       node_count     = 2
-      machine_type   = "e2-medium"
+      machine_type   = "e2-micro"  # Smallest instance
       min_node_count = 1
       max_node_count = 4
       disk_size_gb   = 30
