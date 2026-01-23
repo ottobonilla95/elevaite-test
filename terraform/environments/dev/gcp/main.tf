@@ -85,41 +85,21 @@ module "database" {
 # =============================================================================
 module "storage" {
   source = "../../../modules/storage"
-  
+
   cloud_provider = "gcp"
   environment    = var.environment
   project_name   = var.project_name
-  
+
   # GCP-specific
   gcp_project_id = var.project_id
   location       = var.region
-  
+
   # Storage Settings (Dev - Standard)
   storage_class      = "STANDARD"
   versioning         = false
   lifecycle_age_days = 30
-  
-  labels = {
-    environment = var.environment
-    project     = var.project_name
-  }
-}
 
-# =============================================================================
-# RabbitMQ Module (Shared - vhosts per PR)
-# =============================================================================
-module "rabbitmq" {
-  source = "../../../modules/rabbitmq"
-  
-  cloud_provider = "gcp"
-  environment    = var.environment
-  project_name   = var.project_name
-  
-  # CloudAMQP Settings (Dev - Free)
-  plan   = "lemur"  # Free tier
-  region = "google-compute-engine::us-central1"
-  
-  tags = {
+  labels = {
     environment = var.environment
     project     = var.project_name
   }
@@ -247,12 +227,6 @@ variable "grafana_password" {
 output "database_host" {
   description = "Cloud SQL host (shared for all PRs)"
   value       = module.database.host
-  sensitive   = true
-}
-
-output "rabbitmq_host" {
-  description = "RabbitMQ hostname (shared for all PRs)"
-  value       = module.rabbitmq.host
   sensitive   = true
 }
 

@@ -105,26 +105,6 @@ module "storage" {
 }
 
 # =============================================================================
-# RabbitMQ Module (CloudAMQP - Production)
-# =============================================================================
-module "rabbitmq" {
-  source = "../../../modules/rabbitmq"
-  
-  cloud_provider = "gcp"
-  environment    = var.environment
-  project_name   = var.project_name
-  
-  # CloudAMQP Settings (Minimum for cost savings)
-  plan   = "lemur"  # Free tier
-  region = "google-compute-engine::us-central1"
-  
-  tags = {
-    environment = var.environment
-    project     = var.project_name
-  }
-}
-
-# =============================================================================
 # Kubernetes Module (Google Kubernetes Engine - Production)
 # =============================================================================
 module "kubernetes" {
@@ -257,12 +237,6 @@ variable "pagerduty_key" {
 output "database_host" {
   description = "Cloud SQL private IP"
   value       = module.database.host
-  sensitive   = true
-}
-
-output "rabbitmq_host" {
-  description = "RabbitMQ hostname"
-  value       = module.rabbitmq.host
   sensitive   = true
 }
 

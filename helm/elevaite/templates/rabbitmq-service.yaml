@@ -1,0 +1,23 @@
+{{- if .Values.rabbitmq.internal.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "elevaite.fullname" . }}-rabbitmq
+  labels:
+    {{- include "elevaite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  type: {{ .Values.rabbitmq.internal.service.type }}
+  ports:
+    - port: 5672
+      targetPort: amqp
+      protocol: TCP
+      name: amqp
+    - port: 15672
+      targetPort: management
+      protocol: TCP
+      name: management
+  selector:
+    {{- include "elevaite.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+{{- end }}

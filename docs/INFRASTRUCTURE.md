@@ -90,23 +90,20 @@ ElevAIte is an AI workflow automation platform where users:
 
 Workers are the same codebase as Workflow Engine, running in "worker mode" - consuming queues instead of serving HTTP requests.
 
-### Data Layer (Managed Services Only)
+### Data Layer
 
-All data services are **external managed services** provisioned by Terraform. No databases run in Kubernetes containers.
+| Component | Purpose | Deployment Mode | AWS | Azure | GCP |
+|-----------|---------|-----------------|-----|-------|-----|
+| **PostgreSQL** | Primary database - users, tenants, agents, workflows | External Managed Service | RDS | Azure Database for PostgreSQL | Cloud SQL |
+| **RabbitMQ** | Message queues for async tasks | **Internal (Kubernetes)** | StatefulSet | StatefulSet | StatefulSet |
+| **Qdrant** | Vector database - document embeddings for RAG | **Internal (Kubernetes)** | StatefulSet | StatefulSet | StatefulSet |
+| **Object Storage** | Uploaded files, generated reports | External Managed Service | S3 | Azure Blob Storage | Cloud Storage |
 
-| Component | Purpose | AWS | Azure | GCP |
-|-----------|---------|-----|-------|-----|
-| **PostgreSQL** | Primary database - users, tenants, agents, workflows | RDS | Azure Database for PostgreSQL | Cloud SQL |
-| **RabbitMQ** | Message queues for async tasks | CloudAMQP / Amazon MQ | CloudAMQP | CloudAMQP |
-| **Object Storage** | Uploaded files, generated reports | S3 | Azure Blob Storage | Cloud Storage |
-| **Qdrant** | Vector database - document embeddings for RAG | Qdrant Cloud | Qdrant Cloud | Qdrant Cloud |
-
-**Why Managed Services?**
-- ✅ Automatic backups and point-in-time recovery
-- ✅ Multi-AZ high availability
-- ✅ Security patches applied automatically
-- ✅ Monitoring and alerting built-in
-- ✅ No operational overhead
+**Service Deployment Strategy:**
+- **PostgreSQL**: External managed service for automatic backups, Multi-AZ HA, security patches, and no operational overhead
+- **RabbitMQ**: Runs in Kubernetes as StatefulSet with persistent volumes - eliminates external dependency
+- **Qdrant**: Runs in Kubernetes as StatefulSet with persistent volumes - eliminates external dependency
+- **Object Storage**: External managed service for scalability and durability
 
 ### Vector Database (Qdrant)
 
@@ -129,8 +126,8 @@ The **Ingestion Service** uses **Qdrant** for storing document embeddings, enabl
 | Environment | Deployment | Details |
 |-------------|------------|---------|
 | Local | Docker container | `docker-compose.dev.yaml` includes `qdrant:6333` |
-| Staging | Qdrant Cloud (optional) | `qdrant.enabled: false` by default |
-| Production | Qdrant Cloud | `qdrant.enabled: true` with `QDRANT_API_KEY` |
+| Staging | Kubernetes StatefulSet | `qdrant.internal.enabled: true` with 10Gi persistent storage |
+| Production | Kubernetes StatefulSet | `qdrant.internal.enabled: true` with 20Gi persistent storage |
 
 **Alternative Vector DBs Supported:**
 - **Pinecone** - Managed cloud service
@@ -202,20 +199,29 @@ Configuration in `elevaite_ingestion/config/vector_db_config.py` allows switchin
 │  │   ┌───────────────────────────────────────────────────────────────────┐  │  │
 │  │   │  Promtail (log shipping from all pods → Loki)                     │  │  │
 │  │   └───────────────────────────────────────────────────────────────────┘  │  │
+│  │                                                                           │  │
+│  │   ┌─────────────────────────────────────────────────────────────────┐    │  │
+│  │   │  Internal Data Services (StatefulSets with Persistent Volumes)  │    │  │
+│  │   │   ┌───────────┐             ┌───────────┐                       │    │  │
+│  │   │   │ RabbitMQ  │             │  Qdrant   │                       │    │  │
+│  │   │   │  (5672)   │             │  (6333)   │                       │    │  │
+│  │   │   │ [Queues]  │             │ [Vectors] │                       │    │  │
+│  │   │   └───────────┘             └───────────┘                       │    │  │
+│  │   └─────────────────────────────────────────────────────────────────┘    │  │
 │  └───────────────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                         │
                                         ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    MANAGED DATA SERVICES (Provisioned by Terraform)             │
+│                    EXTERNAL MANAGED SERVICES (Provisioned by Terraform)         │
 │                                                                                 │
-│   ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌──────────┐               │
-│   │ PostgreSQL │  │  RabbitMQ  │  │   Object   │  │  Qdrant  │               │
-│   │ (RDS/Azure │  │ (CloudAMQP │  │  Storage   │  │  Cloud   │               │
-│   │  DB/Cloud  │  │/Amazon MQ) │  │ (S3/Blob/  │  │ (Vector) │               │
-│   │   SQL)     │  │            │  │   GCS)     │  │          │               │
-│   │            │  │            │  │            │  │          │               │
-│   └────────────┘  └────────────┘  └────────────┘  └──────────┘               │
+│   ┌────────────┐  ┌────────────┐                                               │
+│   │ PostgreSQL │  │   Object   │                                               │
+│   │ (RDS/Azure │  │  Storage   │                                               │
+│   │  DB/Cloud  │  │ (S3/Blob/  │                                               │
+│   │   SQL)     │  │   GCS)     │                                               │
+│   │            │  │            │                                               │
+│   └────────────┘  └────────────┘                                               │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                         │
                                         ▼
@@ -663,16 +669,18 @@ To validate our architecture choices, we reviewed how established workflow autom
 | **Staging** | Integration testing | Auto on merge to `develop` | Managed (dedicated) |
 | **Production** | Live users | Manual approval | Managed (Multi-AZ, HA) |
 
-### Database Strategy (Managed Services Only)
+### Database Strategy
 
-**IMPORTANT:** All environments except local dev use **managed database services**. No databases run in Kubernetes containers.
+| Environment | PostgreSQL | RabbitMQ | Qdrant | Why |
+|-------------|------------|----------|--------|-----|
+| **Production** | RDS Multi-AZ / Cloud SQL / Azure DB | K8s StatefulSet (16Gi) | K8s StatefulSet (20Gi) | HA database, internal services |
+| **Staging** | RDS Single-AZ / Cloud SQL / Azure DB | K8s StatefulSet (8Gi) | K8s StatefulSet (10Gi) | Mirror prod, lower cost |
+| **PR Envs** | Shared managed DB, **database-per-PR** | Shared K8s instance | Shared K8s instance | Fast, isolated, cheap |
+| **Local** | Docker Compose | Docker Compose | Docker Compose | Fast iteration, offline |
 
-| Environment | PostgreSQL | RabbitMQ | Why |
-|-------------|------------|----------|-----|
-| **Production** | RDS Multi-AZ / Cloud SQL / Azure DB | CloudAMQP (dedicated) | HA, automatic backups, security patches |
-| **Staging** | RDS Single-AZ / Cloud SQL / Azure DB | CloudAMQP (shared) | Mirror prod, lower cost |
-| **PR Envs** | Shared managed DB, **database-per-PR** | Shared instance, **vhost-per-PR** | Fast, isolated, cheap |
-| **Local** | Docker Compose | Docker Compose | Fast iteration, offline |
+**Key Points:**
+- **PostgreSQL**: External managed service for automatic backups, Multi-AZ HA, and operational simplicity
+- **RabbitMQ & Qdrant**: Run internally in Kubernetes to eliminate external dependencies and reduce costs
 
 ### Database-per-PR Pattern
 
@@ -867,9 +875,11 @@ postgresql:
   existingSecret: "elevaite-db-credentials"
 
 rabbitmq:
-  host: ""              # Set from Terraform output
-  port: 5672
-  existingSecret: "elevaite-rabbitmq-credentials"
+  internal:
+    enabled: true       # Run inside Kubernetes
+    replicaCount: 1
+    persistence:
+      size: 8Gi         # Persistent storage for message durability
 ```
 
 ### Terraform (Cloud Infrastructure)
@@ -882,8 +892,6 @@ terraform/
 ├── modules/                     # Reusable multi-cloud modules
 │   ├── database/                # PostgreSQL (RDS/Cloud SQL/Azure DB)
 │   │   └── main.tf              # Supports AWS, Azure, GCP
-│   ├── rabbitmq/                # RabbitMQ (CloudAMQP or Amazon MQ)
-│   │   └── main.tf
 │   ├── storage/                 # Object storage (S3/GCS/Azure Blob)
 │   │   └── main.tf
 │   ├── kubernetes/              # K8s clusters (EKS/GKE/AKS)
@@ -894,6 +902,8 @@ terraform/
 │   │   └── main.tf
 │   └── monitoring/              # Observability (Prometheus, Grafana, Loki)
 │       └── main.tf
+│
+│   # Note: RabbitMQ and Qdrant modules removed - now deployed via Helm inside K8s
 │
 ├── environments/                # Environment-specific configs
 │   ├── dev/                     # Shared dev (for PR environments)
@@ -1105,9 +1115,10 @@ All tools run in Kubernetes, no cloud vendor lock-in.
 | EC2 nodes | 2x t3.small | ~$30 |
 | RDS PostgreSQL | db.t4g.micro, single-AZ | ~$15 |
 | NAT Gateway | Single gateway | ~$30 |
-| CloudAMQP | Free tier (lemur) | $0 |
 | S3 storage | Standard | ~$5 |
 | **Total per environment** | | **~$155/mo** |
+
+**Note:** RabbitMQ and Qdrant run inside Kubernetes (no additional cost)
 
 #### Azure (AKS)
 
@@ -1116,10 +1127,11 @@ All tools run in Kubernetes, no cloud vendor lock-in.
 | AKS control plane | | $0 (free) |
 | VM nodes | 2x Standard_B2s | ~$60 |
 | Azure Database for PostgreSQL | B_Gen5_1, single-zone | ~$20 |
-| CloudAMQP | Free tier (lemur) | $0 |
 | Blob Storage | LRS | ~$5 |
 | Load Balancer | Standard | ~$15 |
 | **Total per environment** | | **~$100/mo** |
+
+**Note:** RabbitMQ and Qdrant run inside Kubernetes (no additional cost)
 
 #### GCP (GKE)
 
@@ -1128,10 +1140,11 @@ All tools run in Kubernetes, no cloud vendor lock-in.
 | GKE control plane | Zonal cluster | $0 (free) |
 | Compute nodes | 2x e2-micro | ~$60 |
 | Cloud SQL | db-f1-micro, single-zone | ~$20 |
-| CloudAMQP | Free tier (lemur) | $0 |
 | Cloud Storage | Standard | ~$5 |
 | Load Balancer | Standard | ~$15 |
 | **Total per environment** | | **~$100/mo** |
+
+**Note:** RabbitMQ and Qdrant run inside Kubernetes (no additional cost)
 
 ### Cloud Provider Comparison
 
@@ -1147,7 +1160,7 @@ All tools run in Kubernetes, no cloud vendor lock-in.
 When your production environment needs more resources:
 - **Database:** Upgrade to larger instance, enable Multi-AZ (~$50-150/mo additional)
 - **Kubernetes:** Add nodes, upgrade to larger instances (~$100-300/mo additional)
-- **RabbitMQ:** Upgrade to dedicated plan (~$30-50/mo additional)
+- **RabbitMQ/Qdrant:** Increase replica count and storage size (covered by K8s node costs)
 - **Monitoring:** Increase retention, add external storage (~$30-50/mo additional)
 
 ### Frontend (Kubernetes)
@@ -1179,7 +1192,7 @@ When your production environment needs more resources:
 A: Cloud-agnostic requirement. Kubernetes runs everywhere (AWS/Azure/GCP/on-prem). The complexity is worth the portability for enterprise customers.
 
 **Q: Why RabbitMQ instead of managed queues (SQS, Azure Queue)?**
-A: Cloud-agnostic requirement. RabbitMQ runs anywhere with the same code. No vendor lock-in.
+A: Cloud-agnostic requirement. RabbitMQ runs inside Kubernetes with the same code across all clouds. No vendor lock-in, no external dependencies.
 
 **Q: Why MinIO instead of native object storage?**
 A: S3-compatible API means same code works everywhere. Can switch to native S3/Blob/GCS later with zero code changes.
@@ -1205,14 +1218,14 @@ A: Yes! That's the point of cloud-agnostic design. Kubernetes manifests, RabbitM
 
 ### Infrastructure Services (Provisioned by Terraform)
 
-| Service | Purpose | Terraform Module | AWS | Azure | GCP |
-|---------|---------|------------------|-----|-------|-----|
-| **Kubernetes** | Container orchestration | `kubernetes` | EKS | AKS | GKE |
-| **PostgreSQL** | Primary database | `database` | RDS | Azure Database | Cloud SQL |
-| **RabbitMQ** | Message queues | `rabbitmq` | CloudAMQP/Amazon MQ | CloudAMQP | CloudAMQP |
-| **Object Storage** | File storage (S3-compatible) | `storage` | S3 | Azure Blob | Cloud Storage |
-| **Qdrant** | Vector database | External | Qdrant Cloud | Qdrant Cloud | Qdrant Cloud |
-| **DNS** | Domain management | `dns` | Route53 | Azure DNS | Cloud DNS |
+| Service | Purpose | Deployment Mode | AWS | Azure | GCP |
+|---------|---------|-----------------|-----|-------|-----|
+| **Kubernetes** | Container orchestration | Terraform | EKS | AKS | GKE |
+| **PostgreSQL** | Primary database | Terraform | RDS | Azure Database | Cloud SQL |
+| **RabbitMQ** | Message queues | **Helm (in K8s)** | StatefulSet | StatefulSet | StatefulSet |
+| **Qdrant** | Vector database | **Helm (in K8s)** | StatefulSet | StatefulSet | StatefulSet |
+| **Object Storage** | File storage (S3-compatible) | Terraform | S3 | Azure Blob | Cloud Storage |
+| **DNS** | Domain management | Terraform | Route53 | Azure DNS | Cloud DNS |
 
 ### Kubernetes Add-ons (Deployed by Terraform)
 
@@ -1348,16 +1361,37 @@ autoscaling:
     targetCPUUtilization: 70
 
 rabbitmq:
-  replicaCount: 3
-  persistence:
-    size: 10Gi
+  internal:
+    enabled: true
+    replicaCount: 1
+    persistence:
+      size: 16Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+qdrant:
+  internal:
+    enabled: true
+    replicaCount: 1
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
 
 postgresql:
   # Use external managed database in production
-  enabled: false
-  external:
-    host: your-postgres.region.rds.amazonaws.com
-    database: elevaite
+  host: your-postgres.region.rds.amazonaws.com
+  database: elevaite
 
 ingress:
   enabled: true

@@ -105,26 +105,6 @@ module "storage" {
 }
 
 # =============================================================================
-# RabbitMQ Module (CloudAMQP - Cloud-Agnostic)
-# =============================================================================
-module "rabbitmq" {
-  source = "../../../modules/rabbitmq"
-  
-  cloud_provider = "azure"
-  environment    = var.environment
-  project_name   = var.project
-  
-  # CloudAMQP Settings
-  plan     = "lemur"  # Shared instance
-  region   = "azure-arm::eastus"
-  
-  tags = {
-    Environment = var.environment
-    Project     = var.project
-  }
-}
-
-# =============================================================================
 # Kubernetes Module (Azure AKS)
 # =============================================================================
 module "kubernetes" {
@@ -250,12 +230,6 @@ output "database_host" {
   sensitive   = true
 }
 
-output "rabbitmq_host" {
-  description = "RabbitMQ hostname"
-  value       = module.rabbitmq.host
-  sensitive   = true
-}
-
 output "storage_bucket" {
   description = "Storage container name"
   value       = module.storage.bucket_name
@@ -274,4 +248,11 @@ output "kubeconfig_command" {
 output "monitoring_grafana_url" {
   description = "Grafana dashboard URL"
   value       = "https://grafana-staging.elevaite.io"
+}
+
+output "helm_values" {
+  value = {
+    postgresql_host = module.database.host
+    storage_bucket  = module.storage.bucket_name
+  }
 }

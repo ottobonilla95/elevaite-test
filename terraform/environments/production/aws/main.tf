@@ -11,10 +11,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    cloudamqp = {
-      source  = "cloudamqp/cloudamqp"
-      version = "~> 1.28"
-    }
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 2.25"
@@ -46,10 +42,6 @@ provider "aws" {
   }
 }
 
-provider "cloudamqp" {
-  apikey = var.cloudamqp_api_key
-}
-
 # =============================================================================
 # VARIABLES
 # =============================================================================
@@ -68,11 +60,6 @@ variable "domain_name" {
 variable "letsencrypt_email" {
   description = "Email for Let's Encrypt certificates"
   type        = string
-}
-
-variable "cloudamqp_api_key" {
-  type      = string
-  sensitive = true
 }
 
 variable "db_password" {
@@ -173,21 +160,6 @@ module "database" {
   vpc_id             = module.vpc.vpc_id
   subnet_ids         = module.vpc.private_subnets
   security_group_ids = [aws_security_group.database.id]
-}
-
-# =============================================================================
-# RABBITMQ (Production - Dedicated cluster)
-# =============================================================================
-
-module "rabbitmq" {
-  source = "../../../modules/rabbitmq"
-
-  provider_type = "cloudamqp"
-  cloud_region  = "amazon-web-services::${var.aws_region}"
-  environment   = "production"
-  name          = "elevaite"
-
-  plan = "lemur"  # Free tier for cost savings
 }
 
 # =============================================================================
@@ -307,10 +279,6 @@ output "database_host" {
   value = module.database.host
 }
 
-output "rabbitmq_host" {
-  value = module.rabbitmq.host
-}
-
 output "storage_bucket" {
   value = module.storage.bucket_name
 }
@@ -335,7 +303,6 @@ output "dns_name_servers" {
 output "helm_values" {
   value = {
     postgresql_host = module.database.host
-    rabbitmq_host   = module.rabbitmq.host
     storage_bucket  = module.storage.bucket_name
   }
 }

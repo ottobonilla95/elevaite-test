@@ -105,26 +105,6 @@ module "storage" {
 }
 
 # =============================================================================
-# RabbitMQ Module (CloudAMQP - Production Plan)
-# =============================================================================
-module "rabbitmq" {
-  source = "../../../modules/rabbitmq"
-  
-  cloud_provider = "azure"
-  environment    = var.environment
-  project_name   = var.project
-  
-  # CloudAMQP Settings (Minimum for cost savings)
-  plan   = "lemur"  # Free tier
-  region = "azure-arm::eastus"
-  
-  tags = {
-    Environment = var.environment
-    Project     = var.project
-  }
-}
-
-# =============================================================================
 # Kubernetes Module (Azure AKS - Production Grade)
 # =============================================================================
 module "kubernetes" {
@@ -243,12 +223,6 @@ variable "pagerduty_key" {
 output "database_host" {
   description = "PostgreSQL hostname"
   value       = module.database.host
-  sensitive   = true
-}
-
-output "rabbitmq_host" {
-  description = "RabbitMQ hostname"
-  value       = module.rabbitmq.host
   sensitive   = true
 }
 

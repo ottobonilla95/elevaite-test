@@ -106,21 +106,32 @@ PostgreSQL host
 {{- end }}
 
 {{/*
-RabbitMQ connection URL (External Managed Only)
-Credentials come from existingSecret
+RabbitMQ connection URL
+Uses internal service if internal.enabled, otherwise external managed service
 */}}
 {{- define "elevaite.rabbitmqUrl" -}}
-{{- $host := required "rabbitmq.host is required" .Values.rabbitmq.host -}}
+{{- if .Values.rabbitmq.internal.enabled -}}
+{{- $host := printf "%s-rabbitmq" (include "elevaite.fullname" .) -}}
+{{- $port := 5672 -}}
+{{- $vhost := "/" -}}
+{{- printf "amqp://%s:%d%s" $host (int $port) $vhost }}
+{{- else -}}
+{{- $host := required "rabbitmq.host is required when rabbitmq.internal.enabled is false" .Values.rabbitmq.host -}}
 {{- $port := .Values.rabbitmq.port | default 5672 -}}
 {{- $vhost := .Values.rabbitmq.vhost | default "/" -}}
 {{- printf "amqp://%s:%d%s" $host (int $port) $vhost }}
+{{- end -}}
 {{- end }}
 
 {{/*
 RabbitMQ host
 */}}
 {{- define "elevaite.rabbitmqHost" -}}
-{{- required "rabbitmq.host is required" .Values.rabbitmq.host -}}
+{{- if .Values.rabbitmq.internal.enabled -}}
+{{- printf "%s-rabbitmq" (include "elevaite.fullname" .) -}}
+{{- else -}}
+{{- required "rabbitmq.host is required when rabbitmq.internal.enabled is false" .Values.rabbitmq.host -}}
+{{- end -}}
 {{- end }}
 
 {{/*
@@ -150,10 +161,13 @@ Object Storage bucket name
 {{- end }}
 
 {{/*
-Qdrant host (External Managed Only)
+Qdrant host
+Uses internal service if internal.enabled, otherwise external managed service
 */}}
 {{- define "elevaite.qdrantHost" -}}
-{{- if .Values.qdrant.enabled -}}
+{{- if .Values.qdrant.internal.enabled -}}
+{{- printf "%s-qdrant" (include "elevaite.fullname" .) -}}
+{{- else if .Values.qdrant.enabled -}}
 {{- required "qdrant.host is required when qdrant.enabled is true" .Values.qdrant.host -}}
 {{- else -}}
 {{- "" -}}

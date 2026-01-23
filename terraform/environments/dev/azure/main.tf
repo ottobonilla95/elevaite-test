@@ -89,40 +89,20 @@ module "database" {
 # =============================================================================
 module "storage" {
   source = "../../../modules/storage"
-  
+
   cloud_provider = "azure"
   environment    = var.environment
   project_name   = var.project
-  
+
   # Azure-specific
   resource_group_name = azurerm_resource_group.main.name
   location            = var.location
-  
+
   # Storage Settings (Dev - LRS for cost savings)
   account_tier             = "Standard"
   account_replication_type = "LRS"
-  
-  tags = azurerm_resource_group.main.tags
-}
 
-# =============================================================================
-# RabbitMQ Module (Shared - vhosts per PR)
-# =============================================================================
-module "rabbitmq" {
-  source = "../../../modules/rabbitmq"
-  
-  cloud_provider = "azure"
-  environment    = var.environment
-  project_name   = var.project
-  
-  # CloudAMQP Settings (Dev - Shared)
-  plan   = "lemur"  # Free shared tier
-  region = "azure-arm::eastus"
-  
-  tags = {
-    Environment = var.environment
-    Project     = var.project
-  }
+  tags = azurerm_resource_group.main.tags
 }
 
 # =============================================================================
@@ -235,12 +215,6 @@ variable "grafana_password" {
 output "database_host" {
   description = "PostgreSQL hostname (shared for all PRs)"
   value       = module.database.host
-  sensitive   = true
-}
-
-output "rabbitmq_host" {
-  description = "RabbitMQ hostname (shared for all PRs)"
-  value       = module.rabbitmq.host
   sensitive   = true
 }
 

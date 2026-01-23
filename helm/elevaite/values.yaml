@@ -327,16 +327,49 @@ postgresql:
   existingSecret: "elevaite-db-credentials"
 
 # =============================================================================
-# EXTERNAL RABBITMQ (Managed Service - REQUIRED)
+# RABBITMQ (Message Queue)
 # =============================================================================
-# CloudAMQP, Amazon MQ, or self-hosted RabbitMQ cluster
+# Can run internally in K8s or use external managed service
 rabbitmq:
+  # External mode (CloudAMQP, Amazon MQ, etc.)
   host: ""
   port: 5672
   vhost: "/"
   # Secret containing username and password
   # Secret should have keys: RABBITMQ_USER, RABBITMQ_PASSWORD
   existingSecret: "elevaite-rabbitmq-credentials"
+
+  # Internal mode (runs in K8s)
+  internal:
+    enabled: false
+    replicaCount: 1
+
+    image:
+      repository: rabbitmq
+      tag: 3.13-management-alpine
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+
+    auth:
+      username: elevaite
+      password: elevaite
+      erlangCookie: elevaite-secret-cookie
+
+    persistence:
+      size: 8Gi
+      storageClass: ""  # Use default storage class
+
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+    env: {}
 
 # =============================================================================
 # EXTERNAL OBJECT STORAGE (S3/GCS/Azure Blob - REQUIRED)
@@ -354,10 +387,11 @@ objectStorage:
   existingSecret: "elevaite-storage-credentials"
 
 # =============================================================================
-# EXTERNAL QDRANT (Vector Database - OPTIONAL)
+# QDRANT (Vector Database)
 # =============================================================================
-# Qdrant Cloud or self-hosted Qdrant cluster
+# Can run internally in K8s or use external managed service
 qdrant:
+  # External mode (Qdrant Cloud, etc.)
   enabled: false
   host: ""
   port: 6333
@@ -366,6 +400,33 @@ qdrant:
   # Secret containing API key
   # Secret should have key: QDRANT_API_KEY
   existingSecret: "elevaite-qdrant-credentials"
+
+  # Internal mode (runs in K8s)
+  internal:
+    enabled: false
+    replicaCount: 1
+
+    image:
+      repository: qdrant/qdrant
+      tag: v1.12.1
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+
+    persistence:
+      size: 10Gi
+      storageClass: ""  # Use default storage class
+
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+    env: {}
 
 # =============================================================================
 # SERVICE ACCOUNT

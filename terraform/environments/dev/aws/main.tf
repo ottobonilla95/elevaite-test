@@ -11,10 +11,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    cloudamqp = {
-      source  = "cloudamqp/cloudamqp"
-      version = "~> 1.28"
-    }
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 2.25"
@@ -44,10 +40,6 @@ provider "aws" {
   }
 }
 
-provider "cloudamqp" {
-  apikey = var.cloudamqp_api_key
-}
-
 # =============================================================================
 # VARIABLES
 # =============================================================================
@@ -67,12 +59,6 @@ variable "domain_name" {
 variable "letsencrypt_email" {
   description = "Email for Let's Encrypt certificates"
   type        = string
-}
-
-variable "cloudamqp_api_key" {
-  description = "CloudAMQP API key"
-  type        = string
-  sensitive   = true
 }
 
 variable "db_password" {
@@ -148,21 +134,6 @@ module "database" {
   vpc_id             = module.vpc.vpc_id
   subnet_ids         = module.vpc.private_subnets
   security_group_ids = [aws_security_group.database.id]
-}
-
-# =============================================================================
-# RABBITMQ (Shared - PR environments create vhosts dynamically)
-# =============================================================================
-
-module "rabbitmq" {
-  source = "../../../modules/rabbitmq"
-
-  provider_type = "cloudamqp"
-  cloud_region  = "amazon-web-services::${var.aws_region}"
-  environment   = "dev"
-  name          = "elevaite"
-
-  plan = "lemur"  # Free tier for dev
 }
 
 # =============================================================================
@@ -268,16 +239,6 @@ output "database_port" {
   value = module.database.port
 }
 
-output "rabbitmq_host" {
-  description = "RabbitMQ host for PR environments"
-  value       = module.rabbitmq.host
-}
-
-output "rabbitmq_amqp_url" {
-  value     = module.rabbitmq.amqp_url
-  sensitive = true
-}
-
 output "storage_bucket" {
   value = module.storage.bucket_name
 }
@@ -304,7 +265,6 @@ output "helm_values" {
   description = "Values to pass to Helm for PR deployments"
   value = {
     postgresql_host = module.database.host
-    rabbitmq_host   = module.rabbitmq.host
     storage_bucket  = module.storage.bucket_name
   }
 }

@@ -184,7 +184,6 @@ jobs:
           cd terraform/environments/staging/${{ env.CLOUD_PROVIDER }}
           terraform init
           echo "db_host=$(terraform output -raw database_host 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
-          echo "rabbitmq_host=$(terraform output -raw rabbitmq_host 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
           echo "storage_bucket=$(terraform output -raw storage_bucket 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
 
       - name: Create/Update Kubernetes namespace
@@ -199,14 +198,7 @@ jobs:
             --from-literal=POSTGRES_USER=${{ secrets.STAGING_DB_USER }} \
             --from-literal=POSTGRES_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
             --dry-run=client -o yaml | kubectl apply -f -
-          
-          # RabbitMQ credentials
-          kubectl create secret generic elevaite-rabbitmq-credentials \
-            --namespace ${{ env.NAMESPACE }} \
-            --from-literal=RABBITMQ_USER=${{ secrets.STAGING_RABBITMQ_USER }} \
-            --from-literal=RABBITMQ_PASSWORD=${{ secrets.STAGING_RABBITMQ_PASSWORD }} \
-            --dry-run=client -o yaml | kubectl apply -f -
-          
+
           # Storage credentials
           kubectl create secret generic elevaite-storage-credentials \
             --namespace ${{ env.NAMESPACE }} \
@@ -268,7 +260,6 @@ jobs:
             --set frontend.auth.image.tag=${{ needs.build.outputs.image_tag }} \
             --set frontend.elevaite.image.tag=${{ needs.build.outputs.image_tag }} \
             --set postgresql.host=${{ steps.terraform.outputs.db_host }} \
-            --set rabbitmq.host=${{ steps.terraform.outputs.rabbitmq_host }} \
             --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
             --wait \
             --timeout 10m

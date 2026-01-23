@@ -112,13 +112,25 @@ postgresql:
   sslMode: "require"
   existingSecret: "elevaite-db-credentials"
 
-# RabbitMQ - CloudAMQP or Amazon MQ
-# Production uses clustered/HA setup
+# RabbitMQ - Internal K8s deployment
 rabbitmq:
-  host: ""  # Set via --set or CI/CD from Terraform output
-  port: 5672
-  vhost: "production"
-  existingSecret: "elevaite-rabbitmq-credentials"
+  internal:
+    enabled: true
+    replicaCount: 1
+    auth:
+      username: elevaite
+      password: "production-rabbitmq-password"  # Override in secrets
+      erlangCookie: "production-erlang-cookie"  # Override in secrets
+    persistence:
+      size: 16Gi
+      storageClass: ""  # Use default
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
 
 # Object Storage - S3 / GCS / Azure Blob
 objectStorage:
@@ -127,11 +139,21 @@ objectStorage:
   region: "us-west-1"
   existingSecret: "elevaite-storage-credentials"
 
-# Qdrant - Qdrant Cloud or managed
+# Qdrant - Internal K8s deployment
 qdrant:
-  enabled: true
-  host: ""  # Set via --set or CI/CD from Terraform output
-  existingSecret: "elevaite-qdrant-credentials"
+  internal:
+    enabled: true
+    replicaCount: 1
+    persistence:
+      size: 20Gi
+      storageClass: ""  # Use default
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
 
 # =============================================================================
 # SERVICE ACCOUNT
