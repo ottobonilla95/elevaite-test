@@ -5,7 +5,7 @@
 # GLOBAL
 # =============================================================================
 global:
-  imageRegistry: "ghcr.io/your-org"  # Update with your registry
+  imageRegistry: "ghcr.io/iopexses/elevaite"
   environment: "staging"
 
 # =============================================================================
@@ -115,7 +115,7 @@ rabbitmq:
 # Object Storage - S3 / GCS / Azure Blob
 objectStorage:
   provider: "aws"  # or gcp, azure
-  bucket: "elevaite-staging-files"
+  bucket: ""  # Injected by pipeline from Terraform output
   region: "us-west-1"
   existingSecret: "elevaite-storage-credentials"
 

@@ -222,7 +222,14 @@ jobs:
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.PROD_STORAGE_ACCESS_KEY }} \
             --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_STORAGE_SECRET_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
-          
+
+          # RabbitMQ credentials
+          kubectl create secret generic elevaite-rabbitmq-credentials \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=RABBITMQ_USER=elevaite \
+            --from-literal=RABBITMQ_PASSWORD=${{ secrets.PROD_RABBITMQ_PASSWORD }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
           # Qdrant credentials (optional - for vector database)
           if [ -n "${{ secrets.PROD_QDRANT_API_KEY }}" ]; then
             kubectl create secret generic elevaite-qdrant-credentials \
