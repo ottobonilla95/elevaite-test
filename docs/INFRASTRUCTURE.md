@@ -71,16 +71,17 @@ ElevAIte is an AI workflow automation platform where users:
 
 | App | Port (local) | Purpose |
 |-----|--------------|---------|
-| **Auth App** | 3000 | Login/signup UI, OAuth flows |
+| **Auth App** | 3005 | Login/signup UI, OAuth flows |
 | **ElevAIte App** | 3001 | Agent Studio, chat interface, dashboards |
 
 ### Backend (Python on Kubernetes)
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| **Auth API** | 8004 | Authentication, authorization, user/tenant management |
-| **Workflow Engine** | 8006 | Agent execution, chat handling, tool orchestration |
-| **Code Execution Service** | 8007 | Sandboxed execution of user/AI-generated code (internal only) |
+| Service | Port | Purpose | Status |
+|---------|------|---------|--------|
+| **Auth API** | 8004 | Authentication, authorization, user/tenant management | ✅ Active |
+| **Workflow Engine** | 8006 | Agent execution, chat handling, tool orchestration | ✅ Active |
+| **Ingestion Service** | 8001 | Document processing, embeddings, vector storage | ✅ Active |
+| **Code Execution Service** | 8007 | Sandboxed execution of user/AI-generated code (internal only) | 🔜 Planned |
 
 ### Workers (Python on Kubernetes)
 
@@ -176,12 +177,12 @@ Configuration in `elevaite_ingestion/config/vector_db_config.py` allows switchin
 │  │   │   ┌───────────────┐  ┌───────────────┐  ┌───────────────┐      │    │  │
 │  │   │   │   Auth API    │  │   Workflow    │  │   Ingestion   │      │    │  │
 │  │   │   │    (8004)     │  │    Engine     │  │    Service    │      │    │  │
-│  │   │   │               │  │    (8006)     │  │    (8005)     │      │    │  │
+│  │   │   │               │  │    (8006)     │  │    (8001)     │      │    │  │
 │  │   │   └───────────────┘  └───────────────┘  └───────────────┘      │    │  │
 │  │   │                                                                 │    │  │
 │  │   │   ┌───────────────────────────┐  ┌───────────────────────────┐ │    │  │
-│  │   │   │         WORKERS           │  │     Code Exec Svc         │ │    │  │
-│  │   │   │  • Consume RabbitMQ       │  │         (8007)            │ │    │  │
+│  │   │   │         WORKERS           │  │   Code Exec Svc 🔜        │ │    │  │
+│  │   │   │  • Consume RabbitMQ       │  │      (8007 - Planned)     │ │    │  │
 │  │   │   │  • Execute workflow steps │  │       [Sandboxed]         │ │    │  │
 │  │   │   │  • HPA auto-scaling       │  │                           │ │    │  │
 │  │   │   └───────────────────────────┘  └───────────────────────────┘ │    │  │
@@ -296,11 +297,13 @@ User notified: "Your report is ready! [Download]"
 
 ## Code Execution Sandbox
 
-Agents can execute code in two ways:
+> **Status:** 🔜 **Planned Feature** - This section describes the planned architecture for secure code execution. Not yet implemented.
+
+Agents will be able to execute code in two ways:
 1. **AI-generated code** - LLM writes Python to analyze data, perform calculations
 2. **User-written code** - Users create custom code blocks in their workflows
 
-Both require secure, isolated execution. We use a **self-hosted sandbox** (no external dependencies).
+Both require secure, isolated execution. The planned approach uses a **self-hosted sandbox** (no external dependencies).
 
 ### Architecture
 
@@ -1099,33 +1102,123 @@ All monitoring tools are deployed via Terraform's `monitoring` module using Helm
 
 All tools run in Kubernetes, no cloud vendor lock-in.
 
+### Loki Caching Strategy
+
+**Current State:** Loki caching is disabled in production environments to optimize resources for current scale.
+
+**What Loki caching provides:**
+- **chunks-cache**: Caches compressed log chunks to reduce storage read operations
+- **results-cache**: Caches query results to speed up repeat queries
+- **Resource overhead**: ~800m CPU, ~4GB RAM, 6 additional pods per environment
+
+**Why it's currently disabled:**
+- Current query volume: ~10-50 queries/hour (caching optimal at 500+ queries/hour)
+- Current retention: 30 days (caching beneficial at 90+ days)
+- Query latency without caching: ~50-150ms (acceptable for current usage)
+- **Cost savings**: ~$40-50/month per production environment (~$120-180/month total across AWS/Azure/GCP)
+
+**Re-enablement Criteria:** Enable caching when ANY of the following conditions are met:
+- Query volume exceeds 500/hour consistently
+- Query latency P95 exceeds 5 seconds
+- Log retention is extended to 90+ days
+- Log ingestion exceeds 10GB/day
+
+**To Re-enable:** Set `loki_caching_enabled = true` in the production environment Terraform configuration:
+```hcl
+# terraform/environments/production/aws/main.tf (and azure/gcp)
+module "monitoring" {
+  source = "../../../modules/monitoring"
+
+  loki_caching_enabled = true  # Enable when scale requires it
+  # ... other variables
+}
+```
+
 ---
 
 ## Cost Estimate (Monthly)
 
-### Per-Environment Cost (Staging OR Production)
+Based on actual deployed infrastructure across all three environments (dev, staging, production).
 
-**Note:** Both staging and production now use identical minimal resources for initial deployment. Scale up production later based on actual usage.
+### Development Environment: ~$185/month
 
-#### AWS (EKS)
+| Service | Spec | Monthly Cost |
+|---------|------|--------------|
+| EKS Control Plane | 1 cluster | $73 |
+| EC2 Nodes | 2x t3.medium (2 vCPU, 4GB each) | $61 |
+| RDS PostgreSQL | db.t4g.micro, 20GB, single-AZ | $14 |
+| NAT Gateway | 1 gateway + data transfer | $33 |
+| EBS Volumes | ~28GB (Qdrant 10GB, RabbitMQ 8GB, etc.) | $3 |
+| Route53 | 1 hosted zone (dev.elevaite.ai) | $0.50 |
+| S3 Storage | Standard tier | $1 |
+| **Total** | | **~$185** |
 
-| Service | Spec | Est. Cost |
-|---------|------|-----------|
-| EKS control plane | | ~$75 |
-| EC2 nodes | 2x t3.small | ~$30 |
-| RDS PostgreSQL | db.t4g.micro, single-AZ | ~$15 |
-| NAT Gateway | Single gateway | ~$30 |
-| S3 storage | Standard | ~$5 |
-| **Total per environment** | | **~$155/mo** |
+**Note:** No monitoring stack in dev to save resources and costs.
 
-**Note:** RabbitMQ and Qdrant run inside Kubernetes (no additional cost)
+### Staging Environment: ~$187/month
 
-#### Azure (AKS)
+| Service | Spec | Monthly Cost |
+|---------|------|--------------|
+| EKS Control Plane | 1 cluster | $73 |
+| EC2 Nodes | 2x t3.medium (2 vCPU, 4GB each) | $61 |
+| RDS PostgreSQL | db.t4g.micro, 20GB, single-AZ | $14 |
+| NAT Gateway | 1 gateway + data transfer | $33 |
+| EBS Volumes | ~48GB (Qdrant 10GB, RabbitMQ 8GB, Prometheus 20GB, Loki 10GB) | $5 |
+| Route53 | 1 hosted zone | $0.50 |
+| S3 Storage | Standard tier | $1 |
+| **Total** | | **~$187** |
+
+**Note:** Includes full monitoring stack (Prometheus, Grafana, Loki, Alertmanager).
+
+### Production Environment: ~$320/month
+
+| Service | Spec | Monthly Cost |
+|---------|------|--------------|
+| EKS Control Plane | 1 cluster | $73 |
+| EC2 Nodes | 3x t3.large (2 vCPU, 8GB each) | $181 |
+| RDS PostgreSQL | db.t4g.micro, 20GB, single-AZ | $14 |
+| NAT Gateway | 1 gateway + data transfer | $33 |
+| EBS Volumes | ~168GB (Prometheus 100GB, Loki 50GB, Grafana 10GB, Qdrant, RabbitMQ) | $17 |
+| Route53 | 1 hosted zone (elevaite.ai) | $0.50 |
+| S3 Storage | Standard tier | $1 |
+| **Total** | | **~$320** |
+
+**Note:** Includes full monitoring stack with higher retention (30 days for Prometheus, production-grade Loki caching). 3 nodes provide sufficient capacity for infrastructure + full application deployment.
+
+### All Environments Combined: ~$692/month
+
+| Environment | Monthly Cost | Key Features |
+|-------------|-------------|--------------|
+| Development | $185 | 2 nodes (t3.medium), no monitoring, single RabbitMQ/Qdrant replicas |
+| Staging | $187 | 2 nodes (t3.medium), full monitoring, mirrors production architecture |
+| Production | $320 | **3 nodes (t3.large)**, full monitoring, higher retention, capacity for full app |
+| **Grand Total** | **$692** | Multi-environment cloud infrastructure |
+
+**Important Notes:**
+- RabbitMQ and Qdrant run inside Kubernetes (no additional managed service costs)
+- Monitoring stack (Prometheus, Grafana, Loki) deployed only in staging and production
+- Data transfer costs not included (typically $5-20/month per environment)
+- S3 costs minimal assuming normal file storage (no massive uploads)
+- NAT Gateway data processing varies ($0.045/GB)
+- These are base infrastructure costs - actual usage may vary ±10%
+
+**Cost-saving measures already in place:**
+- Single NAT gateway per environment (not multi-AZ) saves ~$32/month per env
+- RDS db.t4g.micro (smallest production-ready size)
+- No Multi-AZ RDS saves ~$12/month per environment
+- Dev has no monitoring stack saves ~$15/month in storage
+- RabbitMQ and Qdrant in-cluster vs managed services saves ~$100-200/month per env
+
+### Alternative Cloud Providers (Estimated)
+
+The infrastructure is cloud-agnostic and can be deployed to Azure or GCP. Estimated costs below are for reference (not yet deployed):
+
+#### Azure (AKS) - Estimated per environment
 
 | Service | Spec | Est. Cost |
 |---------|------|-----------|
 | AKS control plane | | $0 (free) |
-| VM nodes | 2x Standard_B2s | ~$60 |
+| VM nodes | 2x Standard_B2s (similar to t3.medium) | ~$60 |
 | Azure Database for PostgreSQL | B_Gen5_1, single-zone | ~$20 |
 | Blob Storage | LRS | ~$5 |
 | Load Balancer | Standard | ~$15 |
@@ -1133,35 +1226,51 @@ All tools run in Kubernetes, no cloud vendor lock-in.
 
 **Note:** RabbitMQ and Qdrant run inside Kubernetes (no additional cost)
 
-#### GCP (GKE)
+#### GCP (GKE) - Estimated per environment
 
 | Service | Spec | Est. Cost |
 |---------|------|-----------|
 | GKE control plane | Zonal cluster | $0 (free) |
-| Compute nodes | 2x e2-micro | ~$60 |
+| Compute nodes | 2x e2-medium (similar to t3.medium) | ~$50 |
 | Cloud SQL | db-f1-micro, single-zone | ~$20 |
 | Cloud Storage | Standard | ~$5 |
 | Load Balancer | Standard | ~$15 |
-| **Total per environment** | | **~$100/mo** |
+| **Total per environment** | | **~$90/mo** |
 
 **Note:** RabbitMQ and Qdrant run inside Kubernetes (no additional cost)
 
 ### Cloud Provider Comparison
 
-| Provider | K8s Control Plane | Per-Environment Total | Notes |
-|----------|-------------------|----------------------|--------|
-| **AWS (EKS)** | $75/mo | **~$155/mo** | EKS control plane cost is fixed |
-| **Azure (AKS)** | Free | **~$100/mo** | Free control plane saves cost |
-| **GCP (GKE)** | Free (zonal) | **~$100/mo** | Free zonal control plane |
-| **Self-hosted (k3s)** | Free | ~$85/mo + ops | No control plane costs |
+| Provider | K8s Control Plane | Dev/Staging Cost | Production Cost | Notes |
+|----------|-------------------|------------------|-----------------|--------|
+| **AWS (EKS)** | $73/mo | **~$185-187/mo** | **~$320/mo** | Currently deployed (3 nodes in prod), EKS control plane cost is fixed |
+| **Azure (AKS)** | Free | **~$100/mo** | **~$210/mo** | Estimated (3 nodes in prod), free control plane saves ~$73/mo |
+| **GCP (GKE)** | Free (zonal) | **~$90/mo** | **~$200/mo** | Estimated (3 nodes in prod), free zonal control plane |
+| **Self-hosted (k3s)** | Free | ~$85/mo + ops | ~$180/mo + ops | No control plane costs, requires ops expertise |
 
-### Scaling Up for Production
+### Current Production Configuration
 
-When your production environment needs more resources:
-- **Database:** Upgrade to larger instance, enable Multi-AZ (~$50-150/mo additional)
-- **Kubernetes:** Add nodes, upgrade to larger instances (~$100-300/mo additional)
+**Deployed Resources:**
+- **Nodes:** 3x t3.large (2 vCPU, 8GB RAM each) - Total: 6 vCPU, 24GB RAM
+- **Database:** db.t4g.micro, 20GB, single-AZ
+- **RabbitMQ:** 3 replicas, 8Gi storage per replica (HA cluster)
+- **Qdrant:** 2 replicas, 10Gi storage per replica (HA)
+- **Monitoring:** Full stack (Prometheus 100GB, Loki 50GB, 30-day retention)
+- **Available Capacity:** ~2220m CPU, ~13.4GB memory for application deployment
+
+### Scaling Up for Growth
+
+When production needs more capacity:
+- **Database:** Upgrade to db.t4g.small or db.t4g.medium, enable Multi-AZ (~$50-150/mo additional)
+- **Kubernetes:** Add nodes (3-5 nodes), upgrade to t3.xlarge or t3.2xlarge (~$200-500/mo additional)
 - **RabbitMQ/Qdrant:** Increase replica count and storage size (covered by K8s node costs)
-- **Monitoring:** Increase retention, add external storage (~$30-50/mo additional)
+- **Monitoring:** Increase retention to 90 days, add external storage (~$30-50/mo additional)
+
+**Example high-traffic production setup (~$800-1200/mo):**
+- **Nodes:** 4x t3.xlarge (4 vCPU, 16GB each)
+- **Database:** db.r6g.large, Multi-AZ, 100GB
+- **EBS:** 500GB total across all services
+- **Monitoring:** 90-day retention with S3 archival
 
 ### Frontend (Kubernetes)
 
@@ -1292,7 +1401,7 @@ services:
     ports:
       - "8004:8004"
     environment:
-      DATABASE_URL: postgresql://elevaite:elevaite@postgres:5432/auth
+      SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/auth
 
   workflow-engine:
     build:
@@ -1301,28 +1410,38 @@ services:
     ports:
       - "8006:8006"
     environment:
-      DATABASE_URL: postgresql://elevaite:elevaite@postgres:5432/workflow
+      SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/workflow_engine
       RABBITMQ_URL: amqp://elevaite:elevaite@rabbitmq:5672/
       MINIO_ENDPOINT: minio:9000
+      INGESTION_SERVICE_URL: http://ingestion:8000
 
-  worker:
+  ingestion:
     build:
       context: .
-      dockerfile: python_apps/workflow-engine-poc/Dockerfile
-    command: ["python", "-m", "workflow_engine_poc.worker"]
-    environment:
-      DATABASE_URL: postgresql://elevaite:elevaite@postgres:5432/workflow
-      RABBITMQ_URL: amqp://elevaite:elevaite@rabbitmq:5672/
-      MINIO_ENDPOINT: minio:9000
-      CODE_EXECUTION_URL: http://code-execution:8007
-
-  code-execution:
-    build:
-      context: .
-      dockerfile: python_apps/code_execution/Dockerfile
+      dockerfile: python_apps/ingestion-service/Dockerfile
     ports:
-      - "8007:8007"
-    privileged: true  # Required for Nsjail
+      - "8001:8000"  # External:Internal port mapping
+    environment:
+      DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/elevaite_ingestion
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: "6333"
+      RABBITMQ_URL: amqp://elevaite:elevaite@rabbitmq:5672/
+      MINIO_ENDPOINT: minio:9000
+
+  # Workers (future: when async tasks are needed)
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: python_apps/workflow-engine-poc/Dockerfile
+  #   command: ["python", "-m", "workflow_engine_poc.worker"]
+
+  # Code Execution Service (planned, not yet implemented)
+  # code-execution:
+  #   build:
+  #     context: .
+  #     dockerfile: python_apps/code_execution/Dockerfile
+  #   ports:
+  #     - "8007:8007"
 ```
 
 ---

@@ -13,18 +13,24 @@ terraform {
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.25"
+      version = "~> 2.35"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.12"
+      version = "~> 2.17"
+    }
+    kubectl = {
+      source  = "gavinbunney/kubectl"
+      version = "~> 1.14"
     }
   }
 
   backend "s3" {
-    bucket = "elevaite-terraform-state"
-    key    = "staging/aws/terraform.tfstate"
-    region = "us-west-1"
+    bucket         = "elevaite-terraform-state"
+    key            = "staging/aws/terraform.tfstate"
+    region         = "us-west-1"
+    encrypt        = true
+    dynamodb_table = "elevaite-terraform-locks"
   }
 }
 
@@ -78,6 +84,25 @@ variable "slack_webhook_url" {
   sensitive   = true
 }
 
+variable "rabbitmq_password" {
+  description = "RabbitMQ password"
+  type        = string
+  sensitive   = true
+}
+
+variable "rabbitmq_erlang_cookie" {
+  description = "RabbitMQ Erlang cookie for cluster communication"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "qdrant_api_key" {
+  description = "Qdrant API key for authentication"
+  type        = string
+  sensitive   = true
+}
+
 # =============================================================================
 # NETWORKING
 # =============================================================================
@@ -89,12 +114,12 @@ module "vpc" {
   name = "elevaite-staging"
   cidr = "10.1.0.0/16"
 
-  azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
-  private_subnets = ["10.1.1.0/24", "10.1.2.0/24", "10.1.3.0/24"]
-  public_subnets  = ["10.1.101.0/24", "10.1.102.0/24", "10.1.103.0/24"]
+  azs             = ["${var.aws_region}a", "${var.aws_region}c"]
+  private_subnets = ["10.1.1.0/24", "10.1.2.0/24"]
+  public_subnets  = ["10.1.101.0/24", "10.1.102.0/24"]
 
   enable_nat_gateway = true
-  single_nat_gateway = true  # Cost saving for staging
+  single_nat_gateway = true # Cost saving for staging
 
   enable_dns_hostnames = true
   enable_dns_support   = true
@@ -124,14 +149,13 @@ resource "aws_security_group" "database" {
 # =============================================================================
 
 module "database" {
-  source = "../../../modules/database"
+  source = "../../../modules/aws/database"
 
-  cloud_provider = "aws"
-  environment    = "staging"
-  name           = "elevaite"
+  environment = "staging"
+  name        = "elevaite"
 
-  instance_class    = "db.t4g.micro"  # Cheapest option (ARM-based)
-  allocated_storage = 20              # Minimum storage
+  instance_class    = "db.t4g.micro" # Cheapest option (ARM-based)
+  allocated_storage = 20             # Minimum storage
   database_name     = "elevaite_staging"
   username          = "elevaite"
   password          = var.db_password
@@ -149,12 +173,11 @@ module "database" {
 # =============================================================================
 
 module "storage" {
-  source = "../../../modules/storage"
+  source = "../../../modules/aws/storage"
 
-  cloud_provider = "aws"
-  environment    = "staging"
-  name           = "elevaite"
-  bucket_name    = "elevaite-staging-files-${data.aws_caller_identity.current.account_id}"
+  environment = "staging"
+  name        = "elevaite"
+  bucket_name = "elevaite-staging-files-${data.aws_caller_identity.current.account_id}"
 
   enable_versioning = true
 }
@@ -166,17 +189,16 @@ data "aws_caller_identity" "current" {}
 # =============================================================================
 
 module "kubernetes" {
-  source = "../../../modules/kubernetes"
+  source = "../../../modules/aws/kubernetes"
 
-  cloud_provider = "aws"
-  environment    = "staging"
-  name           = "elevaite"
+  environment = "staging"
+  name        = "elevaite"
 
-  kubernetes_version = "1.28"
-  node_count         = 2           # Minimum for EKS
+  kubernetes_version = "1.31"
+  node_count         = 2 # Minimum for EKS
   min_nodes          = 2
   max_nodes          = 3           # Limited scaling
-  node_instance_type = "t3.small"  # Cheapest viable option
+  node_instance_type = "t3.medium" # More pod capacity (17 vs 11)
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -187,11 +209,10 @@ module "kubernetes" {
 # =============================================================================
 
 module "dns" {
-  source = "../../../modules/dns"
+  source = "../../../modules/aws/dns"
 
-  cloud_provider = "aws"
-  environment    = "staging"
-  domain_name    = var.domain_name
+  environment = "staging"
+  domain_name = var.domain_name
 }
 
 # =============================================================================
@@ -220,18 +241,36 @@ provider "helm" {
   }
 }
 
-module "cluster_addons" {
-  source = "../../../modules/cluster-addons"
+provider "kubectl" {
+  host                   = module.kubernetes.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.kubernetes.cluster_ca_certificate)
+  load_config_file       = false
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", module.kubernetes.cluster_name]
+  }
+}
 
-  cloud_provider    = "aws"
-  environment       = "staging"
-  domain_name       = var.domain_name
-  dns_zone_id       = module.dns.zone_id
-  letsencrypt_email = var.letsencrypt_email
-  aws_region        = var.aws_region
-  oidc_provider     = module.kubernetes.oidc_provider
+module "cluster_addons" {
+  source = "../../../modules/aws/cluster-addons"
+
+  environment            = "staging"
+  domain_name            = var.domain_name
+  dns_zone_id            = module.dns.zone_id
+  letsencrypt_email      = var.letsencrypt_email
+  aws_region             = var.aws_region
+  oidc_provider          = module.kubernetes.oidc_provider
+  rabbitmq_password      = var.rabbitmq_password
+  rabbitmq_erlang_cookie = var.rabbitmq_erlang_cookie != "" ? var.rabbitmq_erlang_cookie : random_password.rabbitmq_cookie.result
+  qdrant_api_key         = var.qdrant_api_key
 
   depends_on = [module.kubernetes]
+}
+
+resource "random_password" "rabbitmq_cookie" {
+  length  = 32
+  special = false
 }
 
 # =============================================================================
@@ -245,7 +284,7 @@ module "monitoring" {
   domain_name            = var.domain_name
   grafana_admin_password = var.grafana_admin_password
   slack_webhook_url      = var.slack_webhook_url
-  retention_days         = 15  # 15 days for staging
+  retention_days         = 15 # 15 days for staging
 
   depends_on = [module.cluster_addons]
 }
@@ -278,5 +317,15 @@ output "helm_values" {
   value = {
     postgresql_host = module.database.host
     storage_bucket  = module.storage.bucket_name
+    qdrant_host     = module.cluster_addons.qdrant_host
+    rabbitmq_host   = module.cluster_addons.rabbitmq_host
   }
+}
+
+output "qdrant_host" {
+  value = module.cluster_addons.qdrant_host
+}
+
+output "rabbitmq_host" {
+  value = module.cluster_addons.rabbitmq_host
 }

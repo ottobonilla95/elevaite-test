@@ -9,11 +9,11 @@ terraform {
   required_providers {
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.12"
+      version = "~> 2.17"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.25"
+      version = "~> 2.35"
     }
   }
 }
@@ -107,6 +107,24 @@ variable "project_name" {
   default     = "elevaite"
 }
 
+variable "loki_caching_enabled" {
+  description = "Enable Loki caching (chunks-cache, results-cache). Only needed for high-volume production."
+  type        = bool
+  default     = false
+}
+
+variable "loki_chunks_cache_memory" {
+  description = "Memory allocation for Loki chunks cache in MB"
+  type        = number
+  default     = 2048
+}
+
+variable "loki_results_cache_memory" {
+  description = "Memory allocation for Loki results cache in MB"
+  type        = number
+  default     = 1024
+}
+
 locals {
   # Use prometheus_retention_days if set, otherwise fall back to retention_days
   effective_retention_days = coalesce(var.prometheus_retention_days, var.retention_days)
@@ -117,15 +135,12 @@ locals {
 }
 
 # =============================================================================
-# NAMESPACE
+# NAMESPACE (created by cluster-addons module, referenced here)
 # =============================================================================
 
-resource "kubernetes_namespace" "monitoring" {
+data "kubernetes_namespace" "monitoring" {
   metadata {
     name = "monitoring"
-    labels = {
-      "app.kubernetes.io/managed-by" = "terraform"
-    }
   }
 }
 
@@ -137,8 +152,8 @@ resource "helm_release" "prometheus_stack" {
   name       = "prometheus"
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "kube-prometheus-stack"
-  version    = "55.5.0"
-  namespace  = kubernetes_namespace.monitoring.metadata[0].name
+  version    = "67.4.0"
+  namespace  = data.kubernetes_namespace.monitoring.metadata[0].name
 
   values = [
     yamlencode({
@@ -146,7 +161,7 @@ resource "helm_release" "prometheus_stack" {
       prometheus = {
         prometheusSpec = {
           retention = "${local.effective_retention_days}d"
-          
+
           storageSpec = {
             volumeClaimTemplate = {
               spec = {
@@ -163,12 +178,12 @@ resource "helm_release" "prometheus_stack" {
 
           resources = {
             requests = {
-              cpu    = var.environment == "production" ? "500m" : "250m"
-              memory = var.environment == "production" ? "2Gi" : "1Gi"
+              cpu    = "250m" # Reduced to fit in 2-node cluster
+              memory = var.environment == "production" ? "1Gi" : "512Mi"
             }
             limits = {
-              cpu    = var.environment == "production" ? "2000m" : "500m"
-              memory = var.environment == "production" ? "4Gi" : "2Gi"
+              cpu    = var.environment == "production" ? "1000m" : "500m"
+              memory = var.environment == "production" ? "2Gi" : "1Gi"
             }
           }
 
@@ -253,9 +268,9 @@ resource "helm_release" "prometheus_stack" {
         ingress = {
           enabled = true
           annotations = {
-            "kubernetes.io/ingress.class"                    = "nginx"
-            "cert-manager.io/cluster-issuer"                 = var.environment == "production" ? "letsencrypt-prod" : "letsencrypt-staging"
-            "nginx.ingress.kubernetes.io/ssl-redirect"       = "true"
+            "kubernetes.io/ingress.class"              = "nginx"
+            "cert-manager.io/cluster-issuer"           = var.environment == "production" ? "letsencrypt-prod" : "letsencrypt-staging"
+            "nginx.ingress.kubernetes.io/ssl-redirect" = "true"
           }
           hosts = [local.effective_domain]
           tls = [{
@@ -326,7 +341,7 @@ resource "helm_release" "prometheus_stack" {
     })
   ]
 
-  depends_on = [kubernetes_namespace.monitoring]
+  depends_on = [data.kubernetes_namespace.monitoring]
 }
 
 # =============================================================================
@@ -337,24 +352,35 @@ resource "helm_release" "loki" {
   name       = "loki"
   repository = "https://grafana.github.io/helm-charts"
   chart      = "loki"
-  version    = "5.41.0"
-  namespace  = kubernetes_namespace.monitoring.metadata[0].name
+  version    = "6.24.0"
+  namespace  = data.kubernetes_namespace.monitoring.metadata[0].name
 
   values = [
     yamlencode({
+      deploymentMode = "SingleBinary"
+
       loki = {
         auth_enabled = false
-
-        storage = {
-          type = "filesystem"
-        }
-
         commonConfig = {
           replication_factor = 1
         }
-
+        storage = {
+          type = "filesystem"
+        }
         limits_config = {
           retention_period = "${local.effective_loki_retention * 24}h"
+        }
+        schemaConfig = {
+          configs = [{
+            from         = "2024-01-01"
+            store        = "tsdb"
+            object_store = "filesystem"
+            schema       = "v13"
+            index = {
+              prefix = "index_"
+              period = "24h"
+            }
+          }]
         }
       }
 
@@ -367,6 +393,17 @@ resource "helm_release" "loki" {
         }
       }
 
+      # Disable other deployment modes
+      backend = {
+        replicas = 0
+      }
+      read = {
+        replicas = 0
+      }
+      write = {
+        replicas = 0
+      }
+
       monitoring = {
         selfMonitoring = {
           enabled = false
@@ -376,13 +413,23 @@ resource "helm_release" "loki" {
         }
       }
 
+      # Caching config - configurable per environment
+      chunksCache = {
+        enabled         = var.loki_caching_enabled
+        allocatedMemory = var.loki_chunks_cache_memory
+      }
+      resultsCache = {
+        enabled         = var.loki_caching_enabled
+        allocatedMemory = var.loki_results_cache_memory
+      }
+
       test = {
         enabled = false
       }
     })
   ]
 
-  depends_on = [kubernetes_namespace.monitoring]
+  depends_on = [data.kubernetes_namespace.monitoring]
 }
 
 # =============================================================================
@@ -393,8 +440,8 @@ resource "helm_release" "promtail" {
   name       = "promtail"
   repository = "https://grafana.github.io/helm-charts"
   chart      = "promtail"
-  version    = "6.15.0"
-  namespace  = kubernetes_namespace.monitoring.metadata[0].name
+  version    = "6.16.6"
+  namespace  = data.kubernetes_namespace.monitoring.metadata[0].name
 
   values = [
     yamlencode({

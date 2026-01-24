@@ -87,5 +87,14 @@ python_packages/elevaite_ingestion/config/logs/pipeline.log
 uploads
 logs.
 
-terraform/
-terraform.tfstate*
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

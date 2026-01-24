@@ -4,18 +4,30 @@
 
 terraform {
   required_version = ">= 1.5.0"
-  
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0"
+      version = "~> 4.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.35"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.17"
+    }
+    kubectl = {
+      source  = "gavinbunney/kubectl"
+      version = "~> 1.14"
     }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.0"
     }
   }
-  
+
   backend "azurerm" {
     resource_group_name  = "elevaite-terraform"
     storage_account_name = "elevaiteterraform"
@@ -43,167 +55,9 @@ variable "project" {
   default = "elevaite"
 }
 
-# =============================================================================
-# Resource Group
-# =============================================================================
-resource "azurerm_resource_group" "main" {
-  name     = "${var.project}-${var.environment}"
-  location = var.location
-  
-  tags = {
-    Environment = var.environment
-    Project     = var.project
-    ManagedBy   = "terraform"
-  }
-}
-
-# =============================================================================
-# Database Module (Azure Database for PostgreSQL)
-# =============================================================================
-module "database" {
-  source = "../../../modules/database"
-  
-  cloud_provider = "azure"
-  environment    = var.environment
-  project_name   = var.project
-  
-  # Azure-specific
-  resource_group_name = azurerm_resource_group.main.name
-  location            = var.location
-  
-  # PostgreSQL Settings (Minimum for cost savings)
-  database_name      = "elevaite_staging"
-  instance_class     = "B_Gen5_1"   # 1 vCore, Basic tier
-  storage_mb         = 20480        # 20GB
-  backup_retention   = 7
-
-  # No HA for cost savings
-  high_availability = false
-  
-  tags = azurerm_resource_group.main.tags
-}
-
-# =============================================================================
-# Object Storage Module (Azure Blob Storage)
-# =============================================================================
-module "storage" {
-  source = "../../../modules/storage"
-  
-  cloud_provider = "azure"
-  environment    = var.environment
-  project_name   = var.project
-  
-  # Azure-specific
-  resource_group_name = azurerm_resource_group.main.name
-  location            = var.location
-  
-  # Storage Settings
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-  
-  tags = azurerm_resource_group.main.tags
-}
-
-# =============================================================================
-# Kubernetes Module (Azure AKS)
-# =============================================================================
-module "kubernetes" {
-  source = "../../../modules/kubernetes"
-  
-  cloud_provider = "azure"
-  environment    = var.environment
-  project_name   = var.project
-  cluster_name   = "${var.project}-${var.environment}"
-  
-  # Azure-specific
-  resource_group_name = azurerm_resource_group.main.name
-  location            = var.location
-  
-  # AKS Settings
-  kubernetes_version = "1.28"
-  
-  node_pools = {
-    default = {
-      name       = "default"
-      node_count = 2
-      vm_size    = "Standard_B2s"  # Burstable, cheapest
-      min_count  = 2
-      max_count  = 3
-    }
-  }
-  
-  tags = azurerm_resource_group.main.tags
-}
-
-# =============================================================================
-# DNS Module (Azure DNS)
-# =============================================================================
-module "dns" {
-  source = "../../../modules/dns"
-  
-  cloud_provider = "azure"
-  environment    = var.environment
-  project_name   = var.project
-  
-  # Azure-specific
-  resource_group_name = azurerm_resource_group.main.name
-  
-  # DNS Settings
-  domain_name = "staging.elevaite.io"
-  
-  tags = azurerm_resource_group.main.tags
-}
-
-# =============================================================================
-# Cluster Add-ons (Ingress, Cert-Manager, External-DNS)
-# =============================================================================
-module "cluster_addons" {
-  source = "../../../modules/cluster-addons"
-  
-  depends_on = [module.kubernetes]
-  
-  cloud_provider = "azure"
-  environment    = var.environment
-  
-  # Ingress settings
-  ingress_enabled = true
-  
-  # SSL settings
-  cert_manager_enabled = true
-  letsencrypt_email    = "devops@elevaite.io"
-  
-  # External DNS settings
-  external_dns_enabled = true
-  dns_zone_name        = module.dns.zone_name
-}
-
-# =============================================================================
-# Monitoring Module (Prometheus, Grafana, Loki)
-# =============================================================================
-module "monitoring" {
-  source = "../../../modules/monitoring"
-  
-  depends_on = [module.kubernetes]
-  
-  environment  = var.environment
-  project_name = var.project
-  
-  # Prometheus settings
-  prometheus_retention_days = 15
-  prometheus_storage_size   = "20Gi"
-  
-  # Grafana settings
-  grafana_admin_password = var.grafana_password
-  grafana_domain         = "grafana-staging.elevaite.io"
-  
-  # Loki settings
-  loki_retention_days  = 7
-  loki_storage_size    = "10Gi"
-  
-  # Alerting
-  alertmanager_enabled     = true
-  slack_webhook_url        = var.slack_webhook_url
-  pagerduty_integration_key = var.pagerduty_key
+variable "db_password" {
+  type      = string
+  sensitive = true
 }
 
 variable "grafana_password" {
@@ -219,6 +73,198 @@ variable "slack_webhook_url" {
 variable "pagerduty_key" {
   type    = string
   default = ""
+}
+
+variable "letsencrypt_email" {
+  type    = string
+  default = "devops@elevaite.io"
+}
+
+variable "rabbitmq_password" {
+  description = "RabbitMQ password"
+  type        = string
+  sensitive   = true
+}
+
+variable "rabbitmq_erlang_cookie" {
+  description = "RabbitMQ Erlang cookie for cluster communication"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "qdrant_api_key" {
+  description = "Qdrant API key for authentication"
+  type        = string
+  sensitive   = true
+}
+
+# =============================================================================
+# Data Sources
+# =============================================================================
+data "azurerm_subscription" "current" {}
+
+data "azurerm_client_config" "current" {}
+
+# =============================================================================
+# Resource Group
+# =============================================================================
+resource "azurerm_resource_group" "main" {
+  name     = "${var.project}-${var.environment}"
+  location = var.location
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project
+    ManagedBy   = "terraform"
+  }
+}
+
+# =============================================================================
+# Database Module (Azure Database for PostgreSQL)
+# =============================================================================
+module "database" {
+  source = "../../../modules/azure/database"
+
+  environment = var.environment
+  name        = var.project
+
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+
+  database_name = "elevaite_staging"
+  sku_name      = "B_Standard_B1ms" # Burstable, cheapest
+  storage_mb    = 32768             # 32GB
+  username      = "elevaite"
+  password      = var.db_password
+
+  backup_retention_days = 7
+  high_availability     = false
+
+  tags = azurerm_resource_group.main.tags
+}
+
+# =============================================================================
+# Object Storage Module (Azure Blob Storage)
+# =============================================================================
+module "storage" {
+  source = "../../../modules/azure/storage"
+
+  environment = var.environment
+  name        = var.project
+
+  resource_group_name      = azurerm_resource_group.main.name
+  location                 = var.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+
+  tags = azurerm_resource_group.main.tags
+}
+
+# =============================================================================
+# Kubernetes Module (Azure AKS)
+# =============================================================================
+module "kubernetes" {
+  source = "../../../modules/azure/kubernetes"
+
+  environment  = var.environment
+  name         = var.project
+  cluster_name = "${var.project}-${var.environment}"
+
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+
+  kubernetes_version = "1.31"
+  node_count         = 2
+  min_nodes          = 2
+  max_nodes          = 3
+  vm_size            = "Standard_B2s" # Burstable, cheapest
+
+  tags = azurerm_resource_group.main.tags
+}
+
+# =============================================================================
+# DNS Module (Azure DNS)
+# =============================================================================
+module "dns" {
+  source = "../../../modules/azure/dns"
+
+  environment = var.environment
+  name        = var.project
+
+  resource_group_name = azurerm_resource_group.main.name
+  domain_name         = "staging.elevaite.io"
+
+  tags = azurerm_resource_group.main.tags
+}
+
+# =============================================================================
+# Kubernetes & Helm Providers
+# =============================================================================
+provider "kubernetes" {
+  host                   = module.kubernetes.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.kubernetes.cluster_ca_certificate)
+  client_certificate     = base64decode(module.kubernetes.client_certificate)
+  client_key             = base64decode(module.kubernetes.client_key)
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = module.kubernetes.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.kubernetes.cluster_ca_certificate)
+    client_certificate     = base64decode(module.kubernetes.client_certificate)
+    client_key             = base64decode(module.kubernetes.client_key)
+  }
+}
+
+provider "kubectl" {
+  host                   = module.kubernetes.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.kubernetes.cluster_ca_certificate)
+  client_certificate     = base64decode(module.kubernetes.client_certificate)
+  client_key             = base64decode(module.kubernetes.client_key)
+  load_config_file       = false
+}
+
+# =============================================================================
+# Cluster Add-ons (Ingress, Cert-Manager, External-DNS)
+# =============================================================================
+module "cluster_addons" {
+  source = "../../../modules/azure/cluster-addons"
+
+  depends_on = [module.kubernetes]
+
+  environment            = var.environment
+  domain_name            = "staging.elevaite.io"
+  dns_zone_name          = module.dns.zone_name
+  letsencrypt_email      = var.letsencrypt_email
+  rabbitmq_password      = var.rabbitmq_password
+  rabbitmq_erlang_cookie = var.rabbitmq_erlang_cookie != "" ? var.rabbitmq_erlang_cookie : random_password.rabbitmq_cookie.result
+  qdrant_api_key         = var.qdrant_api_key
+
+  resource_group_name = azurerm_resource_group.main.name
+  subscription_id     = data.azurerm_subscription.current.subscription_id
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+}
+
+resource "random_password" "rabbitmq_cookie" {
+  length  = 32
+  special = false
+}
+
+# =============================================================================
+# Monitoring Module (Prometheus, Grafana, Loki)
+# =============================================================================
+module "monitoring" {
+  source = "../../../modules/monitoring"
+
+  depends_on = [module.cluster_addons]
+
+  environment = var.environment
+  domain_name = "staging.elevaite.io"
+
+  grafana_admin_password = var.grafana_password
+  slack_webhook_url      = var.slack_webhook_url
+  retention_days         = 15
 }
 
 # =============================================================================
@@ -242,7 +288,7 @@ output "kubernetes_cluster_name" {
 
 output "kubeconfig_command" {
   description = "Command to configure kubectl"
-  value       = "az aks get-credentials --resource-group ${azurerm_resource_group.main.name} --name ${module.kubernetes.cluster_name}"
+  value       = module.kubernetes.kubeconfig_command
 }
 
 output "monitoring_grafana_url" {
@@ -254,5 +300,15 @@ output "helm_values" {
   value = {
     postgresql_host = module.database.host
     storage_bucket  = module.storage.bucket_name
+    qdrant_host     = module.cluster_addons.qdrant_host
+    rabbitmq_host   = module.cluster_addons.rabbitmq_host
   }
+}
+
+output "qdrant_host" {
+  value = module.cluster_addons.qdrant_host
+}
+
+output "rabbitmq_host" {
+  value = module.cluster_addons.rabbitmq_host
 }

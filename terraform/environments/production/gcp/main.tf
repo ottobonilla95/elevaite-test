@@ -4,18 +4,30 @@
 
 terraform {
   required_version = ">= 1.5.0"
-  
+
   required_providers {
     google = {
       source  = "hashicorp/google"
       version = "~> 5.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.35"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.17"
+    }
+    kubectl = {
+      source  = "gavinbunney/kubectl"
+      version = "~> 1.14"
     }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.0"
     }
   }
-  
+
   backend "gcs" {
     bucket = "elevaite-terraform-state"
     prefix = "production/terraform.tfstate"
@@ -47,173 +59,9 @@ variable "project_name" {
   default = "elevaite"
 }
 
-# =============================================================================
-# Database Module (Cloud SQL for PostgreSQL - Production)
-# =============================================================================
-module "database" {
-  source = "../../../modules/database"
-  
-  cloud_provider = "gcp"
-  environment    = var.environment
-  project_name   = var.project_name
-  
-  # GCP-specific
-  gcp_project_id = var.project_id
-  region         = var.region
-  
-  # PostgreSQL Settings (Minimum for cost savings)
-  database_name     = "elevaite_production"
-  database_version  = "POSTGRES_15"
-  instance_class    = "db-f1-micro"  # Smallest instance
-  disk_size_gb      = 20
-  disk_autoresize   = true
-  backup_retention  = 7
-
-  # No HA for cost savings
-  high_availability = false
-  
-  labels = {
-    environment = var.environment
-    project     = var.project_name
-    managed_by  = "terraform"
-  }
-}
-
-# =============================================================================
-# Object Storage Module (Google Cloud Storage - Production)
-# =============================================================================
-module "storage" {
-  source = "../../../modules/storage"
-  
-  cloud_provider = "gcp"
-  environment    = var.environment
-  project_name   = var.project_name
-  
-  # GCP-specific
-  gcp_project_id = var.project_id
-  location       = var.region
-  
-  # Storage Settings (Production - Multi-region)
-  storage_class      = "STANDARD"
-  versioning         = true
-  lifecycle_age_days = 365  # Keep for 1 year
-  
-  labels = {
-    environment = var.environment
-    project     = var.project_name
-  }
-}
-
-# =============================================================================
-# Kubernetes Module (Google Kubernetes Engine - Production)
-# =============================================================================
-module "kubernetes" {
-  source = "../../../modules/kubernetes"
-  
-  cloud_provider = "gcp"
-  environment    = var.environment
-  project_name   = var.project_name
-  cluster_name   = "${var.project_name}-${var.environment}"
-  
-  # GCP-specific
-  gcp_project_id = var.project_id
-  region         = var.region
-  
-  # GKE Settings (Minimum for cost savings)
-  kubernetes_version = "1.28"
-  regional           = false  # Zonal cluster for cost savings
-
-  node_pools = {
-    default = {
-      name           = "default-pool"
-      node_count     = 2
-      machine_type   = "e2-micro"  # Smallest instance
-      min_node_count = 2
-      max_node_count = 3
-      disk_size_gb   = 30
-      disk_type      = "pd-standard"
-    }
-  }
-  
-  # Network settings
-  network    = "default"
-  subnetwork = "default"
-  
-  labels = {
-    environment = var.environment
-    project     = var.project_name
-  }
-}
-
-# =============================================================================
-# DNS Module (Cloud DNS)
-# =============================================================================
-module "dns" {
-  source = "../../../modules/dns"
-  
-  cloud_provider = "gcp"
-  environment    = var.environment
-  project_name   = var.project_name
-  
-  # GCP-specific
-  gcp_project_id = var.project_id
-  
-  # DNS Settings
-  domain_name = "elevaite.io"
-  
-  labels = {
-    environment = var.environment
-    project     = var.project_name
-  }
-}
-
-# =============================================================================
-# Cluster Add-ons
-# =============================================================================
-module "cluster_addons" {
-  source = "../../../modules/cluster-addons"
-  
-  depends_on = [module.kubernetes]
-  
-  cloud_provider = "gcp"
-  environment    = var.environment
-  
-  ingress_enabled      = true
-  cert_manager_enabled = true
-  letsencrypt_email    = "devops@elevaite.io"
-  letsencrypt_server   = "https://acme-v02.api.letsencrypt.org/directory"
-  external_dns_enabled = true
-  dns_zone_name        = module.dns.zone_name
-  gcp_project_id       = var.project_id
-}
-
-# =============================================================================
-# Monitoring Module (Production - Extended Retention)
-# =============================================================================
-module "monitoring" {
-  source = "../../../modules/monitoring"
-  
-  depends_on = [module.kubernetes]
-  
-  environment  = var.environment
-  project_name = var.project_name
-  
-  # Prometheus settings
-  prometheus_retention_days = 90
-  prometheus_storage_size   = "100Gi"
-  
-  # Grafana settings
-  grafana_admin_password = var.grafana_password
-  grafana_domain         = "grafana.elevaite.io"
-  
-  # Loki settings
-  loki_retention_days  = 30
-  loki_storage_size    = "50Gi"
-  
-  # Alerting
-  alertmanager_enabled      = true
-  slack_webhook_url         = var.slack_webhook_url
-  pagerduty_integration_key = var.pagerduty_key
+variable "db_password" {
+  type      = string
+  sensitive = true
 }
 
 variable "grafana_password" {
@@ -229,6 +77,197 @@ variable "slack_webhook_url" {
 variable "pagerduty_key" {
   type    = string
   default = ""
+}
+
+variable "letsencrypt_email" {
+  type    = string
+  default = "devops@elevaite.io"
+}
+
+variable "rabbitmq_password" {
+  description = "RabbitMQ password"
+  type        = string
+  sensitive   = true
+}
+
+variable "rabbitmq_erlang_cookie" {
+  description = "RabbitMQ Erlang cookie for cluster communication"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "qdrant_api_key" {
+  description = "Qdrant API key for authentication"
+  type        = string
+  sensitive   = true
+}
+
+# =============================================================================
+# Database Module (Cloud SQL for PostgreSQL - Production)
+# =============================================================================
+module "database" {
+  source = "../../../modules/gcp/database"
+
+  environment = var.environment
+  name        = var.project_name
+
+  project_id = var.project_id
+  region     = var.region
+
+  database_name = "elevaite_production"
+  tier          = "db-f1-micro" # Smallest instance
+  disk_size     = 20
+  username      = "elevaite"
+  password      = var.db_password
+
+  backup_retention_days = 30
+  high_availability     = false
+
+  labels = {
+    environment = var.environment
+    project     = var.project_name
+    managed_by  = "terraform"
+  }
+}
+
+# =============================================================================
+# Object Storage Module (Google Cloud Storage - Production)
+# =============================================================================
+module "storage" {
+  source = "../../../modules/gcp/storage"
+
+  environment = var.environment
+  name        = var.project_name
+
+  project_id    = var.project_id
+  location      = var.region
+  storage_class = "STANDARD"
+
+  enable_versioning = true
+  lifecycle_days    = 365
+
+  labels = {
+    environment = var.environment
+    project     = var.project_name
+  }
+}
+
+# =============================================================================
+# Kubernetes Module (Google Kubernetes Engine - Production)
+# =============================================================================
+module "kubernetes" {
+  source = "../../../modules/gcp/kubernetes"
+
+  environment  = var.environment
+  name         = var.project_name
+  cluster_name = "${var.project_name}-${var.environment}"
+
+  project_id = var.project_id
+  region     = var.region
+
+  kubernetes_version = "1.31"
+  node_count         = 2
+  min_nodes          = 2
+  max_nodes          = 3
+  machine_type       = "e2-medium" # More memory (4GB vs 2GB)
+
+  network    = "default"
+  subnetwork = "default"
+
+  labels = {
+    environment = var.environment
+    project     = var.project_name
+  }
+}
+
+# =============================================================================
+# DNS Module (Cloud DNS)
+# =============================================================================
+module "dns" {
+  source = "../../../modules/gcp/dns"
+
+  environment = var.environment
+  name        = var.project_name
+
+  project_id  = var.project_id
+  domain_name = "elevaite.io"
+
+  labels = {
+    environment = var.environment
+    project     = var.project_name
+  }
+}
+
+# =============================================================================
+# Kubernetes & Helm Providers
+# =============================================================================
+data "google_client_config" "default" {}
+
+provider "kubernetes" {
+  host                   = module.kubernetes.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.kubernetes.cluster_ca_certificate)
+  token                  = data.google_client_config.default.access_token
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = module.kubernetes.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.kubernetes.cluster_ca_certificate)
+    token                  = data.google_client_config.default.access_token
+  }
+}
+
+provider "kubectl" {
+  host                   = module.kubernetes.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.kubernetes.cluster_ca_certificate)
+  token                  = data.google_client_config.default.access_token
+  load_config_file       = false
+}
+
+# =============================================================================
+# Cluster Add-ons
+# =============================================================================
+module "cluster_addons" {
+  source = "../../../modules/gcp/cluster-addons"
+
+  depends_on = [module.kubernetes]
+
+  environment            = var.environment
+  domain_name            = "elevaite.io"
+  dns_zone_name          = module.dns.zone_name
+  letsencrypt_email      = var.letsencrypt_email
+  rabbitmq_password      = var.rabbitmq_password
+  rabbitmq_erlang_cookie = var.rabbitmq_erlang_cookie != "" ? var.rabbitmq_erlang_cookie : random_password.rabbitmq_cookie.result
+  qdrant_api_key         = var.qdrant_api_key
+
+  project_id             = var.project_id
+  workload_identity_pool = module.kubernetes.workload_identity_pool
+}
+
+resource "random_password" "rabbitmq_cookie" {
+  length  = 32
+  special = false
+}
+
+# =============================================================================
+# Monitoring Module (Production - Extended Retention)
+# =============================================================================
+module "monitoring" {
+  source = "../../../modules/monitoring"
+
+  depends_on = [module.cluster_addons]
+
+  environment = var.environment
+  domain_name = "elevaite.io"
+
+  grafana_admin_password = var.grafana_password
+  slack_webhook_url      = var.slack_webhook_url
+  pagerduty_service_key  = var.pagerduty_key
+  retention_days         = 30
+
+  # Disable caching for current scale (re-enable when traffic increases)
+  loki_caching_enabled = false
 }
 
 # =============================================================================
@@ -252,10 +291,27 @@ output "kubernetes_cluster_name" {
 
 output "kubeconfig_command" {
   description = "Command to configure kubectl"
-  value       = "gcloud container clusters get-credentials ${module.kubernetes.cluster_name} --region ${var.region} --project ${var.project_id}"
+  value       = module.kubernetes.kubeconfig_command
 }
 
 output "monitoring_grafana_url" {
   description = "Grafana dashboard URL"
   value       = "https://grafana.elevaite.io"
+}
+
+output "qdrant_host" {
+  value = module.cluster_addons.qdrant_host
+}
+
+output "rabbitmq_host" {
+  value = module.cluster_addons.rabbitmq_host
+}
+
+output "helm_values" {
+  value = {
+    postgresql_host = module.database.host
+    storage_bucket  = module.storage.bucket_name
+    qdrant_host     = module.cluster_addons.qdrant_host
+    rabbitmq_host   = module.cluster_addons.rabbitmq_host
+  }
 }
