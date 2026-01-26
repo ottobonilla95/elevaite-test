@@ -13,7 +13,12 @@ from uuid import UUID
 
 from sqlmodel import Session
 
-from workflow_core_sdk.services import PromptsService, AgentsService, ToolsService, WorkflowsService
+from workflow_core_sdk.services import (
+    PromptsService,
+    AgentsService,
+    ToolsService,
+    WorkflowsService,
+)
 from workflow_core_sdk.db.models import PromptCreate, ToolCreate
 
 logger = logging.getLogger(__name__)
@@ -121,7 +126,9 @@ class SeedDataLoader:
                 if prompt_uuid:
                     agent_data["system_prompt_id"] = prompt_uuid
                 else:
-                    logger.warning(f"Prompt '{prompt_template_id}' not found for agent '{template_id}'")
+                    logger.warning(
+                        f"Prompt '{prompt_template_id}' not found for agent '{template_id}'"
+                    )
                     continue
 
             # Extract tool bindings for later
@@ -147,7 +154,9 @@ class SeedDataLoader:
                                     is_active=binding.get("is_active", True),
                                 )
                             except Exception as e:
-                                logger.warning(f"Could not bind tool '{tool_template_id}' to agent: {e}")
+                                logger.warning(
+                                    f"Could not bind tool '{tool_template_id}' to agent: {e}"
+                                )
             except ValueError as e:
                 logger.warning(f"Could not create agent '{template_id}': {e}")
             except Exception as e:
@@ -181,10 +190,14 @@ class SeedDataLoader:
                         del params["agent_template_id"]
 
             try:
-                db_workflow = WorkflowsService.create_workflow(self.session, workflow_data)
+                db_workflow = WorkflowsService.create_workflow(
+                    self.session, workflow_data
+                )
                 self.workflow_ids[template_id] = db_workflow.id
                 created += 1
-                logger.debug(f"Created workflow '{template_id}' with id {db_workflow.id}")
+                logger.debug(
+                    f"Created workflow '{template_id}' with id {db_workflow.id}"
+                )
             except ValueError as e:
                 logger.warning(f"Could not create workflow '{template_id}': {e}")
             except Exception as e:

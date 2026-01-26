@@ -96,9 +96,15 @@ def execute_workflow(workflow_id: str, message: str) -> Dict[str, Any]:
 
     if final_output is None:
         # Fall back to the last completed step's entire output
-        final_output = last_completed_output if last_completed_output is not None else results
+        final_output = (
+            last_completed_output if last_completed_output is not None else results
+        )
 
-    return {"final_output": final_output, "subflow_step_output": subflow_output, "full_results": results}
+    return {
+        "final_output": final_output,
+        "subflow_step_output": subflow_output,
+        "full_results": results,
+    }
 
 
 def main():
@@ -110,7 +116,10 @@ def main():
             "name": "Uppercase",
             # Map only the 'text' field from subflow_input to the step's input
             "input_mapping": {"text": "subflow_input.text"},
-            "config": {"processing_type": "transform", "options": {"transformation": "uppercase"}},
+            "config": {
+                "processing_type": "transform",
+                "options": {"transformation": "uppercase"},
+            },
         }
     ]
     subflow_config = {
@@ -133,7 +142,12 @@ def main():
             "step_id": "trigger",
             "step_type": "trigger",
             "name": "Trigger",
-            "config": {"kind": "chat", "need_history": True, "allowed_modalities": ["text"], "max_files": 0},
+            "config": {
+                "kind": "chat",
+                "need_history": True,
+                "allowed_modalities": ["text"],
+                "max_files": 0,
+            },
         },
         {
             "step_id": "call_subflow",

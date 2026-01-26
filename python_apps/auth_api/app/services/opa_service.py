@@ -20,13 +20,17 @@ class OPAService:
         Args:
             opa_url: URL of the OPA server. Defaults to OPA_URL env var or http://localhost:8181
         """
-        self.opa_url = (opa_url or os.getenv("OPA_URL", "http://localhost:8181")).rstrip("/")
+        self.opa_url = (
+            opa_url or os.getenv("OPA_URL", "http://localhost:8181")
+        ).rstrip("/")
         self.policy_path = "/v1/data/rbac/allow"
         self.enabled = os.getenv("OPA_ENABLED", "true").lower() in ("true", "1", "yes")
         self.timeout = float(os.getenv("OPA_TIMEOUT", "5.0"))
 
         if not self.enabled:
-            logger.warning("OPA is disabled. All authorization checks will be bypassed!")
+            logger.warning(
+                "OPA is disabled. All authorization checks will be bypassed!"
+            )
 
     async def check_access(
         self,
@@ -59,7 +63,9 @@ class OPAService:
             HTTPException: If OPA service is unavailable
         """
         if not self.enabled:
-            logger.warning(f"OPA disabled - allowing access for user {user_id} to {action} on {resource.get('type')}")
+            logger.warning(
+                f"OPA disabled - allowing access for user {user_id} to {action} on {resource.get('type')}"
+            )
             return {"allowed": True}
 
         # Build OPA input
@@ -112,7 +118,8 @@ class OPAService:
 
                 logger.info(
                     f"OPA decision for user {user_id} ({user_status}) - {action} on {resource.get('type')}: "
-                    f"{'ALLOWED' if allowed else 'DENIED'}" + (f" - Reason: {deny_reason}" if deny_reason else "")
+                    f"{'ALLOWED' if allowed else 'DENIED'}"
+                    + (f" - Reason: {deny_reason}" if deny_reason else "")
                 )
 
                 return {

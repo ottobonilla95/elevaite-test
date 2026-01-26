@@ -21,7 +21,11 @@ s3_client = boto3.client("s3")
 
 
 def clean_s3_bucket_name(bucket_name):
-    return bucket_name.replace("s3://", "") if bucket_name.startswith("s3://") else bucket_name
+    return (
+        bucket_name.replace("s3://", "")
+        if bucket_name.startswith("s3://")
+        else bucket_name
+    )
 
 
 def list_s3_files(bucket_name, prefix=""):
@@ -30,7 +34,9 @@ def list_s3_files(bucket_name, prefix=""):
         response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
         if "Contents" not in response:
             return []
-        return [obj["Key"] for obj in response["Contents"] if obj["Key"].endswith(".json")]
+        return [
+            obj["Key"] for obj in response["Contents"] if obj["Key"].endswith(".json")
+        ]
     except Exception as e:
         logger.error(f"Error listing files from {bucket_name}: {e}")
         return []
@@ -98,7 +104,9 @@ async def execute_chunking_pipeline(config: Optional[PipelineConfig] = None) -> 
         )
 
     logger.info("Starting STAGE_3: CHUNKING...")
-    stage_3_status = await execute_chunking_stage(parsed_files, stage_2_status, config=config)
+    stage_3_status = await execute_chunking_stage(
+        parsed_files, stage_2_status, config=config
+    )
 
     pipeline_status = {**stage_3_status}
 

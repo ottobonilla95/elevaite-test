@@ -131,7 +131,9 @@ class AccessCheckRequest(BaseModel):
     """Schema for access check request."""
 
     user_id: int = Field(..., description="User ID to check access for")
-    action: str = Field(..., description="Action to perform (e.g., view_project, edit_project)")
+    action: str = Field(
+        ..., description="Action to perform (e.g., view_project, edit_project)"
+    )
     resource: ResourceInfo = Field(..., description="Resource being accessed")
 
 
@@ -139,7 +141,9 @@ class AccessCheckResponse(BaseModel):
     """Schema for access check response."""
 
     allowed: bool = Field(..., description="Whether access is allowed")
-    deny_reason: Optional[str] = Field(None, description="Reason for denial if not allowed")
+    deny_reason: Optional[str] = Field(
+        None, description="Reason for denial if not allowed"
+    )
     user_status: str = Field(..., description="User status at time of check")
 
 
@@ -180,10 +184,12 @@ class PermissionOverrideCreate(BaseModel):
     resource_type: ResourceType = Field(..., description="Type of resource")
     resource_id: UUID = Field(..., description="Resource ID")
     allow_actions: Optional[List[str]] = Field(
-        None, description="List of actions to explicitly allow (e.g., ['edit_project', 'delete_workflow'])"
+        None,
+        description="List of actions to explicitly allow (e.g., ['edit_project', 'delete_workflow'])",
     )
     deny_actions: Optional[List[str]] = Field(
-        None, description="List of actions to explicitly deny. Deny takes precedence over allow."
+        None,
+        description="List of actions to explicitly deny. Deny takes precedence over allow.",
     )
 
 
@@ -191,10 +197,12 @@ class PermissionOverrideUpdate(BaseModel):
     """Schema for updating a permission override."""
 
     allow_actions: Optional[List[str]] = Field(
-        None, description="List of actions to explicitly allow. Set to empty list to clear."
+        None,
+        description="List of actions to explicitly allow. Set to empty list to clear.",
     )
     deny_actions: Optional[List[str]] = Field(
-        None, description="List of actions to explicitly deny. Set to empty list to clear."
+        None,
+        description="List of actions to explicitly deny. Set to empty list to clear.",
     )
 
 
@@ -276,7 +284,9 @@ class RolePermissionCreate(BaseModel):
     """Schema for adding permissions to a role."""
 
     service_name: str = Field(..., min_length=1, max_length=100)
-    allowed_actions: List[str] = Field(..., description="List of allowed actions for this service")
+    allowed_actions: List[str] = Field(
+        ..., description="List of allowed actions for this service"
+    )
 
 
 # ============================================================================
@@ -340,8 +350,13 @@ class GroupPermissionCreate(BaseModel):
     """Schema for adding permissions to a group."""
 
     service_name: str = Field(..., min_length=1, max_length=100)
-    allow_actions: List[str] = Field(default_factory=list, description="Actions allowed by this group")
-    deny_actions: List[str] = Field(default_factory=list, description="Actions denied by this group (restricts role)")
+    allow_actions: List[str] = Field(
+        default_factory=list, description="Actions allowed by this group"
+    )
+    deny_actions: List[str] = Field(
+        default_factory=list,
+        description="Actions denied by this group (restricts role)",
+    )
 
 
 class GroupPermissionUpdate(BaseModel):
@@ -381,7 +396,9 @@ class UserGroupMembershipCreate(BaseModel):
     """Schema for adding a user to a group."""
 
     user_id: int = Field(..., description="User ID to add to group")
-    resource_id: UUID = Field(..., description="Resource ID where this membership applies")
+    resource_id: UUID = Field(
+        ..., description="Resource ID where this membership applies"
+    )
     resource_type: ResourceType = Field(..., description="Type of resource")
 
 
@@ -398,7 +415,9 @@ class UserRbacResponse(BaseModel):
     role_assignments: List[UserRoleAssignmentResponse] = Field(
         default_factory=list, description="User's role assignments across resources"
     )
-    group_memberships: List[UserGroupMembershipResponse] = Field(default_factory=list, description="User's group memberships")
+    group_memberships: List[UserGroupMembershipResponse] = Field(
+        default_factory=list, description="User's group memberships"
+    )
     permission_overrides: List[PermissionOverrideResponse] = Field(
         default_factory=list, description="User's permission overrides"
     )

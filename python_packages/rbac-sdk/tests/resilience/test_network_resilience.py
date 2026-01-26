@@ -21,7 +21,9 @@ class TestAuthAPIFailures:
         """Test behavior when Auth API is completely down."""
         with patch("rbac_sdk.fastapi_helpers.requests.post") as mock_post:
             # Simulate connection error
-            mock_post.side_effect = requests.exceptions.ConnectionError("Connection refused")
+            mock_post.side_effect = requests.exceptions.ConnectionError(
+                "Connection refused"
+            )
 
             validator = api_key_http_validator(
                 base_url="http://localhost:8004",
@@ -201,6 +203,7 @@ class TestSlowResponses:
     def test_slow_api_response(self):
         """Test behavior with slow API responses."""
         with patch("rbac_sdk.fastapi_helpers.requests.post") as mock_post:
+
             def mock_validate(url, *args, **kwargs):
                 # Simulate slow response (but within timeout)
                 time.sleep(0.5)
@@ -230,6 +233,7 @@ class TestSlowResponses:
     def test_very_slow_api_timeout(self):
         """Test that very slow responses trigger timeout."""
         with patch("rbac_sdk.fastapi_helpers.requests.post") as mock_post:
+
             def mock_validate(url, *args, **kwargs):
                 # Simulate very slow response (exceeds timeout)
                 time.sleep(2.0)
@@ -270,6 +274,7 @@ class TestAsyncClientResilience:
         from rbac_sdk.async_client import check_access_async
 
         with patch("rbac_sdk.async_client.httpx.AsyncClient") as mock_client_class:
+
             async def mock_aenter(self):
                 return self
 
@@ -328,4 +333,3 @@ class TestAsyncClientResilience:
             )
 
             assert result is False
-

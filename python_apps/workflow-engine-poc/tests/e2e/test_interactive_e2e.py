@@ -60,7 +60,11 @@ async def test_interactive_flow(async_client: AsyncClient):
     workflow_id = resp.json()["id"]
 
     # 2) Execute workflow (local backend) with a chat trigger but no user message yet
-    body = {"backend": "local", "trigger": {"kind": "chat", "messages": []}, "wait": False}
+    body = {
+        "backend": "local",
+        "trigger": {"kind": "chat", "messages": []},
+        "wait": False,
+    }
     resp = await async_client.post(f"/workflows/{workflow_id}/execute", json=body)
     assert resp.status_code == 200, resp.text
     execution_id = resp.json()["id"]
@@ -76,7 +80,11 @@ async def test_interactive_flow(async_client: AsyncClient):
     # 4) Send a user message to agent_1 via API
     resp = await async_client.post(
         f"/executions/{execution_id}/steps/agent_1/messages",
-        json={"role": "user", "content": "I want to research AI trends in healthcare.", "metadata": {}},
+        json={
+            "role": "user",
+            "content": "I want to research AI trends in healthcare.",
+            "metadata": {},
+        },
     )
     assert resp.status_code == 200
     msg = resp.json()
@@ -86,7 +94,11 @@ async def test_interactive_flow(async_client: AsyncClient):
     time.sleep(1)
     resp = await async_client.post(
         f"/executions/{execution_id}/steps/agent_1/messages",
-        json={"role": "user", "content": "That's enough, please proceed.", "metadata": {"final_turn": True}},
+        json={
+            "role": "user",
+            "content": "That's enough, please proceed.",
+            "metadata": {"final_turn": True},
+        },
     )
     assert resp.status_code == 200
 

@@ -96,9 +96,9 @@ class OpenAIVisionProvider(BaseVisionProvider):
             assert isinstance(config, dict), "Config must be a dictionary"
             assert "model" in config, "Model name is required in config"
             assert isinstance(config.get("model"), str), "Model name must be a string"
-            assert isinstance(
-                config.get("max_tokens", 300), int
-            ), "Max tokens must be an integer"
+            assert isinstance(config.get("max_tokens", 300), int), (
+                "Max tokens must be an integer"
+            )
             assert isinstance(config.get("prompt", ""), str), "Prompt must be a string"
             return True
         except AssertionError as e:

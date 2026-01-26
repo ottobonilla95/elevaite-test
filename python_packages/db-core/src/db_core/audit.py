@@ -170,4 +170,3 @@ def log_tenant_init_failed(tenant_id: str, schema_name: str, error: str) -> None
         details={"schema_name": schema_name},
         error=error,
     )
-

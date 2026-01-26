@@ -15,7 +15,9 @@ def _to_data_url(path: Path, mime: str) -> Optional[str]:
 
 
 async def trigger_step(
-    step_config: Dict[str, Any], input_data: Dict[str, Any], execution_context: ExecutionContext
+    step_config: Dict[str, Any],
+    input_data: Dict[str, Any],
+    execution_context: ExecutionContext,
 ) -> Dict[str, Any]:
     """Normalize trigger input into a standard structure under 'trigger'.
 
@@ -36,11 +38,15 @@ async def trigger_step(
         if isinstance(raw_messages, list) and raw_messages:
             for msg in raw_messages:
                 if isinstance(msg, dict) and "role" in msg and "content" in msg:
-                    messages.append({"role": str(msg["role"]), "content": str(msg["content"])})
+                    messages.append(
+                        {"role": str(msg["role"]), "content": str(msg["content"])}
+                    )
         else:
             for msg in history:
                 if isinstance(msg, dict) and "role" in msg and "content" in msg:
-                    messages.append({"role": str(msg["role"]), "content": str(msg["content"])})
+                    messages.append(
+                        {"role": str(msg["role"]), "content": str(msg["content"])}
+                    )
             if current_message:
                 messages.append({"role": "user", "content": current_message})
 

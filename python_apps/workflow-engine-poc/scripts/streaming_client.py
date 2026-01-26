@@ -66,7 +66,9 @@ class StreamingClient:
         with open(fixture_path) as f:
             return json.load(f)
 
-    async def _http_request(self, method: str, path: str, json_body: Optional[dict] = None) -> dict:
+    async def _http_request(
+        self, method: str, path: str, json_body: Optional[dict] = None
+    ) -> dict:
         """Make HTTP request to the API"""
         url = f"{self.base_url}{path}"
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -88,12 +90,20 @@ class StreamingClient:
                 completed = event.get("data", {}).get("completed_steps", 0)
                 total = event.get("data", {}).get("step_count", 0)
                 extra = f" ({completed}/{total} steps)"
-            return GREY + f"[{timestamp[:19]}] STATUS {execution_id}: {status}{extra}" + RESET
+            return (
+                GREY
+                + f"[{timestamp[:19]}] STATUS {execution_id}: {status}{extra}"
+                + RESET
+            )
 
         elif event_type == "step":
             step_id = event.get("data", {}).get("step_id", "unknown")
             step_status = event.get("data", {}).get("step_status", "unknown")
-            return GREY + f"[{timestamp[:19]}] STEP   {execution_id}: {step_id} -> {step_status}" + RESET
+            return (
+                GREY
+                + f"[{timestamp[:19]}] STEP   {execution_id}: {step_id} -> {step_status}"
+                + RESET
+            )
 
         elif event_type == "error":
             error = event.get("data", {}).get("error", "unknown error")
@@ -104,10 +114,18 @@ class StreamingClient:
 
         elif event_type == "complete":
             events_sent = event.get("data", {}).get("events_sent", 0)
-            return GREY + f"[{timestamp[:19]}] COMPLETE (sent {events_sent} events)" + RESET
+            return (
+                GREY
+                + f"[{timestamp[:19]}] COMPLETE (sent {events_sent} events)"
+                + RESET
+            )
 
         else:
-            return GREY + f"[{timestamp[:19]}] {event_type.upper()} {execution_id}: {event.get('data', {})}" + RESET
+            return (
+                GREY
+                + f"[{timestamp[:19]}] {event_type.upper()} {execution_id}: {event.get('data', {})}"
+                + RESET
+            )
 
     def _is_waiting_event(self, event: dict) -> bool:
         """Detect if an event indicates the workflow is waiting for user input."""
@@ -137,7 +155,11 @@ class StreamingClient:
                 return {"type": "full", "text": str(out.get("response"))}
             # Waiting agent step shape: { status: "waiting", agent_response: { response: "..." } }
             agent_resp = out.get("agent_response")
-            if isinstance(agent_resp, dict) and isinstance(agent_resp.get("response"), str) and agent_resp.get("response"):
+            if (
+                isinstance(agent_resp, dict)
+                and isinstance(agent_resp.get("response"), str)
+                and agent_resp.get("response")
+            ):
                 return {"type": "full", "text": str(agent_resp.get("response"))}
         return None
 
@@ -163,13 +185,19 @@ class StreamingClient:
         waiting_indicator_printed = False
         assistant_printed = False
         seen_non_status_event = False
-        had_delta = False  # track whether we streamed any deltas for the current assistant turn
+        had_delta = (
+            False  # track whether we streamed any deltas for the current assistant turn
+        )
 
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:
-                async with client.stream("GET", f"{self.base_url}/executions/{execution_id}/stream") as response:
+                async with client.stream(
+                    "GET", f"{self.base_url}/executions/{execution_id}/stream"
+                ) as response:
                     if response.status_code != 200:
-                        print(f"❌ Stream failed: {response.status_code} {response.text}")
+                        print(
+                            f"❌ Stream failed: {response.status_code} {response.text}"
+                        )
                         return
 
                     print("✅ Connected! Streaming events...")
@@ -184,7 +212,11 @@ class StreamingClient:
                         while "\n\n" in buffer:
                             block, buffer = buffer.split("\n\n", 1)
                             # Concatenate all data: lines in the block per SSE spec
-                            data_lines = [ln[6:] for ln in block.splitlines() if ln.startswith("data: ")]
+                            data_lines = [
+                                ln[6:]
+                                for ln in block.splitlines()
+                                if ln.startswith("data: ")
+                            ]
                             if not data_lines:
                                 continue
                             data_str = "\n".join(data_lines)
@@ -202,12 +234,21 @@ class StreamingClient:
                                 a = self._extract_assistant_text(event)
                                 if a:
                                     if a.get("type") == "delta":
-                                        print(WHITE + a.get("text", ""), end="", flush=True)
+                                        print(
+                                            WHITE + a.get("text", ""),
+                                            end="",
+                                            flush=True,
+                                        )
                                         had_delta = True
                                     else:
                                         # If we've already printed deltas for this step, don't print the full text again
                                         if not had_delta:
-                                            print(WHITE + "Assistant: " + a.get("text", "") + RESET)
+                                            print(
+                                                WHITE
+                                                + "Assistant: "
+                                                + a.get("text", "")
+                                                + RESET
+                                            )
                                         waiting_indicator_printed = False
                                         assistant_printed = True
                                         had_delta = False  # reset for next turn
@@ -219,17 +260,29 @@ class StreamingClient:
                                     # If we are in a waiting state, show a subtle indicator
                                     if self._is_waiting_event(event):
                                         # Ignore early waiting before a step/assistant arrives if requested
-                                        if ignore_initial_waiting and not (assistant_printed or seen_non_status_event):
+                                        if ignore_initial_waiting and not (
+                                            assistant_printed or seen_non_status_event
+                                        ):
                                             pass
                                         else:
                                             exec_id = event.get("execution_id")
-                                            step_id = (event.get("data") or {}).get("step_id")
+                                            step_id = (event.get("data") or {}).get(
+                                                "step_id"
+                                            )
                                             if exec_id and step_id:
-                                                self._last_waiting_step[exec_id] = step_id
+                                                self._last_waiting_step[exec_id] = (
+                                                    step_id
+                                                )
                                             if not waiting_indicator_printed:
-                                                print(GREY + "(waiting for next user message…)" + RESET)
+                                                print(
+                                                    GREY
+                                                    + "(waiting for next user message…)"
+                                                    + RESET
+                                                )
                                                 waiting_indicator_printed = True
-                                            if stop_on_waiting or (until_assistant and assistant_printed):
+                                            if stop_on_waiting or (
+                                                until_assistant and assistant_printed
+                                            ):
                                                 return
                                 event_count += 1
 
@@ -237,7 +290,9 @@ class StreamingClient:
                                 if event.get("type") == "complete":
                                     if had_delta:
                                         print(RESET)
-                                    print(f"\n🏁 Stream completed after {event_count} events")
+                                    print(
+                                        f"\n🏁 Stream completed after {event_count} events"
+                                    )
                                     return
 
                             except json.JSONDecodeError:
@@ -254,7 +309,12 @@ class StreamingClient:
         except Exception as e:
             print(f"\n❌ Stream error: {e}")
 
-    async def stream_workflow(self, workflow_id: str, execution_id: Optional[str] = None, duration: Optional[float] = None):
+    async def stream_workflow(
+        self,
+        workflow_id: str,
+        execution_id: Optional[str] = None,
+        duration: Optional[float] = None,
+    ):
         """Stream events from a workflow"""
         url = f"{self.base_url}/workflows/{workflow_id}/stream"
         if execution_id:
@@ -273,7 +333,9 @@ class StreamingClient:
             async with httpx.AsyncClient(timeout=300.0) as client:
                 async with client.stream("GET", url) as response:
                     if response.status_code != 200:
-                        print(f"❌ Stream failed: {response.status_code} {response.text}")
+                        print(
+                            f"❌ Stream failed: {response.status_code} {response.text}"
+                        )
                         return
 
                     print("✅ Connected! Streaming events...")
@@ -290,16 +352,27 @@ class StreamingClient:
                                         a = self._extract_assistant_text(event)
                                         if a:
                                             if a.get("type") == "delta":
-                                                print(WHITE + a.get("text", ""), end="", flush=True)
+                                                print(
+                                                    WHITE + a.get("text", ""),
+                                                    end="",
+                                                    flush=True,
+                                                )
                                             else:
-                                                print(WHITE + "Assistant: " + a.get("text", "") + RESET)
+                                                print(
+                                                    WHITE
+                                                    + "Assistant: "
+                                                    + a.get("text", "")
+                                                    + RESET
+                                                )
                                         else:
                                             print(self._format_event(event))
                                         event_count += 1
 
                                         # Check for completion
                                         if event.get("type") == "complete":
-                                            print(f"\n🏁 Stream completed after {event_count} events")
+                                            print(
+                                                f"\n🏁 Stream completed after {event_count} events"
+                                            )
                                             return
 
                                     except json.JSONDecodeError:
@@ -332,10 +405,15 @@ class StreamingClient:
             print("2️⃣ Executing workflow...")
             execution_body = {
                 "trigger": {"kind": "webhook"},
-                "input_data": {"demo": "streaming_test", "timestamp": datetime.now().isoformat()},
+                "input_data": {
+                    "demo": "streaming_test",
+                    "timestamp": datetime.now().isoformat(),
+                },
                 "wait": False,
             }
-            execution = await self._http_request("POST", f"/workflows/{workflow_id}/execute", execution_body)
+            execution = await self._http_request(
+                "POST", f"/workflows/{workflow_id}/execute", execution_body
+            )
             execution_id = execution["id"]
             print(f"   ✅ Started execution: {execution_id}")
 
@@ -358,7 +436,9 @@ class StreamingClient:
             # 1) Start a chat execution with no initial message to get into waiting state
             start_body = {"trigger": {"kind": "chat", "messages": []}, "wait": False}
             # Use backend-specific path to comply with project requirement
-            execution = await self._http_request("POST", f"/workflows/{workflow_id}/execute/{backend}", start_body)
+            execution = await self._http_request(
+                "POST", f"/workflows/{workflow_id}/execute/{backend}", start_body
+            )
             execution_id = execution.get("id")
             if not execution_id:
                 print(f"❌ No execution id returned: {execution}")
@@ -379,7 +459,11 @@ class StreamingClient:
                     continue
 
                 # Resolve last known step id; prefer latest step event, fallback to waiting step id, then 'agent_1'
-                step_id = self._last_step_id.get(execution_id) or self._last_waiting_step.get(execution_id) or "agent_1"
+                step_id = (
+                    self._last_step_id.get(execution_id)
+                    or self._last_waiting_step.get(execution_id)
+                    or "agent_1"
+                )
 
                 # Start streaming first to avoid missing step events; ignore the initial waiting snapshot
                 stream_task = asyncio.create_task(
@@ -398,7 +482,11 @@ class StreamingClient:
                     await self._http_request(
                         "POST",
                         f"/executions/{execution_id}/steps/{step_id}/messages",
-                        {"role": "user", "content": user_input, "metadata": {"final_turn": False}},
+                        {
+                            "role": "user",
+                            "content": user_input,
+                            "metadata": {"final_turn": False},
+                        },
                     )
                 except Exception as e:
                     print(f"❌ Failed to send message: {e}")
@@ -448,7 +536,9 @@ async def main():
 
     elif command == "workflow":
         if len(sys.argv) < 3:
-            print("❌ Usage: python streaming_client.py workflow <workflow_id> [execution_id]")
+            print(
+                "❌ Usage: python streaming_client.py workflow <workflow_id> [execution_id]"
+            )
             sys.exit(1)
         workflow_id = sys.argv[2]
         execution_id = sys.argv[3] if len(sys.argv) > 3 else None
@@ -459,7 +549,9 @@ async def main():
 
     elif command == "chat":
         if len(sys.argv) < 3:
-            print("❌ Usage: python streaming_client.py chat <workflow_id> [--backend local|dbos]")
+            print(
+                "❌ Usage: python streaming_client.py chat <workflow_id> [--backend local|dbos]"
+            )
             sys.exit(1)
         workflow_id = sys.argv[2]
         backend = _parse_backend(sys.argv)
@@ -472,13 +564,17 @@ async def main():
             # Enable streaming in agent steps for this demo
             try:
                 for step in workflow_config.get("steps", []):
-                    if step.get("step_type") == "agent_execution" and isinstance(step.get("config"), dict):
+                    if step.get("step_type") == "agent_execution" and isinstance(
+                        step.get("config"), dict
+                    ):
                         step["config"]["stream"] = True
                         # Slightly bump tokens for a better streaming experience
                         step["config"].setdefault("max_tokens", 800)
             except Exception:
                 pass
-            workflow = await client._http_request("POST", "/workflows/", workflow_config)
+            workflow = await client._http_request(
+                "POST", "/workflows/", workflow_config
+            )
             workflow_id = workflow.get("id")
             if not workflow_id:
                 print(f"❌ Failed to create chat workflow: {workflow}")

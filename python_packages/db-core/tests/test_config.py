@@ -14,7 +14,7 @@ class TestMultitenancySettings:
     def test_default_settings(self):
         """Test default settings."""
         settings = MultitenancySettings()
-        
+
         # Check default values
         assert settings.tenant_id_header == "X-Tenant-ID"
         assert settings.default_tenant_id is None
@@ -53,9 +53,9 @@ class TestMultitenancySettings:
                 },
             },
         }
-        
+
         settings = MultitenancySettings(**custom_settings)
-        
+
         # Check custom values
         for key, value in custom_settings.items():
             assert getattr(settings, key) == value
@@ -65,31 +65,31 @@ class TestMultitenancySettings:
         # Test empty tenant ID header
         with pytest.raises(ValidationError):
             MultitenancySettings(tenant_id_header="")
-        
+
         # Other validations could be added here
 
     def test_copy(self):
         """Test settings copy method."""
         settings = MultitenancySettings(tenant_id_header="X-Tenant")
-        
+
         # Copy settings
         settings_copy = settings.copy()
-        
+
         # Verify copy is independent
         assert settings_copy.tenant_id_header == "X-Tenant"
-        
+
         # Modify copy
         settings_copy.tenant_id_header = "X-Modified"
-        
+
         # Verify original is unchanged
         assert settings.tenant_id_header == "X-Tenant"
         assert settings_copy.tenant_id_header == "X-Modified"
-        
+
     def test_schema_strategy(self):
         """Test schema strategy settings."""
         # Schema strategy is the only supported strategy
         MultitenancySettings()
-        
+
         # Verify schema prefix can be customized
         custom_settings = MultitenancySettings(schema_prefix="custom_")
         assert custom_settings.schema_prefix == "custom_"

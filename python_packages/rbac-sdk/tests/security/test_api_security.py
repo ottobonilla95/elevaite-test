@@ -172,7 +172,9 @@ class TestTimingAttacks:
             "tenant_id": "default",
             "exp": datetime.now(timezone.utc) + timedelta(hours=1),
         }
-        invalid_token1 = jwt.encode(invalid_payload1, "wrong-secret-1", algorithm=ALGORITHM)
+        invalid_token1 = jwt.encode(
+            invalid_payload1, "wrong-secret-1", algorithm=ALGORITHM
+        )
 
         invalid_payload2 = {
             "sub": "user456",
@@ -180,7 +182,9 @@ class TestTimingAttacks:
             "tenant_id": "default",
             "exp": datetime.now(timezone.utc) + timedelta(hours=1),
         }
-        invalid_token2 = jwt.encode(invalid_payload2, "wrong-secret-2", algorithm=ALGORITHM)
+        invalid_token2 = jwt.encode(
+            invalid_payload2, "wrong-secret-2", algorithm=ALGORITHM
+        )
 
         # Measure validation time for first invalid token
         start = time.perf_counter()

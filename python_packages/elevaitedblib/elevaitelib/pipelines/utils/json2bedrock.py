@@ -344,7 +344,7 @@ class BedrockKnowledgeBase:
                     try:
                         if retry > 0:
                             logger.info(
-                                f"Retry {retry+1}/{max_retries} creating index..."
+                                f"Retry {retry + 1}/{max_retries} creating index..."
                             )
                             time.sleep(5 * (retry + 1))
 
@@ -391,7 +391,9 @@ class BedrockKnowledgeBase:
                                     }
                                 }
                     except Exception as e:
-                        logger.warning(f"Error creating index (attempt {retry+1}): {e}")
+                        logger.warning(
+                            f"Error creating index (attempt {retry + 1}): {e}"
+                        )
 
                 logger.error(
                     f"Failed to create index '{self.vector_index_name}' after multiple attempts"
@@ -622,7 +624,7 @@ class BedrockKnowledgeBase:
                     raise Exception(f"Knowledge base failed to become active: {status}")
 
                 logger.info(
-                    f"Knowledge base status: {status} (attempt {attempt+1}/{max_attempts})"
+                    f"Knowledge base status: {status} (attempt {attempt + 1}/{max_attempts})"
                 )
                 time.sleep(sleep_time)
 

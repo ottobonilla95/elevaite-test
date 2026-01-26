@@ -20,7 +20,11 @@ from workflow_core_sdk.db.database import engine
 from workflow_core_sdk.db.models import Tool as DBTool, MCPServer
 from workflow_core_sdk.tools import get_all_tools
 from workflow_core_sdk.execution.streaming import stream_manager, create_step_event
-from workflow_core_sdk.clients.mcp_client import mcp_client, MCPToolExecutionError, MCPServerUnavailableError
+from workflow_core_sdk.clients.mcp_client import (
+    mcp_client,
+    MCPToolExecutionError,
+    MCPServerUnavailableError,
+)
 import json
 
 logger = logging.getLogger(__name__)
@@ -71,7 +75,11 @@ async def tool_execution_step(
             resolved_name = rec.name or tool_name
 
             # Check if this is an MCP tool
-            if rec.tool_type == "mcp" and rec.execution_type == "api" and rec.mcp_server_id:
+            if (
+                rec.tool_type == "mcp"
+                and rec.execution_type == "api"
+                and rec.mcp_server_id
+            ):
                 # MCP tool - will be handled separately below
                 pass
             # Prefer module_path/function_name if available for local tools
@@ -83,7 +91,11 @@ async def tool_execution_step(
                     return {
                         "success": False,
                         "error": f"Failed to import {rec.module_path}.{rec.function_name}: {e}",
-                        "resolved": {"by": "id", "tool_id": tool_id, "name": resolved_name},
+                        "resolved": {
+                            "by": "id",
+                            "tool_id": tool_id,
+                            "name": resolved_name,
+                        },
                     }
         except Exception as e:
             return {"success": False, "error": f"DB error resolving tool_id: {e}"}
@@ -96,7 +108,11 @@ async def tool_execution_step(
         resolved_name = name
 
     # If we have an MCP tool, execute it via MCP client
-    if tool_record and tool_record.tool_type == "mcp" and tool_record.execution_type == "api":
+    if (
+        tool_record
+        and tool_record.tool_type == "mcp"
+        and tool_record.execution_type == "api"
+    ):
         return await _execute_mcp_tool(
             tool_record=tool_record,
             param_mapping=param_mapping,
@@ -108,7 +124,9 @@ async def tool_execution_step(
 
     if func is None:
         # Mark as a hard failure so the engine can fail the execution if critical
-        raise Exception(f"Tool not found or unsupported: name={resolved_name} id={tool_id}")
+        raise Exception(
+            f"Tool not found or unsupported: name={resolved_name} id={tool_id}"
+        )
 
     # Build call params from mapping + static
     # First, build an extended input_data that includes trigger data from execution context
@@ -117,7 +135,9 @@ async def tool_execution_step(
     # Add trigger data if available in step_io_data
     # This allows param_mapping paths like "trigger.current_message" or "trigger.messages"
     if hasattr(execution_context, "step_io_data"):
-        trigger_data = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+        trigger_data = execution_context.step_io_data.get(
+            "trigger"
+        ) or execution_context.step_io_data.get("trigger_raw")
         if trigger_data and "trigger" not in extended_input_data:
             extended_input_data["trigger"] = trigger_data
 
@@ -236,7 +256,10 @@ async def tool_execution_step(
                     parsed = json.loads(unmapped_val)
                     if isinstance(parsed, dict):
                         for inner_key, inner_val in parsed.items():
-                            if inner_key in tool_param_names and inner_key not in params:
+                            if (
+                                inner_key in tool_param_names
+                                and inner_key not in params
+                            ):
                                 params[inner_key] = inner_val
                         # Remove the unmatched key
                         del params[unmapped_key]
@@ -264,7 +287,12 @@ async def tool_execution_step(
                 elif p.annotation is bool:
                     try:
                         if isinstance(v, str):
-                            params[pname] = v.strip().lower() in ("true", "1", "yes", "y")
+                            params[pname] = v.strip().lower() in (
+                                "true",
+                                "1",
+                                "yes",
+                                "y",
+                            )
                     except Exception:
                         pass
     except Exception:
@@ -304,7 +332,10 @@ async def tool_execution_step(
                 step_status="failed",
                 workflow_id=execution_context.workflow_id,
                 step_type="tool_execution",
-                output_data={"tool_name": resolved_name, "error": f"Parameter mismatch: {e}"},
+                output_data={
+                    "tool_name": resolved_name,
+                    "error": f"Parameter mismatch: {e}",
+                },
             )
             await stream_manager.emit_execution_event(error_event)
             if execution_context.workflow_id:
@@ -404,7 +435,9 @@ async def _execute_mcp_tool(
     # Get MCP server configuration
     try:
         with Session(engine) as session:
-            mcp_server = session.exec(select(MCPServer).where(MCPServer.id == tool_record.mcp_server_id)).first()
+            mcp_server = session.exec(
+                select(MCPServer).where(MCPServer.id == tool_record.mcp_server_id)
+            ).first()
 
         if not mcp_server:
             error_msg = f"MCP server not found for tool {tool_name}"
@@ -438,7 +471,9 @@ async def _execute_mcp_tool(
     extended_input_data = dict(input_data) if input_data else {}
 
     if hasattr(execution_context, "step_io_data"):
-        trigger_data = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+        trigger_data = execution_context.step_io_data.get(
+            "trigger"
+        ) or execution_context.step_io_data.get("trigger_raw")
         if trigger_data and "trigger" not in extended_input_data:
             extended_input_data["trigger"] = trigger_data
 

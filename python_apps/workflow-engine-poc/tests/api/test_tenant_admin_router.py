@@ -35,7 +35,9 @@ def sample_tenant():
     """Sample tenant data for testing."""
     tenant = MagicMock()
     tenant.id = uuid.uuid4()
-    tenant.tenant_id = "test_tenant_001"  # Use underscores, not hyphens (pattern: ^[a-z][a-z0-9_]*$)
+    tenant.tenant_id = (
+        "test_tenant_001"  # Use underscores, not hyphens (pattern: ^[a-z][a-z0-9_]*$)
+    )
     tenant.name = "Test Tenant"
     tenant.description = "A test tenant for unit testing"
     tenant.status = "active"
@@ -91,7 +93,9 @@ def tenant_admin_client(test_client, mock_registry, auth_headers):
 class TestTenantAdminAuthentication:
     """Tests for superadmin authentication on tenant admin endpoints."""
 
-    def test_create_tenant_requires_superadmin(self, tenant_admin_client, sample_tenant):
+    def test_create_tenant_requires_superadmin(
+        self, tenant_admin_client, sample_tenant
+    ):
         """Test that creating a tenant requires superadmin role."""
         client, mock_registry = tenant_admin_client
         mock_registry.create_tenant = AsyncMock(side_effect=ValueError("Test"))
@@ -140,7 +144,9 @@ class TestCreateTenant:
     def test_create_tenant_duplicate_returns_409(self, tenant_admin_client):
         """Test that creating a duplicate tenant returns 409 Conflict."""
         client, mock_registry = tenant_admin_client
-        mock_registry.create_tenant = AsyncMock(side_effect=ValueError("Tenant 'existing_tenant' already exists"))
+        mock_registry.create_tenant = AsyncMock(
+            side_effect=ValueError("Tenant 'existing_tenant' already exists")
+        )
 
         response = client.post(
             "/admin/tenants",
@@ -164,7 +170,9 @@ class TestCreateTenant:
         )
         assert response.status_code == 422
 
-    def test_create_tenant_invalid_id_uppercase_returns_422(self, test_client, auth_headers):
+    def test_create_tenant_invalid_id_uppercase_returns_422(
+        self, test_client, auth_headers
+    ):
         """Test that tenant_id with uppercase letters returns 422."""
         response = test_client.post(
             "/admin/tenants",
@@ -176,7 +184,9 @@ class TestCreateTenant:
         )
         assert response.status_code == 422
 
-    def test_create_tenant_invalid_id_starts_with_number_returns_422(self, test_client, auth_headers):
+    def test_create_tenant_invalid_id_starts_with_number_returns_422(
+        self, test_client, auth_headers
+    ):
         """Test that tenant_id starting with a number returns 422."""
         response = test_client.post(
             "/admin/tenants",
@@ -188,7 +198,9 @@ class TestCreateTenant:
         )
         assert response.status_code == 422
 
-    def test_create_tenant_invalid_id_with_special_chars_returns_422(self, test_client, auth_headers):
+    def test_create_tenant_invalid_id_with_special_chars_returns_422(
+        self, test_client, auth_headers
+    ):
         """Test that tenant_id with special characters returns 422."""
         response = test_client.post(
             "/admin/tenants",
@@ -203,7 +215,9 @@ class TestCreateTenant:
     def test_create_tenant_server_error_returns_500(self, tenant_admin_client):
         """Test that unexpected errors return 500 Internal Server Error."""
         client, mock_registry = tenant_admin_client
-        mock_registry.create_tenant = AsyncMock(side_effect=RuntimeError("Database connection failed"))
+        mock_registry.create_tenant = AsyncMock(
+            side_effect=RuntimeError("Database connection failed")
+        )
 
         response = client.post(
             "/admin/tenants",
@@ -255,7 +269,9 @@ class TestListTenants:
     def test_list_tenants_server_error_returns_500(self, tenant_admin_client):
         """Test that unexpected errors return 500 Internal Server Error."""
         client, mock_registry = tenant_admin_client
-        mock_registry.list_tenants = AsyncMock(side_effect=RuntimeError("Database error"))
+        mock_registry.list_tenants = AsyncMock(
+            side_effect=RuntimeError("Database error")
+        )
 
         response = client.get("/admin/tenants")
         assert response.status_code == 500
@@ -450,7 +466,9 @@ class TestDeleteTenant:
         client, mock_registry = tenant_admin_client
         mock_registry.delete_tenant = AsyncMock(return_value=True)
 
-        response = client.delete(f"/admin/tenants/{sample_tenant.tenant_id}?drop_schema=true")
+        response = client.delete(
+            f"/admin/tenants/{sample_tenant.tenant_id}?drop_schema=true"
+        )
         assert response.status_code == 200
         data = response.json()
         assert "schema dropped" in data["message"]

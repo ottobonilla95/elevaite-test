@@ -233,7 +233,9 @@ class ToolStubUpdate(BaseModel):
 class PaginationParams(BaseModel):
     """Common pagination parameters"""
 
-    limit: int = Field(default=100, ge=1, le=1000, description="Maximum number of results")
+    limit: int = Field(
+        default=100, ge=1, le=1000, description="Maximum number of results"
+    )
     offset: int = Field(default=0, ge=0, description="Number of results to skip")
 
 
@@ -242,22 +244,38 @@ class WorkflowFilterParams(PaginationParams):
 
     status: Optional[str] = Field(default=None, description="Filter by workflow status")
     tags: Optional[List[str]] = Field(default=None, description="Filter by tags")
-    search: Optional[str] = Field(default=None, description="Search in name and description")
+    search: Optional[str] = Field(
+        default=None, description="Search in name and description"
+    )
 
 
 class ExecutionFilterParams(PaginationParams):
     """Query parameters for filtering executions"""
 
-    workflow_id: Optional[str] = Field(default=None, description="Filter by workflow ID")
-    status: Optional[str] = Field(default=None, description="Filter by execution status")
-    start_date: Optional[str] = Field(default=None, description="Filter by start date (ISO format)")
-    end_date: Optional[str] = Field(default=None, description="Filter by end date (ISO format)")
+    workflow_id: Optional[str] = Field(
+        default=None, description="Filter by workflow ID"
+    )
+    status: Optional[str] = Field(
+        default=None, description="Filter by execution status"
+    )
+    start_date: Optional[str] = Field(
+        default=None, description="Filter by start date (ISO format)"
+    )
+    end_date: Optional[str] = Field(
+        default=None, description="Filter by end date (ISO format)"
+    )
 
 
 class ToolFilterParams(PaginationParams):
     """Query parameters for filtering tools"""
 
-    category_id: Optional[uuid_module.UUID] = Field(default=None, description="Filter by category")
+    category_id: Optional[uuid_module.UUID] = Field(
+        default=None, description="Filter by category"
+    )
     tool_type: Optional[str] = Field(default=None, description="Filter by tool type")
-    search: Optional[str] = Field(default=None, description="Search in name and description")
-    is_active: Optional[bool] = Field(default=None, description="Filter by active status")
+    search: Optional[str] = Field(
+        default=None, description="Search in name and description"
+    )
+    is_active: Optional[bool] = Field(
+        default=None, description="Filter by active status"
+    )

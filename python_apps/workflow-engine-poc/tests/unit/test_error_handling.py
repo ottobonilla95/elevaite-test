@@ -34,7 +34,9 @@ async def test_retry_mechanisms():
         attempt_count += 1
 
         if attempt_count < 3:
-            raise ConnectionError(f"Temporary connection error (attempt {attempt_count})")
+            raise ConnectionError(
+                f"Temporary connection error (attempt {attempt_count})"
+            )
 
         return {"success": True, "attempts": attempt_count}
 
@@ -78,7 +80,9 @@ async def test_retry_mechanisms():
     async def always_failing_function():
         raise ConnectionError("This always fails")
 
-    retry_config_limited = RetryConfig(max_attempts=2, strategy=RetryStrategy.FIXED_DELAY, base_delay=0.1)
+    retry_config_limited = RetryConfig(
+        max_attempts=2, strategy=RetryStrategy.FIXED_DELAY, base_delay=0.1
+    )
 
     try:
         await error_handler.execute_with_retry(
@@ -104,7 +108,9 @@ async def test_circuit_breaker():
     async def failing_service():
         raise ConnectionError("Service unavailable")
 
-    retry_config = RetryConfig(max_attempts=2, strategy=RetryStrategy.FIXED_DELAY, base_delay=0.1)
+    retry_config = RetryConfig(
+        max_attempts=2, strategy=RetryStrategy.FIXED_DELAY, base_delay=0.1
+    )
 
     # Trigger circuit breaker by failing multiple times
     print("📋 Triggering circuit breaker:")

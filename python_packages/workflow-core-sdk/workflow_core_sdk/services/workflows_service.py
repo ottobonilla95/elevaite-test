@@ -17,7 +17,9 @@ class WorkflowsService:
 
     # -------- Workflow entities (SQLModel) --------
     @staticmethod
-    def list_workflows_entities(session: Session, *, limit: int = 100, offset: int = 0) -> List[Workflow]:
+    def list_workflows_entities(
+        session: Session, *, limit: int = 100, offset: int = 0
+    ) -> List[Workflow]:
         db = DatabaseService()
         return db.list_workflow_entities(session, limit=limit, offset=offset)
 
@@ -44,7 +46,9 @@ class WorkflowsService:
 
     # -------- Workflow configuration (dict) --------
     @staticmethod
-    def get_workflow_config(session: Session, workflow_id: str) -> Optional[Dict[str, Any]]:
+    def get_workflow_config(
+        session: Session, workflow_id: str
+    ) -> Optional[Dict[str, Any]]:
         db = DatabaseService()
         return db.get_workflow(session, workflow_id)
 
@@ -69,14 +73,20 @@ class WorkflowsService:
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
         db = DatabaseService()
-        return db.list_executions(session, workflow_id=workflow_id, status=status, limit=limit, offset=offset)
+        return db.list_executions(
+            session, workflow_id=workflow_id, status=status, limit=limit, offset=offset
+        )
 
     @staticmethod
-    def update_execution_status(session: Session, execution_id: str, status: str) -> bool:
+    def update_execution_status(
+        session: Session, execution_id: str, status: str
+    ) -> bool:
         """Update the execution's status in the database (e.g., to 'running')."""
         db = DatabaseService()
         try:
-            status_enum = DBExecutionStatus(status) if isinstance(status, str) else status
+            status_enum = (
+                DBExecutionStatus(status) if isinstance(status, str) else status
+            )
         except Exception:
             # Fallback without raising if invalid; let DB layer handle/ignore
             status_enum = status

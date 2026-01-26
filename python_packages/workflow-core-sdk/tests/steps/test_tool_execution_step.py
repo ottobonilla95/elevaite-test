@@ -59,7 +59,9 @@ class TestLocalToolExecution:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.tool_steps.get_all_tools")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
-    async def test_execute_local_tool_by_name(self, mock_stream, mock_get_tools, step_config, execution_context):
+    async def test_execute_local_tool_by_name(
+        self, mock_stream, mock_get_tools, step_config, execution_context
+    ):
         """Test executing a local tool by name"""
         mock_get_tools.return_value = {"add_numbers": add_numbers}
         mock_stream.emit_execution_event = AsyncMock()
@@ -81,7 +83,9 @@ class TestLocalToolExecution:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.tool_steps.get_all_tools")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
-    async def test_execute_tool_with_param_mapping(self, mock_stream, mock_get_tools, step_config, execution_context):
+    async def test_execute_tool_with_param_mapping(
+        self, mock_stream, mock_get_tools, step_config, execution_context
+    ):
         """Test executing a tool with parameter mapping from input_data"""
         mock_get_tools.return_value = {"add_numbers": add_numbers}
         mock_stream.emit_execution_event = AsyncMock()
@@ -103,7 +107,9 @@ class TestLocalToolExecution:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.tool_steps.get_all_tools")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
-    async def test_execute_tool_with_nested_param_mapping(self, mock_stream, mock_get_tools, step_config, execution_context):
+    async def test_execute_tool_with_nested_param_mapping(
+        self, mock_stream, mock_get_tools, step_config, execution_context
+    ):
         """Test executing a tool with nested parameter mapping (dot notation)"""
         mock_get_tools.return_value = {"greet_user": greet_user}
         mock_stream.emit_execution_event = AsyncMock()
@@ -146,7 +152,9 @@ class TestLocalToolExecution:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.tool_steps.get_all_tools")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
-    async def test_execute_tool_with_type_coercion(self, mock_stream, mock_get_tools, step_config, execution_context):
+    async def test_execute_tool_with_type_coercion(
+        self, mock_stream, mock_get_tools, step_config, execution_context
+    ):
         """Test executing a tool with automatic type coercion"""
         mock_get_tools.return_value = {"add_numbers": add_numbers}
         mock_stream.emit_execution_event = AsyncMock()
@@ -154,7 +162,10 @@ class TestLocalToolExecution:
 
         step_config["config"] = {
             "tool_name": "add_numbers",
-            "static_params": {"a": "5", "b": "3"},  # Strings that should be coerced to int
+            "static_params": {
+                "a": "5",
+                "b": "3",
+            },  # Strings that should be coerced to int
         }
 
         result = await tool_execution_step(step_config, {}, execution_context)
@@ -167,7 +178,9 @@ class TestLocalToolExecution:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.tool_steps.get_all_tools")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
-    async def test_execute_tool_with_json_response_parsing(self, mock_stream, mock_get_tools, step_config, execution_context):
+    async def test_execute_tool_with_json_response_parsing(
+        self, mock_stream, mock_get_tools, step_config, execution_context
+    ):
         """Test parameter extraction from JSON response strings"""
         mock_get_tools.return_value = {"greet_user": greet_user}
         mock_stream.emit_execution_event = AsyncMock()
@@ -192,7 +205,9 @@ class TestToolNotFound:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.tool_steps.get_all_tools")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
-    async def test_tool_not_found_by_name(self, mock_stream, mock_get_tools, step_config, execution_context):
+    async def test_tool_not_found_by_name(
+        self, mock_stream, mock_get_tools, step_config, execution_context
+    ):
         """Test error when tool is not found by name"""
         mock_get_tools.return_value = {}
         mock_stream.emit_execution_event = AsyncMock()
@@ -206,7 +221,9 @@ class TestToolNotFound:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.tool_steps.Session")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
-    async def test_tool_not_found_by_id(self, mock_stream, mock_session_class, step_config, execution_context):
+    async def test_tool_not_found_by_id(
+        self, mock_stream, mock_session_class, step_config, execution_context
+    ):
         """Test error when tool is not found by ID in database"""
         mock_stream.emit_execution_event = AsyncMock()
         mock_stream.emit_workflow_event = AsyncMock()
@@ -236,7 +253,9 @@ class TestToolExecutionErrors:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.tool_steps.get_all_tools")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
-    async def test_tool_parameter_mismatch(self, mock_stream, mock_get_tools, step_config, execution_context):
+    async def test_tool_parameter_mismatch(
+        self, mock_stream, mock_get_tools, step_config, execution_context
+    ):
         """Test error when tool is called with wrong parameters"""
         mock_get_tools.return_value = {"add_numbers": add_numbers}
         mock_stream.emit_execution_event = AsyncMock()
@@ -255,7 +274,9 @@ class TestToolExecutionErrors:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.tool_steps.get_all_tools")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
-    async def test_tool_execution_failure(self, mock_stream, mock_get_tools, step_config, execution_context):
+    async def test_tool_execution_failure(
+        self, mock_stream, mock_get_tools, step_config, execution_context
+    ):
         """Test error when tool execution raises an exception"""
         mock_get_tools.return_value = {"failing_tool": failing_tool}
         mock_stream.emit_execution_event = AsyncMock()
@@ -279,7 +300,13 @@ class TestDatabaseToolExecution:
     @patch("workflow_core_sdk.steps.tool_steps.get_all_tools")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
     async def test_execute_db_tool_with_module_path(
-        self, mock_stream, mock_get_tools, mock_session_class, mock_import, step_config, execution_context
+        self,
+        mock_stream,
+        mock_get_tools,
+        mock_session_class,
+        mock_import,
+        step_config,
+        execution_context,
     ):
         """Test executing a tool loaded from database with module_path"""
         mock_stream.emit_execution_event = AsyncMock()
@@ -307,7 +334,10 @@ class TestDatabaseToolExecution:
         mock_session.__exit__ = MagicMock(return_value=False)
         mock_session_class.return_value = mock_session
 
-        step_config["config"] = {"tool_id": mock_tool.id, "static_params": {"a": 7, "b": 3}}
+        step_config["config"] = {
+            "tool_id": mock_tool.id,
+            "static_params": {"a": 7, "b": 3},
+        }
 
         result = await tool_execution_step(step_config, {}, execution_context)
 
@@ -318,7 +348,9 @@ class TestDatabaseToolExecution:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.tool_steps.Session")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
-    async def test_db_tool_import_failure(self, mock_stream, mock_session_class, step_config, execution_context):
+    async def test_db_tool_import_failure(
+        self, mock_stream, mock_session_class, step_config, execution_context
+    ):
         """Test error when DB tool module import fails"""
         mock_stream.emit_execution_event = AsyncMock()
         mock_stream.emit_workflow_event = AsyncMock()

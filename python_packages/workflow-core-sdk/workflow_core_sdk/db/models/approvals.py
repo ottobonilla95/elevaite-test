@@ -25,9 +25,15 @@ class ApprovalRequestBase(SQLModel):
     step_id: str = Field(max_length=255, description="Step awaiting approval")
 
     status: ApprovalStatus = Field(default=ApprovalStatus.PENDING)
-    prompt: Optional[str] = Field(default=None, description="Prompt/instructions shown to approver")
-    approval_metadata: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
-    response_payload: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    prompt: Optional[str] = Field(
+        default=None, description="Prompt/instructions shown to approver"
+    )
+    approval_metadata: Dict[str, Any] = Field(
+        default_factory=dict, sa_column=Column(JSON)
+    )
+    response_payload: Optional[Dict[str, Any]] = Field(
+        default=None, sa_column=Column(JSON)
+    )
 
     requested_at: datetime = Field(default_factory=get_utc_datetime)
     decided_at: Optional[datetime] = Field(default=None)

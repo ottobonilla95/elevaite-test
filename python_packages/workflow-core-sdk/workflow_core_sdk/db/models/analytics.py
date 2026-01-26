@@ -1,6 +1,7 @@
 """
 Analytics models (tokens-only parity)
 """
+
 import uuid as uuid_module
 from typing import Optional
 from datetime import datetime
@@ -13,7 +14,9 @@ class AgentExecutionMetrics(SQLModel, table=True):
 
     # Relations/identifiers
     execution_id: uuid_module.UUID = Field(description="WorkflowExecution.id")
-    step_execution_id: Optional[uuid_module.UUID] = Field(default=None, description="StepExecution.id if available")
+    step_execution_id: Optional[uuid_module.UUID] = Field(
+        default=None, description="StepExecution.id if available"
+    )
 
     # Agent identity
     agent_id: Optional[str] = Field(default=None, description="Agent instance id")
@@ -67,4 +70,3 @@ class WorkflowMetrics(SQLModel, table=True):
     total_tokens_out: Optional[int] = Field(default=None)
     total_tokens: Optional[int] = Field(default=None)
     total_llm_calls: Optional[int] = Field(default=None)
-

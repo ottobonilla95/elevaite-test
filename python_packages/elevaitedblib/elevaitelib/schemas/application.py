@@ -29,4 +29,8 @@ class Application(ApplicationBase):
 
 
 def is_application(val: Dict[str, Any] | None) -> TypeGuard[Application]:
-    return val is not None and isinstance(val, "object") and "applicationType" in val.keys()
+    return (
+        val is not None
+        and isinstance(val, "object")
+        and "applicationType" in val.keys()
+    )

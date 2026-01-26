@@ -8,7 +8,9 @@ from opentelemetry.sdk.resources import Resource
 
 # Resolve service.name key across semconv versions
 try:
-    from opentelemetry.semconv.attributes.resource import SERVICE_NAME as SERVICE_NAME_KEY
+    from opentelemetry.semconv.attributes.resource import (
+        SERVICE_NAME as SERVICE_NAME_KEY,
+    )
 except Exception:
     try:
         from opentelemetry.semconv.resource import ResourceAttributes as _ResAttrs  # type: ignore
@@ -77,14 +79,18 @@ def configure_tracer(
 
                 def write(self, *a, **k):
                     try:
-                        if self._wrapped and not getattr(self._wrapped, "closed", False):
+                        if self._wrapped and not getattr(
+                            self._wrapped, "closed", False
+                        ):
                             return self._wrapped.write(*a, **k)
                     except Exception:
                         return None
 
                 def flush(self):
                     try:
-                        if self._wrapped and not getattr(self._wrapped, "closed", False):
+                        if self._wrapped and not getattr(
+                            self._wrapped, "closed", False
+                        ):
                             return self._wrapped.flush()
                     except Exception:
                         return None
@@ -111,7 +117,9 @@ def configure_tracer(
             )
             provider.add_span_processor(otlp_processor)
             security_mode = "insecure" if otlp_insecure else "secure"
-            print(f"✅ OTLP exporter configured for {otlp_endpoint} ({security_mode}, timeout={otlp_timeout}s)")
+            print(
+                f"✅ OTLP exporter configured for {otlp_endpoint} ({security_mode}, timeout={otlp_timeout}s)"
+            )
         except Exception as e:
             print(f"⚠️  Failed to configure OTLP exporter: {e}")
             print("   Continuing with console exporter only")
@@ -158,7 +166,9 @@ def configure_metrics(
                 endpoint_str = str(otlp_endpoint)
                 if "/v1/metrics" in endpoint_str:
                     # HTTP exporter does not accept 'insecure'
-                    exporter = _HttpMetricExporter(endpoint=otlp_endpoint, timeout=otlp_timeout)
+                    exporter = _HttpMetricExporter(
+                        endpoint=otlp_endpoint, timeout=otlp_timeout
+                    )
                 else:
                     # gRPC exporter typically at host:port or http://host:4317; supports 'insecure'
                     exporter = _GrpcMetricExporter(

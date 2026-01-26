@@ -104,7 +104,7 @@ async def disable_email_mfa(
     logger.info(f"Email MFA disable request for user {current_user.id}")
 
     try:
-        ensure_at_least_one_mfa(current_user, 'email')
+        ensure_at_least_one_mfa(current_user, "email")
         result = await email_mfa_service.disable_email_mfa(current_user, db)
         return EmailMFAResponse(message=result["message"], email=None)
     except HTTPException:
@@ -218,4 +218,3 @@ async def send_email_mfa_code_for_login(
         else:
             # Re-raise other authentication errors (invalid credentials, etc.)
             raise
-

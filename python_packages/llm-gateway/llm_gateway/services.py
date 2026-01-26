@@ -79,7 +79,9 @@ class TextGenerationService:
                 files=files,
             )
         except Exception as e:
-            error_msg = f"Error in text generation for provider {config['type']}: {str(e)}"
+            error_msg = (
+                f"Error in text generation for provider {config['type']}: {str(e)}"
+            )
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
 
@@ -174,7 +176,9 @@ class VisionService:
                 temperature=temperature,
             )
         except Exception as e:
-            error_msg = f"Error in processing images for provider {config['type']}: {str(e)}"
+            error_msg = (
+                f"Error in processing images for provider {config['type']}: {str(e)}"
+            )
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
 

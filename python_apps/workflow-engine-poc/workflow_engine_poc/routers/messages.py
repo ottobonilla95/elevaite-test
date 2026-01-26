@@ -41,7 +41,10 @@ class AgentMessageResponse(BaseModel):
     created_at: str
 
 
-@router.get("/{execution_id}/steps/{step_id}/messages", response_model=List[AgentMessageResponse])
+@router.get(
+    "/{execution_id}/steps/{step_id}/messages",
+    response_model=List[AgentMessageResponse],
+)
 async def list_step_messages(
     execution_id: str,
     step_id: str,
@@ -67,11 +70,15 @@ async def list_step_messages(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to list messages for execution {execution_id} step {step_id}: {e}")
+        logger.error(
+            f"Failed to list messages for execution {execution_id} step {step_id}: {e}"
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{execution_id}/steps/{step_id}/messages", response_model=AgentMessageResponse)
+@router.post(
+    "/{execution_id}/steps/{step_id}/messages", response_model=AgentMessageResponse
+)
 async def create_step_message(
     execution_id: str,
     step_id: str,
@@ -104,7 +111,13 @@ async def create_step_message(
         # For local backend, queue resume for worker
         if backend_val != "dbos":
             decision_output = {
-                "messages": [{"role": body.role, "content": body.content, "metadata": body.metadata}],
+                "messages": [
+                    {
+                        "role": body.role,
+                        "content": body.content,
+                        "metadata": body.metadata,
+                    }
+                ],
                 "final_turn": bool((body.metadata or {}).get("final_turn", False)),
             }
 
@@ -120,10 +133,16 @@ async def create_step_message(
         try:
             WorkflowsService.update_execution_status(session, execution_id, "running")
         except Exception as _upd:
-            logger.debug(f"Non-fatal: failed to persist running status for {execution_id}: {_upd}")
+            logger.debug(
+                f"Non-fatal: failed to persist running status for {execution_id}: {_upd}"
+            )
 
         # Emit status/step event to wake up clients
-        from workflow_core_sdk.streaming import stream_manager, create_step_event, create_status_event
+        from workflow_core_sdk.streaming import (
+            stream_manager,
+            create_step_event,
+            create_status_event,
+        )
 
         awaiting_evt = create_status_event(execution_id=execution_id, status="running")
         await stream_manager.emit_execution_event(awaiting_evt)
@@ -138,13 +157,19 @@ async def create_step_message(
         await stream_manager.emit_execution_event(step_evt)
 
         # Return saved message
-        rows = WorkflowsService.list_agent_messages(session, execution_id=execution_id, step_id=step_id, limit=1, offset=0)
+        rows = WorkflowsService.list_agent_messages(
+            session, execution_id=execution_id, step_id=step_id, limit=1, offset=0
+        )
         if not rows:
-            raise HTTPException(status_code=500, detail="Message not found after creation")
+            raise HTTPException(
+                status_code=500, detail="Message not found after creation"
+            )
         row = rows[-1]
         return AgentMessageResponse.model_validate(row)
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to create message for execution {execution_id} step {step_id}: {e}")
+        logger.error(
+            f"Failed to create message for execution {execution_id} step {step_id}: {e}"
+        )
         raise HTTPException(status_code=500, detail=str(e))

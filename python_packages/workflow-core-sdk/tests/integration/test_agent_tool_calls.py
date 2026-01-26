@@ -22,8 +22,10 @@ logger = logging.getLogger(__name__)
 
 # === Mock tool_call formats ===
 
+
 class LlmGatewayToolCall(BaseModel):
     """Simulates the llm-gateway ToolCall structure (flat)."""
+
     id: str
     name: str
     arguments: Dict[str, Any]
@@ -31,12 +33,14 @@ class LlmGatewayToolCall(BaseModel):
 
 class OpenAIToolCallFunction(BaseModel):
     """Simulates OpenAI function object."""
+
     name: str
     arguments: str  # JSON string
 
 
 class OpenAIToolCall(BaseModel):
     """Simulates OpenAI Completions API tool call (nested)."""
+
     id: str
     type: str = "function"
     function: OpenAIToolCallFunction
@@ -48,6 +52,7 @@ class TestToolCallParsing:
     @pytest.fixture
     def mock_agent_step(self):
         """Create a minimal AgentStep-like object for testing _execute_tool_call."""
+
         class MockAgentStep:
             def __init__(self):
                 self.tools = [
@@ -76,37 +81,59 @@ class TestToolCallParsing:
                 logger.info(f"[TOOL_CALL_DEBUG] Raw tool_call repr: {repr(tool_call)}")
 
                 if hasattr(tool_call, "__dict__"):
-                    logger.info(f"[TOOL_CALL_DEBUG] tool_call.__dict__: {tool_call.__dict__}")
+                    logger.info(
+                        f"[TOOL_CALL_DEBUG] tool_call.__dict__: {tool_call.__dict__}"
+                    )
                 if hasattr(tool_call, "model_dump"):
                     try:
-                        logger.info(f"[TOOL_CALL_DEBUG] tool_call.model_dump(): {tool_call.model_dump()}")
+                        logger.info(
+                            f"[TOOL_CALL_DEBUG] tool_call.model_dump(): {tool_call.model_dump()}"
+                        )
                     except Exception as dump_err:
-                        logger.info(f"[TOOL_CALL_DEBUG] model_dump() failed: {dump_err}")
+                        logger.info(
+                            f"[TOOL_CALL_DEBUG] model_dump() failed: {dump_err}"
+                        )
 
                 # Check if it's a dict
                 if isinstance(tool_call, dict):
-                    logger.info(f"[TOOL_CALL_DEBUG] tool_call is a dict with keys: {tool_call.keys()}")
-                    function_name = tool_call.get("name") or (tool_call.get("function", {}) or {}).get("name")
-                    function_args = tool_call.get("arguments") or (tool_call.get("function", {}) or {}).get("arguments")
-                    logger.info(f"[TOOL_CALL_DEBUG] Extracted from dict - name: {function_name}, args type: {type(function_args)}")
+                    logger.info(
+                        f"[TOOL_CALL_DEBUG] tool_call is a dict with keys: {tool_call.keys()}"
+                    )
+                    function_name = tool_call.get("name") or (
+                        tool_call.get("function", {}) or {}
+                    ).get("name")
+                    function_args = tool_call.get("arguments") or (
+                        tool_call.get("function", {}) or {}
+                    ).get("arguments")
+                    logger.info(
+                        f"[TOOL_CALL_DEBUG] Extracted from dict - name: {function_name}, args type: {type(function_args)}"
+                    )
                 else:
                     # Extract function name and args from multiple possible shapes
                     function_name = getattr(tool_call, "name", None)
                     function_args = getattr(tool_call, "arguments", None)
-                    logger.info(f"[TOOL_CALL_DEBUG] Direct attrs - name: {function_name}, args: {function_args}")
+                    logger.info(
+                        f"[TOOL_CALL_DEBUG] Direct attrs - name: {function_name}, args: {function_args}"
+                    )
 
                     if function_name is None and hasattr(tool_call, "function"):
                         func_obj = getattr(tool_call, "function", None)
-                        logger.info(f"[TOOL_CALL_DEBUG] Has 'function' attr, type: {type(func_obj)}, value: {func_obj}")
+                        logger.info(
+                            f"[TOOL_CALL_DEBUG] Has 'function' attr, type: {type(func_obj)}, value: {func_obj}"
+                        )
                         if isinstance(func_obj, dict):
                             function_name = func_obj.get("name")
                             function_args = func_obj.get("arguments")
                         else:
                             function_name = getattr(func_obj, "name", None)
                             function_args = getattr(func_obj, "arguments", None)
-                        logger.info(f"[TOOL_CALL_DEBUG] From function attr - name: {function_name}, args: {function_args}")
+                        logger.info(
+                            f"[TOOL_CALL_DEBUG] From function attr - name: {function_name}, args: {function_args}"
+                        )
 
-                logger.info(f"[TOOL_CALL_DEBUG] Final function_name: {function_name}, function_args type: {type(function_args)}")
+                logger.info(
+                    f"[TOOL_CALL_DEBUG] Final function_name: {function_name}, function_args type: {type(function_args)}"
+                )
 
                 # Normalize arguments
                 if isinstance(function_args, str):
@@ -122,7 +149,9 @@ class TestToolCallParsing:
 
                 if not function_name:
                     # Return error result instead of raising
-                    logger.warning(f"[TOOL_CALL_DEBUG] Skipping tool call with missing function name: {tool_call}")
+                    logger.warning(
+                        f"[TOOL_CALL_DEBUG] Skipping tool call with missing function name: {tool_call}"
+                    )
                     return {
                         "tool_name": None,
                         "arguments": function_args,
@@ -226,9 +255,10 @@ class TestToolCallParsing:
 
 import os
 
+
 @pytest.mark.skipif(
     not os.environ.get("OPENAI_API_KEY"),
-    reason="OPENAI_API_KEY environment variable not set"
+    reason="OPENAI_API_KEY environment variable not set",
 )
 class TestAgentToolCallsIntegration:
     """Integration tests that require real LLM and database."""
@@ -273,4 +303,3 @@ class TestAgentToolCallsIntegration:
         assert "response" in result
         # If we got here without "Tool call missing function name" error, parsing worked
         assert result is not None
-

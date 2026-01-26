@@ -19,11 +19,9 @@ otlp_endpoint = os.environ.get("OTLP_ENDPOINT", "http://localhost:4317")
 # Attach the logger to FastAPI and Uvicorn with OpenTelemetry enabled
 FastAPILogger.attach_to_uvicorn(
     service_name=service_name,
-    otlp_endpoint=otlp_endpoint, 
+    otlp_endpoint=otlp_endpoint,
     configure_otel=True,
-    resource_attributes={
-        "deployment.environment": "example"
-    }
+    resource_attributes={"deployment.environment": "example"},
 )
 
 # Get a reference to the logger with OpenTelemetry configured
@@ -32,14 +30,14 @@ logger = FastAPILogger(
     service_name=service_name,
     otlp_endpoint=otlp_endpoint,
     configure_otel=True,
-    resource_attributes={
-        "deployment.environment": "example"
-    }
+    resource_attributes={"deployment.environment": "example"},
 ).get_logger()
 
 # Get the tracer from the global provider
 from opentelemetry import trace
+
 tracer = trace.get_tracer("example-app")
+
 
 @app.middleware("http")
 async def add_tracing_context(request: Request, call_next):
@@ -52,20 +50,21 @@ async def add_tracing_context(request: Request, call_next):
             "http.schema": request.url.scheme,
             "http.host": request.url.netloc,
             "http.target": request.url.path,
-        }
+        },
     ) as span:
         # Add user-agent to span
         if "user-agent" in request.headers:
             span.set_attribute("http.user_agent", request.headers["user-agent"])
-        
+
         # Process the request
         logger.info(f"Processing request: {request.method} {request.url.path}")
         response = await call_next(request)
-        
+
         # Add response info to span
         span.set_attribute("http.status_code", response.status_code)
-        
+
         return response
+
 
 @app.get("/")
 async def root():
@@ -74,20 +73,24 @@ async def root():
         span.set_attribute("custom.attribute", "example value")
         return {"message": "Hello World"}
 
+
 @app.get("/items/{item_id}")
 async def get_item(item_id: int):
     with tracer.start_as_current_span("get_item_operation") as span:
         logger.info(f"Retrieving item with ID: {item_id}")
         span.set_attribute("item.id", item_id)
-        
+
         # Simulate a database query
         with tracer.start_as_current_span("database_query") as child_span:
             logger.info(f"Querying database for item {item_id}")
             # Simulate database latency
             time.sleep(0.1)
-            child_span.set_attribute("database.query", f"SELECT * FROM items WHERE id = {item_id}")
-        
+            child_span.set_attribute(
+                "database.query", f"SELECT * FROM items WHERE id = {item_id}"
+            )
+
         return {"item_id": item_id, "name": f"Item {item_id}"}
+
 
 @app.get("/error")
 async def trigger_error():
@@ -103,6 +106,7 @@ async def trigger_error():
             span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
             logger.error(f"An error occurred: {str(e)}")
             return {"error": str(e)}
+
 
 # Print information about where to find the telemetry data
 print("\nRunning example FastAPI app with OpenTelemetry enabled")

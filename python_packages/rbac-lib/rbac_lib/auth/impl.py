@@ -23,7 +23,6 @@ auditor = AuditorProvider.get_instance()
 
 
 class AccessTokenOrApikeyAuthentication(AuthenticationInterface):
-
     @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
     @staticmethod
     async def authenticate(
@@ -43,7 +42,6 @@ class AccessTokenOrApikeyAuthentication(AuthenticationInterface):
         ),
         db: Session = Depends(get_db),
     ) -> User | Apikey:
-
         request.state.db = db
 
         # Ensure only one method of authentication is provided
@@ -123,7 +121,6 @@ class AccessTokenAuthentication(AuthenticationInterface):
         ),
         db: Session = Depends(get_db),
     ) -> User:
-
         request.state.db = db
         request.state.access_method = auth_schemas.AuthType.ACCESS_TOKEN.value
         request.state.idp = idp_type if idp_type else auth_schemas.iDPType.GOOGLE.value
@@ -170,7 +167,6 @@ class ApikeyAuthentication(AuthenticationInterface):
         ),
         db: Session = Depends(get_db),
     ) -> Apikey:
-
         request.state.db = db
         request.state.access_method = auth_schemas.AuthType.API_KEY.value
 

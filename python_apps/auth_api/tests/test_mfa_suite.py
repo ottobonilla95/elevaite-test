@@ -32,9 +32,9 @@ class TestMfaSuite:
             print("Errors:")
             print(result.stderr)
 
-        assert (
-            result.returncode == 0
-        ), f"Device fingerprinting tests failed: {result.stderr}"
+        assert result.returncode == 0, (
+            f"Device fingerprinting tests failed: {result.stderr}"
+        )
 
     def test_mfa_device_service(self):
         """Run MFA device service unit tests."""
@@ -57,9 +57,9 @@ class TestMfaSuite:
             print("Errors:")
             print(result.stderr)
 
-        assert (
-            result.returncode == 0
-        ), f"MFA device service tests failed: {result.stderr}"
+        assert result.returncode == 0, (
+            f"MFA device service tests failed: {result.stderr}"
+        )
 
     def test_cleanup_tasks(self):
         """Run cleanup tasks unit tests."""
@@ -122,9 +122,9 @@ class TestMfaSuite:
             print("Errors:")
             print(result.stderr)
 
-        assert (
-            result.returncode == 0
-        ), f"MFA admin endpoints tests failed: {result.stderr}"
+        assert result.returncode == 0, (
+            f"MFA admin endpoints tests failed: {result.stderr}"
+        )
 
     def test_security_improvements(self):
         """Run security improvements tests."""
@@ -147,9 +147,9 @@ class TestMfaSuite:
             print("Errors:")
             print(result.stderr)
 
-        assert (
-            result.returncode == 0
-        ), f"Security improvements tests failed: {result.stderr}"
+        assert result.returncode == 0, (
+            f"Security improvements tests failed: {result.stderr}"
+        )
 
 
 def run_all_mfa_tests():

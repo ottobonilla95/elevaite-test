@@ -26,7 +26,9 @@ class TestAuthenticationFlows:
             mock_response.json.return_value = {"user_id": "user123"}
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:8004", cache_ttl=60.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004", cache_ttl=60.0
+            )
             request = Mock()
 
             result1 = validator("test-api-key", request)
@@ -43,7 +45,9 @@ class TestAuthenticationFlows:
         import os
 
         secret = os.getenv("SECRET_KEY", "test-secret-key")
-        token = jwt.encode({"sub": "user123", "type": "api_key"}, secret, algorithm="HS256")
+        token = jwt.encode(
+            {"sub": "user123", "type": "api_key"}, secret, algorithm="HS256"
+        )
 
         validator = api_key_jwt_validator(secret=secret)
         request = Mock()
@@ -58,7 +62,9 @@ class TestAuthenticationFlows:
             mock_response.status_code = 401
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:8004", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004", cache_ttl=0.0
+            )
             request = Mock()
 
             result = validator("invalid-key", request)
@@ -133,7 +139,9 @@ class TestConcurrentAccess:
 
             mock_post.side_effect = mock_validate
 
-            validator = api_key_http_validator(base_url="http://localhost:8004", cache_ttl=60.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004", cache_ttl=60.0
+            )
             request = Mock()
 
             import concurrent.futures
@@ -161,7 +169,9 @@ class TestConcurrentAccess:
             mock_response.json.return_value = {"user_id": "user123"}
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:8004", cache_ttl=60.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004", cache_ttl=60.0
+            )
             request = Mock()
 
             import concurrent.futures
@@ -186,7 +196,9 @@ class TestErrorHandling:
         with patch("rbac_sdk.fastapi_helpers.requests.post") as mock_post:
             mock_post.side_effect = Exception("Connection refused")
 
-            validator = api_key_http_validator(base_url="http://localhost:8004", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004", cache_ttl=0.0
+            )
             request = Mock()
 
             result = validator("test-api-key", request)
@@ -200,7 +212,9 @@ class TestErrorHandling:
             mock_response.json.side_effect = ValueError("Invalid JSON")
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:8004", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004", cache_ttl=0.0
+            )
             request = Mock()
 
             result = validator("test-api-key", request)
@@ -248,7 +262,9 @@ class TestCircuitBreakerIntegration:
             mock_response.json.return_value = {"user_id": "user123"}
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:8004", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004", cache_ttl=0.0
+            )
             request = Mock()
 
             # Wrap validator in circuit breaker
@@ -281,7 +297,9 @@ class TestCircuitBreakerIntegration:
             mock_response.status_code = 401
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:8004", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004", cache_ttl=0.0
+            )
             request = Mock()
 
             # Wrap validator in circuit breaker

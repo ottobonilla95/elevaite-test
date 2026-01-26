@@ -45,7 +45,9 @@ else:
         db_url = settings.DATABASE_URI
 
 if not db_url:
-    raise ValueError("Database URL not provided. Set SQLALCHEMY_DATABASE_URL environment variable.")
+    raise ValueError(
+        "Database URL not provided. Set SQLALCHEMY_DATABASE_URL environment variable."
+    )
 
 # Strip any accidental surrounding quotes from env files
 _db_url_clean = db_url.strip().strip('"').strip("'")

@@ -52,14 +52,18 @@ E2E_HEADERS = {
 }
 
 
-async def poll_execution_status(client: httpx.AsyncClient, execution_id: str, max_wait: float = 15.0) -> dict:
+async def poll_execution_status(
+    client: httpx.AsyncClient, execution_id: str, max_wait: float = 15.0
+) -> dict:
     """Helper to poll execution status until completion or timeout."""
     poll_interval = 0.5
     elapsed = 0
     status_data = {}
 
     while elapsed < max_wait:
-        status_response = await client.get(f"{WORKFLOW_API_URL}/api/executions/{execution_id}")
+        status_response = await client.get(
+            f"{WORKFLOW_API_URL}/api/executions/{execution_id}"
+        )
         assert status_response.status_code == 200
         status_data = status_response.json()
 
@@ -81,8 +85,12 @@ async def create_and_execute_workflow(
 ) -> tuple[str, str, dict]:
     """Helper to create and execute a workflow, returns (workflow_id, execution_id, execution_response)."""
     # Create workflow
-    create_response = await client.post(f"{WORKFLOW_API_URL}/api/workflows/", json=workflow_config)
-    assert create_response.status_code == 200, f"Failed to create workflow: {create_response.text}"
+    create_response = await client.post(
+        f"{WORKFLOW_API_URL}/api/workflows/", json=workflow_config
+    )
+    assert create_response.status_code == 200, (
+        f"Failed to create workflow: {create_response.text}"
+    )
 
     workflow_data = create_response.json()
     workflow_id = workflow_data.get("id")
@@ -98,10 +106,16 @@ async def create_and_execute_workflow(
         f"{WORKFLOW_API_URL}/api/workflows/{workflow_id}/execute",
         json=execute_payload,
     )
-    assert execute_response.status_code == 200, f"Failed to execute workflow: {execute_response.text}"
+    assert execute_response.status_code == 200, (
+        f"Failed to execute workflow: {execute_response.text}"
+    )
 
     execution_data = execute_response.json()
-    execution_id = execution_data.get("execution_id") or execution_data.get("id") or execution_data.get("workflow_execution_id")
+    execution_id = (
+        execution_data.get("execution_id")
+        or execution_data.get("id")
+        or execution_data.get("workflow_execution_id")
+    )
     assert execution_id, f"No execution ID in response: {execution_data}"
 
     return workflow_id, execution_id, execution_data
@@ -114,7 +128,8 @@ async def create_and_execute_workflow(
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(
-    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+    not os.getenv("TEST_INGESTION_SERVICE"),
+    reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service",
 )
 async def test_ingestion_service_workflow_e2e():
     """
@@ -154,9 +169,19 @@ async def test_ingestion_service_workflow_e2e():
                     "ingestion_config": {
                         "source_type": "local",
                         "file_paths": ["/tmp/test_doc.pdf"],
-                        "chunking": {"strategy": "sliding_window", "chunk_size": 512, "overlap": 50},
-                        "embedding": {"provider": "openai", "model": "text-embedding-3-small"},
-                        "storage": {"type": "qdrant", "collection_name": f"test_{uuid.uuid4().hex[:8]}"},
+                        "chunking": {
+                            "strategy": "sliding_window",
+                            "chunk_size": 512,
+                            "overlap": 50,
+                        },
+                        "embedding": {
+                            "provider": "openai",
+                            "model": "text-embedding-3-small",
+                        },
+                        "storage": {
+                            "type": "qdrant",
+                            "collection_name": f"test_{uuid.uuid4().hex[:8]}",
+                        },
                     },
                     "tenant_id": "test-tenant-123",
                 },
@@ -177,8 +202,12 @@ async def test_ingestion_service_workflow_e2e():
     async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
         # Step 1: Create workflow
         print("\n=== Step 1: Creating workflow ===")
-        create_response = await client.post(f"{workflow_api_url}/api/workflows/", json=workflow_config)
-        assert create_response.status_code == 200, f"Failed to create workflow: {create_response.text}"
+        create_response = await client.post(
+            f"{workflow_api_url}/api/workflows/", json=workflow_config
+        )
+        assert create_response.status_code == 200, (
+            f"Failed to create workflow: {create_response.text}"
+        )
 
         workflow_data = create_response.json()
         # The response uses 'id' field (UUID)
@@ -196,13 +225,17 @@ async def test_ingestion_service_workflow_e2e():
                 "wait": True,
             },
         )
-        assert execute_response.status_code == 200, f"Failed to execute workflow: {execute_response.text}"
+        assert execute_response.status_code == 200, (
+            f"Failed to execute workflow: {execute_response.text}"
+        )
 
         execution_data = execute_response.json()
         print(f"Execution response: {execution_data}")
         # Get execution ID from response (may be 'execution_id', 'id', or 'workflow_execution_id')
         execution_id = (
-            execution_data.get("execution_id") or execution_data.get("id") or execution_data.get("workflow_execution_id")
+            execution_data.get("execution_id")
+            or execution_data.get("id")
+            or execution_data.get("workflow_execution_id")
         )
         assert execution_id, f"No execution ID in response: {execution_data}"
         print(f"Started execution: {execution_id}")
@@ -218,7 +251,9 @@ async def test_ingestion_service_workflow_e2e():
         execution_summary = {}
 
         while elapsed < max_wait_seconds:
-            status_response = await client.get(f"{workflow_api_url}/api/executions/{execution_id}")
+            status_response = await client.get(
+                f"{workflow_api_url}/api/executions/{execution_id}"
+            )
             assert status_response.status_code == 200
             status_data = status_response.json()
 
@@ -244,24 +279,40 @@ async def test_ingestion_service_workflow_e2e():
         print(f"Failed steps: {execution_summary.get('failed_steps', 0)}")
 
         # Verify workflow completed successfully
-        assert final_status == "completed", f"Expected status 'completed', got '{final_status}'"
-        assert execution_summary.get("failed_steps", 0) == 0, "Workflow had failed steps"
+        assert final_status == "completed", (
+            f"Expected status 'completed', got '{final_status}'"
+        )
+        assert execution_summary.get("failed_steps", 0) == 0, (
+            "Workflow had failed steps"
+        )
 
         # Verify steps were executed
         total_steps = execution_summary.get("total_steps", 0)
         completed_steps = execution_summary.get("completed_steps", 0)
 
         if total_steps == 0:
-            print("\n⚠️  WARNING: Workflow shows 0 total steps - checking step_io_data instead")
+            print(
+                "\n⚠️  WARNING: Workflow shows 0 total steps - checking step_io_data instead"
+            )
             # Check if step_io_data has the ingestion step output
             step_io_data = status_data.get("step_io_data", {})
-            assert "ingest" in step_io_data, "Ingestion step output not found in step_io_data"
-            print(f"✅ Ingestion step output found: {list(step_io_data.get('ingest', {}).keys())}")
+            assert "ingest" in step_io_data, (
+                "Ingestion step output not found in step_io_data"
+            )
+            print(
+                f"✅ Ingestion step output found: {list(step_io_data.get('ingest', {}).keys())}"
+            )
         else:
-            assert completed_steps >= 2, f"Expected at least 2 completed steps (trigger + ingest), got {completed_steps}"
-            print(f"✅ All {completed_steps}/{total_steps} steps completed successfully")
+            assert completed_steps >= 2, (
+                f"Expected at least 2 completed steps (trigger + ingest), got {completed_steps}"
+            )
+            print(
+                f"✅ All {completed_steps}/{total_steps} steps completed successfully"
+            )
 
-        print(f"\n✅ Workflow execution completed successfully with status: {final_status}")
+        print(
+            f"\n✅ Workflow execution completed successfully with status: {final_status}"
+        )
         print("\n=== Test PASSED ===")
 
 
@@ -279,12 +330,21 @@ async def test_ingestion_step_with_mocked_service():
 
     # Mock ingestion service responses
     mock_job_id = str(uuid.uuid4())
-    mock_create_response = {"job_id": mock_job_id, "status": "PENDING", "created_at": "2024-01-01T00:00:00Z"}
+    mock_create_response = {
+        "job_id": mock_job_id,
+        "status": "PENDING",
+        "created_at": "2024-01-01T00:00:00Z",
+    }
 
     mock_status_response = {
         "job_id": mock_job_id,
         "status": "SUCCEEDED",
-        "result_summary": {"files_processed": 1, "chunks_created": 42, "embeddings_generated": 42, "vectors_stored": 42},
+        "result_summary": {
+            "files_processed": 1,
+            "chunks_created": 42,
+            "embeddings_generated": 42,
+            "vectors_stored": 42,
+        },
         "completed_at": "2024-01-01T00:01:00Z",
     }
 
@@ -298,7 +358,12 @@ async def test_ingestion_step_with_mocked_service():
                 "step_type": "ingestion",
                 "name": "Ingest Documents",
                 "step_order": 1,
-                "config": {"ingestion_config": {"source_type": "test", "file_paths": ["/tmp/test.pdf"]}},
+                "config": {
+                    "ingestion_config": {
+                        "source_type": "test",
+                        "file_paths": ["/tmp/test.pdf"],
+                    }
+                },
             }
         ],
     }
@@ -326,7 +391,9 @@ async def test_ingestion_step_with_mocked_service():
         create_response = client.post("/workflows", json=workflow_config)
         assert create_response.status_code == 200
 
-        workflow_id = str(create_response.json()["id"])  # WorkflowRead has 'id' not 'workflow_id'
+        workflow_id = str(
+            create_response.json()["id"]
+        )  # WorkflowRead has 'id' not 'workflow_id'
 
         # Note: This test verifies the workflow can be created with an ingestion step
         # Full execution testing requires DBOS event handling which is complex to mock
@@ -352,7 +419,8 @@ async def test_ingestion_step_with_mocked_service():
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(
-    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+    not os.getenv("TEST_INGESTION_SERVICE"),
+    reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service",
 )
 async def test_multi_step_workflow_with_data_processing():
     """
@@ -440,7 +508,8 @@ async def test_multi_step_workflow_with_data_processing():
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(
-    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+    not os.getenv("TEST_INGESTION_SERVICE"),
+    reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service",
 )
 async def test_parallel_ingestion_steps():
     """
@@ -504,7 +573,9 @@ async def test_parallel_ingestion_steps():
     }
 
     async with httpx.AsyncClient(timeout=60.0, headers=E2E_HEADERS) as client:
-        workflow_id, execution_id, exec_data = await create_and_execute_workflow(client, workflow_config)
+        workflow_id, execution_id, exec_data = await create_and_execute_workflow(
+            client, workflow_config
+        )
         print(f"Created workflow: {workflow_id}, execution: {execution_id}")
 
         # Poll for completion (longer timeout for parallel)
@@ -530,7 +601,8 @@ async def test_parallel_ingestion_steps():
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(
-    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+    not os.getenv("TEST_INGESTION_SERVICE"),
+    reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service",
 )
 async def test_concurrent_workflow_executions():
     """
@@ -579,7 +651,9 @@ async def test_concurrent_workflow_executions():
 
         async def run_workflow(index: int) -> tuple[str, str, dict]:
             workflow_config = make_workflow(index)
-            return await create_and_execute_workflow(client, workflow_config, wait=False)
+            return await create_and_execute_workflow(
+                client, workflow_config, wait=False
+            )
 
         # Launch all workflows
         tasks = [run_workflow(i) for i in range(num_concurrent)]
@@ -610,7 +684,10 @@ async def test_concurrent_workflow_executions():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running services")
+@pytest.mark.skipif(
+    not os.getenv("TEST_INGESTION_SERVICE"),
+    reason="Requires TEST_INGESTION_SERVICE=1 and running services",
+)
 async def test_async_workflow_without_ingestion():
     """
     Test that wait=False works correctly for simple workflows without ingestion steps.
@@ -673,7 +750,9 @@ async def test_async_workflow_without_ingestion():
         print(f"Final status: {final_status}")
 
         # Verify workflow completed
-        assert final_status == "completed", f"Expected 'completed', got '{final_status}'"
+        assert final_status == "completed", (
+            f"Expected 'completed', got '{final_status}'"
+        )
         print("\n✅ Async workflow (wait=False) completed successfully")
 
 
@@ -684,7 +763,8 @@ async def test_async_workflow_without_ingestion():
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(
-    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+    not os.getenv("TEST_INGESTION_SERVICE"),
+    reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service",
 )
 async def test_ingestion_service_health():
     """
@@ -709,7 +789,8 @@ async def test_ingestion_service_health():
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(
-    not os.getenv("TEST_INGESTION_SERVICE"), reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service"
+    not os.getenv("TEST_INGESTION_SERVICE"),
+    reason="Requires TEST_INGESTION_SERVICE=1 and running ingestion service",
 )
 async def test_direct_ingestion_job_creation():
     """
@@ -743,7 +824,9 @@ async def test_direct_ingestion_job_creation():
             json=job_request,
         )
 
-        assert create_response.status_code == 200, f"Failed to create job: {create_response.text}"
+        assert create_response.status_code == 200, (
+            f"Failed to create job: {create_response.text}"
+        )
         job_data = create_response.json()
         job_id = job_data.get("job_id")
 
@@ -758,7 +841,9 @@ async def test_direct_ingestion_job_creation():
         final_status = None
 
         while elapsed < max_wait:
-            status_response = await client.get(f"{INGESTION_API_URL}/ingestion/jobs/{job_id}")
+            status_response = await client.get(
+                f"{INGESTION_API_URL}/ingestion/jobs/{job_id}"
+            )
             assert status_response.status_code == 200
             status_data = status_response.json()
             final_status = status_data.get("status")
@@ -773,6 +858,8 @@ async def test_direct_ingestion_job_creation():
 
         # The job may succeed or fail depending on whether the file exists
         # We just want to verify the API flow works
-        assert final_status in ["SUCCEEDED", "FAILED", "PENDING", "RUNNING"], f"Unexpected status: {final_status}"
+        assert final_status in ["SUCCEEDED", "FAILED", "PENDING", "RUNNING"], (
+            f"Unexpected status: {final_status}"
+        )
 
         print(f"\n✅ Direct ingestion job completed with status: {final_status}")

@@ -73,20 +73,26 @@ def init_db(
             **{k: v for k, v in engine_kwargs.items() if k not in ["pool_size"]},
         )
         # Create async session factory
-        async_session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+        async_session_factory = async_sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+        )
         session_factory = async_session_factory
     else:
         # For sync engines
         engine = create_engine(db_url, **engine_kwargs)
         # Create session factory
-        sync_session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        sync_session_factory = sessionmaker(
+            autocommit=False, autoflush=False, bind=engine
+        )
         session_factory = sync_session_factory
 
     # Schema creation for schema-based multitenancy
     if create_schemas and tenant_ids:
         # Just log for async - actual creation will happen via startup event
         if is_async:
-            logger.info(f"Async mode: Schemas for tenants {tenant_ids} will be created during app startup")
+            logger.info(
+                f"Async mode: Schemas for tenants {tenant_ids} will be created during app startup"
+            )
         else:
             # For sync connections, create the schemas immediately
             for tenant_id in tenant_ids:
@@ -131,7 +137,9 @@ def get_tenant_session(settings: Optional[MultitenancySettings] = None) -> Sessi
         RuntimeError: If session factory is not initialized
     """
     if sync_session_factory is None:
-        raise RuntimeError("Database not initialized. Call init_db() before using get_tenant_session().")
+        raise RuntimeError(
+            "Database not initialized. Call init_db() before using get_tenant_session()."
+        )
 
     session = sync_session_factory()
 
@@ -145,7 +153,9 @@ def get_tenant_session(settings: Optional[MultitenancySettings] = None) -> Sessi
     return session
 
 
-async def get_tenant_async_session(settings: Optional[MultitenancySettings] = None) -> AsyncSession:
+async def get_tenant_async_session(
+    settings: Optional[MultitenancySettings] = None,
+) -> AsyncSession:
     """
     Get an async database session for the current tenant.
 
@@ -191,8 +201,9 @@ def tenant_db_session(func):
         if "db" not in kwargs:
             # Get settings from dependencies if possible
             from db_core.dependencies import get_multitenancy_settings
+
             settings = get_multitenancy_settings()
-            
+
             session = get_tenant_session(settings)
             try:
                 # Ensure tenant search path is set directly on this session
@@ -228,16 +239,19 @@ def tenant_async_db_session(func):
         if "db" not in kwargs:
             # Get settings from dependencies if possible
             from db_core.dependencies import get_multitenancy_settings
+
             settings = get_multitenancy_settings()
-            
+
             session = await get_tenant_async_session(settings)
             try:
                 # Ensure tenant search path is set directly on this session
                 tenant_id = get_current_tenant_id()
                 if tenant_id:
                     schema = get_schema_name(tenant_id, settings)
-                    await session.execute(text(f'SET search_path TO "{schema}", public'))
-                
+                    await session.execute(
+                        text(f'SET search_path TO "{schema}", public')
+                    )
+
                 # Add session to kwargs
                 kwargs["db"] = session
                 return await func(*args, **kwargs)

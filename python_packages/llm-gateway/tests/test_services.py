@@ -15,9 +15,17 @@ from llm_gateway.services import (
     UniversalService,
     RequestType,
 )
-from llm_gateway.models.text_generation.core.interfaces import TextGenerationResponse, ToolCall
+from llm_gateway.models.text_generation.core.interfaces import (
+    TextGenerationResponse,
+    ToolCall,
+)
 from llm_gateway.models.text_generation.core.base import BaseTextGenerationProvider
-from llm_gateway.models.embeddings.core.interfaces import EmbeddingResponse, EmbeddingRequest, EmbeddingInfo, EmbeddingType
+from llm_gateway.models.embeddings.core.interfaces import (
+    EmbeddingResponse,
+    EmbeddingRequest,
+    EmbeddingInfo,
+    EmbeddingType,
+)
 from llm_gateway.models.embeddings.core.base import BaseEmbeddingProvider
 from llm_gateway.models.vision.core.base import BaseVisionProvider
 from llm_gateway.models.provider import ModelProviderFactory
@@ -172,7 +180,9 @@ class TestTextGenerationService:
 
     def test_generate_invalid_provider_type(self, mock_factory):
         """Test error when provider is not a text generation provider"""
-        mock_factory.get_provider.return_value = MagicMock()  # Not a BaseTextGenerationProvider
+        mock_factory.get_provider.return_value = (
+            MagicMock()
+        )  # Not a BaseTextGenerationProvider
         service = TextGenerationService(factory=mock_factory)
 
         with pytest.raises(RuntimeError, match="Error in text generation"):
@@ -221,7 +231,9 @@ class TestEmbeddingService:
 
         request = EmbeddingRequest(
             texts=["Hello world", "Test document"],
-            info=EmbeddingInfo(type=EmbeddingType.OPENAI, name="text-embedding-3-small"),
+            info=EmbeddingInfo(
+                type=EmbeddingType.OPENAI, name="text-embedding-3-small"
+            ),
         )
         result = service.embed(request)
 
@@ -232,7 +244,9 @@ class TestEmbeddingService:
 
     def test_embed_provider_error(self, mock_factory, mock_embedding_provider):
         """Test error handling when embedding fails"""
-        mock_embedding_provider.embed_documents.side_effect = Exception("Embedding error")
+        mock_embedding_provider.embed_documents.side_effect = Exception(
+            "Embedding error"
+        )
         mock_factory.get_provider.return_value = mock_embedding_provider
         service = EmbeddingService(factory=mock_factory)
 
@@ -246,7 +260,9 @@ class TestEmbeddingService:
 
     def test_embed_invalid_provider_type(self, mock_factory):
         """Test error when provider is not an embedding provider"""
-        mock_factory.get_provider.return_value = MagicMock()  # Not a BaseEmbeddingProvider
+        mock_factory.get_provider.return_value = (
+            MagicMock()
+        )  # Not a BaseEmbeddingProvider
         service = EmbeddingService(factory=mock_factory)
 
         request = EmbeddingRequest(
@@ -339,7 +355,9 @@ class TestUniversalService:
         """Test routing embedding request to correct provider"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
             service = UniversalService()
-            service.factory.get_provider = MagicMock(return_value=mock_embedding_provider)
+            service.factory.get_provider = MagicMock(
+                return_value=mock_embedding_provider
+            )
 
             result = service.handle_request(
                 request_type=RequestType.EMBEDDING,
@@ -389,7 +407,9 @@ class TestUniversalService:
         """Test error when embedding provider is wrong type"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
             service = UniversalService()
-            service.factory.get_provider = MagicMock(return_value=MagicMock())  # Wrong type
+            service.factory.get_provider = MagicMock(
+                return_value=MagicMock()
+            )  # Wrong type
 
             with pytest.raises(RuntimeError, match="not a BaseEmbeddingProvider"):
                 service.handle_request(
@@ -403,7 +423,9 @@ class TestUniversalService:
         """Test error when text generation provider is wrong type"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
             service = UniversalService()
-            service.factory.get_provider = MagicMock(return_value=MagicMock())  # Wrong type
+            service.factory.get_provider = MagicMock(
+                return_value=MagicMock()
+            )  # Wrong type
 
             with pytest.raises(RuntimeError, match="not a BaseTextGenerationProvider"):
                 service.handle_request(
@@ -417,7 +439,9 @@ class TestUniversalService:
         """Test error when vision provider is wrong type"""
         with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
             service = UniversalService()
-            service.factory.get_provider = MagicMock(return_value=MagicMock())  # Wrong type
+            service.factory.get_provider = MagicMock(
+                return_value=MagicMock()
+            )  # Wrong type
 
             with pytest.raises(RuntimeError, match="not a BaseVisionProvider"):
                 service.handle_request(

@@ -138,7 +138,9 @@ async def subflow_step(
 
     try:
         # Execute the subflow
-        completed_context = await workflow_engine.execute_workflow(subflow_execution_context)
+        completed_context = await workflow_engine.execute_workflow(
+            subflow_execution_context
+        )
         end_time = datetime.now()
 
         # Handle output mapping

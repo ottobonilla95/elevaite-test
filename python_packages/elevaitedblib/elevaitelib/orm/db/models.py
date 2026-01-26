@@ -56,17 +56,33 @@ class Instance(Base):
     endTime: Mapped[Optional[str]]
     status: Mapped[InstanceStatus] = mapped_column(Enum(InstanceStatus))
     executionId: Mapped[Optional[str]]
-    pipelineId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"), nullable=False)
-    configurationId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("configurations.id"), nullable=False)
-    projectId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("projects.id"), nullable=False)
+    pipelineId: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("pipelines.id"), nullable=False
+    )
+    configurationId: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("configurations.id"), nullable=False
+    )
+    projectId: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("projects.id"), nullable=False
+    )
     configurationRaw: Mapped[Json] = mapped_column(JSONB)
 
-    chartData: Mapped["InstanceChartData"] = relationship(back_populates="instance", uselist=False)
-    pipelineStepStatuses: Mapped[List["InstancePipelineStepStatus"]] = relationship(back_populates="instance")
+    chartData: Mapped["InstanceChartData"] = relationship(
+        back_populates="instance", uselist=False
+    )
+    pipelineStepStatuses: Mapped[List["InstancePipelineStepStatus"]] = relationship(
+        back_populates="instance"
+    )
 
-    application: Mapped[Application] = relationship(back_populates="instances", uselist=False)
-    chartData: Mapped["InstanceChartData"] = relationship(back_populates="instance", uselist=False)
-    pipelineStepStatuses: Mapped[List["InstancePipelineStepStatus"]] = relationship(back_populates="instance")
+    application: Mapped[Application] = relationship(
+        back_populates="instances", uselist=False
+    )
+    chartData: Mapped["InstanceChartData"] = relationship(
+        back_populates="instance", uselist=False
+    )
+    pipelineStepStatuses: Mapped[List["InstancePipelineStepStatus"]] = relationship(
+        back_populates="instance"
+    )
     project: Mapped["Project"] = relationship(uselist=False)
     dataset: Mapped["Dataset"] = relationship(uselist=False)
     configuration: Mapped["Configuration"] = relationship(back_populates="instances")
@@ -75,7 +91,9 @@ class Instance(Base):
 class InstanceChartData(Base):
     __tablename__ = "instance_chart_data"
 
-    instanceId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("instances.id"), primary_key=True)
+    instanceId: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("instances.id"), primary_key=True
+    )
 
     totalItems: Mapped[int] = mapped_column(default=0)
     ingestedItems: Mapped[int] = mapped_column(default=0)
@@ -90,12 +108,16 @@ class InstanceChartData(Base):
 class InstancePipelineStepStatus(Base):
     __tablename__ = "instance_pipeline_step_statuses"
 
-    instanceId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("instances.id"), primary_key=True)
+    instanceId: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("instances.id"), primary_key=True
+    )
     stepId: Mapped[str] = mapped_column()
     status: Mapped[PipelineStepStatus] = mapped_column(Enum(PipelineStepStatus))
     startTime: Mapped[Optional[str]]
     endTime: Mapped[Optional[str]]
-    meta: Mapped[list[InstancePipelineStepData]] = mapped_column(MutableJson, default=[])
+    meta: Mapped[list[InstancePipelineStepData]] = mapped_column(
+        MutableJson, default=[]
+    )
 
     instance = relationship("Instance", back_populates="pipelineStepStatuses")
 
@@ -116,7 +138,9 @@ class Pipeline(Base):
 class PipelineSchedule(Base):
     __tablename__ = "pipeline_schedules"
 
-    pipeline_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"), primary_key=True)
+    pipeline_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("pipelines.id"), primary_key=True
+    )
     frequency: Mapped[str] = mapped_column()
     time: Mapped[str] = mapped_column()
 
@@ -160,7 +184,9 @@ class PipelineTask(Base):
     entrypoint: Mapped[str] = mapped_column()
     description: Mapped[str] = mapped_column()
     config: Mapped[Json] = mapped_column(MutableJson, default={})
-    pipelineId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"), nullable=False)
+    pipelineId: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("pipelines.id"), nullable=False
+    )
 
     dependencies: Mapped[List["PipelineTask"]] = relationship(
         "PipelineTask",
@@ -190,11 +216,15 @@ class Configuration(Base):
     name: Mapped[str] = mapped_column(String, unique=True)
     # pipelineId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("pipelines.id"), nullable=False)
     createDate: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updateDate: Mapped[datetime] = mapped_column(DateTime, nullable=True, onupdate=get_utc_datetime)
+    updateDate: Mapped[datetime] = mapped_column(
+        DateTime, nullable=True, onupdate=get_utc_datetime
+    )
     isTemplate: Mapped[bool]
     raw: Mapped[Json] = mapped_column(JSONB)
 
-    instances: Mapped[List[Instance]] = relationship(back_populates="configuration", uselist=True)
+    instances: Mapped[List[Instance]] = relationship(
+        back_populates="configuration", uselist=True
+    )
     # pipeline: Mapped[Pipeline] = relationship(back_populates="configurations")
 
 
@@ -220,7 +250,9 @@ class Dataset(Base):
     name: Mapped[str]
     projectId: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("projects.id"))
     createDate: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updateDate: Mapped[datetime] = mapped_column(DateTime, nullable=True, onupdate=get_utc_datetime)
+    updateDate: Mapped[datetime] = mapped_column(
+        DateTime, nullable=True, onupdate=get_utc_datetime
+    )
 
     project: Mapped["Project"] = relationship(back_populates="datasets")
     versions: Mapped[list["DatasetVersion"]] = relationship(back_populates="dataset")
@@ -243,8 +275,12 @@ class DatasetVersion(Base):
 class Project(Base):
     __tablename__ = "projects"
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
-    account_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("accounts.id"), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("accounts.id"), nullable=False
+    )
     creator_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     parent_project_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=True
@@ -252,7 +288,9 @@ class Project(Base):
     name: Mapped[str] = mapped_column(String(60), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
+    )
 
     # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS-----------
     account = relationship(
@@ -261,7 +299,9 @@ class Project(Base):
     parent = relationship(
         "Project", remote_side=[id], back_populates="children", uselist=False
     )  # Self-referential many-to-one ; many children to one parent
-    children = relationship("Project", back_populates="parent")  # Self-referential one-to-many; one parent to many children
+    children = relationship(
+        "Project", back_populates="parent"
+    )  # Self-referential one-to-many; one parent to many children
     users = relationship(
         "User", secondary="user_project", back_populates="projects"
     )  # many-to-many: many users can have many projects
@@ -286,12 +326,20 @@ class Collection(Base):
 # Defined as a class and not a Table to allow for use of Mapped[] annotation for compatibility with static type checkers in orm-to-python conversions.
 class User_Account(Base):
     __tablename__ = "user_account"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
-    account_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("accounts.id", ondelete="CASCADE"))
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("accounts.id", ondelete="CASCADE")
+    )
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
+    )
 
     __table_args__ = (
         UniqueConstraint("user_id", "account_id", name="_user_account_uc"),
@@ -308,15 +356,23 @@ class User_Account(Base):
 # Defined as a class and not a Table to allow for use of Mapped[] annotation for compatibility with static type checkers in orm-to-python conversions.
 class User_Project(Base):
     __tablename__ = "user_project"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
-    project_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"))
-    permission_overrides: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = mapped_column(
-        type_=JSONB
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE")
+    )
+    permission_overrides: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = (
+        mapped_column(type_=JSONB)
     )  # Use JSONB for filterable and indexable JSON structure
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
+    )
 
     __table_args__ = (
         UniqueConstraint("user_id", "project_id", name="_user_project_uc"),
@@ -327,15 +383,21 @@ class User_Project(Base):
 # Defined as a class and not a Table to allow for use of Mapped[] annotation for compatibility with static type checkers in orm-to-python conversions.
 class Role_User_Account(Base):
     __tablename__ = "role_user_account"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4())
-    role_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4()
+    )
+    role_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), nullable=False
+    )
     user_account_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("user_account.id", ondelete="CASCADE"),
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
+    )
 
     __table_args__ = (
         UniqueConstraint("role_id", "user_account_id", name="_role_useracc_uc"),
@@ -346,11 +408,15 @@ class Role_User_Account(Base):
 
 class Organization(Base):
     __tablename__ = "organizations"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
     name: Mapped[str] = mapped_column(String(60), nullable=False, unique=True)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
+    )
 
     accounts = relationship(
         "Account", back_populates="organization"
@@ -359,17 +425,25 @@ class Organization(Base):
 
 class Account(Base):
     __tablename__ = "accounts"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
     organization_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )  # Adding FK to Organization
     name: Mapped[str] = mapped_column(String(60), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
+    )
 
     # Table constraints
-    __table_args__ = (UniqueConstraint("name", "organization_id", name="uc_account_name_organization_id"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "name", "organization_id", name="uc_account_name_organization_id"
+        ),
+    )
 
     # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS -----------
     organization = relationship(
@@ -378,12 +452,16 @@ class Account(Base):
     users = relationship(
         "User", secondary="user_account", back_populates="accounts"
     )  #  many-to-many: A user can belong to multiple accounts, an account can have multiple users
-    projects = relationship("Project", back_populates="account")  # one-to-many : one account can have many projects
+    projects = relationship(
+        "Project", back_populates="account"
+    )  # one-to-many : one account can have many projects
 
 
 class User(Base):
     __tablename__ = "users"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
     organization_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )  # Adding FK to Organization
@@ -392,7 +470,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(254), unique=True, nullable=False)
     is_superadmin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
+    )
 
     # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS-----------
     accounts = relationship(
@@ -405,11 +485,17 @@ class User(Base):
 
 class Role(Base):
     __tablename__ = "roles"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
-    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)  # 'DATA_SCIENTIST'
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    name: Mapped[str] = mapped_column(
+        String, nullable=False, unique=True
+    )  # 'DATA_SCIENTIST'
     permissions = Column(JSONB)  # Use JSONB for filterable and indexable JSON structure
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime, onupdate=get_utc_datetime)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=get_utc_datetime, onupdate=get_utc_datetime
+    )
 
     # --------- LOGICAL RELATIONSHIPS BASED ON FOREIGN KEYS-----------
     # user_account_overrides = relationship('User_Account', back_populates='overriding_role')
@@ -420,15 +506,23 @@ class Role(Base):
 class Apikey(Base):
     __tablename__ = "apikeys"
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=lambda: uuid.uuid4()
+    )
     name: Mapped[str] = mapped_column(String(20), nullable=False)
     creator_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    permissions_type: Mapped[ApikeyPermissionsType] = mapped_column(Enum(ApikeyPermissionsType), nullable=False)
-    project_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    permissions_type: Mapped[ApikeyPermissionsType] = mapped_column(
+        Enum(ApikeyPermissionsType), nullable=False
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("projects.id"), nullable=False
+    )
     key: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    permissions: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = mapped_column(type_=JSONB)
+    permissions: Mapped[Annotated[dict[str, Any], Column(JSONB)]] = mapped_column(
+        type_=JSONB
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=get_utc_datetime)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 

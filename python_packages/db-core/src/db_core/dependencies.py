@@ -29,7 +29,9 @@ def get_multitenancy_settings() -> MultitenancySettings:
 multitenancy_settings_dependency = Depends(get_multitenancy_settings)
 
 
-def get_tenant_id(settings: MultitenancySettings = multitenancy_settings_dependency) -> str:
+def get_tenant_id(
+    settings: MultitenancySettings = multitenancy_settings_dependency,
+) -> str:
     """
     Get the current tenant ID from the context.
 

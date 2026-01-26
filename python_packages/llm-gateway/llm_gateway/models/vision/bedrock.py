@@ -142,9 +142,9 @@ class BedrockVisionProvider(BaseVisionProvider):
             assert isinstance(config, dict), "Config must be a dictionary."
             assert "model" in config, "Model ID is required in the config."
             assert isinstance(config.get("model"), str), "Model ID must be a string."
-            assert isinstance(
-                config.get("max_tokens", 300), int
-            ), "Max tokens must be an integer."
+            assert isinstance(config.get("max_tokens", 300), int), (
+                "Max tokens must be an integer."
+            )
             return True
         except AssertionError as e:
             logging.error(f"Amazon Bedrock Vision Provider Validation Failed: {e}")

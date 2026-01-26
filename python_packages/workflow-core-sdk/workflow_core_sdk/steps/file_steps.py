@@ -61,7 +61,9 @@ async def file_reader_step(
         # Look for first attachment saved by the router under trigger_raw
         try:
             raw = execution_context.step_io_data.get("trigger_raw", {})
-            atts = raw.get("attachments") or raw.get("data", {}).get("attachments") or []
+            atts = (
+                raw.get("attachments") or raw.get("data", {}).get("attachments") or []
+            )
             if isinstance(atts, list) and atts:
                 first = atts[0] if isinstance(atts[0], dict) else None
                 candidate = first.get("path") if first else None
@@ -94,10 +96,15 @@ async def file_reader_step(
             parsed_data = {"content": content, "filename": file_path.name}
         elif file_extension in [".pdf", ".docx", ".doc", ".xlsx", ".xls"]:
             # Delegate to elevaite_ingestion parse pipeline; it reads package config for tool selection
-            md_path, structured = ingestion_parse_file(str(file_path), tempfile.gettempdir(), file_path.name)
+            md_path, structured = ingestion_parse_file(
+                str(file_path), tempfile.gettempdir(), file_path.name
+            )
             parsed_data = structured or {}
             if "paragraphs" in parsed_data:
-                content = "\n\n".join(p.get("paragraph_text", "") for p in parsed_data.get("paragraphs", []))
+                content = "\n\n".join(
+                    p.get("paragraph_text", "")
+                    for p in parsed_data.get("paragraphs", [])
+                )
             else:
                 content = parsed_data.get("content", "")
         else:
@@ -162,22 +169,34 @@ async def text_chunking_step(
             chunks = _simple_chunk_text(content, chunk_size, overlap)
         elif strategy == "semantic_chunking":
             # Use elevaite_ingestion semantic chunker (async)
-            module_name = "elevaite_ingestion.chunk_strategy.custom_chunking.semantic_chunk_v1"
+            module_name = (
+                "elevaite_ingestion.chunk_strategy.custom_chunking.semantic_chunk_v1"
+            )
             chunk_module = importlib.import_module(module_name)
             chunk_func = getattr(chunk_module, "chunk_text")
             params = {
                 **CHUNKER_CONFIG["available_chunkers"]["semantic_chunking"]["settings"],
             }
-            parsed_input = parsed or {"content": content, "filename": input_data.get("file_name", "unknown")}
+            parsed_input = parsed or {
+                "content": content,
+                "filename": input_data.get("file_name", "unknown"),
+            }
             # The semantic chunker expects PDF-style paragraphs; it may return empty for plain content
             if inspect.iscoroutinefunction(chunk_func):
                 chunk_objs = await chunk_func(parsed_input, params)
             else:
                 chunk_objs = chunk_func(parsed_input, params)
             # Normalize to list[str]
-            chunks = [c.get("chunk_text", "") for c in (chunk_objs or []) if isinstance(c, dict)]
+            chunks = [
+                c.get("chunk_text", "")
+                for c in (chunk_objs or [])
+                if isinstance(c, dict)
+            ]
         else:
-            return {"error": f"Unsupported chunking strategy: {strategy}", "success": False}
+            return {
+                "error": f"Unsupported chunking strategy: {strategy}",
+                "success": False,
+            }
 
         return {
             "chunks": chunks,
@@ -296,9 +315,13 @@ async def vector_storage_step(
         if storage_type == "in_memory":
             result = await _store_in_memory(embeddings, chunks, config)
         elif storage_type in {"qdrant", "chroma", "pinecone"}:
-            from elevaite_ingestion.stage.vectorstore_stage.local_store import store_embeddings
+            from elevaite_ingestion.stage.vectorstore_stage.local_store import (
+                store_embeddings,
+            )
 
-            filename = input_data.get("file_name") or input_data.get("filename") or "unknown"
+            filename = (
+                input_data.get("file_name") or input_data.get("filename") or "unknown"
+            )
 
             if storage_type == "qdrant":
                 settings = {
@@ -308,22 +331,32 @@ async def vector_storage_step(
                 }
             elif storage_type == "chroma":
                 settings = {
-                    "db_path": config.get("db_path", config.get("chroma_db_path", "data/chroma_db")),
+                    "db_path": config.get(
+                        "db_path", config.get("chroma_db_path", "data/chroma_db")
+                    ),
                     "collection_name": collection_name,
                 }
             else:  # pinecone
                 settings = {
-                    "api_key": config.get("api_key") or os.getenv("PINECONE_API_KEY", ""),
+                    "api_key": config.get("api_key")
+                    or os.getenv("PINECONE_API_KEY", ""),
                     "cloud": config.get("cloud", "aws"),
                     "region": config.get("region", "us-west-1"),
                     "index_name": config.get("index_name", collection_name),
-                    "dimension": config.get("dimension", len(embeddings[0]) if embeddings else 1536),
+                    "dimension": config.get(
+                        "dimension", len(embeddings[0]) if embeddings else 1536
+                    ),
                 }
 
-            result_info = store_embeddings(storage_type, settings, embeddings, chunks, filename)
+            result_info = store_embeddings(
+                storage_type, settings, embeddings, chunks, filename
+            )
             result = {**result_info}
         else:
-            return {"error": f"Unsupported storage_type: {storage_type}", "success": False}
+            return {
+                "error": f"Unsupported storage_type: {storage_type}",
+                "success": False,
+            }
 
         return {
             **result,
@@ -338,7 +371,9 @@ async def vector_storage_step(
         return {"error": str(e), "success": False}
 
 
-async def _store_in_memory(embeddings: List[List[float]], chunks: List[str], config: Dict[str, Any]) -> Dict[str, Any]:
+async def _store_in_memory(
+    embeddings: List[List[float]], chunks: List[str], config: Dict[str, Any]
+) -> Dict[str, Any]:
     """Store embeddings in memory (simulation)"""
     # This is just a simulation - in a real implementation,
     # you might store in a local database or file
@@ -393,7 +428,9 @@ async def vector_search_step(
         query = input_data.get("query") or input_data.get("current_message")
     if not query:
         try:
-            trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+            trig = execution_context.step_io_data.get(
+                "trigger"
+            ) or execution_context.step_io_data.get("trigger_raw")
             if isinstance(trig, dict):
                 query = trig.get("current_message")
         except Exception:

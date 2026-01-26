@@ -461,31 +461,15 @@ def seed_db(db: Session):
     ml_engineer_permissions.ENTITY_Project.ACTION_READ = "Allow"
     ml_engineer_permissions.ENTITY_Project.ACTION_CREATE = "Allow"
 
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ACTION_READ = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_READ = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_CREATE = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_UPDATE = (
-        "Allow"
-    )
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ACTION_READ = "Allow"
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_READ = "Allow"
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_CREATE = "Allow"
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_ingest.ENTITY_Configuration.ACTION_UPDATE = "Allow"
 
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ACTION_READ = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = (
-        "Allow"
-    )
-    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = (
-        "Allow"
-    )
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ACTION_READ = "Allow"
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_READ = "Allow"
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_CREATE = "Allow"
+    ml_engineer_permissions.ENTITY_Application.TYPENAMES_applicationType.TYPEVALUES_preprocess.ENTITY_Configuration.ACTION_UPDATE = "Allow"
 
     # # Create Roles
     data_scientist_role = models.Role(

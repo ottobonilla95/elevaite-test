@@ -43,6 +43,8 @@ async def seed_tenant_data(tenant_id: str, session: AsyncSession) -> None:
     try:
         results = await asyncio.to_thread(_seed_tenant_sync, schema_name)
         total = sum(results.values())
-        logger.info(f"Seeding completed for tenant '{tenant_id}': {total} entities created ({results})")
+        logger.info(
+            f"Seeding completed for tenant '{tenant_id}': {total} entities created ({results})"
+        )
     except Exception as e:
         logger.error(f"Failed to seed data for tenant '{tenant_id}': {e}")

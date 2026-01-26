@@ -17,13 +17,13 @@ except ImportError:
 def url_to_markdown(url: str) -> str:
     """
     Convert a webpage URL to Markdown format.
-    
+
     Fetches the webpage content and converts the HTML body to Markdown.
     Useful for extracting readable text content from web pages.
-    
+
     Args:
         url: The URL of the webpage to convert
-        
+
     Returns:
         str: The webpage content in Markdown format (truncated to 20000 chars)
              or an error message if the fetch fails
@@ -45,4 +45,3 @@ def url_to_markdown(url: str) -> str:
 
     except requests.RequestException as e:
         return f"Error fetching URL: {e}"
-

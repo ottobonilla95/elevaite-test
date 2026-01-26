@@ -10,7 +10,12 @@ from sqlmodel import Session as _SQLSession
 from dbos import DBOS
 from .steps import DBOSStepResult, dbos_execute_step_durable
 
-from ..streaming import stream_manager, create_status_event, create_step_event, create_error_event
+from ..streaming import (
+    stream_manager,
+    create_status_event,
+    create_step_event,
+    create_error_event,
+)
 from ..db.service import DatabaseService as _DBService
 from ..db.models import ExecutionStatus as _ExecStatus
 from . import get_dbos_adapter
@@ -42,10 +47,20 @@ def _persist_execution_status(
                 from db_core.utils import get_schema_name
 
                 schema = get_schema_name(tenant_id, multitenancy_settings)
-                session.connection().execute(text(f'SET search_path TO "{schema}", public'))
+                session.connection().execute(
+                    text(f'SET search_path TO "{schema}", public')
+                )
 
-            completed_count = sum(1 for sr in step_results.values() if isinstance(sr, dict) and sr.get("success") is True)
-            failed_count = sum(1 for sr in step_results.values() if isinstance(sr, dict) and sr.get("success") is False)
+            completed_count = sum(
+                1
+                for sr in step_results.values()
+                if isinstance(sr, dict) and sr.get("success") is True
+            )
+            failed_count = sum(
+                1
+                for sr in step_results.values()
+                if isinstance(sr, dict) and sr.get("success") is False
+            )
             step_io_data = {
                 sid: sres["output_data"]
                 for sid, sres in step_results.items()
@@ -55,7 +70,10 @@ def _persist_execution_status(
             update_payload: Dict[str, Any] = {
                 "status": status,
                 "step_io_data": step_io_data,
-                "output_data": {"success": status == _ExecStatus.COMPLETED.value, "error": error_message},
+                "output_data": {
+                    "success": status == _ExecStatus.COMPLETED.value,
+                    "error": error_message,
+                },
                 "execution_metadata": {
                     "backend": "dbos",
                     "summary": {
@@ -72,11 +90,15 @@ def _persist_execution_status(
                 update_payload["completed_at"] = datetime.now().isoformat() + "Z"
 
             _dbs.update_execution(session, execution_id, update_payload)
-            logger.info(f"DBOS status persisted: exec={execution_id} status={status} tenant={tenant_id}")
+            logger.info(
+                f"DBOS status persisted: exec={execution_id} status={status} tenant={tenant_id}"
+            )
         finally:
             session.close()
     except Exception as e:
-        logger.warning(f"Failed to persist DBOS status for {execution_id}: {e}", exc_info=True)
+        logger.warning(
+            f"Failed to persist DBOS status for {execution_id}: {e}", exc_info=True
+        )
 
 
 def _topological_sort_steps(steps: list) -> list:
@@ -189,14 +211,18 @@ async def dbos_execute_workflow_durable(
             details = _dbs.get_execution(_s, execution_id)
             if not details:
                 # Create placeholder and rekey so router can find it
-                logger.warning(f"Execution {execution_id} not found at start; creating placeholder to persist DBOS wf_id")
+                logger.warning(
+                    f"Execution {execution_id} not found at start; creating placeholder to persist DBOS wf_id"
+                )
                 ent = _dbs.create_execution_entity(
                     _s,
                     {
                         "workflow_id": workflow_id,
                         "user_id": (user_context_data or {}).get("user_id"),
                         "session_id": (user_context_data or {}).get("session_id"),
-                        "organization_id": (user_context_data or {}).get("organization_id"),
+                        "organization_id": (user_context_data or {}).get(
+                            "organization_id"
+                        ),
                         "metadata": {"dbos_workflow_id": dbos_wfid},
                     },
                 )
@@ -210,14 +236,18 @@ async def dbos_execute_workflow_durable(
             # Add dbos_workflow_id to execution_context_data so steps can access it
             execution_context_data["metadata"]["dbos_workflow_id"] = dbos_wfid
 
-            logger.info(f"DBOS workflow_id recorded at start: exec={execution_id} wf_id={dbos_wfid}")
+            logger.info(
+                f"DBOS workflow_id recorded at start: exec={execution_id} wf_id={dbos_wfid}"
+            )
         finally:
             try:
                 _s.close()
             except Exception:
                 pass
     except Exception as _rec_err:
-        logger.warning(f"Failed to record DBOS wf_id for exec={execution_id}: {_rec_err}")
+        logger.warning(
+            f"Failed to record DBOS wf_id for exec={execution_id}: {_rec_err}"
+        )
 
     steps = workflow_config.get("steps", [])
 
@@ -228,7 +258,9 @@ async def dbos_execute_workflow_durable(
         # Emit error event
         try:
             error_event = create_error_event(
-                execution_id=execution_id, error_message="No steps defined in workflow", workflow_id=workflow_id
+                execution_id=execution_id,
+                error_message="No steps defined in workflow",
+                workflow_id=workflow_id,
             )
             await stream_manager.emit_execution_event(error_event)
             await stream_manager.emit_workflow_event(error_event)
@@ -249,7 +281,11 @@ async def dbos_execute_workflow_durable(
             data.update(step_input)
 
         # Process input_mapping to resolve paths like "input-node.data.raw_copy"
-        input_mapping = step.get("input_mapping") or step.get("config", {}).get("input_mapping") or {}
+        input_mapping = (
+            step.get("input_mapping")
+            or step.get("config", {}).get("input_mapping")
+            or {}
+        )
         step_io_data = execution_context_data.get("step_io_data", {})
         for input_key, source_spec in input_mapping.items():
             if isinstance(source_spec, str) and "." in source_spec:
@@ -308,7 +344,9 @@ async def dbos_execute_workflow_durable(
                 try:
                     # Fetch current metadata and merge current_step into it
                     _exec_row = _sess_current.exec(
-                        _sel_current(_WECurrent).where(_WECurrent.id == _uuid_current.UUID(execution_id))
+                        _sel_current(_WECurrent).where(
+                            _WECurrent.id == _uuid_current.UUID(execution_id)
+                        )
                     ).first()
                     if _exec_row:
                         _meta = dict(_exec_row.execution_metadata or {})
@@ -321,7 +359,9 @@ async def dbos_execute_workflow_durable(
                 finally:
                     _sess_current.close()
             except Exception as _curr_err:
-                adapter.logger.warning(f"Failed to persist current_step for {execution_id}: {_curr_err}")
+                adapter.logger.warning(
+                    f"Failed to persist current_step for {execution_id}: {_curr_err}"
+                )
             try:
                 res = await dbos_execute_step_durable(
                     step_type=step_type,
@@ -338,7 +378,10 @@ async def dbos_execute_workflow_durable(
                 # Emit step completion event
                 try:
                     # Prefer explicit status from step result; fallback to success flag
-                    step_status = (res.get("status") or ("completed" if res.get("success") else "failed")).lower()
+                    step_status = (
+                        res.get("status")
+                        or ("completed" if res.get("success") else "failed")
+                    ).lower()
                     step_event = create_step_event(
                         execution_id=execution_id,
                         step_id=step_id,
@@ -368,7 +411,9 @@ async def dbos_execute_workflow_durable(
                         try:
                             # Fetch current metadata and clear current_step
                             _exec_row_p = _sess_persist.exec(
-                                _sel_persist(_WEPersist).where(_WEPersist.id == _uuid_persist.UUID(execution_id))
+                                _sel_persist(_WEPersist).where(
+                                    _WEPersist.id == _uuid_persist.UUID(execution_id)
+                                )
                             ).first()
                             _meta_p = {}
                             if _exec_row_p:
@@ -378,20 +423,28 @@ async def dbos_execute_workflow_durable(
                                 _sess_persist,
                                 execution_id,
                                 {
-                                    "step_io_data": execution_context_data["step_io_data"],
+                                    "step_io_data": execution_context_data[
+                                        "step_io_data"
+                                    ],
                                     "execution_metadata": _meta_p,
                                 },
                             )
                         finally:
                             _sess_persist.close()
                     except Exception as _persist_err:
-                        adapter.logger.warning(f"Failed to persist step progress for {execution_id}: {_persist_err}")
+                        adapter.logger.warning(
+                            f"Failed to persist step progress for {execution_id}: {_persist_err}"
+                        )
                     break
 
                 # Not success -> either waiting or failed
                 status_lower = str(res.get("status") or "").lower()
-                adapter.logger.info(f"Step {step_id} returned status: {status_lower}, success: {res.get('success')}")
-                adapter.logger.info(f"DEBUG: Checking status_lower='{status_lower}' against 'waiting', 'ingesting', etc.")
+                adapter.logger.info(
+                    f"Step {step_id} returned status: {status_lower}, success: {res.get('success')}"
+                )
+                adapter.logger.info(
+                    f"DEBUG: Checking status_lower='{status_lower}' against 'waiting', 'ingesting', etc."
+                )
                 if status_lower == "waiting":
                     # Emit explicit status=waiting so clients/DB reflect paused state
                     try:
@@ -422,7 +475,9 @@ async def dbos_execute_workflow_durable(
                     try:
                         from ..db.service import DatabaseService
                         from ..db.database import get_db_session
-                        from ..db.models.executions import ExecutionStatus as DBExecStatus
+                        from ..db.models.executions import (
+                            ExecutionStatus as DBExecStatus,
+                        )
 
                         _dbs = DatabaseService()
                         _sess0 = get_db_session()
@@ -439,11 +494,17 @@ async def dbos_execute_workflow_durable(
                                 create_payload = {
                                     "workflow_id": workflow_id,
                                     "user_id": (user_context_data or {}).get("user_id"),
-                                    "session_id": (user_context_data or {}).get("session_id"),
-                                    "organization_id": (user_context_data or {}).get("organization_id"),
+                                    "session_id": (user_context_data or {}).get(
+                                        "session_id"
+                                    ),
+                                    "organization_id": (user_context_data or {}).get(
+                                        "organization_id"
+                                    ),
                                     "metadata": {"dbos_workflow_id": dbos_wfid},
                                 }
-                                ent = _dbs.create_execution_entity(_sess0, create_payload)
+                                ent = _dbs.create_execution_entity(
+                                    _sess0, create_payload
+                                )
                                 _dbs.rekey_execution(_sess0, str(ent.id), execution_id)
                                 details = _dbs.get_execution(_sess0, execution_id) or {}
 
@@ -458,7 +519,9 @@ async def dbos_execute_workflow_durable(
                                 },
                             )
                             if not ok:
-                                logger.error(f"Failed to update execution {execution_id} with DBOS WAITING metadata")
+                                logger.error(
+                                    f"Failed to update execution {execution_id} with DBOS WAITING metadata"
+                                )
                             # Read-back to confirm persistence for debugging
                             details2 = _dbs.get_execution(_sess0, execution_id) or {}
                             meta2 = details2.get("metadata") or {}
@@ -471,7 +534,9 @@ async def dbos_execute_workflow_durable(
                             except Exception:
                                 pass
                     except Exception as persist_err:
-                        logger.error(f"Error persisting DBOS WAITING state for exec={execution_id}: {persist_err}")
+                        logger.error(
+                            f"Error persisting DBOS WAITING state for exec={execution_id}: {persist_err}"
+                        )
 
                     # Block on DBOS event instead of polling so the workflow truly WAITs under DBOS
                     try:
@@ -481,13 +546,21 @@ async def dbos_execute_workflow_durable(
                         # Block on DBOS event scoped to this workflow; long timeout with retry keeps it WAITING
                         payload = None
                         wid = cast(str, _DBOS.workflow_id)
-                        adapter.logger.info(f"DBOS waiting: exec={execution_id} wf_id={wid} step={step_id} key={decision_key}")
+                        adapter.logger.info(
+                            f"DBOS waiting: exec={execution_id} wf_id={wid} step={step_id} key={decision_key}"
+                        )
                         while payload is None:
-                            payload = await _DBOS.recv_async(topic=decision_key, timeout_seconds=3600)
-                        adapter.logger.info(f"DBOS event received for step={step_id} execution={execution_id}: {bool(payload)}")
+                            payload = await _DBOS.recv_async(
+                                topic=decision_key, timeout_seconds=3600
+                            )
+                        adapter.logger.info(
+                            f"DBOS event received for step={step_id} execution={execution_id}: {bool(payload)}"
+                        )
                     except Exception as _ev_err:
                         # If waiting fails, return waiting state (caller can decide next action)
-                        adapter.logger.warning(f"DBOS get_event_async failed: {_ev_err}; retrying in 1s")
+                        adapter.logger.warning(
+                            f"DBOS get_event_async failed: {_ev_err}; retrying in 1s"
+                        )
                         import asyncio as _asyncio
 
                         await _asyncio.sleep(1)
@@ -516,7 +589,9 @@ async def dbos_execute_workflow_durable(
                     # This allows cross-service communication without shared DBOS database
                     import asyncio as _asyncio
 
-                    adapter.logger.info(f"Polling for ingestion completion: exec={execution_id} step={step_id}")
+                    adapter.logger.info(
+                        f"Polling for ingestion completion: exec={execution_id} step={step_id}"
+                    )
 
                     # Sleep for a short time before re-checking (durable sleep)
                     from dbos import DBOS as _DBOS
@@ -580,7 +655,13 @@ async def dbos_execute_workflow_durable(
 
     # Persist final status to database (for async workflows with wait=False)
     tenant_id = (user_context_data or {}).get("tenant_id")
-    _persist_execution_status(execution_id, _ExecStatus.COMPLETED.value, steps, step_results, tenant_id=tenant_id)
+    _persist_execution_status(
+        execution_id,
+        _ExecStatus.COMPLETED.value,
+        steps,
+        step_results,
+        tenant_id=tenant_id,
+    )
 
     return {
         "success": True,
@@ -633,7 +714,9 @@ async def execute_and_persist_dbos_result(
             db_service.rekey_execution(session, execution_id, dbos_exec_id)
             execution_id = dbos_exec_id
         except Exception as e:
-            logger.warning(f"Rekeying execution {execution_id} to {dbos_exec_id} failed: {e}")
+            logger.warning(
+                f"Rekeying execution {execution_id} to {dbos_exec_id} failed: {e}"
+            )
 
     # Map adapter result into execution record
     success_val = result.get("success")
@@ -676,7 +759,9 @@ async def execute_and_persist_dbos_result(
     start_iso = None
     try:
         created_pre = db_service.get_execution(session, execution_id)
-        start_iso = created_pre.get("started_at") if isinstance(created_pre, dict) else None
+        start_iso = (
+            created_pre.get("started_at") if isinstance(created_pre, dict) else None
+        )
     except Exception:
         start_iso = None
     exec_secs = None

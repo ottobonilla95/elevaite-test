@@ -11,7 +11,12 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from fastapi import Depends
 
-from db_core import TenantRegistry, register_tenant_initializer, create_tenant_admin_router, get_tenant_cache
+from db_core import (
+    TenantRegistry,
+    register_tenant_initializer,
+    create_tenant_admin_router,
+    get_tenant_cache,
+)
 from db_core.utils import get_schema_name
 from workflow_core_sdk.multitenancy import multitenancy_settings, DEFAULT_TENANTS
 from workflow_core_sdk.db.database import DATABASE_URL
@@ -39,7 +44,9 @@ def _ensure_async_engine():
     global _async_engine, _async_session_factory
     if _async_engine is None:
         _async_engine = create_async_engine(_get_async_db_url(), echo=False)
-        _async_session_factory = async_sessionmaker(_async_engine, class_=AsyncSession, expire_on_commit=False)
+        _async_session_factory = async_sessionmaker(
+            _async_engine, class_=AsyncSession, expire_on_commit=False
+        )
 
 
 async def get_admin_session() -> AsyncGenerator[AsyncSession, None]:
@@ -59,7 +66,9 @@ def get_tenant_registry() -> TenantRegistry:
 async def init_workflow_tables(tenant_id: str, session: AsyncSession) -> None:
     """Create workflow tables in new tenant's schema using Alembic migrations."""
     schema_name = get_schema_name(tenant_id, multitenancy_settings)
-    logger.info(f"Running Alembic migrations for tenant '{tenant_id}' in schema '{schema_name}'")
+    logger.info(
+        f"Running Alembic migrations for tenant '{tenant_id}' in schema '{schema_name}'"
+    )
 
     # Run Alembic migrations in a thread pool since it uses sync database operations
     await asyncio.to_thread(run_migrations_for_tenant, schema_name, DATABASE_URL)

@@ -61,9 +61,9 @@ class GeminiEmbeddingProvider(BaseEmbeddingProvider):
 
             # Test embedding to ensure connectivity
             test_embedding = self._embed_document("Test connectivity", info.name)
-            assert (
-                len(test_embedding) > 0
-            ), "Embedding generation failed during validation"
+            assert len(test_embedding) > 0, (
+                "Embedding generation failed during validation"
+            )
 
             return True
         except AssertionError as e:

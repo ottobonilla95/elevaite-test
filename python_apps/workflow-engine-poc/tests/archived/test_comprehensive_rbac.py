@@ -77,11 +77,17 @@ async def test_endpoint(
     if method.upper() == "GET":
         response = await client.get(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers)
     elif method.upper() == "POST":
-        response = await client.post(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers, json=data)
+        response = await client.post(
+            f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers, json=data
+        )
     elif method.upper() == "PUT":
-        response = await client.put(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers, json=data)
+        response = await client.put(
+            f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers, json=data
+        )
     elif method.upper() == "DELETE":
-        response = await client.delete(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers)
+        response = await client.delete(
+            f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers
+        )
     else:
         raise ValueError(f"Unsupported method: {method}")
 
@@ -122,7 +128,9 @@ async def create_test_users(conn):
 
     for email, role in users:
         # Check if user exists
-        user = await conn.fetchrow(f'SELECT id FROM "{AUTH_SCHEMA}".users WHERE email = $1', email)
+        user = await conn.fetchrow(
+            f'SELECT id FROM "{AUTH_SCHEMA}".users WHERE email = $1', email
+        )
 
         if user:
             user_id = user["id"]
@@ -174,10 +182,26 @@ async def test_authentication(client: httpx.AsyncClient):
     print("\n📝 Testing Authentication Requirements...")
 
     # No token
-    await test_endpoint(client, "GET", "/workflows/", None, None, 401, description="No authentication (should deny)")
+    await test_endpoint(
+        client,
+        "GET",
+        "/workflows/",
+        None,
+        None,
+        401,
+        description="No authentication (should deny)",
+    )
 
     # Invalid token (returns 403 because RBAC check happens after token validation)
-    await test_endpoint(client, "GET", "/workflows/", "invalid-token", 1, 403, description="Invalid token (should deny)")
+    await test_endpoint(
+        client,
+        "GET",
+        "/workflows/",
+        "invalid-token",
+        1,
+        403,
+        description="Invalid token (should deny)",
+    )
 
     # Expired token (returns 403 because RBAC check happens after token validation)
     expired_payload = {
@@ -187,50 +211,128 @@ async def test_authentication(client: httpx.AsyncClient):
         "iat": datetime.utcnow() - timedelta(hours=2),
     }
     expired_token = jwt.encode(expired_payload, SECRET_KEY, algorithm="HS256")
-    await test_endpoint(client, "GET", "/workflows/", expired_token, 1, 403, description="Expired token (should deny)")
+    await test_endpoint(
+        client,
+        "GET",
+        "/workflows/",
+        expired_token,
+        1,
+        403,
+        description="Expired token (should deny)",
+    )
 
 
-async def test_viewer_permissions(client: httpx.AsyncClient, viewer_id: int, viewer_token: str):
+async def test_viewer_permissions(
+    client: httpx.AsyncClient, viewer_id: int, viewer_token: str
+):
     """Test viewer role permissions (read-only)."""
     print("\n📝 Testing VIEWER Role Permissions...")
 
     # Should be able to read all resources
     print("\n   Read operations (should allow):")
-    await test_endpoint(client, "GET", "/workflows/", viewer_token, viewer_id, 200, description="List workflows")
-    await test_endpoint(client, "GET", "/agents/", viewer_token, viewer_id, 200, description="List agents")
-    await test_endpoint(client, "GET", "/tools/", viewer_token, viewer_id, 200, description="List tools")
-    await test_endpoint(client, "GET", "/prompts/", viewer_token, viewer_id, 200, description="List prompts")
-    await test_endpoint(client, "GET", "/steps/", viewer_token, viewer_id, 200, description="List steps")
+    await test_endpoint(
+        client,
+        "GET",
+        "/workflows/",
+        viewer_token,
+        viewer_id,
+        200,
+        description="List workflows",
+    )
+    await test_endpoint(
+        client,
+        "GET",
+        "/agents/",
+        viewer_token,
+        viewer_id,
+        200,
+        description="List agents",
+    )
+    await test_endpoint(
+        client, "GET", "/tools/", viewer_token, viewer_id, 200, description="List tools"
+    )
+    await test_endpoint(
+        client,
+        "GET",
+        "/prompts/",
+        viewer_token,
+        viewer_id,
+        200,
+        description="List prompts",
+    )
+    await test_endpoint(
+        client, "GET", "/steps/", viewer_token, viewer_id, 200, description="List steps"
+    )
 
     # Should NOT be able to create
     print("\n   Create operations (should deny):")
     workflow_data = {"name": "Test", "description": "Test", "steps": []}
     await test_endpoint(
-        client, "POST", "/workflows/", viewer_token, viewer_id, 403, data=workflow_data, description="Create workflow"
+        client,
+        "POST",
+        "/workflows/",
+        viewer_token,
+        viewer_id,
+        403,
+        data=workflow_data,
+        description="Create workflow",
     )
 
     agent_data = {"name": "Test", "description": "Test", "agent_type": "openai"}
-    await test_endpoint(client, "POST", "/agents/", viewer_token, viewer_id, 403, data=agent_data, description="Create agent")
+    await test_endpoint(
+        client,
+        "POST",
+        "/agents/",
+        viewer_token,
+        viewer_id,
+        403,
+        data=agent_data,
+        description="Create agent",
+    )
 
     prompt_data = {"name": "Test", "content": "Test"}
     await test_endpoint(
-        client, "POST", "/prompts/", viewer_token, viewer_id, 403, data=prompt_data, description="Create prompt"
+        client,
+        "POST",
+        "/prompts/",
+        viewer_token,
+        viewer_id,
+        403,
+        data=prompt_data,
+        description="Create prompt",
     )
 
 
-async def test_editor_permissions(client: httpx.AsyncClient, editor_id: int, editor_token: str):
+async def test_editor_permissions(
+    client: httpx.AsyncClient, editor_id: int, editor_token: str
+):
     """Test editor role permissions (read + create + update)."""
     print("\n📝 Testing EDITOR Role Permissions...")
 
     # Should be able to read
     print("\n   Read operations (should allow):")
-    await test_endpoint(client, "GET", "/workflows/", editor_token, editor_id, 200, description="List workflows")
+    await test_endpoint(
+        client,
+        "GET",
+        "/workflows/",
+        editor_token,
+        editor_id,
+        200,
+        description="List workflows",
+    )
 
     # Should be able to create
     print("\n   Create operations (should allow):")
     workflow_data = {"name": "Editor Test Workflow", "description": "Test", "steps": []}
     success, response_data = await test_endpoint(
-        client, "POST", "/workflows/", editor_token, editor_id, 200, data=workflow_data, description="Create workflow"
+        client,
+        "POST",
+        "/workflows/",
+        editor_token,
+        editor_id,
+        200,
+        data=workflow_data,
+        description="Create workflow",
     )
     workflow_id = response_data.get("id") if success else None
 
@@ -250,25 +352,51 @@ async def test_editor_permissions(client: httpx.AsyncClient, editor_id: int, edi
         # Should NOT be able to delete
         print("\n   Delete operations (should deny):")
         await test_endpoint(
-            client, "DELETE", f"/workflows/{workflow_id}", editor_token, editor_id, 403, description="Delete workflow"
+            client,
+            "DELETE",
+            f"/workflows/{workflow_id}",
+            editor_token,
+            editor_id,
+            403,
+            description="Delete workflow",
         )
 
     return workflow_id
 
 
-async def test_admin_permissions(client: httpx.AsyncClient, admin_id: int, admin_token: str, editor_workflow_id: Optional[str]):
+async def test_admin_permissions(
+    client: httpx.AsyncClient,
+    admin_id: int,
+    admin_token: str,
+    editor_workflow_id: Optional[str],
+):
     """Test admin role permissions (full access)."""
     print("\n📝 Testing ADMIN Role Permissions...")
 
     # Should be able to read
     print("\n   Read operations (should allow):")
-    await test_endpoint(client, "GET", "/workflows/", admin_token, admin_id, 200, description="List workflows")
+    await test_endpoint(
+        client,
+        "GET",
+        "/workflows/",
+        admin_token,
+        admin_id,
+        200,
+        description="List workflows",
+    )
 
     # Should be able to create
     print("\n   Create operations (should allow):")
     workflow_data = {"name": "Admin Test Workflow", "description": "Test", "steps": []}
     success, response_data = await test_endpoint(
-        client, "POST", "/workflows/", admin_token, admin_id, 200, data=workflow_data, description="Create workflow"
+        client,
+        "POST",
+        "/workflows/",
+        admin_token,
+        admin_id,
+        200,
+        data=workflow_data,
+        description="Create workflow",
     )
     workflow_id = response_data.get("id") if success else None
 
@@ -288,7 +416,13 @@ async def test_admin_permissions(client: httpx.AsyncClient, admin_id: int, admin
         # Should be able to delete
         print("\n   Delete operations (should allow):")
         await test_endpoint(
-            client, "DELETE", f"/workflows/{workflow_id}", admin_token, admin_id, 200, description="Delete workflow"
+            client,
+            "DELETE",
+            f"/workflows/{workflow_id}",
+            admin_token,
+            admin_id,
+            200,
+            description="Delete workflow",
         )
 
     # Clean up editor's workflow
@@ -339,8 +473,12 @@ async def main():
         async with httpx.AsyncClient() as client:
             await test_authentication(client)
             await test_viewer_permissions(client, user_ids["viewer"], viewer_token)
-            editor_workflow_id = await test_editor_permissions(client, user_ids["editor"], editor_token)
-            await test_admin_permissions(client, user_ids["admin"], admin_token, editor_workflow_id)
+            editor_workflow_id = await test_editor_permissions(
+                client, user_ids["editor"], editor_token
+            )
+            await test_admin_permissions(
+                client, user_ids["admin"], admin_token, editor_workflow_id
+            )
 
         print("\n" + "=" * 60)
         print("All Tests Complete!")

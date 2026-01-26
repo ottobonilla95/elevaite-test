@@ -203,7 +203,11 @@ class TestAsyncClientConcurrency:
                 check_access_async(
                     user_id=i,
                     action="view_project",
-                    resource={"type": "project", "id": f"proj{i}", "organization_id": "org1"},
+                    resource={
+                        "type": "project",
+                        "id": f"proj{i}",
+                        "organization_id": "org1",
+                    },
                 )
                 for i in range(50)
             ]
@@ -237,7 +241,11 @@ class TestAsyncClientConcurrency:
                 check_access_async(
                     user_id=i,
                     action="view_project",
-                    resource={"type": "project", "id": f"proj{i}", "organization_id": "org1"},
+                    resource={
+                        "type": "project",
+                        "id": f"proj{i}",
+                        "organization_id": "org1",
+                    },
                     timeout=0.1,  # Very short timeout
                 )
                 for i in range(10)

@@ -188,4 +188,3 @@ async def test_ingestion_step_idempotency(mock_stream, mock_http_client):
 
     # Should still only have 1 POST call (job creation)
     assert mock_client_instance.post.call_count == 1
-

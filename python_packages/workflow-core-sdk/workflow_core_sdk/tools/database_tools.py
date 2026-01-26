@@ -208,7 +208,9 @@ def postgres_query(
             return f"Mock data not available for table '{table}'"
 
     elif query_type == "insert":
-        return f"Successfully inserted new record into '{table}' table with data: {data}"
+        return (
+            f"Successfully inserted new record into '{table}' table with data: {data}"
+        )
 
     elif query_type == "update":
         return f"Successfully updated records in '{table}' table where {conditions} with data: {data}"
@@ -252,37 +254,42 @@ def sql_database(query: str, database: str = "default") -> str:
     query_lower = query.lower().strip()
 
     if query_lower.startswith("select"):
-        return json.dumps({
-            "success": True,
-            "rows": [
-                {"id": 1, "name": "Campaign A", "budget": 25000},
-                {"id": 2, "name": "Campaign B", "budget": 30000}
-            ],
-            "count": 2
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "rows": [
+                    {"id": 1, "name": "Campaign A", "budget": 25000},
+                    {"id": 2, "name": "Campaign B", "budget": 30000},
+                ],
+                "count": 2,
+            }
+        )
     elif query_lower.startswith("insert"):
-        return json.dumps({
-            "success": True,
-            "message": "Record inserted successfully",
-            "rows_affected": 1
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "message": "Record inserted successfully",
+                "rows_affected": 1,
+            }
+        )
     elif query_lower.startswith("update"):
-        return json.dumps({
-            "success": True,
-            "message": "Records updated successfully",
-            "rows_affected": 1
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "message": "Records updated successfully",
+                "rows_affected": 1,
+            }
+        )
     elif query_lower.startswith("delete"):
-        return json.dumps({
-            "success": True,
-            "message": "Records deleted successfully",
-            "rows_affected": 1
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "message": "Records deleted successfully",
+                "rows_affected": 1,
+            }
+        )
     else:
-        return json.dumps({
-            "success": False,
-            "error": "Unsupported SQL operation"
-        })
+        return json.dumps({"success": False, "error": "Unsupported SQL operation"})
 
 
 # Export store and schemas for aggregation in basic_tools
@@ -292,5 +299,6 @@ DATABASE_TOOL_STORE = {
     "sql_database": sql_database,
 }
 
-DATABASE_TOOL_SCHEMAS = {name: func.openai_schema for name, func in DATABASE_TOOL_STORE.items()}
-
+DATABASE_TOOL_SCHEMAS = {
+    name: func.openai_schema for name, func in DATABASE_TOOL_STORE.items()
+}

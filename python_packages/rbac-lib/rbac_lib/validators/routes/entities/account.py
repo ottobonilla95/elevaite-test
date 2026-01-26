@@ -61,7 +61,6 @@ async def validate_patch_account(
 ) -> dict[str, Any]:
     db: Session = request.state.db
     try:
-
         account = (
             db.query(models.Account).filter(models.Account.id == account_id).first()
         )

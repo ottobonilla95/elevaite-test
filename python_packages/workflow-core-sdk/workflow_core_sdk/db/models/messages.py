@@ -24,7 +24,9 @@ class AgentMessage(SQLModel, table=True):
     # Message content
     role: str = Field(max_length=50, description="Message role: user/assistant/system")
     content: str = Field(sa_column=Column(Text), description="Message content")
-    message_metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    message_metadata: Optional[Dict[str, Any]] = Field(
+        default=None, sa_column=Column(JSON)
+    )
 
     # User/session context
     user_id: Optional[str] = Field(default=None, max_length=255)

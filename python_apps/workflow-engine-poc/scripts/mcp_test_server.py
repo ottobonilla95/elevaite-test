@@ -162,7 +162,6 @@ def to_uppercase(text: str) -> str:
 
 
 if __name__ == "__main__":
-
     print("🚀 Starting FastMCP Test Server...")
     print("📍 Server will be available at: http://localhost:8765")
     print("🔧 Available tools:")

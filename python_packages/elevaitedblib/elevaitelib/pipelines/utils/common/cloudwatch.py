@@ -378,7 +378,9 @@ def monitor_pipeline(
                     status_symbol = (
                         "✅"
                         if step_status == "Succeeded"
-                        else "❌" if step_status == "Failed" else "⏳"
+                        else "❌"
+                        if step_status == "Failed"
+                        else "⏳"
                     )
                     log_message(
                         f"{status_symbol} Step '{step_name}' - Status: {step_status}"

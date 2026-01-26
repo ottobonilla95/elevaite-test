@@ -79,7 +79,11 @@ def test_interactive_multi_agent_api(authenticated_client: TestClient):
     # Send user message to agent_1
     resp = authenticated_client.post(
         f"/executions/{execution_id}/steps/agent_1/messages",
-        json={"role": "user", "content": "Research AI trends in healthcare", "metadata": {}},
+        json={
+            "role": "user",
+            "content": "Research AI trends in healthcare",
+            "metadata": {},
+        },
     )
     assert resp.status_code == 200
     time.sleep(1)
@@ -87,7 +91,11 @@ def test_interactive_multi_agent_api(authenticated_client: TestClient):
     # Send final turn to complete agent_1
     resp = authenticated_client.post(
         f"/executions/{execution_id}/steps/agent_1/messages",
-        json={"role": "user", "content": "That's enough, proceed.", "metadata": {"final_turn": True}},
+        json={
+            "role": "user",
+            "content": "That's enough, proceed.",
+            "metadata": {"final_turn": True},
+        },
     )
     assert resp.status_code == 200
 
@@ -115,9 +123,13 @@ def test_interactive_multi_agent_api(authenticated_client: TestClient):
             break
         time.sleep(1)
 
-    assert last_status and last_status.get("status") == "completed", f"Execution did not complete: {last_status}"
+    assert last_status and last_status.get("status") == "completed", (
+        f"Execution did not complete: {last_status}"
+    )
 
-    resp = authenticated_client.get(f"/executions/{execution_id}/steps/agent_1/messages")
+    resp = authenticated_client.get(
+        f"/executions/{execution_id}/steps/agent_1/messages"
+    )
     assert resp.status_code == 200
     msgs = resp.json()
     assert len(msgs) >= 2

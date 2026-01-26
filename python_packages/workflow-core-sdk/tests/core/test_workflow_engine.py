@@ -174,15 +174,25 @@ class TestParallelExecution:
         assert "step4" in result_context.step_results
 
     @pytest.mark.asyncio
-    async def test_parallel_execution_detects_circular_dependencies(self, workflow_engine):
+    async def test_parallel_execution_detects_circular_dependencies(
+        self, workflow_engine
+    ):
         """Test parallel execution detects circular dependencies"""
         workflow_config = {
             "workflow_id": "test-workflow",
             "name": "Test Circular Dependencies",
             "execution_pattern": "parallel",
             "steps": [
-                {"step_id": "step1", "step_type": "data_input", "dependencies": ["step2"]},
-                {"step_id": "step2", "step_type": "data_processing", "dependencies": ["step1"]},
+                {
+                    "step_id": "step1",
+                    "step_type": "data_input",
+                    "dependencies": ["step2"],
+                },
+                {
+                    "step_id": "step2",
+                    "step_type": "data_processing",
+                    "dependencies": ["step1"],
+                },
             ],
         }
 
@@ -207,8 +217,16 @@ class TestDependencyBasedExecution:
             "execution_pattern": "dependency",
             "steps": [
                 {"step_id": "step1", "step_type": "data_input"},
-                {"step_id": "step2", "step_type": "data_processing", "dependencies": ["step1"]},
-                {"step_id": "step3", "step_type": "data_processing", "dependencies": ["step2"]},
+                {
+                    "step_id": "step2",
+                    "step_type": "data_processing",
+                    "dependencies": ["step1"],
+                },
+                {
+                    "step_id": "step3",
+                    "step_type": "data_processing",
+                    "dependencies": ["step2"],
+                },
             ],
         }
 
@@ -228,9 +246,21 @@ class TestDependencyBasedExecution:
             "steps": [
                 {"step_id": "step1", "step_type": "data_input"},
                 {"step_id": "step2", "step_type": "data_input"},
-                {"step_id": "step3", "step_type": "data_processing", "dependencies": ["step1"]},
-                {"step_id": "step4", "step_type": "data_processing", "dependencies": ["step2"]},
-                {"step_id": "step5", "step_type": "data_merge", "dependencies": ["step3", "step4"]},
+                {
+                    "step_id": "step3",
+                    "step_type": "data_processing",
+                    "dependencies": ["step1"],
+                },
+                {
+                    "step_id": "step4",
+                    "step_type": "data_processing",
+                    "dependencies": ["step2"],
+                },
+                {
+                    "step_id": "step5",
+                    "step_type": "data_merge",
+                    "dependencies": ["step3", "step4"],
+                },
             ],
         }
 
@@ -248,8 +278,16 @@ class TestDependencyBasedExecution:
             "name": "Test Stuck Workflow",
             "execution_pattern": "dependency",
             "steps": [
-                {"step_id": "step1", "step_type": "data_input", "dependencies": ["step2"]},
-                {"step_id": "step2", "step_type": "data_processing", "dependencies": ["step1"]},
+                {
+                    "step_id": "step1",
+                    "step_type": "data_input",
+                    "dependencies": ["step2"],
+                },
+                {
+                    "step_id": "step2",
+                    "step_type": "data_processing",
+                    "dependencies": ["step1"],
+                },
             ],
         }
 
@@ -273,7 +311,11 @@ class TestConditionalExecution:
             "execution_pattern": "conditional",
             "steps": [
                 {"step_id": "step1", "step_type": "data_input"},
-                {"step_id": "step2", "step_type": "data_processing", "dependencies": ["step1"]},
+                {
+                    "step_id": "step2",
+                    "step_type": "data_processing",
+                    "dependencies": ["step1"],
+                },
             ],
         }
 
@@ -481,7 +523,11 @@ class TestDefaultExecutionPattern:
             # No execution_pattern specified
             "steps": [
                 {"step_id": "step1", "step_type": "data_input"},
-                {"step_id": "step2", "step_type": "data_processing", "dependencies": ["step1"]},
+                {
+                    "step_id": "step2",
+                    "step_type": "data_processing",
+                    "dependencies": ["step1"],
+                },
             ],
         }
 

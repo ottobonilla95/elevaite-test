@@ -149,6 +149,7 @@
 from unstructured.partition.pdf import partition_pdf
 import os
 
+
 def parse_pdf_with_unstructured(pdf_path, output_dir="output/"):
     """
     Parse a PDF using the `unstructured` library.
@@ -169,13 +170,10 @@ def parse_pdf_with_unstructured(pdf_path, output_dir="output/"):
                 img_file.write(element.image_bytes)
             metadata["cropped_image_path"] = image_path
 
-        parsed_data.append({
-            "type": element_type,
-            "text": text,
-            "metadata": metadata
-        })
+        parsed_data.append({"type": element_type, "text": text, "metadata": metadata})
 
     return parsed_data
+
 
 if __name__ == "__main__":
     pdf_path = "pdf_dir/OXO_Connect_6.0_sd_SystemServices_8AL91213USAM_1_en.pdf"

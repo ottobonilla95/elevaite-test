@@ -276,7 +276,9 @@ async def execute_ingestion_pipeline(config: Dict[str, Any]) -> Dict[str, Any]:
 
             # Run in thread pool since it's sync
             loop = asyncio.get_event_loop()
-            vectordb_result = await loop.run_in_executor(None, lambda: execute_vector_db_pipeline(config=pipeline_config))
+            vectordb_result = await loop.run_in_executor(
+                None, lambda: execute_vector_db_pipeline(config=pipeline_config)
+            )
 
             pipeline_results["stages"]["VECTOR_DB"] = vectordb_result
 
@@ -309,7 +311,9 @@ async def execute_ingestion_pipeline(config: Dict[str, Any]) -> Dict[str, Any]:
         raise
 
 
-async def send_completion_event(callback_topic: str, dbos_workflow_id: Optional[str], event_payload: Dict[str, Any]) -> None:
+async def send_completion_event(
+    callback_topic: str, dbos_workflow_id: Optional[str], event_payload: Dict[str, Any]
+) -> None:
     """
     Send a completion event via HTTP callback to the workflow engine.
 

@@ -1,7 +1,9 @@
 import json
 import os
 
-CONFIG_PATH = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")), "config.json")
+CONFIG_PATH = os.path.join(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..")), "config.json"
+)
 
 with open(CONFIG_PATH, "r") as config_file:
     config_data = json.load(config_file)

@@ -50,7 +50,9 @@ async def create_test_user(email: str, role: str) -> int:
 
     try:
         # Check if user exists
-        existing_user = await conn.fetchrow(f"SELECT id FROM {AUTH_SCHEMA}.users WHERE email = $1", email)
+        existing_user = await conn.fetchrow(
+            f"SELECT id FROM {AUTH_SCHEMA}.users WHERE email = $1", email
+        )
 
         if existing_user:
             user_id = existing_user["id"]
@@ -148,11 +150,17 @@ async def test_endpoint(
     if method.upper() == "GET":
         response = await client.get(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers)
     elif method.upper() == "POST":
-        response = await client.post(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers, json=data)
+        response = await client.post(
+            f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers, json=data
+        )
     elif method.upper() == "PUT":
-        response = await client.put(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers, json=data)
+        response = await client.put(
+            f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers, json=data
+        )
     elif method.upper() == "DELETE":
-        response = await client.delete(f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers)
+        response = await client.delete(
+            f"{WORKFLOW_ENGINE_URL}{endpoint}", headers=headers
+        )
     else:
         raise ValueError(f"Unsupported method: {method}")
 
@@ -199,10 +207,42 @@ async def main():
     async with httpx.AsyncClient() as client:
         # Test viewer (should only be able to view)
         print("\n   Testing VIEWER role (read-only access):")
-        await test_endpoint(client, "GET", "/workflows/", viewer_token, viewer_id, 200, description="List workflows")
-        await test_endpoint(client, "GET", "/agents/", viewer_token, viewer_id, 200, description="List agents")
-        await test_endpoint(client, "GET", "/tools/", viewer_token, viewer_id, 200, description="List tools")
-        await test_endpoint(client, "GET", "/prompts/", viewer_token, viewer_id, 200, description="List prompts")
+        await test_endpoint(
+            client,
+            "GET",
+            "/workflows/",
+            viewer_token,
+            viewer_id,
+            200,
+            description="List workflows",
+        )
+        await test_endpoint(
+            client,
+            "GET",
+            "/agents/",
+            viewer_token,
+            viewer_id,
+            200,
+            description="List agents",
+        )
+        await test_endpoint(
+            client,
+            "GET",
+            "/tools/",
+            viewer_token,
+            viewer_id,
+            200,
+            description="List tools",
+        )
+        await test_endpoint(
+            client,
+            "GET",
+            "/prompts/",
+            viewer_token,
+            viewer_id,
+            200,
+            description="List prompts",
+        )
 
         # Viewer should NOT be able to create
         print("\n   Testing VIEWER role (should deny create operations):")
@@ -228,14 +268,45 @@ async def main():
             "agent_type": "openai",
         }
         await test_endpoint(
-            client, "POST", "/agents/", viewer_token, viewer_id, 403, data=agent_data, description="Create agent (should deny)"
+            client,
+            "POST",
+            "/agents/",
+            viewer_token,
+            viewer_id,
+            403,
+            data=agent_data,
+            description="Create agent (should deny)",
         )
 
         # Test editor (should be able to view and create)
         print("\n   Testing EDITOR role (read + create access):")
-        await test_endpoint(client, "GET", "/workflows/", editor_token, editor_id, 200, description="List workflows")
-        await test_endpoint(client, "GET", "/agents/", editor_token, editor_id, 200, description="List agents")
-        await test_endpoint(client, "GET", "/tools/", editor_token, editor_id, 200, description="List tools")
+        await test_endpoint(
+            client,
+            "GET",
+            "/workflows/",
+            editor_token,
+            editor_id,
+            200,
+            description="List workflows",
+        )
+        await test_endpoint(
+            client,
+            "GET",
+            "/agents/",
+            editor_token,
+            editor_id,
+            200,
+            description="List agents",
+        )
+        await test_endpoint(
+            client,
+            "GET",
+            "/tools/",
+            editor_token,
+            editor_id,
+            200,
+            description="List tools",
+        )
 
         # Editor should be able to create
         print("\n   Testing EDITOR role (create operations):")
@@ -273,9 +344,33 @@ async def main():
 
         # Test admin (should be able to do everything)
         print("\n   Testing ADMIN role (full access):")
-        await test_endpoint(client, "GET", "/workflows/", admin_token, admin_id, 200, description="List workflows")
-        await test_endpoint(client, "GET", "/agents/", admin_token, admin_id, 200, description="List agents")
-        await test_endpoint(client, "GET", "/tools/", admin_token, admin_id, 200, description="List tools")
+        await test_endpoint(
+            client,
+            "GET",
+            "/workflows/",
+            admin_token,
+            admin_id,
+            200,
+            description="List workflows",
+        )
+        await test_endpoint(
+            client,
+            "GET",
+            "/agents/",
+            admin_token,
+            admin_id,
+            200,
+            description="List agents",
+        )
+        await test_endpoint(
+            client,
+            "GET",
+            "/tools/",
+            admin_token,
+            admin_id,
+            200,
+            description="List tools",
+        )
 
         # Admin should be able to create
         print("\n   Testing ADMIN role (create operations):")
@@ -302,7 +397,13 @@ async def main():
         if admin_workflow_id:
             print("\n   Testing ADMIN role (delete operations):")
             await test_endpoint(
-                client, "DELETE", f"/workflows/{admin_workflow_id}", admin_token, admin_id, 200, description="Delete workflow"
+                client,
+                "DELETE",
+                f"/workflows/{admin_workflow_id}",
+                admin_token,
+                admin_id,
+                200,
+                description="Delete workflow",
             )
 
         # Clean up editor's workflow if it exists

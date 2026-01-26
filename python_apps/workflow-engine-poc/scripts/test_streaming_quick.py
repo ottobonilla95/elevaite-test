@@ -44,7 +44,9 @@ async def quick_test():
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(f"{BASE_URL}/workflows/", json=workflow_config)
             if response.status_code not in [200, 201]:
-                print(f"❌ Failed to create workflow: {response.status_code} {response.text}")
+                print(
+                    f"❌ Failed to create workflow: {response.status_code} {response.text}"
+                )
                 return False
             workflow = response.json()
             workflow_id = workflow["id"]
@@ -52,11 +54,19 @@ async def quick_test():
 
         # Execute workflow
         print("4. Executing workflow...")
-        execution_body = {"trigger": {"kind": "webhook"}, "input_data": {"test": "quick_streaming_test"}, "wait": False}
+        execution_body = {
+            "trigger": {"kind": "webhook"},
+            "input_data": {"test": "quick_streaming_test"},
+            "wait": False,
+        }
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(f"{BASE_URL}/workflows/{workflow_id}/execute", json=execution_body)
+            response = await client.post(
+                f"{BASE_URL}/workflows/{workflow_id}/execute", json=execution_body
+            )
             if response.status_code != 200:
-                print(f"❌ Failed to execute workflow: {response.status_code} {response.text}")
+                print(
+                    f"❌ Failed to execute workflow: {response.status_code} {response.text}"
+                )
                 return False
             execution = response.json()
             execution_id = execution["id"]
@@ -68,7 +78,9 @@ async def quick_test():
         start_time = time.time()
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            async with client.stream("GET", f"{BASE_URL}/executions/{execution_id}/stream") as response:
+            async with client.stream(
+                "GET", f"{BASE_URL}/executions/{execution_id}/stream"
+            ) as response:
                 if response.status_code != 200:
                     print(f"❌ Execution stream failed: {response.status_code}")
                     return False
@@ -82,7 +94,9 @@ async def quick_test():
                                     event = json.loads(line[6:])
                                     events_received += 1
                                     event_type = event.get("type", "unknown")
-                                    print(f"   📡 Event {events_received}: {event_type}")
+                                    print(
+                                        f"   📡 Event {events_received}: {event_type}"
+                                    )
 
                                     # Stop after getting some events or completion
                                     if event_type == "complete" or events_received >= 5:
@@ -108,7 +122,9 @@ async def quick_test():
         start_time = time.time()
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            async with client.stream("GET", f"{BASE_URL}/workflows/{workflow_id}/stream") as response:
+            async with client.stream(
+                "GET", f"{BASE_URL}/workflows/{workflow_id}/stream"
+            ) as response:
                 if response.status_code != 200:
                     print(f"❌ Workflow stream failed: {response.status_code}")
                     return False
@@ -122,7 +138,9 @@ async def quick_test():
                                     event = json.loads(line[6:])
                                     events_received += 1
                                     event_type = event.get("type", "unknown")
-                                    print(f"   📡 Event {events_received}: {event_type}")
+                                    print(
+                                        f"   📡 Event {events_received}: {event_type}"
+                                    )
 
                                     # Stop after getting some events or completion
                                     if event_type == "complete" or events_received >= 3:

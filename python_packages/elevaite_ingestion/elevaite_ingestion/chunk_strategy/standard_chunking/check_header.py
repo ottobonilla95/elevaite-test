@@ -7,6 +7,7 @@ load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+
 def generate_contextual_header(chunks):
     """
     Uses GPT-4o to generate a contextual header:
@@ -16,7 +17,7 @@ def generate_contextual_header(chunks):
     headers = []
 
     for i, chunk_text in enumerate(chunks):
-        print(f"\n🔹 Sending chunk {i+1}/{len(chunks)} to GPT-4o...")
+        print(f"\n🔹 Sending chunk {i + 1}/{len(chunks)} to GPT-4o...")
 
         prev_chunk = chunks[i - 1] if i > 0 else "None"
         next_chunk = chunks[i + 1] if i < len(chunks) - 1 else "None"
@@ -48,13 +49,14 @@ def generate_contextual_header(chunks):
             header = response.choices[0].message.content.strip()
             print(f"✅ Header Generated: {header}\n")
         except Exception as e:
-            print(f"⚠️ LLM request failed for chunk {i+1}: {e}")
+            print(f"⚠️ LLM request failed for chunk {i + 1}: {e}")
             header = "⚠️ LLM Failed - Header Not Generated"
-        
+
         headers.append(header)
         time.sleep(1)
 
     return headers
+
 
 if __name__ == "__main__":
     sample_chunks = [
@@ -67,4 +69,4 @@ if __name__ == "__main__":
     contextual_headers = generate_contextual_header(sample_chunks)
 
     for i, header in enumerate(contextual_headers):
-        print(f"🔹 Chunk {i+1} Header: {header}")
+        print(f"🔹 Chunk {i + 1} Header: {header}")

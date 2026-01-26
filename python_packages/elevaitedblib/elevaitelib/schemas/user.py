@@ -27,9 +27,7 @@ class UserPatchRequestDTO(BaseModel):
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            print(
-                "Inside PATCH /users/user_id - UserPatchRequestDTO schema validation"
-            )
+            print("Inside PATCH /users/user_id - UserPatchRequestDTO schema validation")
             raise ValueError("At least one field must be provided in payload")
         return values
 

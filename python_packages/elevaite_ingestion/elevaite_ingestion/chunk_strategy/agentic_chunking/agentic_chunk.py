@@ -1,7 +1,11 @@
 import os
 from typing import Any, Dict
 import uuid
-from langchain.prompts import ChatPromptTemplate, PromptTemplate, HumanMessagePromptTemplate
+from langchain.prompts import (
+    ChatPromptTemplate,
+    PromptTemplate,
+    HumanMessagePromptTemplate,
+)
 from langchain.chat_models.openai import ChatOpenAI
 from dotenv import load_dotenv
 
@@ -16,9 +20,13 @@ class AgenticChunker:
         if openai_api_key is None:
             openai_api_key = os.getenv("OPENAI_API_KEY")
         if openai_api_key is None:
-            raise ValueError("API key is not provided and not found in environment variables")
+            raise ValueError(
+                "API key is not provided and not found in environment variables"
+            )
 
-        self.llm = ChatOpenAI(model="gpt-4o-mini", api_key=openai_api_key, temperature=0)
+        self.llm = ChatOpenAI(
+            model="gpt-4o-mini", api_key=openai_api_key, temperature=0
+        )
 
     def _get_new_chunk_summary(self, paragraph_text, whole_document):
         """
@@ -33,15 +41,23 @@ class AgenticChunker:
         </chunk>
         Please give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Answer only with the succinct context and nothing else."""
 
-        prompt_template = PromptTemplate(input_variables=["WHOLE_DOCUMENT", "CHUNK_CONTENT"], template=anthropic_prompt)
+        prompt_template = PromptTemplate(
+            input_variables=["WHOLE_DOCUMENT", "CHUNK_CONTENT"],
+            template=anthropic_prompt,
+        )
 
         human_message_prompt = HumanMessagePromptTemplate(prompt=prompt_template)
 
-        final_prompt = ChatPromptTemplate(input_variables=["WHOLE_DOCUMENT", "CHUNK_CONTENT"], messages=[human_message_prompt])
+        final_prompt = ChatPromptTemplate(
+            input_variables=["WHOLE_DOCUMENT", "CHUNK_CONTENT"],
+            messages=[human_message_prompt],
+        )
 
         runnable = final_prompt | self.llm
 
-        chunk_context = runnable.invoke({"WHOLE_DOCUMENT": whole_document, "CHUNK_CONTENT": paragraph_text}).content
+        chunk_context = runnable.invoke(
+            {"WHOLE_DOCUMENT": whole_document, "CHUNK_CONTENT": paragraph_text}
+        ).content
 
         return chunk_context
 
@@ -56,7 +72,9 @@ class AgenticChunker:
 
         Output only the title, nothing else."""
 
-        prompt_template = PromptTemplate(input_variables=["SUMMARY"], template=title_prompt)
+        prompt_template = PromptTemplate(
+            input_variables=["SUMMARY"], template=title_prompt
+        )
 
         runnable = prompt_template | self.llm
 

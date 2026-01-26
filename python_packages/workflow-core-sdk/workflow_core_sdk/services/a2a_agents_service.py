@@ -67,7 +67,9 @@ class A2AAgentsService:
 
         existing = session.exec(query).first()
         if existing:
-            raise ValueError(f"A2A agent with base_url '{payload.base_url}' already exists")
+            raise ValueError(
+                f"A2A agent with base_url '{payload.base_url}' already exists"
+            )
 
         # Encrypt auth_config if encryption is configured
         agent_data = payload.model_dump()
@@ -102,15 +104,26 @@ class A2AAgentsService:
         if params.status:
             query = query.where(A2AAgent.status == params.status)
 
-        agents = list(session.exec(query.offset(params.offset).limit(params.limit)).all())
+        agents = list(
+            session.exec(query.offset(params.offset).limit(params.limit)).all()
+        )
 
         # Apply Python-level filters for portability
         if params.q:
             q_lower = params.q.lower()
-            agents = [a for a in agents if q_lower in (a.name or "").lower() or q_lower in (a.description or "").lower()]
+            agents = [
+                a
+                for a in agents
+                if q_lower in (a.name or "").lower()
+                or q_lower in (a.description or "").lower()
+            ]
 
         if params.tags:
-            agents = [a for a in agents if a.tags and any(tag in a.tags for tag in params.tags)]
+            agents = [
+                a
+                for a in agents
+                if a.tags and any(tag in a.tags for tag in params.tags)
+            ]
 
         return agents
 
@@ -125,7 +138,9 @@ class A2AAgentsService:
         Returns:
             The A2AAgent if found, else None.
         """
-        return session.exec(select(A2AAgent).where(A2AAgent.id == UUID(agent_id))).first()
+        return session.exec(
+            select(A2AAgent).where(A2AAgent.id == UUID(agent_id))
+        ).first()
 
     @staticmethod
     def get_decrypted_auth_config(agent: A2AAgent) -> Optional[Dict[str, Any]]:
@@ -183,7 +198,9 @@ class A2AAgentsService:
         Raises:
             ValueError: If agent not found.
         """
-        db_agent = session.exec(select(A2AAgent).where(A2AAgent.id == UUID(agent_id))).first()
+        db_agent = session.exec(
+            select(A2AAgent).where(A2AAgent.id == UUID(agent_id))
+        ).first()
         if not db_agent:
             raise ValueError("A2A agent not found")
 
@@ -213,7 +230,9 @@ class A2AAgentsService:
         Returns:
             True if deleted, False if not found.
         """
-        db_agent = session.exec(select(A2AAgent).where(A2AAgent.id == UUID(agent_id))).first()
+        db_agent = session.exec(
+            select(A2AAgent).where(A2AAgent.id == UUID(agent_id))
+        ).first()
         if not db_agent:
             return False
         session.delete(db_agent)
@@ -243,7 +262,9 @@ class A2AAgentsService:
         Raises:
             ValueError: If agent not found.
         """
-        db_agent = session.exec(select(A2AAgent).where(A2AAgent.id == UUID(agent_id))).first()
+        db_agent = session.exec(
+            select(A2AAgent).where(A2AAgent.id == UUID(agent_id))
+        ).first()
         if not db_agent:
             raise ValueError("A2A agent not found")
 
@@ -289,7 +310,9 @@ class A2AAgentsService:
         Raises:
             ValueError: If agent not found.
         """
-        db_agent = session.exec(select(A2AAgent).where(A2AAgent.id == UUID(agent_id))).first()
+        db_agent = session.exec(
+            select(A2AAgent).where(A2AAgent.id == UUID(agent_id))
+        ).first()
         if not db_agent:
             raise ValueError("A2A agent not found")
 
@@ -332,7 +355,9 @@ class A2AAgentsService:
             List of A2AAgent records needing health checks.
         """
         now = datetime.now(timezone.utc)
-        query = select(A2AAgent).where(A2AAgent.status.in_([A2AAgentStatus.ACTIVE, A2AAgentStatus.ERROR]))
+        query = select(A2AAgent).where(
+            A2AAgent.status.in_([A2AAgentStatus.ACTIVE, A2AAgentStatus.ERROR])
+        )
 
         if organization_id:
             query = query.where(A2AAgent.organization_id == organization_id)

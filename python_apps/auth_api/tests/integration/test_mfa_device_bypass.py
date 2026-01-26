@@ -155,7 +155,6 @@ class TestMfaDeviceBypassIntegration:
             "app.services.mfa_device_service.generate_device_fingerprint",
             return_value="test_device_fingerprint",
         ):
-
             login_data = {
                 "email": user_email,
                 "password": user_password,
@@ -219,7 +218,6 @@ class TestMfaDeviceBypassIntegration:
             "app.services.mfa_device_service.generate_device_fingerprint",
             return_value="expired_device_fingerprint",
         ):
-
             login_data = {
                 "email": user_email,
                 "password": user_password,
@@ -283,7 +281,6 @@ class TestMfaDeviceBypassIntegration:
             "app.services.mfa_device_service.generate_device_fingerprint",
             return_value="current_device_fingerprint",
         ):
-
             login_data = {
                 "email": user_email,
                 "password": user_password,

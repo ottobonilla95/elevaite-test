@@ -126,7 +126,9 @@ class TestListPrompts:
         assert len(prompts) == 1
         assert prompts[0].ai_model_name == "gpt-4o"
 
-    @pytest.mark.skip(reason="Tag filter uses JSON __contains__ which can't be easily mocked")
+    @pytest.mark.skip(
+        reason="Tag filter uses JSON __contains__ which can't be easily mocked"
+    )
     def test_list_prompts_with_tag_filter(self, mock_session, sample_prompt):
         """Test listing prompts filtered by tag"""
         mock_result = MagicMock()
@@ -178,7 +180,9 @@ class TestListPrompts:
 class TestCreatePrompt:
     """Tests for PromptsService.create_prompt"""
 
-    def test_create_prompt_success(self, mock_session, sample_prompt_create, sample_prompt):
+    def test_create_prompt_success(
+        self, mock_session, sample_prompt_create, sample_prompt
+    ):
         """Test creating a new prompt successfully"""
         # Mock no existing prompt
         mock_result = MagicMock()
@@ -188,7 +192,9 @@ class TestCreatePrompt:
         # Mock session operations
         mock_session.add = MagicMock()
         mock_session.commit = MagicMock()
-        mock_session.refresh = MagicMock(side_effect=lambda obj: setattr(obj, "id", sample_prompt.id))
+        mock_session.refresh = MagicMock(
+            side_effect=lambda obj: setattr(obj, "id", sample_prompt.id)
+        )
 
         PromptsService.create_prompt(mock_session, sample_prompt_create)
 
@@ -196,20 +202,26 @@ class TestCreatePrompt:
         mock_session.commit.assert_called_once()
         mock_session.refresh.assert_called_once()
 
-    def test_create_prompt_duplicate_unique_label(self, mock_session, sample_prompt_create, sample_prompt):
+    def test_create_prompt_duplicate_unique_label(
+        self, mock_session, sample_prompt_create, sample_prompt
+    ):
         """Test creating a prompt with duplicate unique_label raises error"""
         # Mock existing prompt with same unique_label
         mock_result = MagicMock()
         mock_result.first.return_value = sample_prompt
         mock_session.exec.return_value = mock_result
 
-        with pytest.raises(ValueError, match="Prompt with this unique_label already exists"):
+        with pytest.raises(
+            ValueError, match="Prompt with this unique_label already exists"
+        ):
             PromptsService.create_prompt(mock_session, sample_prompt_create)
 
         # Should not commit if duplicate found
         mock_session.commit.assert_not_called()
 
-    def test_create_prompt_with_organization_check(self, mock_session, sample_prompt_create):
+    def test_create_prompt_with_organization_check(
+        self, mock_session, sample_prompt_create
+    ):
         """Test creating a prompt checks uniqueness within organization"""
         # Mock no existing prompt
         mock_result = MagicMock()
@@ -266,8 +278,12 @@ class TestUpdatePrompt:
         mock_session.commit = MagicMock()
         mock_session.refresh = MagicMock()
 
-        update_data = PromptUpdate(prompt_label="Updated Prompt", prompt="Updated system prompt")
-        updated_prompt = PromptsService.update_prompt(mock_session, str(sample_prompt.id), update_data)
+        update_data = PromptUpdate(
+            prompt_label="Updated Prompt", prompt="Updated system prompt"
+        )
+        updated_prompt = PromptsService.update_prompt(
+            mock_session, str(sample_prompt.id), update_data
+        )
 
         assert updated_prompt.prompt_label == "Updated Prompt"
         assert updated_prompt.prompt == "Updated system prompt"
@@ -301,7 +317,9 @@ class TestUpdatePrompt:
 
         # Only update one field
         update_data = PromptUpdate(prompt_label="New Label")
-        updated_prompt = PromptsService.update_prompt(mock_session, str(sample_prompt.id), update_data)
+        updated_prompt = PromptsService.update_prompt(
+            mock_session, str(sample_prompt.id), update_data
+        )
 
         assert updated_prompt.prompt_label == "New Label"
         # Other fields should remain unchanged

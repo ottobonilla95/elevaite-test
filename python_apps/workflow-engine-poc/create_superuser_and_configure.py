@@ -57,7 +57,9 @@ async def create_superuser_in_db():
         )
 
         if existing_user:
-            print(f"   User {SUPERUSER_EMAIL} already exists (ID: {existing_user['id']})")
+            print(
+                f"   User {SUPERUSER_EMAIL} already exists (ID: {existing_user['id']})"
+            )
 
             # Make sure they're a superuser
             if not existing_user["is_superuser"]:

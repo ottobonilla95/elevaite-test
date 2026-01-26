@@ -65,12 +65,17 @@ def _parse_docstring_params(docstring: Optional[str]) -> Dict[str, Dict[str, str
             if current_param:
                 description = " ".join(current_desc_lines).strip()
                 title = current_param.replace("_", " ").title()
-                params_info[current_param] = {"title": title, "description": description}
+                params_info[current_param] = {
+                    "title": title,
+                    "description": description,
+                }
 
             # Start new parameter
             len(param_match.group(1))
             current_param = param_match.group(2)
-            current_desc_lines = [param_match.group(3)] if param_match.group(3).strip() else []
+            current_desc_lines = (
+                [param_match.group(3)] if param_match.group(3).strip() else []
+            )
         elif current_param and line.strip():
             # This is a continuation line for the current parameter
             current_desc_lines.append(line.strip())
@@ -207,7 +212,9 @@ def tool_handler(name: str = None, description: str = None, category: str = "gen
     return decorator
 
 
-def async_tool_handler(name: str = None, description: str = None, category: str = "general"):
+def async_tool_handler(
+    name: str = None, description: str = None, category: str = "general"
+):
     """
     Decorator for async tool functions.
 
@@ -222,7 +229,9 @@ def async_tool_handler(name: str = None, description: str = None, category: str 
     return decorator
 
 
-def create_tool_schema(name: str, description: str, parameters: Dict[str, Any], required: list = None) -> Dict[str, Any]:
+def create_tool_schema(
+    name: str, description: str, parameters: Dict[str, Any], required: list = None
+) -> Dict[str, Any]:
     """
     Manually create a tool schema without decorating a function.
 
@@ -242,7 +251,11 @@ def create_tool_schema(name: str, description: str, parameters: Dict[str, Any], 
         "function": {
             "name": name,
             "description": description,
-            "parameters": {"type": "object", "properties": parameters, "required": required or []},
+            "parameters": {
+                "type": "object",
+                "properties": parameters,
+                "required": required or [],
+            },
         },
     }
 

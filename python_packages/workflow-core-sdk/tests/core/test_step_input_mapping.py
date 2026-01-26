@@ -26,7 +26,9 @@ def user_context():
 class TestStepInputMappingIsolation:
     """Tests that step input mapping properly isolates data between steps"""
 
-    def test_second_tool_step_only_receives_input_from_first_tool_step(self, user_context):
+    def test_second_tool_step_only_receives_input_from_first_tool_step(
+        self, user_context
+    ):
         """
         Bug test: Second tool step should only receive input from first tool step,
         not from the agent step.
@@ -64,7 +66,9 @@ class TestStepInputMappingIsolation:
             ],
         }
 
-        context = ExecutionContext(workflow_config=workflow_config, user_context=user_context)
+        context = ExecutionContext(
+            workflow_config=workflow_config, user_context=user_context
+        )
 
         # Simulate step outputs being stored
         context.step_io_data["agent_step"] = {
@@ -88,7 +92,9 @@ class TestStepInputMappingIsolation:
         )
 
         # Verify agent_step data is NOT present
-        assert "Agent response text" not in str(input_data), "tool_step_2 should NOT contain agent_step's response"
+        assert "Agent response text" not in str(input_data), (
+            "tool_step_2 should NOT contain agent_step's response"
+        )
 
     def test_tool_step_with_prev_expanded_correctly(self, user_context):
         """
@@ -117,7 +123,9 @@ class TestStepInputMappingIsolation:
             ],
         }
 
-        context = ExecutionContext(workflow_config=workflow_config, user_context=user_context)
+        context = ExecutionContext(
+            workflow_config=workflow_config, user_context=user_context
+        )
 
         # Store outputs
         context.step_io_data["step1"] = {"output": "step1 output"}
@@ -150,14 +158,18 @@ class TestStepInputMappingIsolation:
             ],
         }
 
-        context = ExecutionContext(workflow_config=workflow_config, user_context=user_context)
+        context = ExecutionContext(
+            workflow_config=workflow_config, user_context=user_context
+        )
         context.step_io_data["step1"] = {"output": "step1 output"}
 
         # Get input for step2
         input_data = context.get_step_input_data("step2")
 
         # Since "$prev" is not a valid step_id, it shouldn't resolve
-        assert input_data.get("response") is None, "Unexpanded $prev should not resolve to any data"
+        assert input_data.get("response") is None, (
+            "Unexpanded $prev should not resolve to any data"
+        )
 
     def test_field_path_mapping_only_from_specified_step(self, user_context):
         """
@@ -186,10 +198,15 @@ class TestStepInputMappingIsolation:
             ],
         }
 
-        context = ExecutionContext(workflow_config=workflow_config, user_context=user_context)
+        context = ExecutionContext(
+            workflow_config=workflow_config, user_context=user_context
+        )
 
         context.step_io_data["agent"] = {"response": "Agent says hello", "metadata": {}}
-        context.step_io_data["tool1"] = {"result": "Tool 1 computed value", "success": True}
+        context.step_io_data["tool1"] = {
+            "result": "Tool 1 computed value",
+            "success": True,
+        }
 
         input_data = context.get_step_input_data("tool2")
 
@@ -292,7 +309,9 @@ class TestPrevExpansionLogic:
 
         # Now test with ExecutionContext
         workflow_config = {"workflow_id": "test", "steps": expanded_steps}
-        context = ExecutionContext(workflow_config=workflow_config, user_context=user_context)
+        context = ExecutionContext(
+            workflow_config=workflow_config, user_context=user_context
+        )
 
         context.step_io_data["agent"] = {"response": "Agent output", "mode": "llm"}
         context.step_io_data["tool1"] = {"result": "Tool 1 result", "success": True}
@@ -328,7 +347,9 @@ class TestPrevExpansionLogic:
 
         # The code in workflow_endpoints.py reads from config and writes to top-level
         for s in steps:
-            imap = s.get("input_mapping") or s.get("config", {}).get("input_mapping") or {}
+            imap = (
+                s.get("input_mapping") or s.get("config", {}).get("input_mapping") or {}
+            )
             deps = s.get("dependencies", [])
             unique_dep = deps[0] if len(deps) == 1 else None
 
@@ -347,7 +368,9 @@ class TestPrevExpansionLogic:
 
         # Verify ExecutionContext reads from top-level
         workflow_config = {"workflow_id": "test", "steps": steps}
-        context = ExecutionContext(workflow_config=workflow_config, user_context=user_context)
+        context = ExecutionContext(
+            workflow_config=workflow_config, user_context=user_context
+        )
         context.step_io_data["step1"] = {"output": "step1 data"}
 
         input_data = context.get_step_input_data("step2")
@@ -363,7 +386,12 @@ class TestPrevExpansionLogic:
         """
         # Simulate workflow as stored in DB with expanded $prev (but stored in wrong location)
         steps = [
-            {"step_id": "agent", "step_type": "agent_execution", "dependencies": [], "config": {}},
+            {
+                "step_id": "agent",
+                "step_type": "agent_execution",
+                "dependencies": [],
+                "config": {},
+            },
             {
                 "step_id": "tool1",
                 "step_type": "tool_execution",
@@ -381,24 +409,36 @@ class TestPrevExpansionLogic:
                 "input_mapping": {},  # Empty at top-level (this was the bug!)
                 "config": {
                     "tool_name": "tool2",
-                    "input_mapping": {"response": "tool1"},  # Should map to tool1, not agent
+                    "input_mapping": {
+                        "response": "tool1"
+                    },  # Should map to tool1, not agent
                 },
             },
         ]
 
         workflow_config = {"workflow_id": "test", "steps": steps}
-        context = ExecutionContext(workflow_config=workflow_config, user_context=user_context)
-        context.step_io_data["agent"] = {"response": "Agent JSON output - should NOT appear in tool2"}
-        context.step_io_data["tool1"] = {"result": "Tool1 calculation result - SHOULD appear in tool2"}
+        context = ExecutionContext(
+            workflow_config=workflow_config, user_context=user_context
+        )
+        context.step_io_data["agent"] = {
+            "response": "Agent JSON output - should NOT appear in tool2"
+        }
+        context.step_io_data["tool1"] = {
+            "result": "Tool1 calculation result - SHOULD appear in tool2"
+        }
 
         # Get input for tool2
         tool2_input = context.get_step_input_data("tool2")
 
         # Verify tool2 gets data from tool1 (via config.input_mapping fallback)
-        assert "response" in tool2_input, f"tool2 should have 'response' key, got: {list(tool2_input.keys())}"
+        assert "response" in tool2_input, (
+            f"tool2 should have 'response' key, got: {list(tool2_input.keys())}"
+        )
         assert tool2_input["response"] == context.step_io_data["tool1"], (
             f"tool2 should get tool1's data, not agent's data. Got: {tool2_input['response']}"
         )
 
         # Verify tool2 does NOT have agent's data
-        assert "Agent JSON output" not in str(tool2_input), f"tool2 should NOT have agent's output. Got: {tool2_input}"
+        assert "Agent JSON output" not in str(tool2_input), (
+            f"tool2 should NOT have agent's output. Got: {tool2_input}"
+        )

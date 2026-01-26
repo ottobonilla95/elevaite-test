@@ -21,7 +21,9 @@ def get_application_by_id(db: Session, id: int):
     return db.query(models.Application).filter(models.Application.id == id).first()
 
 
-def create_application(db: Session, createApplicationDTO: application.ApplicationCreate):
+def create_application(
+    db: Session, createApplicationDTO: application.ApplicationCreate
+):
     _app = models.Application(
         title=createApplicationDTO.title,
         icon=createApplicationDTO.icon,

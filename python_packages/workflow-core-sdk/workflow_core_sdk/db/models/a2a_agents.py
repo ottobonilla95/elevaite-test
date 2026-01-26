@@ -55,7 +55,9 @@ class A2AAgentBase(SQLModel):
 
     # Connection info
     base_url: str  # e.g., "https://agent.example.com"
-    agent_card_url: Optional[str] = None  # Defaults to {base_url}/.well-known/agent.json
+    agent_card_url: Optional[str] = (
+        None  # Defaults to {base_url}/.well-known/agent.json
+    )
 
     # Authentication
     auth_type: A2AAuthType = A2AAuthType.NONE
@@ -132,13 +134,19 @@ class A2AAgent(SQLModel, table=True):
 
     # Connection info
     base_url: str  # e.g., "https://agent.example.com"
-    agent_card_url: Optional[str] = None  # Defaults to {base_url}/.well-known/agent.json
+    agent_card_url: Optional[str] = (
+        None  # Defaults to {base_url}/.well-known/agent.json
+    )
 
     # Agent Card data (cached from remote)
     agent_card: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     skills: Optional[List[Dict[str, Any]]] = Field(default=None, sa_column=Column(JSON))
-    supported_input_modes: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
-    supported_output_modes: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
+    supported_input_modes: Optional[List[str]] = Field(
+        default=None, sa_column=Column(JSON)
+    )
+    supported_output_modes: Optional[List[str]] = Field(
+        default=None, sa_column=Column(JSON)
+    )
 
     # Protocol version from Agent Card
     protocol_version: Optional[str] = None
@@ -152,7 +160,9 @@ class A2AAgent(SQLModel, table=True):
 
     # Status & Health
     status: A2AAgentStatus = Field(default=A2AAgentStatus.ACTIVE)
-    last_health_check: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    last_health_check: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True))
+    )
     consecutive_failures: int = 0
 
     # Organization/multi-tenancy
@@ -165,8 +175,12 @@ class A2AAgent(SQLModel, table=True):
         default_factory=get_utc_datetime,
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
-    last_seen: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    last_seen: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True))
+    )
     updated_at: datetime = Field(
         default_factory=get_utc_datetime,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now()),
+        sa_column=Column(
+            DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        ),
     )

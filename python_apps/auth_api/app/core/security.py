@@ -240,4 +240,3 @@ def verify_totp(totp_code: str, totp_secret: str) -> bool:
     """Verify a TOTP code."""
     totp = pyotp.TOTP(totp_secret)
     return totp.verify(totp_code)
-

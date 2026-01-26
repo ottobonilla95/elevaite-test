@@ -12,6 +12,7 @@ from typing import Optional
 @dataclass
 class AWSConfig:
     """AWS S3 bucket configuration."""
+
     input_bucket: str = ""
     intermediate_bucket: str = ""
     region: Optional[str] = None
@@ -20,6 +21,7 @@ class AWSConfig:
 @dataclass
 class ParserConfig:
     """Parser stage configuration."""
+
     mode: str = "s3"  # "s3" or "local"
     parsing_mode: str = "auto_parser"  # "auto_parser" or "custom"
     default_parser: str = "pdf"
@@ -34,16 +36,20 @@ class ParserConfig:
 @dataclass
 class ChunkerConfig:
     """Chunker stage configuration."""
+
     chunk_strategy: str = "semantic_chunking"
-    settings: dict = field(default_factory=lambda: {
-        "breakpoint_threshold_type": "percentile",
-        "breakpoint_threshold_amount": 80,
-    })
+    settings: dict = field(
+        default_factory=lambda: {
+            "breakpoint_threshold_type": "percentile",
+            "breakpoint_threshold_amount": 80,
+        }
+    )
 
 
 @dataclass
 class EmbedderConfig:
     """Embedder stage configuration."""
+
     provider: str = "openai"
     model: str = "text-embedding-ada-002"
     api_key: Optional[str] = None  # If not provided, uses env var
@@ -52,6 +58,7 @@ class EmbedderConfig:
 @dataclass
 class VectorDBConfig:
     """Vector database stage configuration."""
+
     vector_db: str = "pinecone"  # "pinecone", "chroma", "qdrant"
     index_name: Optional[str] = None
     collection_name: Optional[str] = None
@@ -63,24 +70,25 @@ class VectorDBConfig:
 class PipelineConfig:
     """
     Unified configuration for the entire ingestion pipeline.
-    
+
     This config object is passed through all pipeline stages, replacing
     the legacy file-based configuration approach.
     """
+
     aws: AWSConfig = field(default_factory=AWSConfig)
     parser: ParserConfig = field(default_factory=ParserConfig)
     chunker: ChunkerConfig = field(default_factory=ChunkerConfig)
     embedder: EmbedderConfig = field(default_factory=EmbedderConfig)
     vector_db: VectorDBConfig = field(default_factory=VectorDBConfig)
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "PipelineConfig":
         """
         Create a PipelineConfig from a dictionary (e.g., from API request).
-        
+
         Args:
             data: Dictionary with configuration values
-            
+
         Returns:
             PipelineConfig instance
         """
@@ -89,7 +97,7 @@ class PipelineConfig:
         chunker_data = data.get("chunker", {})
         embedder_data = data.get("embedder", {})
         vector_db_data = data.get("vector_db", {})
-        
+
         return cls(
             aws=AWSConfig(
                 input_bucket=aws_data.get("input_bucket", ""),
@@ -122,7 +130,7 @@ class PipelineConfig:
                 settings=vector_db_data.get("settings", {}),
             ),
         )
-    
+
     def to_dict(self) -> dict:
         """Convert config to dictionary."""
         return {
@@ -156,4 +164,3 @@ class PipelineConfig:
                 "settings": self.vector_db.settings,
             },
         }
-

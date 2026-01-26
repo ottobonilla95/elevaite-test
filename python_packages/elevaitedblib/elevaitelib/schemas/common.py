@@ -3,7 +3,9 @@ from typing import Literal
 
 
 class StatusUpdateAction(BaseModel):
-    action: Literal["Grant", "Revoke"] = Field(..., description="Action to grant or revoke status")
+    action: Literal["Grant", "Revoke"] = Field(
+        ..., description="Action to grant or revoke status"
+    )
 
     class Config:
         extra = Extra.forbid

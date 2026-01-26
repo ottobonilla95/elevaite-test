@@ -116,7 +116,9 @@ class QueueService:
             routing_key=RESUME_QUEUE_NAME,
         )
 
-        logger.info(f"Queued workflow resume for execution {execution_id}, step {step_id}")
+        logger.info(
+            f"Queued workflow resume for execution {execution_id}, step {step_id}"
+        )
 
 
 # Singleton instance

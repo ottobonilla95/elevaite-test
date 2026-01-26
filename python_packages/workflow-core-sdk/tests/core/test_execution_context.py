@@ -67,9 +67,13 @@ class TestExecutionContextInitialization:
         assert context.execution_id is not None
         assert len(context.steps_config) == 3
 
-    def test_initialization_with_user_context(self, basic_workflow_config, user_context):
+    def test_initialization_with_user_context(
+        self, basic_workflow_config, user_context
+    ):
         """Test initialization with user context"""
-        context = ExecutionContext(workflow_config=basic_workflow_config, user_context=user_context)
+        context = ExecutionContext(
+            workflow_config=basic_workflow_config, user_context=user_context
+        )
 
         assert context.user_context.user_id == "user-123"
         assert context.user_context.organization_id == "org-789"
@@ -78,7 +82,9 @@ class TestExecutionContextInitialization:
     def test_initialization_with_custom_execution_id(self, basic_workflow_config):
         """Test initialization with custom execution ID"""
         custom_id = "custom-exec-123"
-        context = ExecutionContext(workflow_config=basic_workflow_config, execution_id=custom_id)
+        context = ExecutionContext(
+            workflow_config=basic_workflow_config, execution_id=custom_id
+        )
 
         assert context.execution_id == custom_id
 

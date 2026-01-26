@@ -120,7 +120,11 @@ async def data_processing_step(
         if isinstance(data_to_process, dict) and filter_key:
             result = {k: v for k, v in data_to_process.items() if k == filter_key}
         elif isinstance(data_to_process, list) and filter_key:
-            result = [item for item in data_to_process if isinstance(item, dict) and item.get(filter_key) == filter_value]
+            result = [
+                item
+                for item in data_to_process
+                if isinstance(item, dict) and item.get(filter_key) == filter_value
+            ]
         else:
             result = data_to_process
 
@@ -156,7 +160,8 @@ async def data_processing_step(
 
         result = {
             "sentiment": sentiment,
-            "confidence": abs(positive_count - negative_count) / max(len(text.split()), 1),
+            "confidence": abs(positive_count - negative_count)
+            / max(len(text.split()), 1),
             "positive_indicators": positive_count,
             "negative_indicators": negative_count,
             "original_data": data_to_process,
@@ -169,9 +174,15 @@ async def data_processing_step(
         if transformation == "identity":
             result = data_to_process
         elif transformation == "uppercase":
-            result = {k: v.upper() if isinstance(v, str) else v for k, v in data_to_process.items()}
+            result = {
+                k: v.upper() if isinstance(v, str) else v
+                for k, v in data_to_process.items()
+            }
         elif transformation == "lowercase":
-            result = {k: v.lower() if isinstance(v, str) else v for k, v in data_to_process.items()}
+            result = {
+                k: v.lower() if isinstance(v, str) else v
+                for k, v in data_to_process.items()
+            }
         else:
             result = data_to_process
 

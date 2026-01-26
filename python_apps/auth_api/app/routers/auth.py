@@ -62,7 +62,9 @@ limiter = Limiter(key_func=get_remote_address)
 @router.get("/me", response_model=UserDetail)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get information about the currently authenticated user."""
-    print(f"GET /me: User {current_user.email} has is_password_temporary={current_user.is_password_temporary}")
+    print(
+        f"GET /me: User {current_user.email} has is_password_temporary={current_user.is_password_temporary}"
+    )
     return current_user
 
 
@@ -130,14 +132,20 @@ async def get_password_status(
         "email": row.email,
         "is_password_temporary": row.is_password_temporary,
         "has_temporary_password": row.has_temporary_password,
-        "temporary_password_expiry": (row.temporary_password_expiry.isoformat() if row.temporary_password_expiry else None),
+        "temporary_password_expiry": (
+            row.temporary_password_expiry.isoformat()
+            if row.temporary_password_expiry
+            else None
+        ),
         "is_expired": is_expired,
         "current_time": now.isoformat(),
         "orm_is_password_temporary": current_user.is_password_temporary,  # For comparison with direct SQL result
     }
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def register_user(
     request: Request,  # Required for rate limiting
@@ -175,7 +183,9 @@ async def admin_create_user(
     # Tenant validation for application admins
     if current_user.application_admin and not current_user.is_superuser:
         if not current_tenant_id:
-            logger.error(f"Application admin {current_user.email} attempted to create user without tenant context")
+            logger.error(
+                f"Application admin {current_user.email} attempted to create user without tenant context"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Tenant context is required for application admins",
@@ -189,27 +199,38 @@ async def admin_create_user(
             f"Superuser {current_user.email} (ID: {current_user.id}) is creating a new user with email: {user_data.email} in tenant: {current_tenant_id or 'default'}"
         )
 
-    result = await session.execute(async_select(User).where(User.email == user_data.email))
+    result = await session.execute(
+        async_select(User).where(User.email == user_data.email)
+    )
     existing_user = result.scalars().first()
 
     if existing_user:
         if existing_user.status == "deleted":
             # User was deleted, return special error with details
-            logger.warning(f"Attempt to create user {user_data.email} who was previously deleted on {existing_user.deleted_at}")
+            logger.warning(
+                f"Attempt to create user {user_data.email} who was previously deleted on {existing_user.deleted_at}"
+            )
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={
                     "type": "user_deleted",
                     "message": f"User {user_data.email} was previously deleted and cannot be recreated",
                     "user_id": existing_user.id,
-                    "deleted_at": existing_user.deleted_at.isoformat() if existing_user.deleted_at else None,
+                    "deleted_at": existing_user.deleted_at.isoformat()
+                    if existing_user.deleted_at
+                    else None,
                     "suggestion": "Please contact an administrator to reactivate this user account",
                 },
             )
         else:
             # User exists and is active
-            logger.warning(f"Attempt to create user {user_data.email} who already exists with status {existing_user.status}")
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User with this email already exists")
+            logger.warning(
+                f"Attempt to create user {user_data.email} who already exists with status {existing_user.status}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="User with this email already exists",
+            )
 
     # Continue with normal user creation
     try:
@@ -232,11 +253,15 @@ async def admin_create_user(
             details=details,
         )
 
-        logger.info(f"User {user_data.email} successfully created by admin {current_user.email}")
+        logger.info(
+            f"User {user_data.email} successfully created by admin {current_user.email}"
+        )
         return user
     except HTTPException as e:
         # Log failed attempt
-        logger.error(f"Admin user {current_user.email} failed to create user with email: {user_data.email}. Error: {e.detail}")
+        logger.error(
+            f"Admin user {current_user.email} failed to create user with email: {user_data.email}. Error: {e.detail}"
+        )
         raise
 
 
@@ -256,19 +281,27 @@ async def admin_delete_user(
 
     # Prevent deleting yourself
     if current_user.id == user_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete your own account")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete your own account",
+        )
 
     # Get the user to delete
     result = await session.execute(async_select(User).where(User.id == user_id))
     user_to_delete = result.scalars().first()
 
     if not user_to_delete:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     # Prevent application admins from deleting superusers
     if current_user.application_admin and not current_user.is_superuser:
         if user_to_delete.is_superuser:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete superuser accounts")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cannot delete superuser accounts",
+            )
 
     try:
         # Soft delete: change status and set deleted timestamp
@@ -281,12 +314,19 @@ async def admin_delete_user(
 
         await session.commit()
 
-        logger.info(f"User {user_to_delete.email} deactivated by admin {current_user.email}")
-        return {"message": f"User {user_to_delete.email} has been successfully deactivated"}
+        logger.info(
+            f"User {user_to_delete.email} deactivated by admin {current_user.email}"
+        )
+        return {
+            "message": f"User {user_to_delete.email} has been successfully deactivated"
+        }
     except Exception as e:
         await session.rollback()
         logger.error(f"Error deleting user {user_id}: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete user")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete user",
+        )
 
 
 @router.post(
@@ -307,7 +347,9 @@ async def admin_reactivate_user(
     # Tenant validation for application admins
     if current_user.application_admin and not current_user.is_superuser:
         if not current_tenant_id:
-            logger.error(f"Application admin {current_user.email} attempted to reactivate user without tenant context")
+            logger.error(
+                f"Application admin {current_user.email} attempted to reactivate user without tenant context"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Tenant context is required for application admins",
@@ -318,19 +360,25 @@ async def admin_reactivate_user(
     user = result.scalars().first()
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     if user.status != "deleted":
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=f"User is not deleted. Current status: {user.status}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User is not deleted. Current status: {user.status}",
         )
 
     # Application admins cannot reactivate superuser accounts
     if current_user.application_admin and not current_user.is_superuser:
         if user.is_superuser:
-            logger.warning(f"Application admin {current_user.email} attempted to reactivate superuser: {user.email}")
+            logger.warning(
+                f"Application admin {current_user.email} attempted to reactivate superuser: {user.email}"
+            )
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Application admins cannot reactivate superuser accounts"
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Application admins cannot reactivate superuser accounts",
             )
 
     try:
@@ -358,7 +406,9 @@ async def admin_reactivate_user(
             details=details,
         )
 
-        logger.info(f"User {user.email} (ID: {user.id}) reactivated by admin {current_user.email}")
+        logger.info(
+            f"User {user.email} (ID: {user.id}) reactivated by admin {current_user.email}"
+        )
 
         return {
             "message": f"User {user.email} has been successfully reactivated",
@@ -366,13 +416,18 @@ async def admin_reactivate_user(
                 "id": user.id,
                 "email": user.email,
                 "full_name": user.full_name,
-                "status": user.status.value if hasattr(user.status, "value") else user.status,
+                "status": user.status.value
+                if hasattr(user.status, "value")
+                else user.status,
             },
         }
     except Exception as e:
         await session.rollback()
         logger.error(f"Error reactivating user {user_id}: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to reactivate user")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reactivate user",
+        )
 
 
 @router.put(
@@ -392,7 +447,9 @@ async def admin_update_user(
     user_to_update = result.scalars().first()
 
     if not user_to_update:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     # Update roles
     if "application_admin" in user_data:
@@ -402,12 +459,17 @@ async def admin_update_user(
 
     try:
         await session.commit()
-        logger.info(f"User {user_to_update.email} roles updated by admin {current_user.email}")
+        logger.info(
+            f"User {user_to_update.email} roles updated by admin {current_user.email}"
+        )
         return {"message": "User roles updated successfully"}
     except Exception as e:
         await session.rollback()
         logger.error(f"Error updating user {user_id}: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update user")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update user",
+        )
 
 
 @router.post("/login", response_model=Token)
@@ -445,16 +507,24 @@ async def login(
     try:
         from app.core.password_utils import is_password_temporary
 
-        is_test_account, _ = is_password_temporary(login_data.email, login_data.password)
+        is_test_account, _ = is_password_temporary(
+            login_data.email, login_data.password
+        )
         if is_test_account:
-            logger.info(f"Test account detected for {login_data.email}, will trigger password reset")
+            logger.info(
+                f"Test account detected for {login_data.email}, will trigger password reset"
+            )
 
             if is_test_account and user_id_value:
                 from sqlalchemy import text
 
-                update_sql = text("UPDATE users SET is_password_temporary = TRUE, updated_at = :now WHERE id = :user_id")
+                update_sql = text(
+                    "UPDATE users SET is_password_temporary = TRUE, updated_at = :now WHERE id = :user_id"
+                )
                 now = datetime.now(timezone.utc)
-                await session.execute(update_sql, {"now": now, "user_id": user_id_value})
+                await session.execute(
+                    update_sql, {"now": now, "user_id": user_id_value}
+                )
 
                 # Invalidate all sessions for this user when setting is_password_temporary to true
                 print(
@@ -494,20 +564,29 @@ async def login(
             user_dict = getattr(user, "__dict__", {})
             user_id_value = user_dict.get("id") or user.id
     except HTTPException as http_exc:
-        if http_exc.status_code == status.HTTP_423_LOCKED and http_exc.detail == "account_locked":
+        if (
+            http_exc.status_code == status.HTTP_423_LOCKED
+            and http_exc.detail == "account_locked"
+        ):
             logger.warning(f"Account locked for user: {login_data.email}")
             raise HTTPException(
                 status_code=status.HTTP_423_LOCKED,
                 detail="account_locked",
                 headers={"X-Error-Type": "account_locked"},
             )
-        elif http_exc.status_code == status.HTTP_403_FORBIDDEN and http_exc.detail == "email_not_verified":
+        elif (
+            http_exc.status_code == status.HTTP_403_FORBIDDEN
+            and http_exc.detail == "email_not_verified"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="email_not_verified",
                 headers={"X-Error-Type": "email_not_verified"},
             )
-        elif http_exc.status_code == status.HTTP_400_BAD_REQUEST and "MFA code required" in http_exc.detail:
+        elif (
+            http_exc.status_code == status.HTTP_400_BAD_REQUEST
+            and "MFA code required" in http_exc.detail
+        ):
             # Handle multiple MFA methods
             user = await get_user_by_email(session, login_data.email)
             if user:
@@ -524,7 +603,9 @@ async def login(
                         from app.services.sms_mfa import sms_mfa_service
 
                         await sms_mfa_service.send_mfa_code(user)
-                        logger.info(f"SMS MFA code sent for login attempt: {login_data.email}")
+                        logger.info(
+                            f"SMS MFA code sent for login attempt: {login_data.email}"
+                        )
 
                         # Get masked phone number for display
                         if user.phone_number:
@@ -532,7 +613,9 @@ async def login(
                             if len(cleaned) >= 4:
                                 headers["X-Phone-Masked"] = f"***-***-{cleaned[-4:]}"
                     except Exception as sms_error:
-                        logger.error(f"Failed to send SMS code during login: {sms_error}")
+                        logger.error(
+                            f"Failed to send SMS code during login: {sms_error}"
+                        )
 
                 if user.email_mfa_enabled:
                     available_methods.append("Email")
@@ -543,7 +626,9 @@ async def login(
                         if len(email_parts) == 2:
                             username, domain = email_parts
                             if len(username) > 2:
-                                masked_username = username[:2] + "*" * (len(username) - 2)
+                                masked_username = username[:2] + "*" * (
+                                    len(username) - 2
+                                )
                             else:
                                 masked_username = "*" * len(username)
                             headers["X-Email-Masked"] = f"{masked_username}@{domain}"
@@ -565,7 +650,9 @@ async def login(
                     user = await get_user_by_email(session, login_data.email)
                     if user and user.sms_mfa_enabled:
                         await sms_mfa_service.send_mfa_code(user)
-                        logger.info(f"SMS MFA code sent for login attempt: {login_data.email}")
+                        logger.info(
+                            f"SMS MFA code sent for login attempt: {login_data.email}"
+                        )
                 except Exception as sms_error:
                     logger.error(f"Failed to send SMS code during login: {sms_error}")
 
@@ -630,7 +717,9 @@ async def login(
     access_token = None
     refresh_token = None
     try:
-        access_token, refresh_token = await create_user_session(session, user_id_value, request)
+        access_token, refresh_token = await create_user_session(
+            session, user_id_value, request
+        )
     except Exception as e:
         print(f"Error creating user session: {e}")
         try:
@@ -696,7 +785,9 @@ async def login(
         grace_period_info = email_mfa_service.get_grace_period_info(user)
     except Exception as e:
         # Get user_id safely - use login_data.email since user object may be expired
-        logger.error(f"Error getting grace period info for user {login_data.email}: {str(e)}")
+        logger.error(
+            f"Error getting grace period info for user {login_data.email}: {str(e)}"
+        )
 
     # Build and return response
     response = {
@@ -779,13 +870,17 @@ async def refresh_token(
 
             # Also get the user object for logging
             user_result = await session.execute(
-                async_select(User).where(User.id == user_id).execution_options(synchronize_session="fetch")
+                async_select(User)
+                .where(User.id == user_id)
+                .execution_options(synchronize_session="fetch")
             )
             user = user_result.scalars().first()
         except Exception as e:
             print(f"Error checking password temporary status during token refresh: {e}")
     else:
-        print(f"WARNING: Session is None in refresh_token endpoint for user ID {user_id}")
+        print(
+            f"WARNING: Session is None in refresh_token endpoint for user ID {user_id}"
+        )
 
     # Get grace period information if user is available
     grace_period_info = None
@@ -795,7 +890,9 @@ async def refresh_token(
 
             grace_period_info = email_mfa_service.get_grace_period_info(user)
         except Exception as e:
-            logger.error(f"Error getting grace period info for user {user.id}: {str(e)}")
+            logger.error(
+                f"Error getting grace period info for user {user.id}: {str(e)}"
+            )
 
     response = {
         "access_token": access_token,
@@ -865,7 +962,9 @@ async def logout(
 
 @router.post("/validate-apikey")
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
-async def validate_apikey(request: Request, session: AsyncSession = Depends(get_async_session)):
+async def validate_apikey(
+    request: Request, session: AsyncSession = Depends(get_async_session)
+):
     """
     Validate an API key and return the associated service-account user_id.
 
@@ -912,7 +1011,9 @@ async def validate_apikey(request: Request, session: AsyncSession = Depends(get_
         payload = jwt.decode(api_key, key, algorithms=[alg])
 
         if payload.get("type") != "api_key":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid api key type")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid api key type"
+            )
 
         user_id = payload.get("sub")
         if not user_id:
@@ -925,7 +1026,11 @@ async def validate_apikey(request: Request, session: AsyncSession = Depends(get_
         try:
             token_tenant_id = payload.get("tenant_id")
             current_tenant_id = get_current_tenant_id()
-            if token_tenant_id and current_tenant_id and token_tenant_id != current_tenant_id:
+            if (
+                token_tenant_id
+                and current_tenant_id
+                and token_tenant_id != current_tenant_id
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="token is not valid for this tenant",
@@ -937,7 +1042,9 @@ async def validate_apikey(request: Request, session: AsyncSession = Depends(get_
         # Validate user exists and is active
         from sqlalchemy.future import select as async_select
 
-        result = await session.execute(async_select(User).where(User.id == int(user_id)))
+        result = await session.execute(
+            async_select(User).where(User.id == int(user_id))
+        )
         user = result.scalars().first()
 
         if not user:
@@ -954,7 +1061,9 @@ async def validate_apikey(request: Request, session: AsyncSession = Depends(get_
 
         return {"user_id": user_id}
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid api key")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid api key"
+        )
 
 
 class ResendVerificationRequest(BaseModel):
@@ -1020,22 +1129,32 @@ async def forgot_password(
 ):
     """Initialize password reset flow with automatic password generation."""
     # Find user by email
-    result = await session.execute(async_select(User).where(User.email == reset_data.email))
+    result = await session.execute(
+        async_select(User).where(User.email == reset_data.email)
+    )
     user = result.scalars().first()
 
     # Always return success even if email doesn't exist (security)
     if not user:
-        return {"message": "If your email is registered, you will receive a password reset email"}
+        return {
+            "message": "If your email is registered, you will receive a password reset email"
+        }
 
     # Check if account is locked and add additional logging
     if user.locked_until and user.locked_until > datetime.now(timezone.utc):
-        logger.warning(f"Password reset requested for locked account: {user.email}. Account locked until: {user.locked_until}")
+        logger.warning(
+            f"Password reset requested for locked account: {user.email}. Account locked until: {user.locked_until}"
+        )
         # Still allow password reset but with enhanced monitoring
 
     # Check if password reset was recently requested
-    if user.password_reset_expires and user.password_reset_expires > datetime.now(timezone.utc):
+    if user.password_reset_expires and user.password_reset_expires > datetime.now(
+        timezone.utc
+    ):
         # Password reset already in progress, don't send another email
-        return {"message": "If your email is registered, you will receive a password reset email"}
+        return {
+            "message": "If your email is registered, you will receive a password reset email"
+        }
 
     # Generate a new secure password
     from app.core.password_utils import generate_secure_password
@@ -1091,11 +1210,15 @@ async def forgot_password(
         print(f"Error logging password reset activity: {e}")
         # Continue even if we couldn't log the activity
 
-    return {"message": "If your email is registered, you will receive a password reset email"}
+    return {
+        "message": "If your email is registered, you will receive a password reset email"
+    }
 
 
 @router.post("/reset-password")
-async def reset_password(reset_data: PasswordResetConfirm, session: AsyncSession = Depends(get_async_session)):
+async def reset_password(
+    reset_data: PasswordResetConfirm, session: AsyncSession = Depends(get_async_session)
+):
     """Reset password with token."""
     # Find user with this reset token
     result = await session.execute(
@@ -1145,12 +1268,18 @@ async def reset_password(reset_data: PasswordResetConfirm, session: AsyncSession
         is_temp = verify_result.scalar_one_or_none()
 
         if is_temp:
-            print(f"WARNING: is_password_temporary is still True after password reset for user {user.email}")
+            print(
+                f"WARNING: is_password_temporary is still True after password reset for user {user.email}"
+            )
             # Force it to be False with a direct SQL update
-            force_sql = text("UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id")
+            force_sql = text(
+                "UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id"
+            )
             await session.execute(force_sql, {"user_id": user.id})
             await session.commit()
-            print(f"Successfully forced is_password_temporary to FALSE for user {user.email}")
+            print(
+                f"Successfully forced is_password_temporary to FALSE for user {user.email}"
+            )
     except Exception as e:
         print(f"Error updating password during reset: {e}")
         await session.rollback()
@@ -1326,12 +1455,16 @@ async def change_password(
                 is_temp_flag_cleared = not is_temp
                 temp_fields_cleared = not (has_temp_password or has_temp_expiry)
             else:
-                print(f"WARNING: Could not verify user {user_email} state after password change")
+                print(
+                    f"WARNING: Could not verify user {user_email} state after password change"
+                )
     except Exception as verify_error:
         print(f"Error verifying user state: {verify_error}")
 
     if not (password_updated and is_temp_flag_cleared and temp_fields_cleared):
-        print(f"Some operations failed for user {user_email}, attempting direct SQL fallback")
+        print(
+            f"Some operations failed for user {user_email}, attempting direct SQL fallback"
+        )
 
         try:
             from sqlalchemy import text
@@ -1352,14 +1485,18 @@ async def change_password(
                 await session.execute(
                     direct_sql,
                     {
-                        "new_password_hash": get_password_hash(change_data.new_password),
+                        "new_password_hash": get_password_hash(
+                            change_data.new_password
+                        ),
                         "user_id": user_id,
                     },
                 )
 
                 try:
                     await session.commit()
-                    print(f"Successfully updated password with direct SQL for user {user_email}")
+                    print(
+                        f"Successfully updated password with direct SQL for user {user_email}"
+                    )
 
                     # Update our tracking flags
                     password_updated = True
@@ -1370,18 +1507,24 @@ async def change_password(
                     try:
                         await session.rollback()
                     except Exception as rollback_error:
-                        print(f"Error during rollback after commit failure: {rollback_error}")
+                        print(
+                            f"Error during rollback after commit failure: {rollback_error}"
+                        )
         except Exception as direct_error:
             print(f"Error with direct SQL update: {direct_error}")
             if session:
                 try:
                     await session.rollback()
                 except Exception as rollback_error:
-                    print(f"Error during rollback after direct SQL failure: {rollback_error}")
+                    print(
+                        f"Error during rollback after direct SQL failure: {rollback_error}"
+                    )
 
     # Step 4: Last resort - try to at least set is_password_temporary to FALSE if it's still TRUE
     if not is_temp_flag_cleared:
-        print(f"Still need to clear is_password_temporary flag for user {user_email}, making final attempt")
+        print(
+            f"Still need to clear is_password_temporary flag for user {user_email}, making final attempt"
+        )
 
         try:
             from sqlalchemy import text
@@ -1389,21 +1532,31 @@ async def change_password(
             # Only proceed if we have a valid session
             if session:
                 # Simple update to just set is_password_temporary to FALSE
-                force_sql = text("UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id")
+                force_sql = text(
+                    "UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id"
+                )
                 await session.execute(force_sql, {"user_id": user_id})
 
                 try:
                     await session.commit()
-                    print(f"Successfully forced is_password_temporary to FALSE for user {user_email}")
+                    print(
+                        f"Successfully forced is_password_temporary to FALSE for user {user_email}"
+                    )
                     is_temp_flag_cleared = True
                 except Exception as commit_error:
-                    print(f"Error committing is_password_temporary update: {commit_error}")
+                    print(
+                        f"Error committing is_password_temporary update: {commit_error}"
+                    )
         except Exception as force_error:
-            print(f"Error with final attempt to set is_password_temporary to FALSE: {force_error}")
+            print(
+                f"Error with final attempt to set is_password_temporary to FALSE: {force_error}"
+            )
 
     # Step 5: Last resort - try to clear temporary password fields if they're still set
     if not temp_fields_cleared:
-        print(f"Still need to clear temporary password fields for user {user_email}, making final attempt")
+        print(
+            f"Still need to clear temporary password fields for user {user_email}, making final attempt"
+        )
 
         try:
             from sqlalchemy import text
@@ -1422,12 +1575,16 @@ async def change_password(
 
                 try:
                     await session.commit()
-                    print(f"Successfully cleared temporary password fields for user {user_email}")
+                    print(
+                        f"Successfully cleared temporary password fields for user {user_email}"
+                    )
                     temp_fields_cleared = True
                 except Exception as commit_error:
                     print(f"Error committing temporary fields update: {commit_error}")
         except Exception as clear_error:
-            print(f"Error with final attempt to clear temporary password fields: {clear_error}")
+            print(
+                f"Error with final attempt to clear temporary password fields: {clear_error}"
+            )
 
     # Log the final state
     print(
@@ -1488,12 +1645,16 @@ async def recover_session(
             print(f"Ensuring is_password_temporary is FALSE for user {user_email}")
             from sqlalchemy import text
 
-            reset_sql = text("UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id")
+            reset_sql = text(
+                "UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id"
+            )
             await session.execute(reset_sql, {"user_id": user_id})
             await session.commit()
 
         print(f"Creating fresh session for user {user_email}")
-        access_token, refresh_token = await create_user_session(session, user_id, request)
+        access_token, refresh_token = await create_user_session(
+            session, user_id, request
+        )
 
         await log_user_activity(
             session,
@@ -1621,7 +1782,9 @@ async def admin_reset_password(
     # Tenant validation for application admins
     if current_user.application_admin and not current_user.is_superuser:
         if not current_tenant_id:
-            logger.error(f"Application admin {current_user.email} attempted to reset password without tenant context")
+            logger.error(
+                f"Application admin {current_user.email} attempted to reset password without tenant context"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Tenant context is required for application admins",
@@ -1635,19 +1798,29 @@ async def admin_reset_password(
             f"Superuser {current_user.email} (ID: {current_user.id}) is resetting password for {reset_data.email} in tenant: {current_tenant_id or 'default'}"
         )
 
-    result = await session.execute(async_select(User).where(User.email == reset_data.email))
+    result = await session.execute(
+        async_select(User).where(User.email == reset_data.email)
+    )
     user = result.scalars().first()
 
     if not user:
-        logger.warning(f"Admin user {current_user.email} attempted to reset password for non-existent user: {reset_data.email}")
+        logger.warning(
+            f"Admin user {current_user.email} attempted to reset password for non-existent user: {reset_data.email}"
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
 
     # Application admins cannot modify superuser accounts
-    if current_user.application_admin and not current_user.is_superuser and user.is_superuser:
-        logger.warning(f"Application admin {current_user.email} attempted to reset password for superuser: {reset_data.email}")
+    if (
+        current_user.application_admin
+        and not current_user.is_superuser
+        and user.is_superuser
+    ):
+        logger.warning(
+            f"Application admin {current_user.email} attempted to reset password for superuser: {reset_data.email}"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Application admins are not permitted to modify superuser accounts",
@@ -1662,7 +1835,9 @@ async def admin_reset_password(
                 update(User)
                 .where(User.id == user.id)
                 .values(
-                    temporary_hashed_password=get_password_hash(reset_data.new_password),
+                    temporary_hashed_password=get_password_hash(
+                        reset_data.new_password
+                    ),
                     temporary_password_expiry=expiry_time,
                     password_reset_token=None,
                     password_reset_expires=None,
@@ -1695,17 +1870,25 @@ async def admin_reset_password(
         if not reset_data.is_one_time_password:
             from sqlalchemy import text
 
-            verify_sql = text("SELECT is_password_temporary FROM users WHERE id = :user_id")
+            verify_sql = text(
+                "SELECT is_password_temporary FROM users WHERE id = :user_id"
+            )
             verify_result = await session.execute(verify_sql, {"user_id": user.id})
             is_temp = verify_result.scalar_one_or_none()
 
             if is_temp:
-                print(f"WARNING: is_password_temporary is still True after admin password reset for user {user.email}")
+                print(
+                    f"WARNING: is_password_temporary is still True after admin password reset for user {user.email}"
+                )
                 # Force it to be False with a direct SQL update
-                force_sql = text("UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id")
+                force_sql = text(
+                    "UPDATE users SET is_password_temporary = FALSE WHERE id = :user_id"
+                )
                 await session.execute(force_sql, {"user_id": user.id})
                 await session.commit()
-                print(f"Successfully forced is_password_temporary to FALSE for user {user.email}")
+                print(
+                    f"Successfully forced is_password_temporary to FALSE for user {user.email}"
+                )
     except Exception as e:
         print(f"Error updating password during admin reset: {e}")
         await session.rollback()
@@ -1769,7 +1952,9 @@ async def admin_reset_password(
 
     # Extract name from full_name or use empty string
     name = user.full_name.split()[0] if user.full_name else ""
-    await send_password_reset_email_with_new_password(user.email, name, reset_data.new_password)
+    await send_password_reset_email_with_new_password(
+        user.email, name, reset_data.new_password
+    )
 
     # Send password change notification (only for permanent password changes)
     if not reset_data.is_one_time_password:
@@ -1799,7 +1984,9 @@ async def admin_reset_password(
         details=details,
     )
 
-    logger.info(f"Password reset successfully for user {reset_data.email} by admin {current_user.email}")
+    logger.info(
+        f"Password reset successfully for user {reset_data.email} by admin {current_user.email}"
+    )
 
     return {
         "message": "Password reset successfully. The user will receive an email with the new password.",
@@ -1993,10 +2180,14 @@ async def extend_session(
 
                 tenant_id = get_current_tenant_id() or "default"
                 extension_seconds = config_settings.SESSION_EXTENSION_MINUTES * 60
-                redis_hit = await extend_session_ttl(tenant_id, refresh_token, extension_seconds)
+                redis_hit = await extend_session_ttl(
+                    tenant_id, refresh_token, extension_seconds
+                )
                 if redis_hit:
                     # Optionally debounce DB writes; only write-through if acquired
-                    write_through = await acquire_debounce(tenant_id, refresh_token, config_settings.REDIS_DEBOUNCE_SECONDS)
+                    write_through = await acquire_debounce(
+                        tenant_id, refresh_token, config_settings.REDIS_DEBOUNCE_SECONDS
+                    )
                     if not write_through:
                         new_expires_at = datetime.now(timezone.utc) + timedelta(
                             minutes=config_settings.SESSION_EXTENSION_MINUTES
@@ -2008,7 +2199,9 @@ async def extend_session(
                             "session_extended",
                             ip_address=request.client.host if request.client else None,
                             user_agent=request.headers.get("user-agent"),
-                            details={"extension_minutes": config_settings.SESSION_EXTENSION_MINUTES},
+                            details={
+                                "extension_minutes": config_settings.SESSION_EXTENSION_MINUTES
+                            },
                         )
                         metrics.endpoint_success(tenant_id)
                         return {
@@ -2035,7 +2228,9 @@ async def extend_session(
 
             if user_session:
                 # Extend the session by the configured extension time
-                extension_time = timedelta(minutes=config_settings.SESSION_EXTENSION_MINUTES)
+                extension_time = timedelta(
+                    minutes=config_settings.SESSION_EXTENSION_MINUTES
+                )
                 user_session.expires_at = datetime.now(timezone.utc) + extension_time
 
                 # Update the session in the database
@@ -2043,7 +2238,9 @@ async def extend_session(
                 try:
                     from db_core.middleware import get_current_tenant_id
 
-                    metrics.endpoint_db_write_through(get_current_tenant_id() or "default")
+                    metrics.endpoint_db_write_through(
+                        get_current_tenant_id() or "default"
+                    )
                 except Exception:
                     pass
 
@@ -2054,7 +2251,9 @@ async def extend_session(
                     "session_extended",
                     ip_address=request.client.host if request.client else None,
                     user_agent=request.headers.get("user-agent"),
-                    details={"extension_minutes": config_settings.SESSION_EXTENSION_MINUTES},
+                    details={
+                        "extension_minutes": config_settings.SESSION_EXTENSION_MINUTES
+                    },
                 )
 
                 try:
@@ -2097,7 +2296,9 @@ async def extend_session(
 
                 tenant_id = get_current_tenant_id() or "default"
                 extension_seconds = settings.SESSION_EXTENSION_MINUTES * 60
-                await extend_all_user_sessions_ttl(tenant_id, user_id, extension_seconds)
+                await extend_all_user_sessions_ttl(
+                    tenant_id, user_id, extension_seconds
+                )
 
                 # Debounce DB writes for bulk extend; only write-through occasionally
                 write_through = await acquire_debounce(
@@ -2113,7 +2314,9 @@ async def extend_session(
                 try:
                     from db_core.middleware import get_current_tenant_id
 
-                    metrics.endpoint_db_write_through(get_current_tenant_id() or "default")
+                    metrics.endpoint_db_write_through(
+                        get_current_tenant_id() or "default"
+                    )
                 except Exception:
                     pass
 
@@ -2186,7 +2389,9 @@ async def get_users(
     # Tenant validation for application admins
     if current_user.application_admin and not current_user.is_superuser:
         if not current_tenant_id:
-            logger.error(f"Application admin {current_user.email} attempted to list users without tenant context")
+            logger.error(
+                f"Application admin {current_user.email} attempted to list users without tenant context"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Tenant context is required for application admins",
@@ -2200,7 +2405,9 @@ async def get_users(
             f"Superuser {current_user.email} (ID: {current_user.id}) is listing users in tenant: {current_tenant_id or 'default'}"
         )
 
-    result = await session.execute(async_select(User).where(User.status != UserStatus.DELETED))
+    result = await session.execute(
+        async_select(User).where(User.status != UserStatus.DELETED)
+    )
     users = result.scalars().all()
 
     # Convert to list of dictionaries
@@ -2217,7 +2424,9 @@ async def get_users(
             "is_manager": user.is_manager,
             "created_at": user.created_at.isoformat() if user.created_at else None,
             "failed_login_attempts": user.failed_login_attempts,
-            "locked_until": (user.locked_until.isoformat() if user.locked_until else None),
+            "locked_until": (
+                user.locked_until.isoformat() if user.locked_until else None
+            ),
         }
         user_list.append(user_dict)
 
@@ -2246,7 +2455,9 @@ async def admin_unlock_account(
     # Tenant validation for application admins
     if current_user.application_admin and not current_user.is_superuser:
         if not current_tenant_id:
-            logger.error(f"Application admin {current_user.email} attempted to unlock account without tenant context")
+            logger.error(
+                f"Application admin {current_user.email} attempted to unlock account without tenant context"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Tenant context is required for application admins",
@@ -2265,15 +2476,23 @@ async def admin_unlock_account(
     user = result.scalars().first()
 
     if not user:
-        logger.warning(f"Admin user {current_user.email} attempted to unlock non-existent user: {email}")
+        logger.warning(
+            f"Admin user {current_user.email} attempted to unlock non-existent user: {email}"
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
 
     # Application admins cannot modify superuser accounts
-    if current_user.application_admin and not current_user.is_superuser and user.is_superuser:
-        logger.warning(f"Application admin {current_user.email} attempted to unlock superuser account: {email}")
+    if (
+        current_user.application_admin
+        and not current_user.is_superuser
+        and user.is_superuser
+    ):
+        logger.warning(
+            f"Application admin {current_user.email} attempted to unlock superuser account: {email}"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Application admins are not permitted to modify superuser accounts",
@@ -2299,7 +2518,9 @@ async def admin_unlock_account(
         "admin_email": current_user.email,
         "unlocked_user_email": email,
         "previous_failed_attempts": user.failed_login_attempts,
-        "was_locked_until": (user.locked_until.isoformat() if user.locked_until else None),
+        "was_locked_until": (
+            user.locked_until.isoformat() if user.locked_until else None
+        ),
     }
 
     await log_user_activity(
@@ -2312,7 +2533,9 @@ async def admin_unlock_account(
     )
 
     logger.info(f"Account {email} successfully unlocked by admin {current_user.email}")
-    return {"message": f"Account {email} has been unlocked and failed login attempts reset"}
+    return {
+        "message": f"Account {email} has been unlocked and failed login attempts reset"
+    }
 
 
 @router.get("/admin/mfa-devices/{user_id}")
@@ -2322,18 +2545,23 @@ async def admin_get_user_mfa_devices(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Get all MFA device verifications for a user (admin only)."""
-    logger.info(f"Admin user {current_user.email} (ID: {current_user.id}) is viewing MFA devices for user {user_id}")
+    logger.info(
+        f"Admin user {current_user.email} (ID: {current_user.id}) is viewing MFA devices for user {user_id}"
+    )
 
     from app.services.mfa_device_service import mfa_device_service
 
-    verifications = await mfa_device_service.get_user_device_verifications(user_id, session)
+    verifications = await mfa_device_service.get_user_device_verifications(
+        user_id, session
+    )
 
     return {
         "user_id": user_id,
         "device_verifications": [
             {
                 "id": v.id,
-                "device_fingerprint": v.device_fingerprint[:16] + "...",  # Truncate for privacy
+                "device_fingerprint": v.device_fingerprint[:16]
+                + "...",  # Truncate for privacy
                 "ip_address": v.ip_address,
                 "user_agent": v.user_agent,
                 "verified_at": v.verified_at,
@@ -2352,11 +2580,15 @@ async def admin_revoke_user_mfa_devices(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Revoke all MFA device verifications for a user (admin only)."""
-    logger.info(f"Admin user {current_user.email} (ID: {current_user.id}) is revoking MFA devices for user {user_id}")
+    logger.info(
+        f"Admin user {current_user.email} (ID: {current_user.id}) is revoking MFA devices for user {user_id}"
+    )
 
     from app.services.mfa_device_service import mfa_device_service
 
-    revoked_count = await mfa_device_service.revoke_all_user_verifications(user_id, session)
+    revoked_count = await mfa_device_service.revoke_all_user_verifications(
+        user_id, session
+    )
 
     # Log activity
     details = {
@@ -2373,8 +2605,12 @@ async def admin_revoke_user_mfa_devices(
         details=details,
     )
 
-    logger.info(f"Admin {current_user.email} revoked {revoked_count} MFA devices for user {user_id}")
-    return {"message": f"Revoked {revoked_count} MFA device verifications for user {user_id}"}
+    logger.info(
+        f"Admin {current_user.email} revoked {revoked_count} MFA devices for user {user_id}"
+    )
+    return {
+        "message": f"Revoked {revoked_count} MFA device verifications for user {user_id}"
+    }
 
 
 @router.get("/me/mfa-devices")
@@ -2385,13 +2621,16 @@ async def get_my_mfa_devices(
     """Get current user's MFA device verifications."""
     from app.services.mfa_device_service import mfa_device_service
 
-    verifications = await mfa_device_service.get_user_device_verifications(current_user.id, session)
+    verifications = await mfa_device_service.get_user_device_verifications(
+        current_user.id, session
+    )
 
     return {
         "device_verifications": [
             {
                 "id": v.id,
-                "device_fingerprint": v.device_fingerprint[:16] + "...",  # Truncate for privacy
+                "device_fingerprint": v.device_fingerprint[:16]
+                + "...",  # Truncate for privacy
                 "ip_address": v.ip_address,
                 "verified_at": v.verified_at,
                 "expires_at": v.expires_at,
@@ -2411,7 +2650,9 @@ async def revoke_my_mfa_devices(
     """Revoke all of current user's MFA device verifications."""
     from app.services.mfa_device_service import mfa_device_service
 
-    revoked_count = await mfa_device_service.revoke_all_user_verifications(current_user.id, session)
+    revoked_count = await mfa_device_service.revoke_all_user_verifications(
+        current_user.id, session
+    )
 
     # Log activity
     await log_user_activity(
@@ -2421,7 +2662,9 @@ async def revoke_my_mfa_devices(
         details={"revoked_devices_count": revoked_count},
     )
 
-    logger.info(f"User {current_user.email} revoked {revoked_count} of their MFA devices")
+    logger.info(
+        f"User {current_user.email} revoked {revoked_count} of their MFA devices"
+    )
     return {"message": f"Revoked {revoked_count} MFA device verifications"}
 
 
@@ -2458,7 +2701,10 @@ def get_platform_from_user_agent(user_agent: str) -> str:
         return "MOBILE"
 
     # Check for web browsers
-    if any(browser in user_agent_lower for browser in ["mozilla", "chrome", "safari", "firefox", "edge"]):
+    if any(
+        browser in user_agent_lower
+        for browser in ["mozilla", "chrome", "safari", "firefox", "edge"]
+    ):
         return "WEB"
 
     return "UNKNOWN"

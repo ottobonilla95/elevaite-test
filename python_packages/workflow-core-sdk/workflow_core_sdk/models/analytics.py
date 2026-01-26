@@ -9,4 +9,3 @@ class ExecutionEvent(TypedDict, total=False):
     step_id: Optional[str]
     error: Optional[str]
     payload: Optional[Dict[str, Any]]
-

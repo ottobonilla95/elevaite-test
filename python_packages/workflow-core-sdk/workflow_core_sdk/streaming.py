@@ -43,7 +43,12 @@ class StreamEvent:
 
     def to_sse(self) -> str:
         """Convert to Server-Sent Events format"""
-        event_data = {"type": self.type, "execution_id": self.execution_id, "timestamp": self.timestamp, "data": self.data}
+        event_data = {
+            "type": self.type,
+            "execution_id": self.execution_id,
+            "timestamp": self.timestamp,
+            "data": self.data,
+        }
         if self.workflow_id:
             event_data["workflow_id"] = self.workflow_id
 
@@ -65,14 +70,18 @@ class StreamManager:
         if execution_id not in self.execution_streams:
             self.execution_streams[execution_id] = set()
         self.execution_streams[execution_id].add(queue)
-        logger.debug(f"Added execution stream for {execution_id}, total: {len(self.execution_streams[execution_id])}")
+        logger.debug(
+            f"Added execution stream for {execution_id}, total: {len(self.execution_streams[execution_id])}"
+        )
 
     def add_workflow_stream(self, workflow_id: str, queue: asyncio.Queue) -> None:
         """Add a streaming connection for a workflow"""
         if workflow_id not in self.workflow_streams:
             self.workflow_streams[workflow_id] = set()
         self.workflow_streams[workflow_id].add(queue)
-        logger.debug(f"Added workflow stream for {workflow_id}, total: {len(self.workflow_streams[workflow_id])}")
+        logger.debug(
+            f"Added workflow stream for {workflow_id}, total: {len(self.workflow_streams[workflow_id])}"
+        )
 
     def remove_execution_stream(self, execution_id: str, queue: asyncio.Queue) -> None:
         """Remove a streaming connection for an execution"""
@@ -150,8 +159,12 @@ class StreamManager:
         return {
             "active_execution_streams": len(self.execution_streams),
             "active_workflow_streams": len(self.workflow_streams),
-            "total_execution_connections": sum(len(queues) for queues in self.execution_streams.values()),
-            "total_workflow_connections": sum(len(queues) for queues in self.workflow_streams.values()),
+            "total_execution_connections": sum(
+                len(queues) for queues in self.execution_streams.values()
+            ),
+            "total_workflow_connections": sum(
+                len(queues) for queues in self.workflow_streams.values()
+            ),
         }
 
 
@@ -181,7 +194,9 @@ async def create_sse_stream(
                 now = time.time()
                 if now - last_heartbeat >= heartbeat_interval:
                     heartbeat_event = StreamEvent(
-                        type=StreamEventType.HEARTBEAT, execution_id="system", data={"timestamp": now}
+                        type=StreamEventType.HEARTBEAT,
+                        execution_id="system",
+                        data={"timestamp": now},
                     )
                     yield heartbeat_event.to_sse()
                     last_heartbeat = now
@@ -209,7 +224,9 @@ async def create_sse_stream(
                             parsed = json.loads(json_str)
                             status = parsed.get("data", {}).get("status")
                             if status in ("completed", "failed", "error"):
-                                logger.debug(f"Stream closing: received '{status}' status")
+                                logger.debug(
+                                    f"Stream closing: received '{status}' status"
+                                )
                                 break
                     except (json.JSONDecodeError, KeyError, TypeError):
                         # If we can't parse, just continue
@@ -222,7 +239,11 @@ async def create_sse_stream(
             except Exception as e:
                 logger.error(f"Error in SSE stream: {e}")
                 # Send error event and close
-                error_event = StreamEvent(type=StreamEventType.ERROR, execution_id="system", data={"error": str(e)})
+                error_event = StreamEvent(
+                    type=StreamEventType.ERROR,
+                    execution_id="system",
+                    data={"error": str(e)},
+                )
                 yield error_event.to_sse()
                 break
 
@@ -236,7 +257,9 @@ async def create_sse_stream(
         if not cancelled:
             try:
                 complete_event = StreamEvent(
-                    type=StreamEventType.COMPLETE, execution_id="system", data={"events_sent": event_count}
+                    type=StreamEventType.COMPLETE,
+                    execution_id="system",
+                    data={"events_sent": event_count},
                 )
                 yield complete_event.to_sse()
             except GeneratorExit:
@@ -257,15 +280,24 @@ def get_sse_headers() -> Dict[str, str]:
     }
 
 
-def create_status_event(execution_id: str, status: str, workflow_id: Optional[str] = None, **extra_data) -> StreamEvent:
+def create_status_event(
+    execution_id: str, status: str, workflow_id: Optional[str] = None, **extra_data
+) -> StreamEvent:
     """Create a status change event"""
     return StreamEvent(
-        type=StreamEventType.STATUS, execution_id=execution_id, workflow_id=workflow_id, data={"status": status, **extra_data}
+        type=StreamEventType.STATUS,
+        execution_id=execution_id,
+        workflow_id=workflow_id,
+        data={"status": status, **extra_data},
     )
 
 
 def create_step_event(
-    execution_id: str, step_id: str, step_status: str, workflow_id: Optional[str] = None, **extra_data
+    execution_id: str,
+    step_id: str,
+    step_status: str,
+    workflow_id: Optional[str] = None,
+    **extra_data,
 ) -> StreamEvent:
     """Create a step execution event"""
     return StreamEvent(
@@ -276,7 +308,12 @@ def create_step_event(
     )
 
 
-def create_error_event(execution_id: str, error_message: str, workflow_id: Optional[str] = None, **extra_data) -> StreamEvent:
+def create_error_event(
+    execution_id: str,
+    error_message: str,
+    workflow_id: Optional[str] = None,
+    **extra_data,
+) -> StreamEvent:
     """Create an error event"""
     return StreamEvent(
         type=StreamEventType.ERROR,

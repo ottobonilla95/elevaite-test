@@ -230,7 +230,9 @@ load_dotenv()
 class GeneratePropositions(BaseModel):
     """List of all the propositions in a given document"""
 
-    propositions: List[str] = Field(description="List of factual, self-contained, and concise propositions")
+    propositions: List[str] = Field(
+        description="List of factual, self-contained, and concise propositions"
+    )
 
 
 # ✅ Use OpenAI model (e.g., GPT-4o)
@@ -336,7 +338,11 @@ class PdfParser:
                     sentences = sent_tokenize(text)
                     for sentence_no, sentence_text in enumerate(sentences, start=1):
                         if sentence_text.strip():
-                            extracted_sentences.append(SentenceDocument(sentence_text, page_num + 1, sentence_no))
+                            extracted_sentences.append(
+                                SentenceDocument(
+                                    sentence_text, page_num + 1, sentence_no
+                                )
+                            )
 
             if not extracted_sentences:
                 raise ValueError(f"No extractable content found in {file_path}")
@@ -369,7 +375,9 @@ def enrich_sentence_with_context(sentences):
         sentence_text = sentence_obj.sentence_text.strip()
 
         keywords_indicating_reference = ["this article", "this program", "it refers to"]
-        needs_context = any(kw in sentence_text.lower() for kw in keywords_indicating_reference)
+        needs_context = any(
+            kw in sentence_text.lower() for kw in keywords_indicating_reference
+        )
 
         if needs_context and prev_sentence:
             input_text = f"""
@@ -407,7 +415,10 @@ def enrich_sentence_with_context(sentences):
             resolved_sentence += " " + prev_sentence
 
         enriched_sentence_obj = SentenceDocument(
-            sentence_text=resolved_sentence, page_no=sentence_obj.page_no, sentence_no=sentence_obj.sentence_no, propositions=[]
+            sentence_text=resolved_sentence,
+            page_no=sentence_obj.page_no,
+            sentence_no=sentence_obj.sentence_no,
+            propositions=[],
         )
 
         enriched_sentences.append(enriched_sentence_obj)
@@ -423,7 +434,9 @@ def enrich_sentence_with_context(sentences):
 # ==============================
 
 if __name__ == "__main__":
-    file_path = "/Users/dheeraj/Desktop/elevaite/elevaite_ingestion/INPUT/kb_arlo_check.pdf"
+    file_path = (
+        "/Users/dheeraj/Desktop/elevaite/elevaite_ingestion/INPUT/kb_arlo_check.pdf"
+    )
 
     parser = PdfParser()
     sentence_objects = parser.parse(file_path)

@@ -22,7 +22,9 @@ def ensure_directory_exists(directory):
         logger.info(f"Created directory: {directory}")
 
 
-def execute_pipeline(mode: Optional[str] = None, config: Optional[PipelineConfig] = None) -> dict:
+def execute_pipeline(
+    mode: Optional[str] = None, config: Optional[PipelineConfig] = None
+) -> dict:
     """
     Executes the parsing pipeline & logs status.
 
@@ -84,7 +86,11 @@ def execute_pipeline(mode: Optional[str] = None, config: Optional[PipelineConfig
                 json.dump(structured_data[file], f, indent=4)
 
             event_details.append(
-                {"input": os.path.join(input_dir, os.path.basename(file)), "output": output_path, "status": "Success"}
+                {
+                    "input": os.path.join(input_dir, os.path.basename(file)),
+                    "output": output_path,
+                    "status": "Success",
+                }
             )
 
         pipeline_status["STAGE_2: PARSING"].update(
@@ -120,7 +126,9 @@ def execute_pipeline(mode: Optional[str] = None, config: Optional[PipelineConfig
             pipeline_status["STAGE_2: PARSING"]["STATUS"] = "Failed"
 
     else:
-        logger.error(f"❌ Invalid mode '{mode}' specified. Please choose 's3' or 'local'.")
+        logger.error(
+            f"❌ Invalid mode '{mode}' specified. Please choose 's3' or 'local'."
+        )
         return {"error": "Invalid processing mode"}
 
     json_output = json.dumps(pipeline_status, indent=4)

@@ -13,7 +13,6 @@ from .schema import (
 
 
 class Auditor:
-
     def __init__(self, config):
         self.config = config
         self._setup_logger()
@@ -52,9 +51,7 @@ class Auditor:
                     method_end_time = time.time()
                     log_level = LogLevel.INFO
                     return response
-                except (
-                    Exception
-                ) as e:  # catch any exception, and update log level and error information in audit through request object
+                except Exception as e:  # catch any exception, and update log level and error information in audit through request object
                     method_end_time = time.time()
                     log_level = LogLevel.ERROR
                     error_code = getattr(e, "status_code", None)

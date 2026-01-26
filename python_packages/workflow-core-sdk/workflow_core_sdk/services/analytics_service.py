@@ -31,10 +31,14 @@ class AnalyticsService:
 
         If redact_response_in_analytics=True, the response text will not be saved to analytics.
         """
-        agent_name = str(agent_output.get("agent_name") or agent_output.get("agentId") or "Agent")
+        agent_name = str(
+            agent_output.get("agent_name") or agent_output.get("agentId") or "Agent"
+        )
         agent_id = str(agent_output.get("agent_id") or "") or None
         query = agent_output.get("query")
-        response = None if redact_response_in_analytics else agent_output.get("response")
+        response = (
+            None if redact_response_in_analytics else agent_output.get("response")
+        )
 
         usage = agent_output.get("usage") or {}
         tokens_in = usage.get("tokens_in") if isinstance(usage, dict) else None
@@ -52,7 +56,9 @@ class AnalyticsService:
 
         row = AgentExecutionMetrics(
             execution_id=uuid_module.UUID(execution_id),
-            step_execution_id=uuid_module.UUID(step_execution_id) if step_execution_id else None,
+            step_execution_id=uuid_module.UUID(step_execution_id)
+            if step_execution_id
+            else None,
             agent_id=agent_id,
             agent_name=agent_name,
             start_time=start_time,
@@ -89,7 +95,11 @@ class AnalyticsService:
     ) -> uuid_module.UUID:
         start_time = started_at or datetime.utcnow()
         end_time = completed_at or datetime.utcnow()
-        duration_ms = int((end_time - start_time).total_seconds() * 1000) if started_at and completed_at else None
+        duration_ms = (
+            int((end_time - start_time).total_seconds() * 1000)
+            if started_at and completed_at
+            else None
+        )
 
         row = WorkflowMetrics(
             execution_id=uuid_module.UUID(execution_id),

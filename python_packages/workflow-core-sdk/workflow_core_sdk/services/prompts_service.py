@@ -47,7 +47,9 @@ class PromptsService:
     @staticmethod
     def create_prompt(session: Session, prompt: PromptCreate) -> Prompt:
         # uniqueness by unique_label within org
-        from ..db.models import PromptCreate as _PC  # local import to avoid cycles in type hints
+        from ..db.models import (
+            PromptCreate as _PC,
+        )  # local import to avoid cycles in type hints
 
         data = prompt.model_dump() if isinstance(prompt, _PC) else dict(prompt)
 
@@ -59,7 +61,11 @@ class PromptsService:
                 )
             ).first()
         else:
-            existing = session.exec(select(Prompt).where(Prompt.unique_label == data["unique_label"]).limit(1)).first()
+            existing = session.exec(
+                select(Prompt)
+                .where(Prompt.unique_label == data["unique_label"])
+                .limit(1)
+            ).first()
         if existing:
             raise ValueError("Prompt with this unique_label already exists")
 
@@ -76,15 +82,23 @@ class PromptsService:
         return session.exec(select(Prompt).where(Prompt.id == UUID(prompt_id))).first()
 
     @staticmethod
-    def update_prompt(session: Session, prompt_id: str, payload: PromptUpdate) -> Prompt:
+    def update_prompt(
+        session: Session, prompt_id: str, payload: PromptUpdate
+    ) -> Prompt:
         from uuid import UUID
         from ..db.models import PromptUpdate as _PU
 
-        db_prompt = session.exec(select(Prompt).where(Prompt.id == UUID(prompt_id))).first()
+        db_prompt = session.exec(
+            select(Prompt).where(Prompt.id == UUID(prompt_id))
+        ).first()
         if not db_prompt:
             raise ValueError("Prompt not found")
 
-        updates = payload.model_dump(exclude_unset=True) if isinstance(payload, _PU) else dict(payload)
+        updates = (
+            payload.model_dump(exclude_unset=True)
+            if isinstance(payload, _PU)
+            else dict(payload)
+        )
         for k, v in updates.items():
             setattr(db_prompt, k, v)
 
@@ -97,7 +111,9 @@ class PromptsService:
     def delete_prompt(session: Session, prompt_id: str) -> bool:
         from uuid import UUID
 
-        db_prompt = session.exec(select(Prompt).where(Prompt.id == UUID(prompt_id))).first()
+        db_prompt = session.exec(
+            select(Prompt).where(Prompt.id == UUID(prompt_id))
+        ).first()
         if not db_prompt:
             return False
         session.delete(db_prompt)

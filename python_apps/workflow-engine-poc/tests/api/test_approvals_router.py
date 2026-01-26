@@ -64,9 +64,13 @@ class TestListApprovals:
     """Tests for GET /approvals endpoint"""
 
     @pytest.mark.api
-    def test_list_all_approvals(self, authenticated_client: TestClient, multiple_approvals):
+    def test_list_all_approvals(
+        self, authenticated_client: TestClient, multiple_approvals
+    ):
         """Test listing all approval requests"""
-        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
+        with patch(
+            "workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests"
+        ) as mock_list:
             mock_list.return_value = multiple_approvals
 
             response = authenticated_client.get("/approvals")
@@ -78,14 +82,20 @@ class TestListApprovals:
             mock_list.assert_called_once()
 
     @pytest.mark.api
-    def test_list_approvals_with_execution_id_filter(self, authenticated_client: TestClient, sample_approval_data):
+    def test_list_approvals_with_execution_id_filter(
+        self, authenticated_client: TestClient, sample_approval_data
+    ):
         """Test filtering approvals by execution_id"""
         execution_id = sample_approval_data["execution_id"]
 
-        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
+        with patch(
+            "workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests"
+        ) as mock_list:
             mock_list.return_value = [sample_approval_data]
 
-            response = authenticated_client.get(f"/approvals?execution_id={execution_id}")
+            response = authenticated_client.get(
+                f"/approvals?execution_id={execution_id}"
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -96,11 +106,17 @@ class TestListApprovals:
             assert call_kwargs["execution_id"] == execution_id
 
     @pytest.mark.api
-    def test_list_approvals_with_status_filter(self, authenticated_client: TestClient, multiple_approvals):
+    def test_list_approvals_with_status_filter(
+        self, authenticated_client: TestClient, multiple_approvals
+    ):
         """Test filtering approvals by status"""
-        approved_only = [a for a in multiple_approvals if a["status"] == ApprovalStatus.APPROVED]
+        approved_only = [
+            a for a in multiple_approvals if a["status"] == ApprovalStatus.APPROVED
+        ]
 
-        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
+        with patch(
+            "workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests"
+        ) as mock_list:
             mock_list.return_value = approved_only
 
             response = authenticated_client.get("/approvals?status=approved")
@@ -114,9 +130,13 @@ class TestListApprovals:
             assert call_kwargs["status"] == "approved"
 
     @pytest.mark.api
-    def test_list_approvals_with_pagination(self, authenticated_client: TestClient, multiple_approvals):
+    def test_list_approvals_with_pagination(
+        self, authenticated_client: TestClient, multiple_approvals
+    ):
         """Test pagination parameters"""
-        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
+        with patch(
+            "workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests"
+        ) as mock_list:
             mock_list.return_value = multiple_approvals[:2]
 
             response = authenticated_client.get("/approvals?limit=2&offset=0")
@@ -132,7 +152,9 @@ class TestListApprovals:
     @pytest.mark.api
     def test_list_approvals_empty_result(self, authenticated_client: TestClient):
         """Test listing when no approvals exist"""
-        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests") as mock_list:
+        with patch(
+            "workflow_core_sdk.services.approvals_service.ApprovalsService.list_approval_requests"
+        ) as mock_list:
             mock_list.return_value = []
 
             response = authenticated_client.get("/approvals")
@@ -146,11 +168,15 @@ class TestGetApproval:
     """Tests for GET /approvals/{approval_id} endpoint"""
 
     @pytest.mark.api
-    def test_get_approval_success(self, authenticated_client: TestClient, sample_approval_data):
+    def test_get_approval_success(
+        self, authenticated_client: TestClient, sample_approval_data
+    ):
         """Test getting a specific approval request"""
         approval_id = sample_approval_data["id"]
 
-        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
+        with patch(
+            "workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request"
+        ) as mock_get:
             mock_get.return_value = sample_approval_data
 
             response = authenticated_client.get(f"/approvals/{approval_id}")
@@ -167,7 +193,9 @@ class TestGetApproval:
         """Test getting non-existent approval returns 404"""
         approval_id = str(uuid.uuid4())
 
-        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
+        with patch(
+            "workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request"
+        ) as mock_get:
             mock_get.return_value = None
 
             response = authenticated_client.get(f"/approvals/{approval_id}")
@@ -181,7 +209,9 @@ class TestApproveRequest:
     """Tests for POST /approvals/{approval_id}/approve endpoint"""
 
     @pytest.mark.api
-    def test_approve_request_success_local_backend(self, authenticated_client: TestClient, sample_approval_data):
+    def test_approve_request_success_local_backend(
+        self, authenticated_client: TestClient, sample_approval_data
+    ):
         """Test approving a request with local backend"""
         approval_id = sample_approval_data["id"]
         decision_body = {
@@ -191,16 +221,24 @@ class TestApproveRequest:
         }
 
         with (
-            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
-            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
+            patch(
+                "workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request"
+            ) as mock_get,
+            patch(
+                "workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request"
+            ) as mock_update,
             patch.object(
-                authenticated_client.app.state.workflow_engine, "resume_execution", new_callable=AsyncMock
+                authenticated_client.app.state.workflow_engine,
+                "resume_execution",
+                new_callable=AsyncMock,
             ) as mock_resume,
         ):
             mock_get.return_value = sample_approval_data
             mock_update.return_value = True
 
-            response = authenticated_client.post(f"/approvals/{approval_id}/approve", json=decision_body)
+            response = authenticated_client.post(
+                f"/approvals/{approval_id}/approve", json=decision_body
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -218,7 +256,9 @@ class TestApproveRequest:
             mock_resume.assert_called_once()
 
     @pytest.mark.api
-    def test_approve_request_success_dbos_backend(self, authenticated_client: TestClient, sample_approval_data):
+    def test_approve_request_success_dbos_backend(
+        self, authenticated_client: TestClient, sample_approval_data
+    ):
         """Test approving a request with DBOS backend"""
         approval_id = sample_approval_data["id"]
         sample_approval_data["approval_metadata"]["backend"] = "dbos"
@@ -228,13 +268,19 @@ class TestApproveRequest:
         }
 
         with (
-            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
-            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
+            patch(
+                "workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request"
+            ) as mock_get,
+            patch(
+                "workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request"
+            ) as mock_update,
         ):
             mock_get.return_value = sample_approval_data
             mock_update.return_value = True
 
-            response = authenticated_client.post(f"/approvals/{approval_id}/approve", json=decision_body)
+            response = authenticated_client.post(
+                f"/approvals/{approval_id}/approve", json=decision_body
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -250,27 +296,43 @@ class TestApproveRequest:
         approval_id = str(uuid.uuid4())
         decision_body = {"decided_by": "user123"}
 
-        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
+        with patch(
+            "workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request"
+        ) as mock_get:
             mock_get.return_value = None
 
-            response = authenticated_client.post(f"/approvals/{approval_id}/approve", json=decision_body)
+            response = authenticated_client.post(
+                f"/approvals/{approval_id}/approve", json=decision_body
+            )
 
             assert response.status_code == 404
 
     @pytest.mark.api
-    def test_approve_request_with_empty_payload(self, authenticated_client: TestClient, sample_approval_data):
+    def test_approve_request_with_empty_payload(
+        self, authenticated_client: TestClient, sample_approval_data
+    ):
         """Test approving with minimal decision body"""
         approval_id = sample_approval_data["id"]
 
         with (
-            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
-            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
-            patch.object(authenticated_client.app.state.workflow_engine, "resume_execution", new_callable=AsyncMock),
+            patch(
+                "workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request"
+            ) as mock_get,
+            patch(
+                "workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request"
+            ) as mock_update,
+            patch.object(
+                authenticated_client.app.state.workflow_engine,
+                "resume_execution",
+                new_callable=AsyncMock,
+            ),
         ):
             mock_get.return_value = sample_approval_data
             mock_update.return_value = True
 
-            response = authenticated_client.post(f"/approvals/{approval_id}/approve", json={})
+            response = authenticated_client.post(
+                f"/approvals/{approval_id}/approve", json={}
+            )
 
             assert response.status_code == 200
 
@@ -280,7 +342,9 @@ class TestDenyRequest:
     """Tests for POST /approvals/{approval_id}/deny endpoint"""
 
     @pytest.mark.api
-    def test_deny_request_success_local_backend(self, authenticated_client: TestClient, sample_approval_data):
+    def test_deny_request_success_local_backend(
+        self, authenticated_client: TestClient, sample_approval_data
+    ):
         """Test denying a request with local backend"""
         approval_id = sample_approval_data["id"]
         decision_body = {
@@ -290,16 +354,24 @@ class TestDenyRequest:
         }
 
         with (
-            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
-            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
+            patch(
+                "workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request"
+            ) as mock_get,
+            patch(
+                "workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request"
+            ) as mock_update,
             patch.object(
-                authenticated_client.app.state.workflow_engine, "resume_execution", new_callable=AsyncMock
+                authenticated_client.app.state.workflow_engine,
+                "resume_execution",
+                new_callable=AsyncMock,
             ) as mock_resume,
         ):
             mock_get.return_value = sample_approval_data
             mock_update.return_value = True
 
-            response = authenticated_client.post(f"/approvals/{approval_id}/deny", json=decision_body)
+            response = authenticated_client.post(
+                f"/approvals/{approval_id}/deny", json=decision_body
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -317,20 +389,28 @@ class TestDenyRequest:
             mock_resume.assert_called_once()
 
     @pytest.mark.api
-    def test_deny_request_success_dbos_backend(self, authenticated_client: TestClient, sample_approval_data):
+    def test_deny_request_success_dbos_backend(
+        self, authenticated_client: TestClient, sample_approval_data
+    ):
         """Test denying a request with DBOS backend"""
         approval_id = sample_approval_data["id"]
         sample_approval_data["approval_metadata"]["backend"] = "dbos"
         decision_body = {"decided_by": "user123"}
 
         with (
-            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get,
-            patch("workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request") as mock_update,
+            patch(
+                "workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request"
+            ) as mock_get,
+            patch(
+                "workflow_core_sdk.services.approvals_service.ApprovalsService.update_approval_request"
+            ) as mock_update,
         ):
             mock_get.return_value = sample_approval_data
             mock_update.return_value = True
 
-            response = authenticated_client.post(f"/approvals/{approval_id}/deny", json=decision_body)
+            response = authenticated_client.post(
+                f"/approvals/{approval_id}/deny", json=decision_body
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -343,9 +423,13 @@ class TestDenyRequest:
         approval_id = str(uuid.uuid4())
         decision_body = {"decided_by": "user123"}
 
-        with patch("workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request") as mock_get:
+        with patch(
+            "workflow_core_sdk.services.approvals_service.ApprovalsService.get_approval_request"
+        ) as mock_get:
             mock_get.return_value = None
 
-            response = authenticated_client.post(f"/approvals/{approval_id}/deny", json=decision_body)
+            response = authenticated_client.post(
+                f"/approvals/{approval_id}/deny", json=decision_body
+            )
 
             assert response.status_code == 404

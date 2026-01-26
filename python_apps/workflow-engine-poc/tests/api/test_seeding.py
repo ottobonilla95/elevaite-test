@@ -163,7 +163,9 @@ class TestSeedDataLoader:
         loader = SeedDataLoader(mock_session)
 
         # Simulate duplicate error
-        mock_prompts_service.create_prompt.side_effect = ValueError("Prompt with this unique_label already exists")
+        mock_prompts_service.create_prompt.side_effect = ValueError(
+            "Prompt with this unique_label already exists"
+        )
 
         # Should not raise, just return 0
         count = loader.load_prompts()
@@ -173,7 +175,9 @@ class TestSeedDataLoader:
     @patch("workflow_engine_poc.seeding.loader.AgentsService")
     @patch("workflow_engine_poc.seeding.loader.ToolsService")
     @patch("workflow_engine_poc.seeding.loader.PromptsService")
-    def test_load_all_calls_in_order(self, mock_prompts, mock_tools, mock_agents, mock_workflows):
+    def test_load_all_calls_in_order(
+        self, mock_prompts, mock_tools, mock_agents, mock_workflows
+    ):
         """Test load_all loads entities in correct order."""
         mock_session = MagicMock()
         loader = SeedDataLoader(mock_session)

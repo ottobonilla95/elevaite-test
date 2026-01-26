@@ -83,4 +83,3 @@ def apply_thinking_defaults(
             result[key] = value
 
     return result
-

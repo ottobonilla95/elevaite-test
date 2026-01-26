@@ -5,7 +5,9 @@ from typing import Optional
 
 from elevaite_ingestion.config.pipeline_config import PipelineConfig
 from elevaite_ingestion.utils.logger import get_logger
-from elevaite_ingestion.stage.vectorstore_stage.vectordb_pipeline import execute_vector_db_stage
+from elevaite_ingestion.stage.vectorstore_stage.vectordb_pipeline import (
+    execute_vector_db_stage,
+)
 
 logger = get_logger(__name__)
 

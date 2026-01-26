@@ -36,14 +36,19 @@ def generate_reformulated_queries(user_query, chat_history, instructions):
 
     # Iterate through each instruction and generate reformulations
     for instruction in instructions:
-        prompt = full_prompt_template.format(context=conversational_context, query=user_query, instruction=instruction)
+        prompt = full_prompt_template.format(
+            context=conversational_context, query=user_query, instruction=instruction
+        )
 
         try:
             # Call the OpenAI API to generate a response
             response = openai.chat.completions.create(
                 model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "You are an expert in query optimization."},
+                    {
+                        "role": "system",
+                        "content": "You are an expert in query optimization.",
+                    },
                     {"role": "user", "content": prompt},
                 ],
             )
@@ -95,7 +100,9 @@ if __name__ == "__main__":
     ]
 
     # Generate reformulated queries using GenQREnsemble
-    reformulated_queries = generate_reformulated_queries(user_query, chat_history, instructions)
+    reformulated_queries = generate_reformulated_queries(
+        user_query, chat_history, instructions
+    )
 
     # Combine the reformulated queries into a single candidate set
     final_query = combine_queries(reformulated_queries)

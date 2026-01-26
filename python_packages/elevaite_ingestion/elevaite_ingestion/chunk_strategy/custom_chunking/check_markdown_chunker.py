@@ -4,8 +4,10 @@ from markitdown import MarkItDown
 
 from markitdown import MarkItDown
 
-md = MarkItDown() 
-result = md.convert("/Users/dheeraj/Desktop/elevaite/elevaite_ingestion/Ethics of Autonomous Vehicles - Spring 2023.docx")
+md = MarkItDown()
+result = md.convert(
+    "/Users/dheeraj/Desktop/elevaite/elevaite_ingestion/Ethics of Autonomous Vehicles - Spring 2023.docx"
+)
 # print(result.text_content)
 
 splitter = MarkdownHeaderTextSplitter(
@@ -15,4 +17,3 @@ splitter = MarkdownHeaderTextSplitter(
 chunks = splitter.split_text(result.text_content)
 for chunk in chunks:
     print(chunk.page_content + "\n#############\n")
-

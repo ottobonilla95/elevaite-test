@@ -2,9 +2,12 @@ import os
 import json
 from dotenv import load_dotenv
 
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config.json")
+CONFIG_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "config.json"
+)
 
 load_dotenv()
+
 
 def load_config():
     if os.path.exists(CONFIG_PATH):
@@ -12,9 +15,11 @@ def load_config():
             return json.load(file)
     return {}
 
+
 def save_config(updated_config):
     with open(CONFIG_PATH, "w", encoding="utf-8") as file:
         json.dump(updated_config, file, indent=4)
+
 
 config = load_config()
 
@@ -22,10 +27,17 @@ PARSING_MODE = config.get("parsing", {}).get("default_mode", "auto_parser")
 DEFAULT_PARSER = config.get("parsing", {}).get("default_parser", "pdf")
 
 if PARSING_MODE == "auto_parser":
-    DEFAULT_TOOL = config.get("parsing", {}).get("parsers", {}).get(DEFAULT_PARSER, {}).get("default_tool")
-    CUSTOM_PARSER_SELECTION = {} 
-else: 
-    CUSTOM_PARSER_SELECTION = config.get("parsing", {}).get("custom_parser_selection", {})
+    DEFAULT_TOOL = (
+        config.get("parsing", {})
+        .get("parsers", {})
+        .get(DEFAULT_PARSER, {})
+        .get("default_tool")
+    )
+    CUSTOM_PARSER_SELECTION = {}
+else:
+    CUSTOM_PARSER_SELECTION = config.get("parsing", {}).get(
+        "custom_parser_selection", {}
+    )
     DEFAULT_TOOL = CUSTOM_PARSER_SELECTION.get("tool", "markitdown")
 
 if DEFAULT_TOOL is None and DEFAULT_PARSER != "pdf":

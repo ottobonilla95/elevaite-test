@@ -23,7 +23,7 @@ class UserStatus(str, Enum):
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
     PENDING = "pending"
-    DELETED = "deleted" 
+    DELETED = "deleted"
 
 
 # Define timezone-aware datetime functions
@@ -73,7 +73,7 @@ class User(Base, TimestampMixin):
     )  # TOTP secret
     sms_mfa_enabled: Mapped[bool] = mapped_column(default=False, nullable=False)
     phone_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
-    
+
     email_mfa_enabled: Mapped[bool] = mapped_column(default=False, nullable=False)
     biometric_mfa_enabled: Mapped[bool] = mapped_column(default=False, nullable=False)
     email_mfa_code: Mapped[Optional[str]] = mapped_column(
@@ -125,9 +125,9 @@ class User(Base, TimestampMixin):
     )
 
     biometric_devices: Mapped[List["BiometricDevice"]] = relationship(
-       "BiometricDevice", back_populates="user", cascade="all, delete-orphan"
-   )
-    
+        "BiometricDevice", back_populates="user", cascade="all, delete-orphan"
+    )
+
     def __repr__(self) -> str:
         """String representation."""
         return f"<User {self.email}>"
@@ -216,37 +216,33 @@ class UserActivity(Base, TimestampMixin):
         """String representation."""
         return f"<UserActivity {self.id} - {self.action} by User {self.user_id}>"
 
+
 class BiometricDevice(Base, TimestampMixin):
     """Biometric device registration for MFA."""
-    
+
     __tablename__ = "biometric_devices"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), 
-        nullable=False,
-        index=True
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    
+
     # Device identification
     device_fingerprint: Mapped[str] = mapped_column(
-        String(255), 
-        nullable=False,
-        index=True,
-        unique=True
+        String(255), nullable=False, index=True, unique=True
     )
     device_name: Mapped[str] = mapped_column(String(255), nullable=False)
     device_model: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    
+
     # Public key for verification (NOT biometric data!)
     public_key: Mapped[str] = mapped_column(Text, nullable=False)
-    
+
     # Status tracking
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     last_used_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    
+
     # Metadata
     ip_address_at_registration: Mapped[Optional[str]] = mapped_column(
         String(255), nullable=True
@@ -254,10 +250,12 @@ class BiometricDevice(Base, TimestampMixin):
     user_agent_at_registration: Mapped[Optional[str]] = mapped_column(
         String(500), nullable=True
     )
-    
+
     # Relationship to User
     user: Mapped["User"] = relationship("User", back_populates="biometric_devices")
-    
+
     def __repr__(self) -> str:
         """String representation."""
-        return f"<BiometricDevice {self.id} '{self.device_name}' for User {self.user_id}>"
+        return (
+            f"<BiometricDevice {self.id} '{self.device_name}' for User {self.user_id}>"
+        )

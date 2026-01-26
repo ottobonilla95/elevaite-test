@@ -326,7 +326,11 @@ class TestAsyncPerformance:
                 check_access_async(
                     user_id=i,
                     action="view_project",
-                    resource={"type": "project", "id": f"proj{i}", "organization_id": "org1"},
+                    resource={
+                        "type": "project",
+                        "id": f"proj{i}",
+                        "organization_id": "org1",
+                    },
                 )
                 for i in range(1000)
             ]
@@ -342,4 +346,3 @@ class TestAsyncPerformance:
             assert all(r is True for r in results)
             # Should handle at least 1000 requests per second
             assert throughput > 1000
-

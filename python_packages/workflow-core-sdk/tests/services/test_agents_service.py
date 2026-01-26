@@ -86,7 +86,9 @@ class TestAgentsCRUD:
         # Mock add/commit/refresh
         mock_session.add.return_value = None
         mock_session.commit.return_value = None
-        mock_session.refresh.side_effect = lambda obj: setattr(obj, "id", sample_agent.id)
+        mock_session.refresh.side_effect = lambda obj: setattr(
+            obj, "id", sample_agent.id
+        )
 
         agent = AgentsService.create_agent(mock_session, sample_agent_data)
 
@@ -95,7 +97,9 @@ class TestAgentsCRUD:
         mock_session.add.assert_called_once()
         mock_session.commit.assert_called_once()
 
-    def test_create_agent_duplicate_name_with_org(self, mock_session, sample_agent_data, sample_agent):
+    def test_create_agent_duplicate_name_with_org(
+        self, mock_session, sample_agent_data, sample_agent
+    ):
         """Test creating an agent with duplicate name in same organization"""
         # Mock the uniqueness check to return existing agent
         mock_result = MagicMock()
@@ -307,7 +311,9 @@ class TestAgentToolBindings:
         mock_session.commit.assert_called_once()
 
     @patch("workflow_core_sdk.services.agents_service.tool_registry")
-    def test_attach_tool_to_agent_with_local_tool_name(self, mock_registry, mock_session, sample_agent):
+    def test_attach_tool_to_agent_with_local_tool_name(
+        self, mock_registry, mock_session, sample_agent
+    ):
         """Test attaching a tool to an agent using local_tool_name"""
         # Mock agent lookup
         mock_result = MagicMock()
@@ -333,10 +339,14 @@ class TestAgentToolBindings:
         assert binding is not None
         assert binding.agent_id == sample_agent.id
         assert binding.tool_id == tool_id
-        mock_registry.sync_local_tool_by_name.assert_called_once_with(mock_session, "calculator")
+        mock_registry.sync_local_tool_by_name.assert_called_once_with(
+            mock_session, "calculator"
+        )
 
     @patch("workflow_core_sdk.services.agents_service.tool_registry")
-    def test_attach_tool_to_agent_local_tool_not_found(self, mock_registry, mock_session, sample_agent):
+    def test_attach_tool_to_agent_local_tool_not_found(
+        self, mock_registry, mock_session, sample_agent
+    ):
         """Test attaching a tool with local_tool_name that doesn't exist"""
         # Mock agent lookup
         mock_result = MagicMock()
@@ -386,7 +396,10 @@ class TestAgentToolBindings:
         mock_session.commit.return_value = None
         mock_session.refresh.return_value = None
 
-        updates = {"override_parameters": {"new_param": "new_value"}, "is_active": False}
+        updates = {
+            "override_parameters": {"new_param": "new_value"},
+            "is_active": False,
+        }
         binding = AgentsService.update_agent_tool_binding(
             mock_session,
             str(sample_tool_binding.agent_id),
@@ -408,9 +421,13 @@ class TestAgentToolBindings:
         updates = {"is_active": False}
 
         with pytest.raises(ValueError, match="Binding not found"):
-            AgentsService.update_agent_tool_binding(mock_session, agent_id, binding_id, updates)
+            AgentsService.update_agent_tool_binding(
+                mock_session, agent_id, binding_id, updates
+            )
 
-    def test_update_agent_tool_binding_agent_mismatch(self, mock_session, sample_tool_binding):
+    def test_update_agent_tool_binding_agent_mismatch(
+        self, mock_session, sample_tool_binding
+    ):
         """Test updating a binding with mismatched agent_id"""
         # Mock binding lookup
         mock_session.get.return_value = sample_tool_binding
@@ -449,12 +466,16 @@ class TestAgentToolBindings:
         agent_id = str(uuid.uuid4())
         binding_id = str(uuid.uuid4())
 
-        result = AgentsService.detach_tool_from_agent(mock_session, agent_id, binding_id)
+        result = AgentsService.detach_tool_from_agent(
+            mock_session, agent_id, binding_id
+        )
 
         assert result is False
         mock_session.delete.assert_not_called()
 
-    def test_detach_tool_from_agent_agent_mismatch(self, mock_session, sample_tool_binding):
+    def test_detach_tool_from_agent_agent_mismatch(
+        self, mock_session, sample_tool_binding
+    ):
         """Test detaching a binding with mismatched agent_id"""
         # Mock binding lookup
         mock_session.get.return_value = sample_tool_binding

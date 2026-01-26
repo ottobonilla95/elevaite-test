@@ -46,7 +46,9 @@ class SageMakerPipelineProvider(PipelineProvider):
 
         return 200
 
-    def monitor_pipelines(self, pipeline_run_ids: List[str], summarize: bool = False) -> List[str]:
+    def monitor_pipelines(
+        self, pipeline_run_ids: List[str], summarize: bool = False
+    ) -> List[str]:
         threads = []
         outputs = []
         lock = threading.Lock()
@@ -57,7 +59,9 @@ class SageMakerPipelineProvider(PipelineProvider):
                 outputs.append(result)
 
         for execution_arn in pipeline_run_ids:
-            thread = threading.Thread(target=monitor_pipeline_thread, args=(execution_arn,))
+            thread = threading.Thread(
+                target=monitor_pipeline_thread, args=(execution_arn,)
+            )
             threads.append(thread)
             thread.start()
 

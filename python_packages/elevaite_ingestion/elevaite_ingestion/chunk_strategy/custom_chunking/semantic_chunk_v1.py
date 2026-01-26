@@ -29,7 +29,9 @@ def combine_paragraphs(paragraphs: List[Dict], buffer_size: int = 1) -> List[Dic
 # ---------------------------
 # Step 2: Compute Similarity
 # ---------------------------
-def calculate_cosine_distances(paragraphs: List[Dict]) -> Tuple[List[float], List[Dict]]:
+def calculate_cosine_distances(
+    paragraphs: List[Dict],
+) -> Tuple[List[float], List[Dict]]:
     distances = []
     for i in range(len(paragraphs) - 1):
         emb1 = paragraphs[i]["combined_embedding"]
@@ -147,7 +149,12 @@ async def chunk_text(parsed_data: Dict, chunking_params: Dict) -> List[Dict]:
             chunk_list.append(create_chunk_obj(current_group))
 
     # --- FIX: Pass total_pages to header generation ---
-    headers = await asyncio.gather(*[generate_contextual_header_async(chunk, paragraphs, total_pages) for chunk in chunk_list])
+    headers = await asyncio.gather(
+        *[
+            generate_contextual_header_async(chunk, paragraphs, total_pages)
+            for chunk in chunk_list
+        ]
+    )
     for i, header in enumerate(headers):
         chunk_list[i]["contextual_header"] = header
 

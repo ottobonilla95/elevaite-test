@@ -97,7 +97,9 @@ excluded_paths = {
     r"^/redoc.*": {"default_tenant": "default"},
     r"^/openapi\.json$": {"default_tenant": "default"},
 }
-add_tenant_middleware(app, settings=multitenancy_settings, excluded_paths=excluded_paths)
+add_tenant_middleware(
+    app, settings=multitenancy_settings, excluded_paths=excluded_paths
+)
 
 # Add security middleware
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
@@ -178,5 +180,7 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8004,
         reload=settings.DEBUG,
-        reload_excludes=["*.git*", "*.pyc", "__pycache__", "*.log"] if settings.DEBUG else None,
+        reload_excludes=["*.git*", "*.pyc", "__pycache__", "*.log"]
+        if settings.DEBUG
+        else None,
     )

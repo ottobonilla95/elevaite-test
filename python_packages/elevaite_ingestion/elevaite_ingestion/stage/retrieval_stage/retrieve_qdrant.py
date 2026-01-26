@@ -141,7 +141,7 @@
 #     for pn in part_numbers:
 #         payload_matches = retrieve_by_payload(pn)
 #         results.extend([r for r in payload_matches if r["chunk_id"] not in seen_ids and not seen_ids.add(r["chunk_id"])])
-    
+
 #     return sorted(results, key=lambda x: x["score"], reverse=True)[:top_k]
 
 
@@ -174,12 +174,15 @@ qdrant_url = qdrant_config.get("host")
 qdrant_port = qdrant_config.get("port")
 collection_name = qdrant_config.get("collection_name")
 
-client = QdrantClient(url=qdrant_url, port=qdrant_port, timeout=300.0, check_compatibility=False)
+client = QdrantClient(
+    url=qdrant_url, port=qdrant_port, timeout=300.0, check_compatibility=False
+)
+
 
 def extract_part_numbers(text: str) -> List[str]:
     patterns = [
-        r'\b\d[A-Z][A-Z]?\d{8}\b',
-        r'\b\d[A-Z]{2}\d{7}\b',
+        r"\b\d[A-Z][A-Z]?\d{8}\b",
+        r"\b\d[A-Z]{2}\d{7}\b",
     ]
     all_matches = []
     for pattern in patterns:
@@ -188,11 +191,44 @@ def extract_part_numbers(text: str) -> List[str]:
         logger.info(f"Found part numbers: {all_matches}")
     return all_matches
 
+
 def extract_keywords(text: str, min_length: int = 4) -> List[str]:
-    stopwords = {'the', 'and', 'for', 'with', 'that', 'this', 'what', 'where', 'when', 'which',
-                 'who', 'whom', 'whose', 'why', 'how', 'are', 'was', 'were', 'have', 'has',
-                 'had', 'not', 'does', 'did', 'but', 'can', 'could', 'should', 'would', 'will'}
-    return [w for w in text.split() if len(w) >= min_length and w.lower() not in stopwords]
+    stopwords = {
+        "the",
+        "and",
+        "for",
+        "with",
+        "that",
+        "this",
+        "what",
+        "where",
+        "when",
+        "which",
+        "who",
+        "whom",
+        "whose",
+        "why",
+        "how",
+        "are",
+        "was",
+        "were",
+        "have",
+        "has",
+        "had",
+        "not",
+        "does",
+        "did",
+        "but",
+        "can",
+        "could",
+        "should",
+        "would",
+        "will",
+    }
+    return [
+        w for w in text.split() if len(w) >= min_length and w.lower() not in stopwords
+    ]
+
 
 def process_match(match) -> Dict:
     payload = match.payload
@@ -218,8 +254,9 @@ def process_match(match) -> Dict:
         "filename": filename,
         "page_info": page_info,
         "contextual_header": context_header,
-        "matched_image_path": image_path
+        "matched_image_path": image_path,
     }
+
 
 def retrieve_chunks_semantic(query: str, top_k: int = 30) -> List[Dict]:
     try:
@@ -228,45 +265,62 @@ def retrieve_chunks_semantic(query: str, top_k: int = 30) -> List[Dict]:
             collection_name=collection_name,
             query_vector=query_embedding,
             limit=top_k,
-            with_payload=True
+            with_payload=True,
         )
         return [process_match(m) | {"search_type": "semantic"} for m in response]
     except Exception as e:
         logger.error(f"Semantic search failed: {str(e)}")
         return []
 
+
 def retrieve_by_payload(part_number: str, top_k: int = 20) -> List[Dict]:
-    filters = models.Filter(should=[
-        models.Filter(must=[
-            models.FieldCondition(key="is_table", match=models.MatchValue(value=True)),
-            models.FieldCondition(key="table_factual_sentences", match=models.MatchText(text=part_number))
-        ]),
-        models.Filter(must=[
-            models.FieldCondition(key="is_table", match=models.MatchValue(value=False)),
-            models.FieldCondition(key="chunk_text", match=models.MatchText(text=part_number))
-        ])
-    ])
+    filters = models.Filter(
+        should=[
+            models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="is_table", match=models.MatchValue(value=True)
+                    ),
+                    models.FieldCondition(
+                        key="table_factual_sentences",
+                        match=models.MatchText(text=part_number),
+                    ),
+                ]
+            ),
+            models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="is_table", match=models.MatchValue(value=False)
+                    ),
+                    models.FieldCondition(
+                        key="chunk_text", match=models.MatchText(text=part_number)
+                    ),
+                ]
+            ),
+        ]
+    )
     try:
         response = client.scroll(
             collection_name=collection_name,
             scroll_filter=filters,
             limit=top_k,
             with_payload=True,
-            with_vectors=False
+            with_vectors=False,
         )
-        return [process_match(m) | {"search_type": "payload_filter"} for m in response[0]]
+        return [
+            process_match(m) | {"search_type": "payload_filter"} for m in response[0]
+        ]
     except Exception as e:
         logger.error(f"Payload (exact match) retrieval failed: {str(e)}")
         return []
+
 
 def retrieve_by_keywords(keywords: List[str], top_k: int = 20) -> List[Dict]:
     if not keywords:
         return []
     keyword_conditions = [
-        models.FieldCondition(
-            key="chunk_text",
-            match=models.MatchText(text=kw)
-        ) for kw in keywords
+        models.FieldCondition(key="chunk_text", match=models.MatchText(text=kw))
+        for kw in keywords
     ]
     filters = models.Filter(should=keyword_conditions)
     try:
@@ -275,7 +329,7 @@ def retrieve_by_keywords(keywords: List[str], top_k: int = 20) -> List[Dict]:
             scroll_filter=filters,
             limit=top_k,
             with_payload=True,
-            with_vectors=False
+            with_vectors=False,
         )
         matches = response[0]
         return [process_match(m) | {"search_type": "sparse_keyword"} for m in matches]
@@ -283,29 +337,51 @@ def retrieve_by_keywords(keywords: List[str], top_k: int = 20) -> List[Dict]:
         logger.error(f"Sparse keyword retrieval failed: {str(e)}")
         return []
 
-# multi-search mechinaims 
+
+# multi-search mechinaims
 def multi_strategy_search(query: str, top_k: int = 30) -> List[Dict]:
     seen_ids = set()
     results = []
 
     # Semantic retrieval
     semantic_results = retrieve_chunks_semantic(query, top_k=top_k)
-    results.extend([r for r in semantic_results if r["chunk_id"] not in seen_ids and not seen_ids.add(r["chunk_id"])])
+    results.extend(
+        [
+            r
+            for r in semantic_results
+            if r["chunk_id"] not in seen_ids and not seen_ids.add(r["chunk_id"])
+        ]
+    )
 
     #  Exact match retrieval (part numbers)
     part_numbers = extract_part_numbers(query)
     for pn in part_numbers:
         payload_matches = retrieve_by_payload(pn)
-        results.extend([r for r in payload_matches if r["chunk_id"] not in seen_ids and not seen_ids.add(r["chunk_id"])])
+        results.extend(
+            [
+                r
+                for r in payload_matches
+                if r["chunk_id"] not in seen_ids and not seen_ids.add(r["chunk_id"])
+            ]
+        )
 
     #  Sparse keyword retrieval
     keywords = extract_keywords(query)
     sparse_matches = retrieve_by_keywords(keywords, top_k=10)
-    results.extend([r for r in sparse_matches if r["chunk_id"] not in seen_ids and not seen_ids.add(r["chunk_id"])])
+    results.extend(
+        [
+            r
+            for r in sparse_matches
+            if r["chunk_id"] not in seen_ids and not seen_ids.add(r["chunk_id"])
+        ]
+    )
 
     return sorted(results, key=lambda x: x["score"], reverse=True)[:top_k]
 
-def enhanced_hybrid_search(query: str, top_k: int = 30, is_table: Optional[bool] = None) -> List[Dict]:
+
+def enhanced_hybrid_search(
+    query: str, top_k: int = 30, is_table: Optional[bool] = None
+) -> List[Dict]:
     logger.info("Using enhanced_hybrid_search")
     return multi_strategy_search(query, top_k=top_k)
 
@@ -325,21 +401,6 @@ def enhanced_hybrid_search(query: str, top_k: int = 30, is_table: Optional[bool]
 #         print(f"\nCompleted in {time.time() - start:.2f} seconds")
 
 ##############################################################  VERSION 3 #############################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ##############################################################  VERSION 4() #############################################################

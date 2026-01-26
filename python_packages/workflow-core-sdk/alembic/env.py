@@ -19,13 +19,18 @@ if config.config_file_name is not None:
 # Database URL from environment or config
 database_url = os.getenv(
     "SQLALCHEMY_DATABASE_URL",
-    os.getenv("WORKFLOW_ENGINE_DATABASE_URL", "postgresql://elevaite:elevaite@localhost:5433/agent_studio_2"),
+    os.getenv(
+        "WORKFLOW_ENGINE_DATABASE_URL",
+        "postgresql://elevaite:elevaite@localhost:5433/agent_studio_2",
+    ),
 )
 config.set_main_option("sqlalchemy.url", database_url)
 
 # Target schema for multi-tenant migrations (None = public schema)
 # Set via ALEMBIC_TENANT_SCHEMA env var or programmatically via config.attributes
-target_schema = os.getenv("ALEMBIC_TENANT_SCHEMA") or config.attributes.get("tenant_schema")
+target_schema = os.getenv("ALEMBIC_TENANT_SCHEMA") or config.attributes.get(
+    "tenant_schema"
+)
 
 target_metadata = BaseModel.metadata
 

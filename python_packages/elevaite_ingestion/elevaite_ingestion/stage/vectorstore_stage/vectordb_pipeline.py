@@ -17,7 +17,13 @@ load_dotenv()
 logger = get_logger(__name__)
 
 
-def process_single_embedding_file(embedding_file, input_s3_bucket, vector_db_client, vector_db_type, vector_db_settings):
+def process_single_embedding_file(
+    embedding_file,
+    input_s3_bucket,
+    vector_db_client,
+    vector_db_type,
+    vector_db_settings,
+):
     try:
         embedding_data = fetch_json_from_s3(input_s3_bucket, embedding_file)
         if not embedding_data or "chunk_embedding" not in embedding_data:
@@ -44,14 +50,25 @@ def process_single_embedding_file(embedding_file, input_s3_bucket, vector_db_cli
 
         if vector_db_type == "pinecone":
             vector_db_client.upsert(
-                vectors=[{"id": f"{filename}_chunk_{chunk_id}", "values": chunk_embedding, "metadata": metadata}]
+                vectors=[
+                    {
+                        "id": f"{filename}_chunk_{chunk_id}",
+                        "values": chunk_embedding,
+                        "metadata": metadata,
+                    }
+                ]
             )
             logger.info(f"✅ Upserted {filename} - Chunk {chunk_id} into Pinecone.")
 
         elif vector_db_type == "chroma":
-            collection = vector_db_client.init_collection(vector_db_settings["collection_name"])
+            collection = vector_db_client.init_collection(
+                vector_db_settings["collection_name"]
+            )
             # Chroma doesn't support list values in metadata, convert to JSON strings
-            chroma_metadata = {k: json.dumps(v) if isinstance(v, list) else v for k, v in metadata.items()}
+            chroma_metadata = {
+                k: json.dumps(v) if isinstance(v, list) else v
+                for k, v in metadata.items()
+            }
             vector_db_client.add(
                 collection=collection,
                 documents=[chunk_content],
@@ -68,7 +85,10 @@ def process_single_embedding_file(embedding_file, input_s3_bucket, vector_db_cli
             vector_db_client.ensure_collection(collection_name, vector_size=vector_size)
 
             vector_db_client.upsert_vectors(
-                collection_name=collection_name, vectors=[{"id": chunk_id, "vector": chunk_embedding, "payload": metadata}]
+                collection_name=collection_name,
+                vectors=[
+                    {"id": chunk_id, "vector": chunk_embedding, "payload": metadata}
+                ],
             )
             logger.info(f"✅ Upserted {filename} - Chunk {chunk_id} into Qdrant.")
 
@@ -81,7 +101,10 @@ def process_single_embedding_file(embedding_file, input_s3_bucket, vector_db_cli
 
     except Exception as e:
         logger.error(f"❌ Failed to store embedding for {embedding_file}. Error: {e}")
-        return {"input": f"s3://{input_s3_bucket}/{embedding_file}", "status": f"Failed - {e}"}
+        return {
+            "input": f"s3://{input_s3_bucket}/{embedding_file}",
+            "status": f"Failed - {e}",
+        }
 
 
 def execute_vector_db_stage(config: Optional[PipelineConfig] = None) -> dict:
@@ -148,7 +171,11 @@ def execute_vector_db_stage(config: Optional[PipelineConfig] = None) -> dict:
     processed_entries = [r for r in results if r["status"] == "Success"]
 
     pipeline_status["STAGE_5: VECTORSTORE"].update(
-        {"TOTAL_FILES": len(results), "EVENT_DETAILS": results, "STATUS": "Completed" if processed_entries else "Failed"}
+        {
+            "TOTAL_FILES": len(results),
+            "EVENT_DETAILS": results,
+            "STATUS": "Completed" if processed_entries else "Failed",
+        }
     )
 
     json_output = json.dumps(pipeline_status, indent=4)

@@ -21,7 +21,9 @@ async def test_execute_workflow_not_found():
     mock_session = Mock(spec=Session)
     mock_engine = Mock()
 
-    with patch("workflow_core_sdk.services.execution_service.DatabaseService") as MockDB:
+    with patch(
+        "workflow_core_sdk.services.execution_service.DatabaseService"
+    ) as MockDB:
         mock_db = MockDB.return_value
         mock_db.get_workflow.return_value = None  # Workflow not found
 
@@ -45,7 +47,9 @@ async def test_execute_workflow_invalid_backend():
     # Mock DatabaseService to return a workflow
     from unittest.mock import patch
 
-    with patch("workflow_core_sdk.services.execution_service.DatabaseService") as MockDB:
+    with patch(
+        "workflow_core_sdk.services.execution_service.DatabaseService"
+    ) as MockDB:
         mock_db = MockDB.return_value
         mock_db.get_workflow.return_value = {
             "id": "test-workflow-id",
@@ -73,7 +77,9 @@ async def test_execute_workflow_local_backend():
     mock_engine = Mock()
     mock_engine.execute_workflow = AsyncMock()
 
-    with patch("workflow_core_sdk.services.execution_service.DatabaseService") as MockDB:
+    with patch(
+        "workflow_core_sdk.services.execution_service.DatabaseService"
+    ) as MockDB:
         mock_db = MockDB.return_value
         mock_db.get_workflow.return_value = {
             "id": "test-workflow-id",
@@ -116,7 +122,9 @@ async def test_execute_workflow_with_trigger_payload():
     mock_engine = Mock()
     mock_engine.execute_workflow = AsyncMock()
 
-    with patch("workflow_core_sdk.services.execution_service.DatabaseService") as MockDB:
+    with patch(
+        "workflow_core_sdk.services.execution_service.DatabaseService"
+    ) as MockDB:
         mock_db = MockDB.return_value
         mock_db.get_workflow.return_value = {
             "id": "test-workflow-id",
@@ -164,7 +172,9 @@ async def test_execute_workflow_default_trigger():
     mock_engine = Mock()
     mock_engine.execute_workflow = AsyncMock()
 
-    with patch("workflow_core_sdk.services.execution_service.DatabaseService") as MockDB:
+    with patch(
+        "workflow_core_sdk.services.execution_service.DatabaseService"
+    ) as MockDB:
         mock_db = MockDB.return_value
         mock_db.get_workflow.return_value = {
             "id": "test-workflow-id",

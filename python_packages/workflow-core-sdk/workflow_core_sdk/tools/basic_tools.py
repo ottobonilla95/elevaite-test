@@ -156,7 +156,11 @@ def json_operations(operation: str, data: str, key: str = "", value: str = "") -
 
         elif operation == "modify":
             parsed = json.loads(data)
-            parsed[key] = json.loads(value) if value.startswith("{") or value.startswith("[") else value
+            parsed[key] = (
+                json.loads(value)
+                if value.startswith("{") or value.startswith("[")
+                else value
+            )
             return json.dumps(parsed, indent=2)
 
         else:
@@ -178,7 +182,10 @@ def get_environment_info(info_type: str = "all") -> str:
         safe_vars = {
             k: v
             for k, v in os.environ.items()
-            if not any(sensitive in k.lower() for sensitive in ["key", "secret", "password", "token"])
+            if not any(
+                sensitive in k.lower()
+                for sensitive in ["key", "secret", "password", "token"]
+            )
         }
         return f"Environment variables: {json.dumps(safe_vars, indent=2)}"
 
@@ -213,7 +220,9 @@ BASIC_TOOL_STORE = {
 }
 
 # Tool schemas - maps tool names to their OpenAI schemas
-BASIC_TOOL_SCHEMAS = {name: func.openai_schema for name, func in BASIC_TOOL_STORE.items()}
+BASIC_TOOL_SCHEMAS = {
+    name: func.openai_schema for name, func in BASIC_TOOL_STORE.items()
+}
 
 # ---- Optional: include ported tool groups ----
 try:

@@ -25,7 +25,9 @@ class TestRequirePermissionSync:
     """Test synchronous require_permission guard."""
 
     @patch("rbac_sdk.fastapi_helpers.check_access")
-    def test_require_permission_allowed(self, mock_check_access, mock_request_with_project_headers):
+    def test_require_permission_allowed(
+        self, mock_check_access, mock_request_with_project_headers
+    ):
         """Test that allowed access passes through."""
         mock_check_access.return_value = True
 
@@ -40,7 +42,9 @@ class TestRequirePermissionSync:
         mock_check_access.assert_called_once()
 
     @patch("rbac_sdk.fastapi_helpers.check_access")
-    def test_require_permission_denied(self, mock_check_access, mock_request_with_project_headers):
+    def test_require_permission_denied(
+        self, mock_check_access, mock_request_with_project_headers
+    ):
         """Test that denied access raises 403."""
         mock_check_access.return_value = False
 
@@ -69,7 +73,9 @@ class TestRequirePermissionSync:
         assert exc_info.value.status_code == 401
 
     @patch("rbac_sdk.fastapi_helpers.check_access")
-    def test_require_permission_missing_resource_headers(self, mock_check_access, mock_request_with_user):
+    def test_require_permission_missing_resource_headers(
+        self, mock_check_access, mock_request_with_user
+    ):
         """Test that missing resource headers raises 400."""
         guard = require_permission(
             action="view_project",
@@ -93,7 +99,9 @@ class TestRequirePermissionSync:
             "X-elevAIte-OrganizationId": "org-456",
         }
 
-        custom_resolver = principal_resolvers.user_id_header(header_name="X-Custom-User")
+        custom_resolver = principal_resolvers.user_id_header(
+            header_name="X-Custom-User"
+        )
 
         guard = require_permission(
             action="view_project",
@@ -108,7 +116,9 @@ class TestRequirePermissionSync:
         assert call_args[1]["user_id"] == "custom-user-123"
 
     @patch("rbac_sdk.fastapi_helpers.check_access")
-    def test_require_permission_custom_base_url(self, mock_check_access, mock_request_with_project_headers):
+    def test_require_permission_custom_base_url(
+        self, mock_check_access, mock_request_with_project_headers
+    ):
         """Test that custom base_url is passed to check_access."""
         mock_check_access.return_value = True
 
@@ -124,9 +134,12 @@ class TestRequirePermissionSync:
         assert call_args[1]["base_url"] == "http://custom-authz:9000"
 
     @patch("rbac_sdk.fastapi_helpers.check_access")
-    def test_require_permission_rbac_service_error(self, mock_check_access, mock_request_with_project_headers):
+    def test_require_permission_rbac_service_error(
+        self, mock_check_access, mock_request_with_project_headers
+    ):
         """Test that RBAC service errors raise RBACClientError."""
         from rbac_sdk.client import RBACClientError
+
         mock_check_access.side_effect = RBACClientError("Service unavailable")
 
         guard = require_permission(
@@ -143,7 +156,9 @@ class TestRequirePermissionAsync:
 
     @pytest.mark.asyncio
     @patch("rbac_sdk.fastapi_helpers.check_access_async")
-    async def test_require_permission_async_allowed(self, mock_check_access, mock_request_with_project_headers):
+    async def test_require_permission_async_allowed(
+        self, mock_check_access, mock_request_with_project_headers
+    ):
         """Test that allowed access passes through."""
         mock_check_access.return_value = True
 
@@ -159,7 +174,9 @@ class TestRequirePermissionAsync:
 
     @pytest.mark.asyncio
     @patch("rbac_sdk.fastapi_helpers.check_access_async")
-    async def test_require_permission_async_denied(self, mock_check_access, mock_request_with_project_headers):
+    async def test_require_permission_async_denied(
+        self, mock_check_access, mock_request_with_project_headers
+    ):
         """Test that denied access raises 403."""
         mock_check_access.return_value = False
 
@@ -176,7 +193,9 @@ class TestRequirePermissionAsync:
 
     @pytest.mark.asyncio
     @patch("rbac_sdk.fastapi_helpers.check_access_async")
-    async def test_require_permission_async_missing_user_id(self, mock_check_access, mock_request):
+    async def test_require_permission_async_missing_user_id(
+        self, mock_check_access, mock_request
+    ):
         """Test that missing user ID raises 401."""
         guard = require_permission_async(
             action="view_project",
@@ -190,7 +209,9 @@ class TestRequirePermissionAsync:
 
     @pytest.mark.asyncio
     @patch("rbac_sdk.fastapi_helpers.check_access_async")
-    async def test_require_permission_async_missing_resource_headers(self, mock_check_access, mock_request_with_user):
+    async def test_require_permission_async_missing_resource_headers(
+        self, mock_check_access, mock_request_with_user
+    ):
         """Test that missing resource headers raises 400."""
         guard = require_permission_async(
             action="view_project",
@@ -204,7 +225,9 @@ class TestRequirePermissionAsync:
 
     @pytest.mark.asyncio
     @patch("rbac_sdk.fastapi_helpers.check_access_async")
-    async def test_require_permission_async_custom_principal_resolver(self, mock_check_access):
+    async def test_require_permission_async_custom_principal_resolver(
+        self, mock_check_access
+    ):
         """Test that custom principal resolver is used."""
         mock_check_access.return_value = True
 
@@ -215,7 +238,9 @@ class TestRequirePermissionAsync:
             "X-elevAIte-OrganizationId": "org-456",
         }
 
-        custom_resolver = principal_resolvers.user_id_header(header_name="X-Custom-User")
+        custom_resolver = principal_resolvers.user_id_header(
+            header_name="X-Custom-User"
+        )
 
         guard = require_permission_async(
             action="view_project",
@@ -231,7 +256,9 @@ class TestRequirePermissionAsync:
 
     @pytest.mark.asyncio
     @patch("rbac_sdk.fastapi_helpers.check_access_async")
-    async def test_require_permission_async_custom_base_url(self, mock_check_access, mock_request_with_project_headers):
+    async def test_require_permission_async_custom_base_url(
+        self, mock_check_access, mock_request_with_project_headers
+    ):
         """Test that custom base_url is passed to check_access_async."""
         mock_check_access.return_value = True
 
@@ -248,7 +275,9 @@ class TestRequirePermissionAsync:
 
     @pytest.mark.asyncio
     @patch("rbac_sdk.fastapi_helpers.check_access_async")
-    async def test_require_permission_async_service_failure_returns_false(self, mock_check_access, mock_request_with_project_headers):
+    async def test_require_permission_async_service_failure_returns_false(
+        self, mock_check_access, mock_request_with_project_headers
+    ):
         """Test that async client returns False on service failure (fail-closed)."""
         # Async client returns False on errors, not exceptions
         mock_check_access.return_value = False
@@ -264,7 +293,9 @@ class TestRequirePermissionAsync:
         assert exc_info.value.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_require_permission_async_client_not_available(self, mock_request_with_project_headers):
+    async def test_require_permission_async_client_not_available(
+        self, mock_request_with_project_headers
+    ):
         """Test that missing async client raises 500."""
         with patch("rbac_sdk.fastapi_helpers.check_access_async", None):
             guard = require_permission_async(
@@ -284,7 +315,9 @@ class TestGuardIntegration:
 
     @pytest.mark.asyncio
     @patch("rbac_sdk.fastapi_helpers.check_access_async")
-    async def test_multiple_guards_on_same_endpoint(self, mock_check_access, mock_request_with_project_headers):
+    async def test_multiple_guards_on_same_endpoint(
+        self, mock_check_access, mock_request_with_project_headers
+    ):
         """Test that multiple guards can be applied to same endpoint."""
         mock_check_access.return_value = True
 
@@ -325,7 +358,9 @@ class TestGuardIntegration:
         guard = require_permission_async(
             action="view_project",
             resource_builder=resource_builders.project_from_headers(),
-            principal_resolver=principal_resolvers.api_key_or_user(validate_api_key=mock_api_key_validator),
+            principal_resolver=principal_resolvers.api_key_or_user(
+                validate_api_key=mock_api_key_validator
+            ),
         )
 
         await guard(request)
@@ -395,6 +430,7 @@ class TestGuardErrorHandling:
     @patch("rbac_sdk.fastapi_helpers.check_access")
     def test_guard_principal_resolver_exception(self, mock_check_access):
         """Test that principal resolver exceptions are propagated."""
+
         def bad_resolver(request):
             raise RuntimeError("Resolver crashed")
 
@@ -413,6 +449,7 @@ class TestGuardErrorHandling:
     @patch("rbac_sdk.fastapi_helpers.check_access")
     def test_guard_resource_builder_exception(self, mock_check_access):
         """Test that resource builder exceptions are propagated."""
+
         def bad_builder(request):
             raise RuntimeError("Builder crashed")
 
@@ -426,4 +463,3 @@ class TestGuardErrorHandling:
 
         with pytest.raises(RuntimeError):
             guard(request)
-

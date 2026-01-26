@@ -249,4 +249,3 @@ class CircuitBreakerOpenError(Exception):
     """Raised when circuit breaker is open and rejects a call."""
 
     pass
-

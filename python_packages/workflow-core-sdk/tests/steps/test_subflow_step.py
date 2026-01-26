@@ -8,7 +8,11 @@ import pytest
 from unittest.mock import MagicMock
 
 from workflow_core_sdk.steps.flow_steps import subflow_step
-from workflow_core_sdk.execution_context import ExecutionContext, ExecutionStatus, UserContext
+from workflow_core_sdk.execution_context import (
+    ExecutionContext,
+    ExecutionStatus,
+    UserContext,
+)
 
 
 @pytest.fixture
@@ -110,7 +114,9 @@ class TestSubflowExecution:
         mock_completed_context.status = ExecutionStatus.COMPLETED
         mock_completed_context.step_io_data = {"result": "success"}
 
-        execution_context.workflow_engine.execute_workflow = AsyncMock(return_value=mock_completed_context)
+        execution_context.workflow_engine.execute_workflow = AsyncMock(
+            return_value=mock_completed_context
+        )
 
         with patch("workflow_core_sdk.db.service.DatabaseService") as mock_db_service:
             mock_db_instance = MagicMock()
@@ -148,7 +154,9 @@ class TestSubflowExecution:
         }
 
         # Mock the workflow engine to raise an exception
-        execution_context.workflow_engine.execute_workflow = AsyncMock(side_effect=Exception("Subflow execution failed"))
+        execution_context.workflow_engine.execute_workflow = AsyncMock(
+            side_effect=Exception("Subflow execution failed")
+        )
 
         with patch("workflow_core_sdk.db.service.DatabaseService") as mock_db_service:
             mock_db_instance = MagicMock()
@@ -197,7 +205,9 @@ class TestSubflowInputMapping:
         mock_completed_context.status = ExecutionStatus.COMPLETED
         mock_completed_context.step_io_data = {}
 
-        execution_context.workflow_engine.execute_workflow = AsyncMock(return_value=mock_completed_context)
+        execution_context.workflow_engine.execute_workflow = AsyncMock(
+            return_value=mock_completed_context
+        )
 
         with patch("workflow_core_sdk.db.service.DatabaseService") as mock_db_service:
             mock_db_instance = MagicMock()
@@ -243,7 +253,9 @@ class TestSubflowInputMapping:
         mock_completed_context.status = ExecutionStatus.COMPLETED
         mock_completed_context.step_io_data = {}
 
-        execution_context.workflow_engine.execute_workflow = AsyncMock(return_value=mock_completed_context)
+        execution_context.workflow_engine.execute_workflow = AsyncMock(
+            return_value=mock_completed_context
+        )
 
         with patch("workflow_core_sdk.db.service.DatabaseService") as mock_db_service:
             mock_db_instance = MagicMock()
@@ -272,7 +284,10 @@ class TestSubflowOutputMapping:
             "step_type": "subflow",
             "config": {
                 "workflow_id": "test-subflow",
-                "output_mapping": {"final_result": "step1.result", "status": "step1.status"},
+                "output_mapping": {
+                    "final_result": "step1.result",
+                    "status": "step1.status",
+                },
             },
         }
         input_data = {"message": "Hello"}
@@ -293,7 +308,9 @@ class TestSubflowOutputMapping:
             "step2": {"data": "extra"},
         }
 
-        execution_context.workflow_engine.execute_workflow = AsyncMock(return_value=mock_completed_context)
+        execution_context.workflow_engine.execute_workflow = AsyncMock(
+            return_value=mock_completed_context
+        )
 
         with patch("workflow_core_sdk.db.service.DatabaseService") as mock_db_service:
             mock_db_instance = MagicMock()
@@ -303,7 +320,10 @@ class TestSubflowOutputMapping:
             result = await subflow_step(config, input_data, execution_context)
 
         assert result["success"] is True
-        assert result["subflow_output"] == {"final_result": "success", "status": "completed"}
+        assert result["subflow_output"] == {
+            "final_result": "success",
+            "status": "completed",
+        }
 
     @pytest.mark.asyncio
     async def test_output_mapping_no_mapping(self, execution_context):
@@ -328,9 +348,14 @@ class TestSubflowOutputMapping:
         mock_completed_context = MagicMock()
         mock_completed_context.execution_id = "subflow-execution-id"
         mock_completed_context.status = ExecutionStatus.COMPLETED
-        mock_completed_context.step_io_data = {"step1": {"result": "success"}, "step2": {"data": "extra"}}
+        mock_completed_context.step_io_data = {
+            "step1": {"result": "success"},
+            "step2": {"data": "extra"},
+        }
 
-        execution_context.workflow_engine.execute_workflow = AsyncMock(return_value=mock_completed_context)
+        execution_context.workflow_engine.execute_workflow = AsyncMock(
+            return_value=mock_completed_context
+        )
 
         with patch("workflow_core_sdk.db.service.DatabaseService") as mock_db_service:
             mock_db_instance = MagicMock()
@@ -341,7 +366,10 @@ class TestSubflowOutputMapping:
 
         assert result["success"] is True
         # Without mapping, all step_io_data should be returned
-        assert result["subflow_output"] == {"step1": {"result": "success"}, "step2": {"data": "extra"}}
+        assert result["subflow_output"] == {
+            "step1": {"result": "success"},
+            "step2": {"data": "extra"},
+        }
 
 
 class TestSubflowContextInheritance:
@@ -372,7 +400,9 @@ class TestSubflowContextInheritance:
         mock_completed_context.status = ExecutionStatus.COMPLETED
         mock_completed_context.step_io_data = {}
 
-        execution_context.workflow_engine.execute_workflow = AsyncMock(return_value=mock_completed_context)
+        execution_context.workflow_engine.execute_workflow = AsyncMock(
+            return_value=mock_completed_context
+        )
 
         with patch("workflow_core_sdk.db.service.DatabaseService") as mock_db_service:
             mock_db_instance = MagicMock()
@@ -412,7 +442,9 @@ class TestSubflowContextInheritance:
         mock_completed_context.status = ExecutionStatus.COMPLETED
         mock_completed_context.step_io_data = {}
 
-        execution_context.workflow_engine.execute_workflow = AsyncMock(return_value=mock_completed_context)
+        execution_context.workflow_engine.execute_workflow = AsyncMock(
+            return_value=mock_completed_context
+        )
 
         with patch("workflow_core_sdk.db.service.DatabaseService") as mock_db_service:
             mock_db_instance = MagicMock()
@@ -427,4 +459,6 @@ class TestSubflowContextInheritance:
         subflow_context = call_args[0][0]
         assert subflow_context.user_context != user_context
         assert subflow_context.user_context.user_id.startswith("subflow-")
-        assert subflow_context.user_context.organization_id == user_context.organization_id
+        assert (
+            subflow_context.user_context.organization_id == user_context.organization_id
+        )

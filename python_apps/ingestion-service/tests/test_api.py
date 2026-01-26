@@ -7,7 +7,6 @@ Uses conftest.py fixtures for proper database and DBOS mocking.
 import uuid
 
 
-
 class TestCreateIngestionJob:
     """Tests for POST /ingestion/jobs"""
 

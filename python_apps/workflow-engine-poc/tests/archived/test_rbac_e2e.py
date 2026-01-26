@@ -64,11 +64,18 @@ async def superuser(http_client: httpx.AsyncClient) -> Dict[str, Any]:
     email = f"superuser-{timestamp}@test.elevaite.com"
 
     response = await http_client.post(
-        f"{AUTH_API_URL}/api/auth/register", json={"email": email, "password": "SuperSecure123!", "full_name": "Test Superuser"}
+        f"{AUTH_API_URL}/api/auth/register",
+        json={
+            "email": email,
+            "password": "SuperSecure123!",
+            "full_name": "Test Superuser",
+        },
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create superuser: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create superuser: {response.status_code} - {response.text}"
+        )
 
     user_data = response.json()
 
@@ -81,7 +88,9 @@ async def superuser(http_client: httpx.AsyncClient) -> Dict[str, Any]:
         database=AUTH_DB_NAME,
     )
     try:
-        await conn.execute("UPDATE users SET is_superuser = true WHERE id = $1", user_data["id"])
+        await conn.execute(
+            "UPDATE users SET is_superuser = true WHERE id = $1", user_data["id"]
+        )
     finally:
         await conn.close()
 
@@ -106,7 +115,9 @@ async def superuser(http_client: httpx.AsyncClient) -> Dict[str, Any]:
 
 
 @pytest.fixture
-async def test_organization(http_client: httpx.AsyncClient, superuser: Dict[str, Any]) -> Dict[str, Any]:
+async def test_organization(
+    http_client: httpx.AsyncClient, superuser: Dict[str, Any]
+) -> Dict[str, Any]:
     """
     Create a test organization.
 
@@ -123,7 +134,9 @@ async def test_organization(http_client: httpx.AsyncClient, superuser: Dict[str,
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create organization: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create organization: {response.status_code} - {response.text}"
+        )
 
     org_data = response.json()
     return {"id": org_data["id"], "name": org_data["name"]}
@@ -131,7 +144,9 @@ async def test_organization(http_client: httpx.AsyncClient, superuser: Dict[str,
 
 @pytest.fixture
 async def test_account(
-    http_client: httpx.AsyncClient, superuser: Dict[str, Any], test_organization: Dict[str, Any]
+    http_client: httpx.AsyncClient,
+    superuser: Dict[str, Any],
+    test_organization: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Create a test account within the organization.
@@ -153,7 +168,9 @@ async def test_account(
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create account: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create account: {response.status_code} - {response.text}"
+        )
 
     account_data = response.json()
     return {
@@ -165,7 +182,9 @@ async def test_account(
 
 @pytest.fixture
 async def test_project(
-    http_client: httpx.AsyncClient, superuser: Dict[str, Any], test_account: Dict[str, Any]
+    http_client: httpx.AsyncClient,
+    superuser: Dict[str, Any],
+    test_account: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Create a test project within the account.
@@ -188,7 +207,9 @@ async def test_project(
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create project: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create project: {response.status_code} - {response.text}"
+        )
 
     project_data = response.json()
     return {
@@ -223,11 +244,17 @@ async def create_user_with_role(
 
     response = await http_client.post(
         f"{AUTH_API_URL}/api/auth/register",
-        json={"email": email, "password": "TestPassword123!", "full_name": f"Test {role.title()} User"},
+        json={
+            "email": email,
+            "password": "TestPassword123!",
+            "full_name": f"Test {role.title()} User",
+        },
     )
 
     if response.status_code not in (200, 201):
-        raise Exception(f"Could not create user: {response.status_code} - {response.text}")
+        raise Exception(
+            f"Could not create user: {response.status_code} - {response.text}"
+        )
 
     user_data = response.json()
 
@@ -252,7 +279,9 @@ async def create_user_with_role(
     )
 
     if response.status_code not in (200, 201):
-        raise Exception(f"Could not create role assignment: {response.status_code} - {response.text}")
+        raise Exception(
+            f"Could not create role assignment: {response.status_code} - {response.text}"
+        )
 
     # Create an API key token (not an access token)
     # API keys use type="api_key" and are validated with API_KEY_SECRET
@@ -278,7 +307,9 @@ async def create_user_with_role(
 
 @pytest.fixture
 async def viewer_user(
-    http_client: httpx.AsyncClient, superuser: Dict[str, Any], test_project: Dict[str, Any]
+    http_client: httpx.AsyncClient,
+    superuser: Dict[str, Any],
+    test_project: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Create a user with viewer role."""
     return await create_user_with_role(http_client, superuser, "viewer", test_project)
@@ -286,14 +317,20 @@ async def viewer_user(
 
 @pytest.fixture
 async def editor_user(
-    http_client: httpx.AsyncClient, superuser: Dict[str, Any], test_project: Dict[str, Any]
+    http_client: httpx.AsyncClient,
+    superuser: Dict[str, Any],
+    test_project: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Create a user with editor role."""
     return await create_user_with_role(http_client, superuser, "editor", test_project)
 
 
 @pytest.fixture
-async def admin_user(http_client: httpx.AsyncClient, superuser: Dict[str, Any], test_project: Dict[str, Any]) -> Dict[str, Any]:
+async def admin_user(
+    http_client: httpx.AsyncClient,
+    superuser: Dict[str, Any],
+    test_project: Dict[str, Any],
+) -> Dict[str, Any]:
     """Create a user with admin role."""
     return await create_user_with_role(http_client, superuser, "admin", test_project)
 
@@ -325,35 +362,61 @@ class TestWorkflowEndpointsRBAC:
     async def test_list_workflows_no_auth_denied(self, http_client: httpx.AsyncClient):
         """Test that listing workflows without authentication is denied."""
         response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/workflows/")
-        assert response.status_code in [401, 403, 400], f"Expected 401/403/400, got {response.status_code}"
+        assert response.status_code in [401, 403, 400], (
+            f"Expected 401/403/400, got {response.status_code}"
+        )
 
     async def test_list_workflows_viewer_allowed(
-        self, http_client: httpx.AsyncClient, viewer_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        viewer_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that viewers can list workflows."""
         headers = make_rbac_headers(viewer_user, test_project)
-        response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers)
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        response = await http_client.get(
+            f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers
+        )
+        assert response.status_code == 200, (
+            f"Expected 200, got {response.status_code}: {response.text}"
+        )
         assert isinstance(response.json(), list), "Expected list of workflows"
 
     async def test_list_workflows_editor_allowed(
-        self, http_client: httpx.AsyncClient, editor_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        editor_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that editors can list workflows."""
         headers = make_rbac_headers(editor_user, test_project)
-        response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers)
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        response = await http_client.get(
+            f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers
+        )
+        assert response.status_code == 200, (
+            f"Expected 200, got {response.status_code}: {response.text}"
+        )
 
     async def test_list_workflows_admin_allowed(
-        self, http_client: httpx.AsyncClient, admin_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        admin_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that admins can list workflows."""
         headers = make_rbac_headers(admin_user, test_project)
-        response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers)
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        response = await http_client.get(
+            f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers
+        )
+        assert response.status_code == 200, (
+            f"Expected 200, got {response.status_code}: {response.text}"
+        )
 
     async def test_create_workflow_viewer_denied(
-        self, http_client: httpx.AsyncClient, viewer_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        viewer_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that viewers cannot create workflows."""
         headers = make_rbac_headers(viewer_user, test_project)
@@ -363,11 +426,18 @@ class TestWorkflowEndpointsRBAC:
             "steps": [],
             "connections": [],
         }
-        response = await http_client.post(f"{WORKFLOW_ENGINE_URL}/workflows/", json=workflow_data, headers=headers)
-        assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
+        response = await http_client.post(
+            f"{WORKFLOW_ENGINE_URL}/workflows/", json=workflow_data, headers=headers
+        )
+        assert response.status_code == 403, (
+            f"Expected 403, got {response.status_code}: {response.text}"
+        )
 
     async def test_create_workflow_editor_allowed(
-        self, http_client: httpx.AsyncClient, editor_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        editor_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that editors can create workflows."""
         headers = make_rbac_headers(editor_user, test_project)
@@ -377,11 +447,18 @@ class TestWorkflowEndpointsRBAC:
             "steps": [],
             "connections": [],
         }
-        response = await http_client.post(f"{WORKFLOW_ENGINE_URL}/workflows/", json=workflow_data, headers=headers)
-        assert response.status_code in [200, 201], f"Expected 200/201, got {response.status_code}: {response.text}"
+        response = await http_client.post(
+            f"{WORKFLOW_ENGINE_URL}/workflows/", json=workflow_data, headers=headers
+        )
+        assert response.status_code in [200, 201], (
+            f"Expected 200/201, got {response.status_code}: {response.text}"
+        )
 
     async def test_create_workflow_admin_allowed(
-        self, http_client: httpx.AsyncClient, admin_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        admin_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that admins can create workflows."""
         headers = make_rbac_headers(admin_user, test_project)
@@ -391,8 +468,12 @@ class TestWorkflowEndpointsRBAC:
             "steps": [],
             "connections": [],
         }
-        response = await http_client.post(f"{WORKFLOW_ENGINE_URL}/workflows/", json=workflow_data, headers=headers)
-        assert response.status_code in [200, 201], f"Expected 200/201, got {response.status_code}: {response.text}"
+        response = await http_client.post(
+            f"{WORKFLOW_ENGINE_URL}/workflows/", json=workflow_data, headers=headers
+        )
+        assert response.status_code in [200, 201], (
+            f"Expected 200/201, got {response.status_code}: {response.text}"
+        )
 
 
 @pytest.mark.asyncio
@@ -402,23 +483,39 @@ class TestExecutionEndpointsRBAC:
     async def test_list_executions_no_auth_denied(self, http_client: httpx.AsyncClient):
         """Test that listing executions without authentication is denied."""
         response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/executions/")
-        assert response.status_code in [401, 403, 400], f"Expected 401/403/400, got {response.status_code}"
+        assert response.status_code in [401, 403, 400], (
+            f"Expected 401/403/400, got {response.status_code}"
+        )
 
     async def test_list_executions_viewer_allowed(
-        self, http_client: httpx.AsyncClient, viewer_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        viewer_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that viewers can list executions."""
         headers = make_rbac_headers(viewer_user, test_project)
-        response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/executions/", headers=headers)
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        response = await http_client.get(
+            f"{WORKFLOW_ENGINE_URL}/executions/", headers=headers
+        )
+        assert response.status_code == 200, (
+            f"Expected 200, got {response.status_code}: {response.text}"
+        )
 
     async def test_list_executions_editor_allowed(
-        self, http_client: httpx.AsyncClient, editor_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        editor_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that editors can list executions."""
         headers = make_rbac_headers(editor_user, test_project)
-        response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/executions/", headers=headers)
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        response = await http_client.get(
+            f"{WORKFLOW_ENGINE_URL}/executions/", headers=headers
+        )
+        assert response.status_code == 200, (
+            f"Expected 200, got {response.status_code}: {response.text}"
+        )
 
 
 @pytest.mark.asyncio
@@ -428,18 +525,30 @@ class TestAgentEndpointsRBAC:
     async def test_list_agents_no_auth_denied(self, http_client: httpx.AsyncClient):
         """Test that listing agents without authentication is denied."""
         response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/agents/")
-        assert response.status_code in [401, 403, 400], f"Expected 401/403/400, got {response.status_code}"
+        assert response.status_code in [401, 403, 400], (
+            f"Expected 401/403/400, got {response.status_code}"
+        )
 
     async def test_list_agents_viewer_allowed(
-        self, http_client: httpx.AsyncClient, viewer_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        viewer_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that viewers can list agents."""
         headers = make_rbac_headers(viewer_user, test_project)
-        response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/agents/", headers=headers)
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        response = await http_client.get(
+            f"{WORKFLOW_ENGINE_URL}/agents/", headers=headers
+        )
+        assert response.status_code == 200, (
+            f"Expected 200, got {response.status_code}: {response.text}"
+        )
 
     async def test_create_agent_viewer_denied(
-        self, http_client: httpx.AsyncClient, viewer_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        viewer_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that viewers cannot create agents."""
         headers = make_rbac_headers(viewer_user, test_project)
@@ -451,11 +560,18 @@ class TestAgentEndpointsRBAC:
             "provider_config": {},
             "system_prompt_id": "00000000-0000-0000-0000-000000000000",  # Dummy UUID
         }
-        response = await http_client.post(f"{WORKFLOW_ENGINE_URL}/agents/", json=agent_data, headers=headers)
-        assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
+        response = await http_client.post(
+            f"{WORKFLOW_ENGINE_URL}/agents/", json=agent_data, headers=headers
+        )
+        assert response.status_code == 403, (
+            f"Expected 403, got {response.status_code}: {response.text}"
+        )
 
     async def test_create_agent_editor_allowed(
-        self, http_client: httpx.AsyncClient, editor_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        editor_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that editors can create agents."""
         headers = make_rbac_headers(editor_user, test_project)
@@ -467,8 +583,12 @@ class TestAgentEndpointsRBAC:
             "provider_config": {},
             "system_prompt_id": "00000000-0000-0000-0000-000000000000",  # Dummy UUID
         }
-        response = await http_client.post(f"{WORKFLOW_ENGINE_URL}/agents/", json=agent_data, headers=headers)
-        assert response.status_code in [200, 201], f"Expected 200/201, got {response.status_code}: {response.text}"
+        response = await http_client.post(
+            f"{WORKFLOW_ENGINE_URL}/agents/", json=agent_data, headers=headers
+        )
+        assert response.status_code in [200, 201], (
+            f"Expected 200/201, got {response.status_code}: {response.text}"
+        )
 
 
 @pytest.mark.asyncio
@@ -476,7 +596,10 @@ class TestRBACHeaderValidation:
     """Test RBAC header validation."""
 
     async def test_missing_project_id_denied(
-        self, http_client: httpx.AsyncClient, viewer_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        viewer_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that missing project ID header is denied."""
         headers = {
@@ -486,11 +609,18 @@ class TestRBACHeaderValidation:
             "X-elevAIte-AccountId": test_project["account_id"],
             # Missing ProjectId
         }
-        response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers)
-        assert response.status_code in [400, 403, 401], f"Expected 400/403/401, got {response.status_code}"
+        response = await http_client.get(
+            f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers
+        )
+        assert response.status_code in [400, 403, 401], (
+            f"Expected 400/403/401, got {response.status_code}"
+        )
 
     async def test_missing_account_id_allowed_for_project_roles(
-        self, http_client: httpx.AsyncClient, viewer_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        viewer_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that missing account ID header is allowed for project-level roles (viewer/editor).
 
@@ -504,11 +634,18 @@ class TestRBACHeaderValidation:
             "X-elevAIte-ProjectId": test_project["id"],
             # Missing AccountId - should still work for project-level roles
         }
-        response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers)
-        assert response.status_code == 200, f"Expected 200 for project-level role, got {response.status_code}: {response.text}"
+        response = await http_client.get(
+            f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers
+        )
+        assert response.status_code == 200, (
+            f"Expected 200 for project-level role, got {response.status_code}: {response.text}"
+        )
 
     async def test_missing_org_id_denied(
-        self, http_client: httpx.AsyncClient, viewer_user: Dict[str, Any], test_project: Dict[str, Any]
+        self,
+        http_client: httpx.AsyncClient,
+        viewer_user: Dict[str, Any],
+        test_project: Dict[str, Any],
     ):
         """Test that missing organization ID header is denied."""
         headers = {
@@ -518,10 +655,16 @@ class TestRBACHeaderValidation:
             "X-elevAIte-ProjectId": test_project["id"],
             # Missing OrganizationId
         }
-        response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers)
-        assert response.status_code in [400, 403, 401], f"Expected 400/403/401, got {response.status_code}"
+        response = await http_client.get(
+            f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers
+        )
+        assert response.status_code in [400, 403, 401], (
+            f"Expected 400/403/401, got {response.status_code}"
+        )
 
-    async def test_missing_auth_denied(self, http_client: httpx.AsyncClient, test_project: Dict[str, Any]):
+    async def test_missing_auth_denied(
+        self, http_client: httpx.AsyncClient, test_project: Dict[str, Any]
+    ):
         """Test that missing authentication is denied."""
         headers = {
             # Missing apikey and UserId
@@ -529,5 +672,9 @@ class TestRBACHeaderValidation:
             "X-elevAIte-AccountId": test_project["account_id"],
             "X-elevAIte-ProjectId": test_project["id"],
         }
-        response = await http_client.get(f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers)
-        assert response.status_code in [401, 403, 400], f"Expected 401/403/400, got {response.status_code}"
+        response = await http_client.get(
+            f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers
+        )
+        assert response.status_code in [401, 403, 400], (
+            f"Expected 401/403/400, got {response.status_code}"
+        )

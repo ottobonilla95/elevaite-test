@@ -8,7 +8,12 @@ import uuid
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import httpx
-from a2a.client import A2ACardResolver, ClientCallInterceptor, ClientConfig, ClientFactory
+from a2a.client import (
+    A2ACardResolver,
+    ClientCallInterceptor,
+    ClientConfig,
+    ClientFactory,
+)
 from a2a.types import AgentCard, Message, Part, Role, TaskState, TextPart
 
 from .auth import create_auth_interceptor
@@ -18,7 +23,9 @@ from .types import A2AAgentInfo, A2AMessageRequest, A2AMessageResponse, A2ATaskI
 logger = logging.getLogger(__name__)
 
 
-def _create_message(content: str, context_id: str | None = None, task_id: str | None = None) -> Message:
+def _create_message(
+    content: str, context_id: str | None = None, task_id: str | None = None
+) -> Message:
     """Create an A2A Message with the given content."""
     return Message(
         message_id=str(uuid.uuid4()),
@@ -46,7 +53,9 @@ class A2AClientService:
         self._card_cache: Dict[str, AgentCard] = {}
         self._interceptor_cache: Dict[str, ClientCallInterceptor] = {}
 
-    def _get_interceptors(self, agent: A2AAgentInfo) -> Optional[List[ClientCallInterceptor]]:
+    def _get_interceptors(
+        self, agent: A2AAgentInfo
+    ) -> Optional[List[ClientCallInterceptor]]:
         """Get authentication interceptors for an agent.
 
         Args:
@@ -180,7 +189,9 @@ class A2AClientService:
                 elif hasattr(part.root, "file"):
                     response.artifacts.append({"type": "file", "file": part.root.file})  # type: ignore[attr-defined]
             response.content = "".join(text_parts) if text_parts else response.content
-            response.raw_response = event.model_dump() if hasattr(event, "model_dump") else None
+            response.raw_response = (
+                event.model_dump() if hasattr(event, "model_dump") else None
+            )
 
         elif isinstance(event, tuple):
             # (Task, UpdateEvent) pair - we only use the Task
@@ -209,11 +220,17 @@ class A2AClientService:
                         if hasattr(part.root, "text"):
                             if not response.content:
                                 response.content = part.root.text  # type: ignore[attr-defined]
-                            artifact_data["parts"].append({"type": "text", "text": part.root.text})  # type: ignore[attr-defined]
+                            artifact_data["parts"].append(
+                                {"type": "text", "text": part.root.text}
+                            )  # type: ignore[attr-defined]
                         elif hasattr(part.root, "data"):
-                            artifact_data["parts"].append({"type": "data", "data": part.root.data})  # type: ignore[attr-defined]
+                            artifact_data["parts"].append(
+                                {"type": "data", "data": part.root.data}
+                            )  # type: ignore[attr-defined]
                         elif hasattr(part.root, "file"):
-                            artifact_data["parts"].append({"type": "file", "file": part.root.file})  # type: ignore[attr-defined]
+                            artifact_data["parts"].append(
+                                {"type": "file", "file": part.root.file}
+                            )  # type: ignore[attr-defined]
                     response.artifacts.append(artifact_data)
 
         return response
@@ -243,7 +260,9 @@ class A2AClientService:
             task_id=str(task.id),
             state=task.status.state if task.status else "unknown",
             context_id=str(task.context_id) if task.context_id else None,
-            message=self._extract_status_message(task.status.message if task.status else None),
+            message=self._extract_status_message(
+                task.status.message if task.status else None
+            ),
         )
 
     async def cancel_task(self, agent: A2AAgentInfo, task_id: str) -> A2ATaskInfo:
@@ -262,5 +281,7 @@ class A2AClientService:
             task_id=str(task.id),
             state=task.status.state if task.status else "canceled",
             context_id=str(task.context_id) if task.context_id else None,
-            message=self._extract_status_message(task.status.message if task.status else None),
+            message=self._extract_status_message(
+                task.status.message if task.status else None
+            ),
         )

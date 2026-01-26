@@ -48,7 +48,9 @@ async def check_access_async(
         # Fail closed - invalid user ID format
         return False
 
-    url = f"{(base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip('/')}/api/authz/check_access"
+    url = (
+        f"{(base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip('/')}/api/authz/check_access"
+    )
     payload = {"user_id": user_id_int, "action": action, "resource": resource}
 
     try:

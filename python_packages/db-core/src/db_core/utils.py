@@ -90,7 +90,9 @@ def tenant_schema_exists(engine: Union[Engine, AsyncEngine], schema_name: str) -
     try:
         with engine.connect() as conn:
             # Check if schema exists in PostgreSQL
-            query = text("SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = :schema_name)")
+            query = text(
+                "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = :schema_name)"
+            )
             result = conn.execute(query, {"schema_name": schema_name})
             return bool(result.scalar())
     except SQLAlchemyError as e:
@@ -112,7 +114,9 @@ async def async_tenant_schema_exists(engine: AsyncEngine, schema_name: str) -> b
     try:
         async with engine.connect() as conn:
             # Check if schema exists in PostgreSQL
-            query = text("SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = :schema_name)")
+            query = text(
+                "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = :schema_name)"
+            )
             result = await conn.execute(query, {"schema_name": schema_name})
             return bool(result.scalar())
     except SQLAlchemyError as e:
@@ -180,7 +184,9 @@ async def async_create_tenant_schema(engine: AsyncEngine, schema_name: str) -> b
         return False
 
 
-def list_tenant_schemas(engine: Union[Engine, AsyncEngine], schema_prefix: str) -> List[str]:
+def list_tenant_schemas(
+    engine: Union[Engine, AsyncEngine], schema_prefix: str
+) -> List[str]:
     """
     List all tenant schemas.
 
@@ -205,7 +211,9 @@ def list_tenant_schemas(engine: Union[Engine, AsyncEngine], schema_prefix: str) 
     # For synchronous engines
     try:
         with engine.connect() as conn:
-            query = text("SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE :prefix")
+            query = text(
+                "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE :prefix"
+            )
             result = conn.execute(query, {"prefix": f"{schema_prefix}%"})
             return [row[0] for row in result]
     except SQLAlchemyError as e:
@@ -213,7 +221,9 @@ def list_tenant_schemas(engine: Union[Engine, AsyncEngine], schema_prefix: str) 
         return []
 
 
-async def async_list_tenant_schemas(engine: AsyncEngine, schema_prefix: str) -> List[str]:
+async def async_list_tenant_schemas(
+    engine: AsyncEngine, schema_prefix: str
+) -> List[str]:
     """
     Asynchronously list all tenant schemas.
 
@@ -226,7 +236,9 @@ async def async_list_tenant_schemas(engine: AsyncEngine, schema_prefix: str) -> 
     """
     try:
         async with engine.connect() as conn:
-            query = text("SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE :prefix")
+            query = text(
+                "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE :prefix"
+            )
             result = await conn.execute(query, {"prefix": f"{schema_prefix}%"})
             return [row[0] for row in result]
     except SQLAlchemyError as e:
@@ -250,7 +262,9 @@ def get_tenant_id_from_schema(schema_name: str, schema_prefix: str) -> Optional[
     return None
 
 
-def set_tenant_search_path(engine: Union[Engine, AsyncEngine], schema_name: str) -> bool:
+def set_tenant_search_path(
+    engine: Union[Engine, AsyncEngine], schema_name: str
+) -> bool:
     """
     Set the search path for a connection to include the tenant schema.
 

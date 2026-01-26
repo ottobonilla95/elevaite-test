@@ -6,7 +6,9 @@ from workflow_core_sdk.execution_context import ExecutionContext
 
 
 async def merge_step(
-    step_config: Dict[str, Any], input_data: Dict[str, Any], execution_context: ExecutionContext
+    step_config: Dict[str, Any],
+    input_data: Dict[str, Any],
+    execution_context: ExecutionContext,
 ) -> Dict[str, Any]:
     """Combine outputs from completed dependencies based on mode and combine_mode."""
     params = step_config.get("parameters", step_config.get("config", {}))
@@ -20,7 +22,9 @@ async def merge_step(
         if dep_id in execution_context.completed_steps:
             result = execution_context.step_results.get(dep_id)
             if result:
-                completed[dep_id] = result.output_data if hasattr(result, "output_data") else result
+                completed[dep_id] = (
+                    result.output_data if hasattr(result, "output_data") else result
+                )
 
     # First available mode or first combine mode: return first completed
     if mode == "first_available" or combine_mode == "first":

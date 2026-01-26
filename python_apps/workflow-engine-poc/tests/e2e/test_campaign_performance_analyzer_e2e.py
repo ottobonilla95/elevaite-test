@@ -35,7 +35,9 @@ def _create_workflow(client: TestClient, payload: Dict[str, Any]) -> str:
     return data.get("id") or data.get("workflow_id")
 
 
-def _execute_workflow(client: TestClient, workflow_id: str, body: Dict[str, Any]) -> str:
+def _execute_workflow(
+    client: TestClient, workflow_id: str, body: Dict[str, Any]
+) -> str:
     r = client.post(f"/workflows/{workflow_id}/execute", json=body)
     r.raise_for_status()
     return r.json().get("id") or r.json().get("execution_id")
@@ -55,7 +57,9 @@ def _get_results(client: TestClient, execution_id: str) -> Dict[str, Any]:
 
 @pytest.mark.integration
 @pytest.mark.parametrize("backend", ["local"])
-def test_campaign_performance_analyzer_workflow_e2e(authenticated_client: TestClient, backend: str):
+def test_campaign_performance_analyzer_workflow_e2e(
+    authenticated_client: TestClient, backend: str
+):
     """
     E2E test for the Campaign Performance Analyzer demo workflow.
 
@@ -101,7 +105,9 @@ def test_campaign_performance_analyzer_workflow_e2e(authenticated_client: TestCl
 
     # Debug output if failed
     if last_status == "failed":
-        print(f"Execution failed. Results: {json.dumps(results, indent=2, default=str)}")
+        print(
+            f"Execution failed. Results: {json.dumps(results, indent=2, default=str)}"
+        )
 
     # Validate execution completed
     assert last_status == "completed", f"Expected completed, got {last_status}"
@@ -122,14 +128,18 @@ def test_campaign_performance_analyzer_workflow_e2e(authenticated_client: TestCl
     # Agent should have a response or error
     has_response = agent_output.get("success") is True or "response" in agent_output
     has_error = "error" in agent_output
-    assert has_response or has_error, f"Agent should have response or error: {agent_output}"
+    assert has_response or has_error, (
+        f"Agent should have response or error: {agent_output}"
+    )
 
     # If successful, check for expected analysis content
     if agent_output.get("success"):
         response = agent_output.get("response", "")
         # Should mention performance rating, ROAS, or recommendations
-        assert any(kw in response.lower() for kw in ["performance", "roas", "recommendation", "conversion"]), \
-            f"Response should contain analysis keywords: {response[:200]}"
+        assert any(
+            kw in response.lower()
+            for kw in ["performance", "roas", "recommendation", "conversion"]
+        ), f"Response should contain analysis keywords: {response[:200]}"
 
     # Validate output-node executed
     assert "output-node" in step_results, "output-node step should be in results"
@@ -139,4 +149,3 @@ def test_campaign_performance_analyzer_workflow_e2e(authenticated_client: TestCl
     assert output_data.get("label") == "Campaign Analysis Result"
     pprint("Output node data:")
     pprint(output_data)
-

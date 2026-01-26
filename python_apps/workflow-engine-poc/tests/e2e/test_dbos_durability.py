@@ -47,7 +47,9 @@ DBOS_CRASH_TEST = os.environ.get("DBOS_CRASH_TEST", "0")
 TIMEOUT = float(os.environ.get("SMOKE_TIMEOUT", "60"))
 
 # Project paths
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
 
 
 def _http(
@@ -138,7 +140,9 @@ def _execute_workflow(
         "wait": wait,
         "trigger": {"kind": "chat", "current_message": "Start durability test"},
     }
-    resp = _http("POST", f"/workflows/{workflow_id}/execute", exec_req, base_url=base_url)
+    resp = _http(
+        "POST", f"/workflows/{workflow_id}/execute", exec_req, base_url=base_url
+    )
     assert resp.status_code == 200, f"Failed to execute workflow: {resp.text}"
     return resp.json()
 
@@ -206,7 +210,9 @@ def test_simulated_recovery():
     status = result.get("status", "unknown").lower()
 
     print(f"Execution status: {status}")
-    print(f"Step I/O data: {json.dumps(result.get('step_io_data', {}), indent=2, default=str)}")
+    print(
+        f"Step I/O data: {json.dumps(result.get('step_io_data', {}), indent=2, default=str)}"
+    )
 
     # Verify workflow completed or is still running (DBOS is handling it)
     # The key durability test is that DBOS workflow ID is assigned
@@ -216,7 +222,9 @@ def test_simulated_recovery():
     print(f"DBOS Workflow ID: {dbos_wf_id}")
 
     # Workflow should either be completed or running (not failed)
-    assert status in ("completed", "running"), f"Expected completed/running, got {status}: {result}"
+    assert status in ("completed", "running"), (
+        f"Expected completed/running, got {status}: {result}"
+    )
 
     print("✅ Simulated recovery test passed!")
 
@@ -481,7 +489,9 @@ def test_subprocess_crash_recovery():
 
         # Verify step executed (proves recovery worked)
         step_io = result.get("step_io_data", {})
-        assert "agent_step" in step_io or "trigger" in step_io, f"Steps should have executed after recovery: {step_io}"
+        assert "agent_step" in step_io or "trigger" in step_io, (
+            f"Steps should have executed after recovery: {step_io}"
+        )
 
         print("✅ Subprocess crash recovery test passed!")
 

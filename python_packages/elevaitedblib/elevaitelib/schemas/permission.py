@@ -23,7 +23,9 @@ class AccountScopedArtifactPermission(BaseModel):
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            raise ValueError("At least one field - 'ACTION_READ' or 'ACTION_TAG' must be provided")
+            raise ValueError(
+                "At least one field - 'ACTION_READ' or 'ACTION_TAG' must be provided"
+            )
         return values
 
     class Config:
@@ -43,7 +45,9 @@ class ProjectScopedArtifactPermission(BaseModel):
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            raise ValueError("At least one field - 'ACTION_READ' or 'ACTION_TAG' must be provided")
+            raise ValueError(
+                "At least one field - 'ACTION_READ' or 'ACTION_TAG' must be provided"
+            )
         return values
 
     class Config:
@@ -79,7 +83,9 @@ class AccountScopedCollectionPermission(BaseModel):
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            raise ValueError("At least one field - 'ACTION_READ' or 'ACTION_CREATE' must be provided")
+            raise ValueError(
+                "At least one field - 'ACTION_READ' or 'ACTION_CREATE' must be provided"
+            )
         return values
 
     class Config:
@@ -99,7 +105,9 @@ class ProjectScopedCollectionPermission(BaseModel):
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            raise ValueError("At least one field - 'ACTION_READ' or 'ACTION_CREATE' must be provided")
+            raise ValueError(
+                "At least one field - 'ACTION_READ' or 'ACTION_CREATE' must be provided"
+            )
         return values
 
     class Config:
@@ -122,7 +130,9 @@ class AccountScopedApikeyPermission(BaseModel):
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            raise ValueError("At least one field - 'ACTION_READ' or 'ACTION_CREATE' must be provided")
+            raise ValueError(
+                "At least one field - 'ACTION_READ' or 'ACTION_CREATE' must be provided"
+            )
         return values
 
     @classmethod
@@ -139,7 +149,9 @@ class ProjectScopedApikeyPermission(BaseModel):
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            raise ValueError("At least one field - 'ACTION_READ' or 'ACTION_CREATE' must be provided")
+            raise ValueError(
+                "At least one field - 'ACTION_READ' or 'ACTION_CREATE' must be provided"
+            )
         return values
 
     class Config:
@@ -300,7 +312,9 @@ class ApplicationConfigurationPermission(BaseModel):
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            raise ValueError("At least one field from - 'ACTION_READ', 'ACTION_CREATE', 'ACTION_UPDATE' must be provided")
+            raise ValueError(
+                "At least one field from - 'ACTION_READ', 'ACTION_CREATE', 'ACTION_UPDATE' must be provided"
+            )
         return values
 
     class Config:
@@ -336,7 +350,9 @@ class ProjectScopedInstanceConfigurationPermission(BaseModel):
 class AccountScopedApplicationInstancePermission(BaseModel):
     ACTION_READ: Optional[Literal["Allow"]] = Field(None)
     ACTION_CREATE: Optional[Literal["Allow"]] = Field(None)
-    ACTION_CONFIGURATION: Optional[AccountScopedInstanceConfigurationPermission] = Field(None)
+    ACTION_CONFIGURATION: Optional[AccountScopedInstanceConfigurationPermission] = (
+        Field(None)
+    )
 
     @root_validator(pre=True)
     @classmethod
@@ -363,7 +379,9 @@ class AccountScopedApplicationInstancePermission(BaseModel):
 class ProjectScopedApplicationInstancePermission(BaseModel):
     ACTION_READ: Optional[Literal["Deny"]] = Field(None)
     ACTION_CREATE: Optional[Literal["Deny"]] = Field(None)
-    ACTION_CONFIGURATION: Optional[ProjectScopedInstanceConfigurationPermission] = Field(None)
+    ACTION_CONFIGURATION: Optional[ProjectScopedInstanceConfigurationPermission] = (
+        Field(None)
+    )
 
     @root_validator(pre=True)
     @classmethod
@@ -387,7 +405,9 @@ class ProjectScopedApplicationInstancePermission(BaseModel):
         )
 
 
-class ApikeyScopedApplicationInstancePermission(AccountScopedApplicationInstancePermission):  # just for the Allow values
+class ApikeyScopedApplicationInstancePermission(
+    AccountScopedApplicationInstancePermission
+):  # just for the Allow values
     pass
 
 
@@ -443,15 +463,21 @@ class ApikeyScopedApplicationIngestPermission(BaseModel):
 
 
 # PreprocessPermissionType follows the same structure as IngestPermissionType
-class AccountScopedApplicationPreprocessPermission(AccountScopedApplicationIngestPermission):
+class AccountScopedApplicationPreprocessPermission(
+    AccountScopedApplicationIngestPermission
+):
     pass
 
 
-class ProjectScopedApplicationPreprocessPermission(ProjectScopedApplicationIngestPermission):
+class ProjectScopedApplicationPreprocessPermission(
+    ProjectScopedApplicationIngestPermission
+):
     pass
 
 
-class ApikeyScopedApplicationPreprocessPermission(ApikeyScopedApplicationIngestPermission):
+class ApikeyScopedApplicationPreprocessPermission(
+    ApikeyScopedApplicationIngestPermission
+):
     pass
 
 
@@ -462,14 +488,18 @@ class ApikeyScopedApplicationPreprocessPermission(ApikeyScopedApplicationIngestP
 # in this case there is only 1 branching type with 2 values, resulting in 2 attributes.
 class AccountScopedApplicationTypeValues(BaseModel):
     TYPEVALUES_ingest: Optional[AccountScopedApplicationIngestPermission] = Field(None)
-    TYPEVALUES_preprocess: Optional[AccountScopedApplicationPreprocessPermission] = Field(None)
+    TYPEVALUES_preprocess: Optional[AccountScopedApplicationPreprocessPermission] = (
+        Field(None)
+    )
 
     @root_validator(pre=True)
     @classmethod
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            raise ValueError("At least one field from - 'TYPEVALUES_ingest', 'TYPEVALUES_preprocess' must be provided")
+            raise ValueError(
+                "At least one field from - 'TYPEVALUES_ingest', 'TYPEVALUES_preprocess' must be provided"
+            )
         return values
 
     class Config:
@@ -492,7 +522,9 @@ class AccountScopedApplicationTypeNames(BaseModel):
 
     @classmethod
     def create(cls):
-        return cls(TYPENAMES_applicationType=AccountScopedApplicationTypeValues.create())
+        return cls(
+            TYPENAMES_applicationType=AccountScopedApplicationTypeValues.create()
+        )
 
 
 # if generic entity had more than one branching type like 'type1' and 'type2';
@@ -502,14 +534,18 @@ class AccountScopedApplicationTypeNames(BaseModel):
 # in this case there is only 1 branching type with 2 values, resulting in 2 attributes
 class ProjectScopedApplicationTypeValues(BaseModel):
     TYPEVALUES_ingest: Optional[ProjectScopedApplicationIngestPermission] = Field(None)
-    TYPEVALUES_preprocess: Optional[ProjectScopedApplicationPreprocessPermission] = Field(None)
+    TYPEVALUES_preprocess: Optional[ProjectScopedApplicationPreprocessPermission] = (
+        Field(None)
+    )
 
     @root_validator(pre=True)
     @classmethod
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            raise ValueError("At least one field from - 'TYPEVALUES_ingest', 'TYPEVALUES_preprocess' must be provided")
+            raise ValueError(
+                "At least one field from - 'TYPEVALUES_ingest', 'TYPEVALUES_preprocess' must be provided"
+            )
         return values
 
     class Config:
@@ -532,19 +568,25 @@ class ProjectScopedApplicationTypeNames(BaseModel):
 
     @classmethod
     def create(cls):
-        return cls(TYPENAMES_applicationType=ProjectScopedApplicationTypeValues.create())
+        return cls(
+            TYPENAMES_applicationType=ProjectScopedApplicationTypeValues.create()
+        )
 
 
 class ApikeyScopedApplicationTypeValues(BaseModel):
     TYPEVALUES_ingest: Optional[ApikeyScopedApplicationIngestPermission] = Field(None)
-    TYPEVALUES_preprocess: Optional[ApikeyScopedApplicationPreprocessPermission] = Field(None)
+    TYPEVALUES_preprocess: Optional[ApikeyScopedApplicationPreprocessPermission] = (
+        Field(None)
+    )
 
     @root_validator(pre=True)
     @classmethod
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            raise ValueError("At least one field from - 'TYPEVALUES_ingest', 'TYPEVALUES_preprocess' must be provided")
+            raise ValueError(
+                "At least one field from - 'TYPEVALUES_ingest', 'TYPEVALUES_preprocess' must be provided"
+            )
         return values
 
     class Config:
@@ -661,4 +703,6 @@ class ApikeyScopedRBACPermission(BaseModel):
             # return permissions object which conforms to apikey scoped permissions
             return rbac_permissions
         else:
-            raise ValueError(f"Mapping business logic for permission scope - {rbac_permission_scope} - not implemented")
+            raise ValueError(
+                f"Mapping business logic for permission scope - {rbac_permission_scope} - not implemented"
+            )

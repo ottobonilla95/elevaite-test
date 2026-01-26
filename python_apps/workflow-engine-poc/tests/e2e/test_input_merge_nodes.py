@@ -98,7 +98,9 @@ class TestInputNodeCreation:
     """Tests for input node workflow creation."""
 
     @pytest.mark.asyncio
-    async def test_create_workflow_with_single_input_node(self, async_client: AsyncClient):
+    async def test_create_workflow_with_single_input_node(
+        self, async_client: AsyncClient
+    ):
         """Test creating a workflow with a single input node."""
         workflow_data = {
             "name": "Single Input Workflow",
@@ -127,7 +129,9 @@ class TestInputNodeCreation:
         await async_client.delete(f"/workflows/{workflow['id']}")
 
     @pytest.mark.asyncio
-    async def test_create_workflow_with_multiple_input_nodes(self, async_client: AsyncClient, workflow_with_input_nodes):
+    async def test_create_workflow_with_multiple_input_nodes(
+        self, async_client: AsyncClient, workflow_with_input_nodes
+    ):
         """Test creating a workflow with multiple input nodes feeding into merge."""
         resp = await async_client.post("/workflows/", json=workflow_with_input_nodes)
         assert resp.status_code == 200, resp.text
@@ -166,7 +170,9 @@ class TestInputNodeCreation:
             }
 
             resp = await async_client.post("/workflows/", json=workflow_data)
-            assert resp.status_code == 200, f"Failed to create workflow with kind={kind}: {resp.text}"
+            assert resp.status_code == 200, (
+                f"Failed to create workflow with kind={kind}: {resp.text}"
+            )
             workflow = resp.json()
 
             steps = workflow["configuration"]["steps"]
@@ -179,7 +185,9 @@ class TestMergeNodeCreation:
     """Tests for merge node workflow creation."""
 
     @pytest.mark.asyncio
-    async def test_create_workflow_with_merge_node(self, async_client: AsyncClient, workflow_with_input_nodes):
+    async def test_create_workflow_with_merge_node(
+        self, async_client: AsyncClient, workflow_with_input_nodes
+    ):
         """Test creating a workflow with a merge node."""
         resp = await async_client.post("/workflows/", json=workflow_with_input_nodes)
         assert resp.status_code == 200, resp.text
@@ -194,7 +202,9 @@ class TestMergeNodeCreation:
         await async_client.delete(f"/workflows/{workflow['id']}")
 
     @pytest.mark.asyncio
-    async def test_merge_node_wait_all_mode(self, async_client: AsyncClient, workflow_with_wait_all_merge):
+    async def test_merge_node_wait_all_mode(
+        self, async_client: AsyncClient, workflow_with_wait_all_merge
+    ):
         """Test creating a workflow with wait_all merge mode (AND logic)."""
         resp = await async_client.post("/workflows/", json=workflow_with_wait_all_merge)
         assert resp.status_code == 200, resp.text
@@ -277,14 +287,19 @@ class TestMergeNodeCreation:
                         "step_type": "merge",
                         "name": "Merge",
                         "dependencies": ["input-1", "input-2"],
-                        "parameters": {"mode": "wait_all", "combine_mode": combine_mode},
+                        "parameters": {
+                            "mode": "wait_all",
+                            "combine_mode": combine_mode,
+                        },
                     },
                 ],
                 "status": "active",
             }
 
             resp = await async_client.post("/workflows/", json=workflow_data)
-            assert resp.status_code == 200, f"Failed for combine_mode={combine_mode}: {resp.text}"
+            assert resp.status_code == 200, (
+                f"Failed for combine_mode={combine_mode}: {resp.text}"
+            )
             workflow = resp.json()
 
             steps = workflow["configuration"]["steps"]
@@ -372,7 +387,9 @@ class TestOutputNodeCreation:
 class TestOutputNodeExecution:
     """Tests for executing workflows with output nodes."""
 
-    async def _poll_execution(self, async_client: AsyncClient, execution_id: str, timeout: float = 10.0) -> dict:
+    async def _poll_execution(
+        self, async_client: AsyncClient, execution_id: str, timeout: float = 10.0
+    ) -> dict:
         """Poll for execution completion."""
         deadline = asyncio.get_event_loop().time() + timeout
         while asyncio.get_event_loop().time() < deadline:
@@ -424,7 +441,9 @@ class TestOutputNodeExecution:
 
         try:
             exec_body = {"trigger": {"kind": "webhook"}, "wait": False}
-            resp = await async_client.post(f"/workflows/{workflow_id}/execute", json=exec_body)
+            resp = await async_client.post(
+                f"/workflows/{workflow_id}/execute", json=exec_body
+            )
             assert resp.status_code == 200, resp.text
             execution = resp.json()
 
@@ -437,7 +456,9 @@ class TestOutputNodeExecution:
 class TestDataInputExecution:
     """Tests for executing workflows with data_input nodes (static data providers)."""
 
-    async def _poll_execution(self, async_client: AsyncClient, execution_id: str, timeout: float = 10.0) -> dict:
+    async def _poll_execution(
+        self, async_client: AsyncClient, execution_id: str, timeout: float = 10.0
+    ) -> dict:
         """Poll for execution completion."""
         deadline = asyncio.get_event_loop().time() + timeout
         while asyncio.get_event_loop().time() < deadline:
@@ -482,7 +503,9 @@ class TestDataInputExecution:
 
         try:
             exec_body = {"trigger": {"kind": "webhook"}, "wait": False}
-            resp = await async_client.post(f"/workflows/{workflow_id}/execute", json=exec_body)
+            resp = await async_client.post(
+                f"/workflows/{workflow_id}/execute", json=exec_body
+            )
             assert resp.status_code == 200, resp.text
             execution = resp.json()
 
@@ -495,7 +518,9 @@ class TestDataInputExecution:
 class TestDataMergeExecution:
     """Tests for executing workflows with data_merge nodes."""
 
-    async def _poll_execution(self, async_client: AsyncClient, execution_id: str, timeout: float = 10.0) -> dict:
+    async def _poll_execution(
+        self, async_client: AsyncClient, execution_id: str, timeout: float = 10.0
+    ) -> dict:
         """Poll for execution completion."""
         deadline = asyncio.get_event_loop().time() + timeout
         while asyncio.get_event_loop().time() < deadline:
@@ -553,8 +578,14 @@ class TestDataMergeExecution:
         workflow_id = workflow["id"]
 
         try:
-            exec_body = {"trigger": {"kind": "webhook"}, "input_data": {}, "wait": False}
-            resp = await async_client.post(f"/workflows/{workflow_id}/execute", json=exec_body)
+            exec_body = {
+                "trigger": {"kind": "webhook"},
+                "input_data": {},
+                "wait": False,
+            }
+            resp = await async_client.post(
+                f"/workflows/{workflow_id}/execute", json=exec_body
+            )
             assert resp.status_code == 200, resp.text
             execution = resp.json()
 
@@ -623,7 +654,9 @@ class TestDataMergeExecution:
 
         try:
             exec_body = {"trigger": {"kind": "webhook"}, "wait": False}
-            resp = await async_client.post(f"/workflows/{workflow_id}/execute", json=exec_body)
+            resp = await async_client.post(
+                f"/workflows/{workflow_id}/execute", json=exec_body
+            )
             assert resp.status_code == 200, resp.text
             execution = resp.json()
 

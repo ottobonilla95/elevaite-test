@@ -147,7 +147,6 @@ class TestMfaDeviceService:
                 "app.services.mfa_device_service.get_device_info_for_logging"
             ) as mock_device_info,
         ):
-
             mock_fingerprint.return_value = "test_fingerprint"
             mock_device_info.return_value = {
                 "ip_address": "192.168.1.100",
@@ -176,7 +175,6 @@ class TestMfaDeviceService:
                 "app.services.mfa_device_service.get_device_info_for_logging"
             ) as mock_device_info,
         ):
-
             mock_fingerprint.return_value = "test_fingerprint"
             mock_device_info.return_value = {
                 "ip_address": "192.168.1.100",
@@ -344,7 +342,6 @@ class TestMfaDeviceService:
             ) as mock_device_info,
             patch("app.core.config.settings") as mock_settings,
         ):
-
             mock_fingerprint.return_value = "test_fingerprint"
             mock_device_info.return_value = {
                 "ip_address": "192.168.1.100",

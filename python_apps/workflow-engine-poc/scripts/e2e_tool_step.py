@@ -92,7 +92,9 @@ def execute_workflow(workflow_id: str, message: str) -> Dict[str, Any]:
                 if "response" in od and od["response"] is not None:
                     final_output = od["response"]
     if final_output is None:
-        final_output = last_completed_output if last_completed_output is not None else results
+        final_output = (
+            last_completed_output if last_completed_output is not None else results
+        )
 
     return {"final_output": final_output, "full_results": results}
 
@@ -104,7 +106,12 @@ def main():
             "step_id": "trigger",
             "step_type": "trigger",
             "name": "Trigger",
-            "config": {"kind": "chat", "need_history": True, "allowed_modalities": ["text"], "max_files": 0},
+            "config": {
+                "kind": "chat",
+                "need_history": True,
+                "allowed_modalities": ["text"],
+                "max_files": 0,
+            },
         },
         {
             "step_id": "tool",
@@ -127,4 +134,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

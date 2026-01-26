@@ -24,7 +24,9 @@ from db_core.utils import validate_tenant_id
 logger = logging.getLogger(__name__)
 
 # Context variable to store the current tenant ID
-current_tenant_id: ContextVar[Optional[str]] = ContextVar("current_tenant_id", default=None)
+current_tenant_id: ContextVar[Optional[str]] = ContextVar(
+    "current_tenant_id", default=None
+)
 
 # Dictionary to store original openapi functions for each app (using weak references)
 _original_openapi_functions: Dict[int, Callable[..., Dict[str, Any]]] = {}
@@ -74,7 +76,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
         self.tenant_callback = tenant_callback
         self.excluded_paths = excluded_paths or {}
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         """
         Process the request and extract tenant ID.
 
@@ -89,7 +93,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         for pattern, options in self.excluded_paths.items():
             if re.match(pattern, path):
-                tenant_id = options.get("default_tenant", self.settings.default_tenant_id)
+                tenant_id = options.get(
+                    "default_tenant", self.settings.default_tenant_id
+                )
                 set_current_tenant_id(tenant_id)
                 return await call_next(request)
 
@@ -114,7 +120,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
         try:
             # Validate tenant ID
             if not validate_tenant_id(tenant_id, self.settings):
-                error = InvalidTenantIdError(tenant_id, self.settings.tenant_id_validation_pattern)
+                error = InvalidTenantIdError(
+                    tenant_id, self.settings.tenant_id_validation_pattern
+                )
                 return JSONResponse(
                     status_code=400,
                     content={"detail": str(error)},
@@ -146,7 +154,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
             set_current_tenant_id(None)
 
     @classmethod
-    def add_tenant_header_to_openapi(cls, app: FastAPI, settings: MultitenancySettings) -> None:
+    def add_tenant_header_to_openapi(
+        cls, app: FastAPI, settings: MultitenancySettings
+    ) -> None:
         """
         Add the tenant header to the OpenAPI documentation.
 
@@ -192,13 +202,19 @@ class TenantMiddleware(BaseHTTPMiddleware):
             # Add the tenant header parameter to all paths except docs and openapi
             for path_name, path_item in openapi_schema["paths"].items():
                 # Skip documentation paths
-                if path_name.startswith("/docs") or path_name.startswith("/redoc") or path_name == "/openapi.json":
+                if (
+                    path_name.startswith("/docs")
+                    or path_name.startswith("/redoc")
+                    or path_name == "/openapi.json"
+                ):
                     continue
 
                 for operation in path_item.values():
                     if "parameters" not in operation:
                         operation["parameters"] = []
-                    operation["parameters"].append({"$ref": "#/components/parameters/tenant_header"})
+                    operation["parameters"].append(
+                        {"$ref": "#/components/parameters/tenant_header"}
+                    )
 
             app.openapi_schema = openapi_schema
             return app.openapi_schema
@@ -234,7 +250,9 @@ def add_tenant_middleware(
         TenantMiddleware.add_tenant_header_to_openapi(app, settings)
 
 
-def add_tenant_header_to_openapi(cls, app: FastAPI, settings: MultitenancySettings) -> None:
+def add_tenant_header_to_openapi(
+    cls, app: FastAPI, settings: MultitenancySettings
+) -> None:
     """
     Add the tenant header to the OpenAPI documentation.
 
@@ -280,13 +298,19 @@ def add_tenant_header_to_openapi(cls, app: FastAPI, settings: MultitenancySettin
         # Add the tenant header parameter to all paths except docs and openapi
         for path_name, path_item in openapi_schema["paths"].items():
             # Skip documentation paths
-            if path_name.startswith("/docs") or path_name.startswith("/redoc") or path_name == "/openapi.json":
+            if (
+                path_name.startswith("/docs")
+                or path_name.startswith("/redoc")
+                or path_name == "/openapi.json"
+            ):
                 continue
 
             for operation in path_item.values():
                 if "parameters" not in operation:
                     operation["parameters"] = []
-                operation["parameters"].append({"$ref": "#/components/parameters/tenant_header"})
+                operation["parameters"].append(
+                    {"$ref": "#/components/parameters/tenant_header"}
+                )
 
         app.openapi_schema = openapi_schema
         return app.openapi_schema

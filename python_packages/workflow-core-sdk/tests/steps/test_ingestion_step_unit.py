@@ -159,4 +159,3 @@ async def test_error_handling():
     assert error_result["success"] is False
     assert error_result["status"] == "failed"
     assert "Service unavailable" in error_result["error"]
-

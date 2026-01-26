@@ -82,7 +82,9 @@ class TestDataInputStep:
     @pytest.mark.asyncio
     async def test_dynamic_input_subflow_source(self, step_config, execution_context):
         """Test dynamic input from subflow"""
-        execution_context.step_io_data = {"subflow_input": {"user_id": "123", "action": "create"}}
+        execution_context.step_io_data = {
+            "subflow_input": {"user_id": "123", "action": "create"}
+        }
         step_config["config"] = {"input_type": "dynamic", "source": "subflow_input"}
 
         result = await data_input_step(step_config, {}, execution_context)

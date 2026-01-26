@@ -37,8 +37,16 @@ async def get_dbos_adapter():
             try:
                 from workflow_core_sdk.db.database import DATABASE_URL as _SDK_DB_URL
 
-                _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _SDK_DB_URL
-                _app_name = os.getenv("DBOS_APPLICATION_NAME") or os.getenv("DBOS_APP_NAME") or "workflow-engine-poc"
+                _dbos_db_url = (
+                    os.getenv("DBOS_DATABASE_URL")
+                    or os.getenv("DATABASE_URL")
+                    or _SDK_DB_URL
+                )
+                _app_name = (
+                    os.getenv("DBOS_APPLICATION_NAME")
+                    or os.getenv("DBOS_APP_NAME")
+                    or "workflow-engine-poc"
+                )
                 try:
                     DBOS(config=DBOSConfig(database_url=_dbos_db_url, name=_app_name))  # type: ignore[call-arg]
                 except Exception:

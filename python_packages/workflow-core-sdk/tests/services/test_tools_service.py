@@ -148,7 +148,9 @@ class TestToolOperations:
         # Mock add/commit/refresh
         mock_session.add.return_value = None
         mock_session.commit.return_value = None
-        mock_session.refresh.side_effect = lambda obj: setattr(obj, "id", sample_tool.id)
+        mock_session.refresh.side_effect = lambda obj: setattr(
+            obj, "id", sample_tool.id
+        )
 
         payload = ToolCreate(
             name="calculator",
@@ -180,7 +182,9 @@ class TestToolOperations:
             parameters_schema={"type": "object", "properties": {}},
         )
 
-        with pytest.raises(ValueError, match="Tool with this name and version already exists"):
+        with pytest.raises(
+            ValueError, match="Tool with this name and version already exists"
+        ):
             ToolsService.create_tool(mock_session, payload)
 
     def test_list_db_tools_no_filters(self, mock_session, sample_tool):
@@ -211,7 +215,9 @@ class TestToolOperations:
         mock_result.all.return_value = [sample_tool]
         mock_session.exec.return_value = mock_result
 
-        tools = ToolsService.list_db_tools(mock_session, q="nomatch", limit=100, offset=0)
+        tools = ToolsService.list_db_tools(
+            mock_session, q="nomatch", limit=100, offset=0
+        )
 
         assert len(tools) == 0
 
@@ -288,9 +294,13 @@ class TestCategoryOperations:
         # Mock add/commit/refresh
         mock_session.add.return_value = None
         mock_session.commit.return_value = None
-        mock_session.refresh.side_effect = lambda obj: setattr(obj, "id", sample_category.id)
+        mock_session.refresh.side_effect = lambda obj: setattr(
+            obj, "id", sample_category.id
+        )
 
-        payload = ToolCategoryCreate(name="Math", description="Mathematical tools", icon="calculator")
+        payload = ToolCategoryCreate(
+            name="Math", description="Mathematical tools", icon="calculator"
+        )
 
         category = ToolsService.create_category(mock_session, payload)
 
@@ -362,7 +372,9 @@ class TestCategoryOperations:
         mock_session.exec.return_value = mock_result
 
         payload = ToolCategoryUpdate(description="Updated description")
-        category = ToolsService.update_category(mock_session, str(sample_category.id), payload)
+        category = ToolsService.update_category(
+            mock_session, str(sample_category.id), payload
+        )
 
         assert category is not None
         mock_session.add.assert_called_once()
@@ -418,7 +430,9 @@ class TestMCPServerOperations:
         # Mock add/commit/refresh
         mock_session.add.return_value = None
         mock_session.commit.return_value = None
-        mock_session.refresh.side_effect = lambda obj: setattr(obj, "id", sample_mcp_server.id)
+        mock_session.refresh.side_effect = lambda obj: setattr(
+            obj, "id", sample_mcp_server.id
+        )
 
         payload = MCPServerCreate(
             name="remote_tools",
@@ -450,7 +464,9 @@ class TestMCPServerOperations:
             protocol="http",
         )
 
-        with pytest.raises(ValueError, match="MCP server with this name already exists"):
+        with pytest.raises(
+            ValueError, match="MCP server with this name already exists"
+        ):
             ToolsService.create_mcp_server(mock_session, payload)
 
     def test_list_mcp_servers(self, mock_session, sample_mcp_server):
@@ -504,7 +520,9 @@ class TestMCPServerOperations:
         mock_session.exec.return_value = mock_result
 
         payload = MCPServerUpdate(description="Updated description", is_active=False)
-        server = ToolsService.update_mcp_server(mock_session, str(sample_mcp_server.id), payload)
+        server = ToolsService.update_mcp_server(
+            mock_session, str(sample_mcp_server.id), payload
+        )
 
         assert server is not None
         mock_session.add.assert_called_once()

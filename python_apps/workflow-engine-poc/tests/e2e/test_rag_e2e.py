@@ -7,7 +7,10 @@ from fastapi.testclient import TestClient
 from workflow_engine_poc.main import app
 
 
-@pytest.mark.skipif(not os.getenv("OPENAI_API_KEY"), reason="Requires OPENAI_API_KEY for embeddings and agent")
+@pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY"),
+    reason="Requires OPENAI_API_KEY for embeddings and agent",
+)
 def test_full_rag_e2e_ingest_and_query(tmp_path):
     # Ensure app state is initialized with registry and engine
     from workflow_engine_poc.step_registry import StepRegistry
@@ -47,23 +50,35 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
     try:
         from qdrant_client import QdrantClient
 
-        _qc = QdrantClient(url=os.getenv("QDRANT_HOST", "http://localhost"), port=int(os.getenv("QDRANT_PORT", "6333")))
+        _qc = QdrantClient(
+            url=os.getenv("QDRANT_HOST", "http://localhost"),
+            port=int(os.getenv("QDRANT_PORT", "6333")),
+        )
         _ = _qc.get_collections()
     except Exception:
-        pytest.skip("Qdrant not reachable on configured host/port; skipping RAG e2e test")
+        pytest.skip(
+            "Qdrant not reachable on configured host/port; skipping RAG e2e test"
+        )
 
     # 1) Ingest workflow: file -> chunk -> embed -> store (Qdrant)
     collection_name = f"rag_{uuid.uuid4().hex[:8]}"
 
     # Prepare a simple text file with a fact we will query later
     sample = tmp_path / "rag_doc.txt"
-    sample.write_text("The capital of France is Paris. This file is used for a RAG e2e test.")
+    sample.write_text(
+        "The capital of France is Paris. This file is used for a RAG e2e test."
+    )
 
     ingest_wf = {
         "name": "RAG Ingest",
         "execution_pattern": "sequential",
         "steps": [
-            {"step_id": "trigger", "step_type": "trigger", "name": "Trigger", "step_order": 1},
+            {
+                "step_id": "trigger",
+                "step_type": "trigger",
+                "name": "Trigger",
+                "step_order": 1,
+            },
             {
                 "step_id": "read",
                 "step_type": "file_reader",
@@ -78,7 +93,11 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
                 "name": "Chunk",
                 "dependencies": ["read"],
                 "step_order": 3,
-                "config": {"strategy": "sliding_window", "chunk_size": 200, "overlap": 20},
+                "config": {
+                    "strategy": "sliding_window",
+                    "chunk_size": 200,
+                    "overlap": 20,
+                },
                 "input_mapping": {"content": "read.content", "parsed": "read.parsed"},
             },
             {
@@ -102,7 +121,11 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
                     "qdrant_host": os.getenv("QDRANT_HOST", "http://localhost"),
                     "qdrant_port": int(os.getenv("QDRANT_PORT", "6333")),
                 },
-                "input_mapping": {"embeddings": "embed.embeddings", "chunks": "chunk.chunks", "file_name": "read.file_name"},
+                "input_mapping": {
+                    "embeddings": "embed.embeddings",
+                    "chunks": "chunk.chunks",
+                    "file_name": "read.file_name",
+                },
             },
         ],
     }
@@ -117,7 +140,9 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
     with open(sample, "rb") as f:
         files = [("files", (sample.name, f, "text/plain"))]
         data = {"payload": payload}
-        exec_resp = client.post(f"/workflows/{ingest_id}/execute/local", files=files, data=data)
+        exec_resp = client.post(
+            f"/workflows/{ingest_id}/execute/local", files=files, data=data
+        )
     assert exec_resp.status_code == 200, exec_resp.text
     ingest_result = exec_resp.json()
 
@@ -130,7 +155,12 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
         "name": "RAG Query",
         "execution_pattern": "sequential",
         "steps": [
-            {"step_id": "trigger", "step_type": "trigger", "name": "Trigger", "step_order": 1},
+            {
+                "step_id": "trigger",
+                "step_type": "trigger",
+                "name": "Trigger",
+                "step_order": 1,
+            },
             {
                 "step_id": "search",
                 "step_type": "vector_search",
@@ -183,7 +213,10 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
 
     query_body = {
         "wait": False,
-        "trigger": {"kind": "chat", "current_message": "What is the capital of France?"},
+        "trigger": {
+            "kind": "chat",
+            "current_message": "What is the capital of France?",
+        },
         "backend": "local",
     }
     qexec = client.post(f"/workflows/{query_id}/execute/local", json=query_body)
@@ -205,10 +238,16 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
             # Break early once search succeeded; agent may still be running
             if (step_io_probe.get("search") or {}).get("success") is True:
                 qres = res  # keep richest structure with step_io_data
-                if status not in ("pending", "running") or (step_io_probe.get("answer") is not None):
+                if status not in ("pending", "running") or (
+                    step_io_probe.get("answer") is not None
+                ):
                     break
         time.sleep(0.25)
-    step_io = qres.get("step_io_data") or (qres.get("execution_summary") or {}).get("step_io_data") or {}
+    step_io = (
+        qres.get("step_io_data")
+        or (qres.get("execution_summary") or {}).get("step_io_data")
+        or {}
+    )
 
     print(qres)
 
@@ -236,4 +275,6 @@ def test_full_rag_e2e_ingest_and_query(tmp_path):
     # Ensure agent answered using the retrieved knowledge
     answer_out = step_io.get("answer") or {}
     text = (answer_out.get("response") or "").lower()
-    assert "paris" in text, f"Agent response did not include expected fact. Response: {answer_out}"
+    assert "paris" in text, (
+        f"Agent response did not include expected fact. Response: {answer_out}"
+    )

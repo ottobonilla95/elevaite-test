@@ -8,7 +8,9 @@ except Exception:
     boto3 = None  # type: ignore
 
 
-def get_embedding(text: str, model: str | None = None, region: str | None = None) -> List[float]:
+def get_embedding(
+    text: str, model: str | None = None, region: str | None = None
+) -> List[float]:
     """Generate an embedding via AWS Bedrock runtime.
 
     - Requires boto3 and AWS credentials
@@ -16,7 +18,9 @@ def get_embedding(text: str, model: str | None = None, region: str | None = None
     - region defaults to AWS_REGION or us-west-1
     """
     if boto3 is None:
-        raise ImportError("boto3 is not installed. Install boto3 to use bedrock embeddings.")
+        raise ImportError(
+            "boto3 is not installed. Install boto3 to use bedrock embeddings."
+        )
 
     model_id = model or os.getenv("BEDROCK_EMBED_MODEL", "amazon.titan-embed-text-v1")
     aws_region = region or os.getenv("AWS_REGION", "us-west-1")
@@ -35,4 +39,3 @@ def get_embedding(text: str, model: str | None = None, region: str | None = None
         return list(payload["vector"])  # type: ignore
 
     raise RuntimeError("Unexpected Bedrock embedding response shape")
-

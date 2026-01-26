@@ -75,7 +75,10 @@ def create_agent(name: str, prompt_id: str) -> Dict[str, Any]:
         "description": name,
         "system_prompt_id": prompt_id,
         "provider_type": "openai_textgen",
-        "provider_config": {"provider_type": "openai_textgen", "model_name": "gpt-4o-mini"},
+        "provider_config": {
+            "provider_type": "openai_textgen",
+            "model_name": "gpt-4o-mini",
+        },
         "tags": [],
         "status": "active",
     }
@@ -91,13 +94,20 @@ def attach_local_tool_to_agent(agent_id: str, local_tool_name: str) -> Dict[str,
     return r.json()
 
 
-def create_workflow(router_agent_name: str, connected_agents: List[Dict[str, Any]], router_prompt: str) -> Dict[str, Any]:
+def create_workflow(
+    router_agent_name: str, connected_agents: List[Dict[str, Any]], router_prompt: str
+) -> Dict[str, Any]:
     steps = [
         {
             "step_id": "trigger",
             "step_type": "trigger",
             "name": "Trigger",
-            "config": {"kind": "chat", "need_history": True, "allowed_modalities": ["text"], "max_files": 0},
+            "config": {
+                "kind": "chat",
+                "need_history": True,
+                "allowed_modalities": ["text"],
+                "max_files": 0,
+            },
         },
         {
             "step_id": "agent",
@@ -176,7 +186,9 @@ def execute_workflow(workflow_id: str, message: str) -> Dict[str, Any]:
     if isinstance(step_results, dict):
         # Look for the last completed step with a 'response' in output_data
         for _, step in step_results.items():
-            if step.get("status") == "completed" and isinstance(step.get("output_data"), dict):
+            if step.get("status") == "completed" and isinstance(
+                step.get("output_data"), dict
+            ):
                 resp = step.get("output_data", {}).get("response")
                 if resp is not None:
                     final_response = resp

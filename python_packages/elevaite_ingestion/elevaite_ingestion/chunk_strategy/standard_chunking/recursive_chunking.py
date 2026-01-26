@@ -44,11 +44,16 @@ async def chunk_text(parsed_data: Dict, chunking_params: Dict) -> List[Dict]:
             contributing_paragraphs = [
                 p
                 for p in paragraphs
-                if p.get("paragraph_text", "") in chunk_content or chunk_content in p.get("paragraph_text", "")
+                if p.get("paragraph_text", "") in chunk_content
+                or chunk_content in p.get("paragraph_text", "")
             ]
 
             # Get page numbers from contributing paragraphs
-            page_numbers = list(set(p.get("page_no", 1) for p in contributing_paragraphs)) if contributing_paragraphs else [1]
+            page_numbers = (
+                list(set(p.get("page_no", 1) for p in contributing_paragraphs))
+                if contributing_paragraphs
+                else [1]
+            )
 
             chunk_data = {
                 "chunk_id": str(uuid.uuid4()),

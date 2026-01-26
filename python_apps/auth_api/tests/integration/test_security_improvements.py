@@ -50,8 +50,8 @@ class TestSecurityImprovements:
                 json=login_data,
                 headers={
                     "X-Tenant-ID": "default",
-                    "X-Forwarded-For": f"127.0.0.{i+1}",
-                    "X-Rate-Test-Key": f"lockout-{i+1}",
+                    "X-Forwarded-For": f"127.0.0.{i + 1}",
+                    "X-Rate-Test-Key": f"lockout-{i + 1}",
                 },
             )
             assert response.status_code == 401
@@ -265,7 +265,7 @@ class TestSecurityImprovements:
                 json=reset_data,
                 headers={
                     "X-Tenant-ID": "default",
-                    "X-Forwarded-For": f"127.0.0.{200+i}",
+                    "X-Forwarded-For": f"127.0.0.{200 + i}",
                     "X-Rate-Test-Key": f"reset-lock-{i}",
                 },
             )

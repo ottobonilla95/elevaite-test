@@ -398,4 +398,3 @@ class TestCircuitBreakerCustomFailure:
         # 3rd failure should open circuit
         result = breaker.call(api_call, is_failure=is_failure, fallback="fallback")
         assert breaker.state == CircuitState.OPEN
-

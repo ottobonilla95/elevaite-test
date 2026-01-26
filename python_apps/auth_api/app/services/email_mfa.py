@@ -21,7 +21,11 @@ class EmailMFAService:
         return f"{secrets.randbelow(1000000):06d}"
 
     async def _store_mfa_code(
-        self, user: "User", code: str, db: "AsyncSession", expires_in: int = 300  # Change from 60 to 300 (5 minutes)
+        self,
+        user: "User",
+        code: str,
+        db: "AsyncSession",
+        expires_in: int = 300,  # Change from 60 to 300 (5 minutes)
     ):
         """Store MFA code in database with expiration (5 minutes default)."""
         from sqlalchemy import update
@@ -72,11 +76,9 @@ class EmailMFAService:
 
         # Check if user has "strong" MFA methods enabled
         has_strong_mfa = (
-            user.email_mfa_enabled or 
-            user.sms_mfa_enabled or 
-            user.mfa_enabled  # TOTP
+            user.email_mfa_enabled or user.sms_mfa_enabled or user.mfa_enabled  # TOTP
         )
-        
+
         # Biometric alone is not considered sufficient for auto-enable bypass
         if has_strong_mfa:
             return False
@@ -490,6 +492,3 @@ class EmailMFAService:
 
 # Global service instance
 email_mfa_service = EmailMFAService()
-
-
-

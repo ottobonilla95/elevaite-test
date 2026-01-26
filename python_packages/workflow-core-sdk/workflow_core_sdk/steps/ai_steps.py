@@ -50,7 +50,9 @@ LLM_GATEWAY_AVAILABLE = True
 # -------- DB helper: load DB-defined tools for an agent and convert to OpenAI tool schemas --------
 
 
-def load_agent_db_tool_schemas(agent_id: Optional[str] = None, agent_name: Optional[str] = None) -> List[Dict[str, Any]]:
+def load_agent_db_tool_schemas(
+    agent_id: Optional[str] = None, agent_name: Optional[str] = None
+) -> List[Dict[str, Any]]:
     """Return OpenAI-compatible tool schemas for tools bound to the given agent.
 
     - Looks up the agent by UUID or name
@@ -68,16 +70,24 @@ def load_agent_db_tool_schemas(agent_id: Optional[str] = None, agent_name: Optio
         agent_obj: Optional[DBAgent] = None
         if agent_id:
             try:
-                agent_obj = session.exec(select(DBAgent).where(DBAgent.id == _UUID(str(agent_id)))).first()
+                agent_obj = session.exec(
+                    select(DBAgent).where(DBAgent.id == _UUID(str(agent_id)))
+                ).first()
             except Exception:
                 agent_obj = None
         if not agent_obj and agent_name:
-            agent_obj = session.exec(select(DBAgent).where(DBAgent.name == agent_name)).first()
+            agent_obj = session.exec(
+                select(DBAgent).where(DBAgent.name == agent_name)
+            ).first()
         if not agent_obj:
             return []
 
         # Fetch bindings
-        bindings = session.exec(select(DBAgentToolBinding).where(DBAgentToolBinding.agent_id == agent_obj.id)).all()
+        bindings = session.exec(
+            select(DBAgentToolBinding).where(
+                DBAgentToolBinding.agent_id == agent_obj.id
+            )
+        ).all()
         tool_ids = [b.tool_id for b in bindings]
         if not tool_ids:
             return []
@@ -93,13 +103,17 @@ def load_agent_db_tool_schemas(agent_id: Optional[str] = None, agent_name: Optio
                     "function": {
                         "name": t.name,
                         "description": t.description or f"Tool {t.name}",
-                        "parameters": params if isinstance(params, dict) else {"type": "object", "properties": {}},
+                        "parameters": params
+                        if isinstance(params, dict)
+                        else {"type": "object", "properties": {}},
                     },
                 }
             )
         return schemas
     except Exception as e:
-        logger.warning(f"Failed to load DB tools for agent {agent_id or agent_name}: {e}")
+        logger.warning(
+            f"Failed to load DB tools for agent {agent_id or agent_name}: {e}"
+        )
         return []
 
 
@@ -145,7 +159,9 @@ def resolve_tool_schemas_by_names(tool_names: List[str]) -> List[Dict[str, Any]]
                     "function": {
                         "name": t.name,
                         "description": t.description or f"Tool {t.name}",
-                        "parameters": params if isinstance(params, dict) else {"type": "object", "properties": {}},
+                        "parameters": params
+                        if isinstance(params, dict)
+                        else {"type": "object", "properties": {}},
                     },
                 }
             )
@@ -160,18 +176,28 @@ def resolve_tool_schemas_by_names(tool_names: List[str]) -> List[Dict[str, Any]]
 # ---------------------------------------------------------------------------
 
 
-def _get_provider_config(context: Optional[Dict[str, Any]]) -> Tuple[Dict[str, str], str]:
+def _get_provider_config(
+    context: Optional[Dict[str, Any]],
+) -> Tuple[Dict[str, str], str]:
     """Resolve provider config and model name from context or use defaults.
     Returns (provider_config, model_name).
     """
-    agent_provider_type = context.get("_agent_provider_type") if isinstance(context, dict) else None
-    agent_provider_config = context.get("_agent_provider_config") if isinstance(context, dict) else None
+    agent_provider_type = (
+        context.get("_agent_provider_type") if isinstance(context, dict) else None
+    )
+    agent_provider_config = (
+        context.get("_agent_provider_config") if isinstance(context, dict) else None
+    )
 
     if agent_provider_type and agent_provider_config:
         config = {"type": agent_provider_type}
         model_name_from_config = agent_provider_config.get("model_name", "gpt-4o")
         try:
-            model_enum = getattr(TextGenerationModelName, f"OPENAI_{model_name_from_config.replace('-', '_')}", None)
+            model_enum = getattr(
+                TextGenerationModelName,
+                f"OPENAI_{model_name_from_config.replace('-', '_')}",
+                None,
+            )
             model_name = model_enum.value if model_enum else model_name_from_config  # type: ignore
         except Exception:
             model_name = model_name_from_config
@@ -254,7 +280,11 @@ def _extract_tool_call_info(tc: Any) -> Tuple[str, str, Dict[str, Any]]:
     format (tc.function.name, tc.function.arguments).
     """
     # Get id
-    tc_id = getattr(tc, "id", None) or getattr(tc, "tool_call_id", None) or str(uuid.uuid4())
+    tc_id = (
+        getattr(tc, "id", None)
+        or getattr(tc, "tool_call_id", None)
+        or str(uuid.uuid4())
+    )
 
     # Get name - prefer direct, fall back to .function
     fn_name = getattr(tc, "name", None)
@@ -289,14 +319,18 @@ class AgentStep:
         system_prompt: str = "You are a helpful assistant.",
         tools: Optional[List[Dict[str, Any]]] = None,
         force_real_llm: bool = True,
-        connected_agents: Optional[List[Union[str, Dict[str, Any]]]] = None,  # IDs/names or dicts with {id/name, tools}
+        connected_agents: Optional[
+            List[Union[str, Dict[str, Any]]]
+        ] = None,  # IDs/names or dicts with {id/name, tools}
     ):
         self.name = name
         self.system_prompt = system_prompt
         self.tools = tools or []
         self.force_real_llm = force_real_llm
         self.agent_id = str(uuid.uuid4())
-        self._connected_agent_specs: List[Union[str, Dict[str, Any]]] = connected_agents or []
+        self._connected_agent_specs: List[Union[str, Dict[str, Any]]] = (
+            connected_agents or []
+        )
         # Derived refs list for DB lookups
         refs: List[str] = []
         for spec in self._connected_agent_specs:
@@ -321,7 +355,9 @@ class AgentStep:
         self._dynamic_agent_tools: Dict[str, Dict[str, Any]] = {}
         self._recursion_depth: int = 0
 
-    async def _load_connected_agents(self, context: Optional[Dict[str, Any]]) -> List[DBAgent]:
+    async def _load_connected_agents(
+        self, context: Optional[Dict[str, Any]]
+    ) -> List[DBAgent]:
         """Fetch explicitly connected agents from DB based on this agent's configuration.
         connected_agents may be a list of UUID strings or agent names.
         Optional scoping (e.g., organization) can still be applied if desired.
@@ -374,13 +410,23 @@ class AgentStep:
                 v = spec.get("id") or spec.get("name")
                 if str(v) == str(agent.id) or str(v) == (agent.name or ""):
                     tnames = spec.get("tools")
-                    if isinstance(tnames, list) and all(isinstance(x, str) for x in tnames):
-                        allowed_tool_names = tnames  # explicit override for this connected agent
+                    if isinstance(tnames, list) and all(
+                        isinstance(x, str) for x in tnames
+                    ):
+                        allowed_tool_names = (
+                            tnames  # explicit override for this connected agent
+                        )
                         break
 
         parameters_properties: Dict[str, Any] = {
-            "query": {"type": "string", "description": "User query for the target agent"},
-            "context": {"type": "object", "description": "Optional context to pass to the target agent"},
+            "query": {
+                "type": "string",
+                "description": "User query for the target agent",
+            },
+            "context": {
+                "type": "object",
+                "description": "Optional context to pass to the target agent",
+            },
         }
         if allowed_tool_names is not None:
             parameters_properties["allowed_tools"] = {
@@ -402,7 +448,9 @@ class AgentStep:
             },
         }
 
-    async def _ensure_dynamic_agent_tools(self, context: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _ensure_dynamic_agent_tools(
+        self, context: Optional[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Generate per-agent tools at runtime and cache them for this AgentStep."""
         if self._dynamic_agent_tools:
             return [meta["schema"] for meta in self._dynamic_agent_tools.values()]
@@ -420,10 +468,14 @@ class AgentStep:
         """Deprecated: local fallback removed. Return empty list to disable implicit tools."""
         return []
 
-    async def _invoke_agent(self, target_agent: DBAgent, query: str, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    async def _invoke_agent(
+        self, target_agent: DBAgent, query: str, context: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Invoke another agent with recursion protection and prompt loading."""
         if self._recursion_depth >= MAX_AGENT_RECURSION_DEPTH:
-            raise RuntimeError(f"Max agent recursion depth {MAX_AGENT_RECURSION_DEPTH} reached")
+            raise RuntimeError(
+                f"Max agent recursion depth {MAX_AGENT_RECURSION_DEPTH} reached"
+            )
 
         # Load system prompt text
         prompt_text = "You are a helpful assistant."
@@ -441,9 +493,13 @@ class AgentStep:
         for spec in self._connected_agent_specs:
             if isinstance(spec, dict):
                 v = spec.get("id") or spec.get("name")
-                if str(v) == str(target_agent.id) or str(v) == (target_agent.name or ""):
+                if str(v) == str(target_agent.id) or str(v) == (
+                    target_agent.name or ""
+                ):
                     tnames = spec.get("tools")
-                    if isinstance(tnames, list) and all(isinstance(x, str) for x in tnames):
+                    if isinstance(tnames, list) and all(
+                        isinstance(x, str) for x in tnames
+                    ):
                         allowed_tool_names = tnames
                     nca = spec.get("connected_agents")
                     if isinstance(nca, list):
@@ -478,7 +534,9 @@ class AgentStep:
         child._recursion_depth = self._recursion_depth + 1
         return await child.execute(query, context=context or {})
 
-    async def execute(self, query: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def execute(
+        self, query: str, context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Execute a query with the agent (must use real LLM; no simulation)."""
         start_time = datetime.now()
 
@@ -518,20 +576,28 @@ class AgentStep:
                 "mode": "error",
             }
 
-    async def _execute_with_llm(self, query: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def _execute_with_llm(
+        self, query: str, context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Execute query using real LLM through llm-gateway"""
         if self.llm_service is None:
             raise Exception("No LLM Service configured.")
         try:
             sys_msg = self.system_prompt or ""
-            ctx_messages = (context or {}).get("messages") or (context or {}).get("chat_history") or []
+            ctx_messages = (
+                (context or {}).get("messages")
+                or (context or {}).get("chat_history")
+                or []
+            )
             messages = _build_messages(sys_msg, ctx_messages, query)
 
             # Prepare tools: merge explicit with dynamic agent tools
             dynamic_tools = await self._ensure_dynamic_agent_tools(context)
             llm_tools = (list(self.tools) if self.tools else []) + list(dynamic_tools)
             llm_tools = llm_tools or None
-            logger.info(f"🔧 Tools: explicit={len(self.tools or [])}, dynamic={len(dynamic_tools)}")
+            logger.info(
+                f"🔧 Tools: explicit={len(self.tools or [])}, dynamic={len(dynamic_tools)}"
+            )
 
             # Provider config
             config, model_name = _get_provider_config(context)
@@ -539,11 +605,19 @@ class AgentStep:
             model_label = str(model_name)
 
             # LLM params
-            _llm = (context or {}).get("_llm_params", {}) if isinstance(context, dict) else {}
+            _llm = (
+                (context or {}).get("_llm_params", {})
+                if isinstance(context, dict)
+                else {}
+            )
             _max_tokens_val = _llm.get("max_tokens")
             # Handle both int and float for max_tokens
             try:
-                _max_tokens = int(_max_tokens_val) if _max_tokens_val is not None and int(_max_tokens_val) > 0 else 4096
+                _max_tokens = (
+                    int(_max_tokens_val)
+                    if _max_tokens_val is not None and int(_max_tokens_val) > 0
+                    else 4096
+                )
             except (TypeError, ValueError):
                 _max_tokens = 4096
             _temperature = _llm.get("temperature")
@@ -551,7 +625,11 @@ class AgentStep:
 
             # File paths for file search (OpenAI only)
             files_for_search: Optional[List[str]] = None
-            attachment = (context or {}).get("_attachment") if isinstance(context, dict) else None
+            attachment = (
+                (context or {}).get("_attachment")
+                if isinstance(context, dict)
+                else None
+            )
             if isinstance(attachment, dict) and attachment.get("path"):
                 files_for_search = [attachment["path"]]
 
@@ -598,12 +676,23 @@ class AgentStep:
                     }
 
                 # Build assistant message with tool_calls
-                assistant_message: Dict[str, Any] = {"role": "assistant", "tool_calls": []}
+                assistant_message: Dict[str, Any] = {
+                    "role": "assistant",
+                    "tool_calls": [],
+                }
                 for tc in response.tool_calls or []:
                     tc_id, fn_name, fn_args = _extract_tool_call_info(tc)
-                    args_str = json.dumps(fn_args) if isinstance(fn_args, dict) else str(fn_args)
+                    args_str = (
+                        json.dumps(fn_args)
+                        if isinstance(fn_args, dict)
+                        else str(fn_args)
+                    )
                     assistant_message["tool_calls"].append(
-                        {"id": tc_id, "type": "function", "function": {"name": fn_name, "arguments": args_str}}
+                        {
+                            "id": tc_id,
+                            "type": "function",
+                            "function": {"name": fn_name, "arguments": args_str},
+                        }
                     )
                 messages.append(assistant_message)
 
@@ -618,16 +707,37 @@ class AgentStep:
                             content = (
                                 res_val.get("response")
                                 if isinstance(res_val, dict) and res_val.get("response")
-                                else (res_val if isinstance(res_val, str) else json.dumps(res_val) if res_val else "")
+                                else (
+                                    res_val
+                                    if isinstance(res_val, str)
+                                    else json.dumps(res_val)
+                                    if res_val
+                                    else ""
+                                )
                             )
                         else:
-                            content = f"Error: {tool_result.get('error', 'Unknown error')}"
+                            content = (
+                                f"Error: {tool_result.get('error', 'Unknown error')}"
+                            )
                     except Exception as e:
-                        tool_calls_trace.append({"tool_name": fn_name, "success": False, "error": str(e)[:400]})
+                        tool_calls_trace.append(
+                            {
+                                "tool_name": fn_name,
+                                "success": False,
+                                "error": str(e)[:400],
+                            }
+                        )
                         content = f"Error: {e}"
 
-                    messages.append({"role": "tool", "tool_call_id": tc_id, "content": content})
-                    _persist_message(context, "tool", str(content), {"tool_call_id": tc_id, "tool_name": fn_name})
+                    messages.append(
+                        {"role": "tool", "tool_call_id": tc_id, "content": content}
+                    )
+                    _persist_message(
+                        context,
+                        "tool",
+                        str(content),
+                        {"tool_call_id": tc_id, "tool_name": fn_name},
+                    )
 
             # Max iterations reached
             return {
@@ -647,7 +757,9 @@ class AgentStep:
             logger.error(f"LLM execution failed: {e}")
             raise
 
-    async def _execute_tool_call(self, tool_call, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def _execute_tool_call(
+        self, tool_call, context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Execute a tool call from either OpenAI-style or llm-gateway ToolCall."""
         import inspect as _inspect
 
@@ -674,12 +786,24 @@ class AgentStep:
             if dynamic_meta:
                 target_agent: DBAgent = dynamic_meta["agent"]
                 query = function_args.get("query") or function_args.get("input") or ""
-                child_context = function_args.get("context") if isinstance(function_args.get("context"), dict) else {}
+                child_context = (
+                    function_args.get("context")
+                    if isinstance(function_args.get("context"), dict)
+                    else {}
+                )
 
                 await _emit_tool_event(
-                    context, "agent_call", {"agent_name": target_agent.name, "query": query, "arguments": function_args}
+                    context,
+                    "agent_call",
+                    {
+                        "agent_name": target_agent.name,
+                        "query": query,
+                        "arguments": function_args,
+                    },
                 )
-                result = await self._invoke_agent(target_agent, query=query, context=child_context)
+                result = await self._invoke_agent(
+                    target_agent, query=query, context=child_context
+                )
                 duration_ms = int((time.time() - start_time) * 1000)
 
                 await _emit_tool_event(
@@ -687,7 +811,9 @@ class AgentStep:
                     "tool_response",
                     {
                         "agent_name": target_agent.name,
-                        "response": result.get("response") if isinstance(result, dict) else str(result),
+                        "response": result.get("response")
+                        if isinstance(result, dict)
+                        else str(result),
                         "duration_ms": duration_ms,
                     },
                 )
@@ -706,10 +832,16 @@ class AgentStep:
             if not tool_function:
                 raise ValueError(f"Tool function not found: {function_name}")
 
-            await _emit_tool_event(context, "tool_call", {"tool_name": function_name, "arguments": function_args})
+            await _emit_tool_event(
+                context,
+                "tool_call",
+                {"tool_name": function_name, "arguments": function_args},
+            )
 
             # Execute sync or async
-            if getattr(tool_function, "_is_async", False) or _inspect.iscoroutinefunction(tool_function):
+            if getattr(
+                tool_function, "_is_async", False
+            ) or _inspect.iscoroutinefunction(tool_function):
                 result = await tool_function(**function_args)
             else:
                 result = await asyncio.to_thread(tool_function, **function_args)
@@ -720,7 +852,9 @@ class AgentStep:
                 "tool_response",
                 {
                     "tool_name": function_name,
-                    "result": result if isinstance(result, (str, int, float, bool)) else str(result)[:200],
+                    "result": result
+                    if isinstance(result, (str, int, float, bool))
+                    else str(result)[:200],
                     "duration_ms": duration_ms,
                 },
             )
@@ -735,15 +869,29 @@ class AgentStep:
 
         except Exception as e:
             logger.error(f"Tool execution failed for {function_name}: {e}")
-            return {"tool_name": function_name, "error": str(e), "success": False, "arguments": function_args}
+            return {
+                "tool_name": function_name,
+                "error": str(e),
+                "success": False,
+                "arguments": function_args,
+            }
 
 
-def _build_messages(system_prompt: str, context_msgs: List[Dict], query: str) -> List[Dict[str, Any]]:
+def _build_messages(
+    system_prompt: str, context_msgs: List[Dict], query: str
+) -> List[Dict[str, Any]]:
     """Build LLM messages array from system prompt, context, and query."""
-    messages: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt or "You are a helpful assistant."}]
+    messages: List[Dict[str, Any]] = [
+        {"role": "system", "content": system_prompt or "You are a helpful assistant."}
+    ]
     if isinstance(context_msgs, list):
         for m in context_msgs:
-            if isinstance(m, dict) and "role" in m and "content" in m and m.get("role") != "system":
+            if (
+                isinstance(m, dict)
+                and "role" in m
+                and "content" in m
+                and m.get("role") != "system"
+            ):
                 msg = {"role": str(m["role"]), "content": str(m["content"])}
                 # Preserve tool_calls for assistant messages
                 if m.get("role") == "assistant" and m.get("tool_calls"):
@@ -753,7 +901,11 @@ def _build_messages(system_prompt: str, context_msgs: List[Dict], query: str) ->
                     msg["tool_call_id"] = m["tool_call_id"]
                 messages.append(msg)
     # Ensure last message is the current query (avoid duplicates)
-    if not (messages and messages[-1].get("role") == "user" and messages[-1].get("content") == query):
+    if not (
+        messages
+        and messages[-1].get("role") == "user"
+        and messages[-1].get("content") == query
+    ):
         messages.append({"role": "user", "content": query})
     return messages
 
@@ -795,7 +947,9 @@ async def _execute_a2a_agent(
     query = config.get("query", "")
     if query and "{" in query:
         try:
-            query = query.format_map(type("_", (dict,), {"__missing__": lambda _, k: ""})(input_data))
+            query = query.format_map(
+                type("_", (dict,), {"__missing__": lambda _, k: ""})(input_data)
+            )
         except Exception:
             pass
     if not query:
@@ -806,7 +960,9 @@ async def _execute_a2a_agent(
     # Fetch A2A agent from database
     try:
         with Session(engine) as session:
-            agent = session.exec(select(A2AAgent).where(A2AAgent.id == UUID(a2a_agent_id))).first()
+            agent = session.exec(
+                select(A2AAgent).where(A2AAgent.id == UUID(a2a_agent_id))
+            ).first()
         if not agent:
             return {"success": False, "error": f"A2A agent not found: {a2a_agent_id}"}
         if agent.status != A2AAgentStatus.ACTIVE:
@@ -819,7 +975,9 @@ async def _execute_a2a_agent(
     if agent.auth_type != A2AAuthType.NONE and agent.auth_config:
         decrypted_config = decrypt_if_encrypted(agent.auth_config)
         if decrypted_config:
-            auth = A2AAuthConfig(auth_type=agent.auth_type.value, credentials=decrypted_config)
+            auth = A2AAuthConfig(
+                auth_type=agent.auth_type.value, credentials=decrypted_config
+            )
 
     agent_info = A2AAgentInfo(
         base_url=agent.base_url,
@@ -879,7 +1037,11 @@ async def _execute_a2a_agent(
 
         if response:
             return build_response(response)
-        return {"success": False, "error": "No response from A2A agent", "a2a_agent_id": str(agent.id)}
+        return {
+            "success": False,
+            "error": "No response from A2A agent",
+            "a2a_agent_id": str(agent.id),
+        }
 
     except Exception as e:
         logger.error(f"A2A agent execution failed: {e}")
@@ -978,8 +1140,12 @@ async def agent_execution_step(
     # Load agent from database if agent_id is provided to get provider_config
     # Otherwise use model overrides from config (set by prompt step)
     # Provider defaults to openai_textgen if not specified
-    agent_provider_type = config.get("provider", "openai_textgen") if config.get("model_name") else None
-    agent_provider_config = {"model_name": config["model_name"]} if config.get("model_name") else None
+    agent_provider_type = (
+        config.get("provider", "openai_textgen") if config.get("model_name") else None
+    )
+    agent_provider_config = (
+        {"model_name": config["model_name"]} if config.get("model_name") else None
+    )
     agent_id = config.get("agent_id")
 
     if agent_id:
@@ -998,7 +1164,9 @@ async def agent_execution_step(
                         from ..db.models.prompts import Prompt
                         from sqlmodel import select
 
-                        prompt = session.exec(select(Prompt).where(Prompt.id == db_agent.system_prompt_id)).first()
+                        prompt = session.exec(
+                            select(Prompt).where(Prompt.id == db_agent.system_prompt_id)
+                        ).first()
                         if prompt and not config.get("system_prompt"):
                             system_prompt = prompt.prompt
                     logger.info(
@@ -1027,7 +1195,9 @@ async def agent_execution_step(
     try:
         if isinstance(input_data, dict) and "current_message" not in input_data:
             # Prefer normalized trigger; fallback to raw payload seeded by router
-            trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+            trig = execution_context.step_io_data.get(
+                "trigger"
+            ) or execution_context.step_io_data.get("trigger_raw")
             if isinstance(trig, dict):
                 # Direct current_message if present
                 cm = trig.get("current_message")
@@ -1037,7 +1207,11 @@ async def agent_execution_step(
                 msgs = trig.get("messages") or []
                 if isinstance(msgs, list) and msgs:
                     for m in reversed(msgs):
-                        if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
+                        if (
+                            isinstance(m, dict)
+                            and m.get("role") == "user"
+                            and isinstance(m.get("content"), str)
+                        ):
                             input_data["current_message"] = m["content"]
                             break
     except Exception as e:
@@ -1045,12 +1219,16 @@ async def agent_execution_step(
 
     # Extract file attachment from trigger data for file search
     try:
-        trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+        trig = execution_context.step_io_data.get(
+            "trigger"
+        ) or execution_context.step_io_data.get("trigger_raw")
         if isinstance(trig, dict):
             attachment = trig.get("attachment")
             if isinstance(attachment, dict) and attachment.get("path"):
                 input_data["_attachment"] = attachment
-                logger.debug(f"File attachment available for agent: {attachment.get('name')} at {attachment.get('path')}")
+                logger.debug(
+                    f"File attachment available for agent: {attachment.get('name')} at {attachment.get('path')}"
+                )
     except Exception as e:
         logger.debug(f"Could not extract file attachment from trigger: {e}")
 
@@ -1063,7 +1241,9 @@ async def agent_execution_step(
             try:
                 dbs = DatabaseService()
                 step_msgs = dbs.list_agent_messages(
-                    session, execution_id=execution_context.execution_id, step_id=step_config.get("step_id")
+                    session,
+                    execution_id=execution_context.execution_id,
+                    step_id=step_config.get("step_id"),
                 )
             finally:
                 try:
@@ -1104,11 +1284,17 @@ async def agent_execution_step(
             input_data.setdefault("chat_history", step_msgs_asc)
             # Always set current_message to the latest user message
             for m in reversed(step_msgs_asc):  # iterate newest-first
-                if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
+                if (
+                    isinstance(m, dict)
+                    and m.get("role") == "user"
+                    and isinstance(m.get("content"), str)
+                ):
                     input_data["current_message"] = m["content"]
                     break
         else:
-            trig = execution_context.step_io_data.get("trigger") or execution_context.step_io_data.get("trigger_raw")
+            trig = execution_context.step_io_data.get(
+                "trigger"
+            ) or execution_context.step_io_data.get("trigger_raw")
             if isinstance(trig, dict):
                 msgs = trig.get("messages")
                 if isinstance(msgs, list) and msgs and "messages" not in input_data:
@@ -1119,8 +1305,14 @@ async def agent_execution_step(
                     if isinstance(cm, str) and cm:
                         input_data["current_message"] = cm
                     elif isinstance(msgs, list) and msgs:
-                        for m in reversed(msgs):  # msgs assumed chronological; reversed -> newest-first
-                            if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
+                        for m in reversed(
+                            msgs
+                        ):  # msgs assumed chronological; reversed -> newest-first
+                            if (
+                                isinstance(m, dict)
+                                and m.get("role") == "user"
+                                and isinstance(m.get("content"), str)
+                            ):
                                 input_data["current_message"] = m["content"]
                                 break
 
@@ -1136,7 +1328,11 @@ async def agent_execution_step(
                     merged_msgs = input_data.get("messages")
                     if isinstance(merged_msgs, list):
                         for m in reversed(merged_msgs):
-                            if isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str):
+                            if (
+                                isinstance(m, dict)
+                                and m.get("role") == "user"
+                                and isinstance(m.get("content"), str)
+                            ):
                                 input_data["current_message"] = m["content"]
                                 break
         except Exception as _m:
@@ -1216,7 +1412,9 @@ async def agent_execution_step(
                                         "schema": func,
                                         "agent": db_agent,
                                     }
-                                    logger.info(f"Registered agent tool: {tool_name} -> {db_agent.name}")
+                                    logger.info(
+                                        f"Registered agent tool: {tool_name} -> {db_agent.name}"
+                                    )
                                 break
             finally:
                 try:
@@ -1229,18 +1427,27 @@ async def agent_execution_step(
     # If interactive by default unless explicitly disabled
     interactive = config.get("interactive", True)
     multi_turn = bool(config.get("multi_turn", False))
-    logger.info(f"Agent step config - interactive: {interactive}, multi_turn: {multi_turn}")
+    logger.info(
+        f"Agent step config - interactive: {interactive}, multi_turn: {multi_turn}"
+    )
 
     # If interactive and no user messages yet, pause and wait for input
     if interactive:
         # Determine if we have sufficient messages to proceed
         msgs = input_data.get("messages") or input_data.get("chat_history") or []
         has_user_msg = any(
-            isinstance(m, dict) and m.get("role") == "user" and isinstance(m.get("content"), str) and bool(m.get("content"))
+            isinstance(m, dict)
+            and m.get("role") == "user"
+            and isinstance(m.get("content"), str)
+            and bool(m.get("content"))
             for m in (msgs or [])
         )
         # Also treat presence of current_message as sufficient input to proceed
-        if not has_user_msg and isinstance(input_data.get("current_message"), str) and input_data.get("current_message"):
+        if (
+            not has_user_msg
+            and isinstance(input_data.get("current_message"), str)
+            and input_data.get("current_message")
+        ):
             has_user_msg = True
         if not has_user_msg:
             return {
@@ -1286,15 +1493,25 @@ async def agent_execution_step(
     if stream_enabled:
         try:
             # Prepare messages and tools
-            ctx_msgs = input_data.get("messages") or input_data.get("chat_history") or []
+            ctx_msgs = (
+                input_data.get("messages") or input_data.get("chat_history") or []
+            )
             messages = _build_messages(system_prompt, ctx_msgs, query)
 
             # LLM params
-            _llm = input_data.get("_llm_params", {}) if isinstance(input_data, dict) else {}
+            _llm = (
+                input_data.get("_llm_params", {})
+                if isinstance(input_data, dict)
+                else {}
+            )
             _max_tokens_val = _llm.get("max_tokens")
             # Handle both int and float for max_tokens
             try:
-                _max_tokens = int(_max_tokens_val) if _max_tokens_val is not None and int(_max_tokens_val) > 0 else 4096
+                _max_tokens = (
+                    int(_max_tokens_val)
+                    if _max_tokens_val is not None and int(_max_tokens_val) > 0
+                    else 4096
+                )
             except (TypeError, ValueError):
                 _max_tokens = 4096
             _temperature = _llm.get("temperature")
@@ -1311,8 +1528,12 @@ async def agent_execution_step(
             # Prepare tools for LLM
             await agent._ensure_dynamic_agent_tools(input_data)
             explicit_tools = agent.tools or []
-            dynamic_agent_tools_list = [meta["schema"] for meta in agent._dynamic_agent_tools.values()]
-            llm_tools = (list(explicit_tools) if explicit_tools else []) + dynamic_agent_tools_list
+            dynamic_agent_tools_list = [
+                meta["schema"] for meta in agent._dynamic_agent_tools.values()
+            ]
+            llm_tools = (
+                list(explicit_tools) if explicit_tools else []
+            ) + dynamic_agent_tools_list
             llm_tools = llm_tools or None
 
             # Extract file paths for file search (OpenAI only)
@@ -1404,14 +1625,21 @@ async def agent_execution_step(
                             # Extract token usage from final response
                             final_response = event.get("response", {})
                             if isinstance(final_response, dict):
-                                tokens_in_total += final_response.get("tokens_in", 0) or 0
-                                tokens_out_total += final_response.get("tokens_out", 0) or 0
+                                tokens_in_total += (
+                                    final_response.get("tokens_in", 0) or 0
+                                )
+                                tokens_out_total += (
+                                    final_response.get("tokens_out", 0) or 0
+                                )
                             break
 
                     if tool_calls_from_stream:
                         # Tool calls detected - add assistant message with tool calls to conversation
                         # Use generic Chat Completions format - providers will convert as needed
-                        assistant_message: Dict[str, Any] = {"role": "assistant", "tool_calls": []}
+                        assistant_message: Dict[str, Any] = {
+                            "role": "assistant",
+                            "tool_calls": [],
+                        }
                         for tc in tool_calls_from_stream:
                             # Tool calls from stream are already in dict format
                             tool_call_id = tc.get("id") or str(uuid.uuid4())
@@ -1439,43 +1667,73 @@ async def agent_execution_step(
                         # Execute tool calls
                         for tool_call_dict in tool_calls_from_stream:
                             try:
-                                func_name = tool_call_dict.get("function", {}).get("name")
-                                func_args = tool_call_dict.get("function", {}).get("arguments", "{}")
-                                tool_call_id = tool_call_dict.get("id") or str(uuid.uuid4())
+                                func_name = tool_call_dict.get("function", {}).get(
+                                    "name"
+                                )
+                                func_args = tool_call_dict.get("function", {}).get(
+                                    "arguments", "{}"
+                                )
+                                tool_call_id = tool_call_dict.get("id") or str(
+                                    uuid.uuid4()
+                                )
 
                                 # Convert dict to object-like structure for _execute_tool_call
                                 class ToolCallObj:
                                     def __init__(self, tc_dict):
                                         self.id = tc_dict.get("id")
                                         self.tool_call_id = tc_dict.get("id")
-                                        self.name = tc_dict.get("function", {}).get("name")
-                                        self.arguments = tc_dict.get("function", {}).get("arguments")
+                                        self.name = tc_dict.get("function", {}).get(
+                                            "name"
+                                        )
+                                        self.arguments = tc_dict.get(
+                                            "function", {}
+                                        ).get("arguments")
 
                                         class FunctionObj:
                                             def __init__(self, name, arguments):
                                                 self.name = name
                                                 self.arguments = arguments
 
-                                        self.function = FunctionObj(self.name, self.arguments)
+                                        self.function = FunctionObj(
+                                            self.name, self.arguments
+                                        )
 
                                 tool_call_obj = ToolCallObj(tool_call_dict)
-                                tool_result = await agent._execute_tool_call(tool_call_obj, context=input_data)
+                                tool_result = await agent._execute_tool_call(
+                                    tool_call_obj, context=input_data
+                                )
                                 tool_calls_trace.append(tool_result)
 
                                 # Build result string
                                 result_content = tool_result.get("result", {})
                                 if isinstance(result_content, dict):
-                                    result_str = result_content.get("response") or json.dumps(result_content)
+                                    result_str = result_content.get(
+                                        "response"
+                                    ) or json.dumps(result_content)
                                 else:
                                     result_str = str(result_content)
 
                                 # Add tool response in generic format - providers convert as needed
-                                messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": result_str})
+                                messages.append(
+                                    {
+                                        "role": "tool",
+                                        "tool_call_id": tool_call_id,
+                                        "content": result_str,
+                                    }
+                                )
 
                             except Exception as e:
                                 logger.error(f"Tool execution failed: {e}")
-                                tool_call_id = tool_call_dict.get("id") or str(uuid.uuid4())
-                                messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": f"Error: {str(e)}"})
+                                tool_call_id = tool_call_dict.get("id") or str(
+                                    uuid.uuid4()
+                                )
+                                messages.append(
+                                    {
+                                        "role": "tool",
+                                        "tool_call_id": tool_call_id,
+                                        "content": f"Error: {str(e)}",
+                                    }
+                                )
 
                         # Continue loop to get final response
                         continue
@@ -1489,7 +1747,10 @@ async def agent_execution_step(
                             "response": collected_content,
                             "tool_calls": tool_calls_trace,
                             "mode": "llm",
-                            "model": {"provider": provider_config["type"], "name": str(model_name)},
+                            "model": {
+                                "provider": provider_config["type"],
+                                "name": str(model_name),
+                            },
                             "usage": {
                                 "tokens_in": tokens_in_total,
                                 "tokens_out": tokens_out_total,
@@ -1501,12 +1762,17 @@ async def agent_execution_step(
 
                 # If we hit max turns without a final response
                 if conversation_turns >= max_conversation_turns:
-                    logger.warning(f"Reached max conversation turns ({max_conversation_turns}), ending loop")
+                    logger.warning(
+                        f"Reached max conversation turns ({max_conversation_turns}), ending loop"
+                    )
                     result = {
                         "response": "Reached conversation turn limit",
                         "tool_calls": tool_calls_trace,
                         "mode": "llm",
-                        "model": {"provider": provider_config["type"], "name": str(model_name)},
+                        "model": {
+                            "provider": provider_config["type"],
+                            "name": str(model_name),
+                        },
                         "usage": {
                             "tokens_in": tokens_in_total,
                             "tokens_out": tokens_out_total,
@@ -1538,7 +1804,9 @@ async def agent_execution_step(
 
                 while True:
                     try:
-                        ev = await asyncio.get_event_loop().run_in_executor(None, functools.partial(next, stream_generator))
+                        ev = await asyncio.get_event_loop().run_in_executor(
+                            None, functools.partial(next, stream_generator)
+                        )
                     except StopIteration:
                         break
 
@@ -1569,11 +1837,18 @@ async def agent_execution_step(
                             "response": text,
                             "tool_calls": [],
                             "mode": "llm",
-                            "model": {"provider": provider_config["type"], "name": str(model_name)},
+                            "model": {
+                                "provider": provider_config["type"],
+                                "name": str(model_name),
+                            },
                             "usage": {
                                 "tokens_in": int(final_resp.get("tokens_in", -1) or -1),
-                                "tokens_out": int(final_resp.get("tokens_out", -1) or -1),
-                                "total_tokens": int(final_resp.get("tokens_in", -1) or -1)
+                                "tokens_out": int(
+                                    final_resp.get("tokens_out", -1) or -1
+                                ),
+                                "total_tokens": int(
+                                    final_resp.get("tokens_in", -1) or -1
+                                )
                                 + int(final_resp.get("tokens_out", -1) or -1),
                                 "llm_calls": 1,
                             },
@@ -1584,8 +1859,16 @@ async def agent_execution_step(
                         "response": accumulated,
                         "tool_calls": [],
                         "mode": "llm",
-                        "model": {"provider": provider_config["type"], "name": str(model_name)},
-                        "usage": {"tokens_in": -1, "tokens_out": -1, "total_tokens": -1, "llm_calls": 1},
+                        "model": {
+                            "provider": provider_config["type"],
+                            "name": str(model_name),
+                        },
+                        "usage": {
+                            "tokens_in": -1,
+                            "tokens_out": -1,
+                            "total_tokens": -1,
+                            "llm_calls": 1,
+                        },
                     }
         except Exception as _se:
             logger.debug(f"Streaming failed, falling back to non-streaming: {_se}")
@@ -1596,13 +1879,19 @@ async def agent_execution_step(
     # Parse JSON response if response_format was used
     try:
         response_format = config.get("response_format")
-        if response_format and isinstance(response_format, dict) and response_format.get("type") == "json_object":
+        if (
+            response_format
+            and isinstance(response_format, dict)
+            and response_format.get("type") == "json_object"
+        ):
             response_text = result.get("response")
             if isinstance(response_text, str):
                 try:
                     parsed_json = json.loads(response_text)
                     result["response"] = parsed_json  # Replace string with parsed dict
-                    result["response_raw"] = response_text  # Keep original for reference
+                    result["response_raw"] = (
+                        response_text  # Keep original for reference
+                    )
                 except json.JSONDecodeError as je:
                     logger.warning(f"Failed to parse JSON response: {je}")
     except Exception as _parse_e:
@@ -1624,7 +1913,10 @@ async def agent_execution_step(
                     step_id=sid,
                     role="assistant",
                     content=str(assistant_content),
-                    metadata={"model": result.get("model"), "usage": result.get("usage")},
+                    metadata={
+                        "model": result.get("model"),
+                        "usage": result.get("usage"),
+                    },
                     user_id=execution_context.user_context.user_id,
                     session_id=execution_context.user_context.session_id,
                 )
@@ -1634,7 +1926,9 @@ async def agent_execution_step(
 
     # If multi_turn and not marked final, keep waiting for more input with agent response
     if interactive and multi_turn and not bool(input_data.get("final_turn")):
-        logger.info(f"Agent step returning WAITING status (interactive={interactive}, multi_turn={multi_turn})")
+        logger.info(
+            f"Agent step returning WAITING status (interactive={interactive}, multi_turn={multi_turn})"
+        )
         return {
             "status": "waiting",
             "waiting_for": "user_input",
@@ -1643,5 +1937,7 @@ async def agent_execution_step(
             "agent_config": {"agent_name": agent_name},
         }
 
-    logger.info(f"Agent step returning result (interactive={interactive}, multi_turn={multi_turn})")
+    logger.info(
+        f"Agent step returning result (interactive={interactive}, multi_turn={multi_turn})"
+    )
     return result

@@ -61,7 +61,9 @@ class Prompt(SQLModel, table=True):
     ai_model_name: str
 
     tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
-    hyper_parameters: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    hyper_parameters: Dict[str, Any] = Field(
+        default_factory=dict, sa_column=Column(JSON)
+    )
     variables: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
 
     organization_id: Optional[str] = None
@@ -71,4 +73,6 @@ class Prompt(SQLModel, table=True):
         default_factory=get_utc_datetime,
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
-    updated_time: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now()))
+    updated_time: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now())
+    )

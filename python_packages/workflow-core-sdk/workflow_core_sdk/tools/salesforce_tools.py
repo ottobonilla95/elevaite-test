@@ -46,7 +46,7 @@ def salesforce_csm_create_case(
     web_email: Optional[str] = None,
     web_company: Optional[str] = None,
     web_name: Optional[str] = None,
-    web_phone: Optional[str] = None
+    web_phone: Optional[str] = None,
 ) -> str:
     """
     Create a new Salesforce CSM case.
@@ -86,7 +86,7 @@ def salesforce_csm_create_case(
             "case_origin": case_origin,
             "first_name": first_name,
             "last_name": last_name,
-            "priority": priority
+            "priority": priority,
         }
 
         if account_id:
@@ -132,47 +132,50 @@ def salesforce_csm_create_case(
             f"{SALESFORCE_CSM_API_BASE}/cases",
             json=payload,
             headers={"Content-Type": "application/json"},
-            timeout=30
+            timeout=30,
         )
 
         if response.status_code == 201:
-            return json.dumps({
-                "success": True,
-                "message": "Case created successfully",
-                "data": response.json()
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": "Case created successfully",
+                    "data": response.json(),
+                }
+            )
         elif response.status_code == 400:
-            return json.dumps({
-                "success": False,
-                "message": "Invalid case data provided",
-                "error": response.text
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "Invalid case data provided",
+                    "error": response.text,
+                }
+            )
         else:
-            return json.dumps({
-                "success": False,
-                "message": f"Failed to create case: {response.status_code}",
-                "error": response.text
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Failed to create case: {response.status_code}",
+                    "error": response.text,
+                }
+            )
 
     except requests.exceptions.RequestException as e:
-        return json.dumps({
-            "success": False,
-            "message": "Failed to connect to Salesforce CSM API",
-            "error": str(e)
-        })
+        return json.dumps(
+            {
+                "success": False,
+                "message": "Failed to connect to Salesforce CSM API",
+                "error": str(e),
+            }
+        )
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "message": "Unexpected error occurred",
-            "error": str(e)
-        })
+        return json.dumps(
+            {"success": False, "message": "Unexpected error occurred", "error": str(e)}
+        )
 
 
 @function_schema
-def salesforce_csm_get_case(
-    identifier: str,
-    identifier_type: str = "case_id"
-) -> str:
+def salesforce_csm_get_case(identifier: str, identifier_type: str = "case_id") -> str:
     """
     Retrieve a Salesforce CSM case by case ID or case number.
 
@@ -190,42 +193,46 @@ def salesforce_csm_get_case(
             endpoint = f"{SALESFORCE_CSM_API_BASE}/cases/{identifier}"
 
         response = requests.get(
-            endpoint,
-            headers={"Content-Type": "application/json"},
-            timeout=30
+            endpoint, headers={"Content-Type": "application/json"}, timeout=30
         )
 
         if response.status_code == 200:
-            return json.dumps({
-                "success": True,
-                "message": "Case retrieved successfully",
-                "data": response.json()
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": "Case retrieved successfully",
+                    "data": response.json(),
+                }
+            )
         elif response.status_code == 404:
-            return json.dumps({
-                "success": False,
-                "message": f"Case not found: {identifier}",
-                "error": "Case not found"
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Case not found: {identifier}",
+                    "error": "Case not found",
+                }
+            )
         else:
-            return json.dumps({
-                "success": False,
-                "message": f"Failed to retrieve case: {response.status_code}",
-                "error": response.text
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Failed to retrieve case: {response.status_code}",
+                    "error": response.text,
+                }
+            )
 
     except requests.exceptions.RequestException as e:
-        return json.dumps({
-            "success": False,
-            "message": "Failed to connect to Salesforce CSM API",
-            "error": str(e)
-        })
+        return json.dumps(
+            {
+                "success": False,
+                "message": "Failed to connect to Salesforce CSM API",
+                "error": str(e),
+            }
+        )
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "message": "Unexpected error occurred",
-            "error": str(e)
-        })
+        return json.dumps(
+            {"success": False, "message": "Unexpected error occurred", "error": str(e)}
+        )
 
 
 @function_schema
@@ -243,7 +250,7 @@ def salesforce_csm_update_case(
     case_sub_type: Optional[str] = None,
     case_type: Optional[str] = None,
     type: Optional[str] = None,
-    ux_version: Optional[str] = None
+    ux_version: Optional[str] = None,
 ) -> str:
     """
     Update an existing Salesforce CSM case.
@@ -301,40 +308,46 @@ def salesforce_csm_update_case(
             f"{SALESFORCE_CSM_API_BASE}/cases/{case_id}",
             json=payload,
             headers={"Content-Type": "application/json"},
-            timeout=30
+            timeout=30,
         )
 
         if response.status_code == 200:
-            return json.dumps({
-                "success": True,
-                "message": "Case updated successfully",
-                "data": response.json()
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": "Case updated successfully",
+                    "data": response.json(),
+                }
+            )
         elif response.status_code == 404:
-            return json.dumps({
-                "success": False,
-                "message": f"Case not found: {case_id}",
-                "error": "Case not found"
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Case not found: {case_id}",
+                    "error": "Case not found",
+                }
+            )
         else:
-            return json.dumps({
-                "success": False,
-                "message": f"Failed to update case: {response.status_code}",
-                "error": response.text
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Failed to update case: {response.status_code}",
+                    "error": response.text,
+                }
+            )
 
     except requests.exceptions.RequestException as e:
-        return json.dumps({
-            "success": False,
-            "message": "Failed to connect to Salesforce CSM API",
-            "error": str(e)
-        })
+        return json.dumps(
+            {
+                "success": False,
+                "message": "Failed to connect to Salesforce CSM API",
+                "error": str(e),
+            }
+        )
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "message": "Unexpected error occurred",
-            "error": str(e)
-        })
+        return json.dumps(
+            {"success": False, "message": "Unexpected error occurred", "error": str(e)}
+        )
 
 
 # Export store and schemas for aggregation in basic_tools
@@ -344,5 +357,6 @@ SALESFORCE_TOOL_STORE = {
     "salesforce_csm_update_case": salesforce_csm_update_case,
 }
 
-SALESFORCE_TOOL_SCHEMAS = {name: func.openai_schema for name, func in SALESFORCE_TOOL_STORE.items()}
-
+SALESFORCE_TOOL_SCHEMAS = {
+    name: func.openai_schema for name, func in SALESFORCE_TOOL_STORE.items()
+}

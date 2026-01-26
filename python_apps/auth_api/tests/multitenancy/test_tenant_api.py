@@ -12,9 +12,15 @@ async def test_tenant_isolation(test_client, test_user):
     """Test that users are isolated between tenants."""
     # Register a user in tenant1
     tenant1_headers = {"X-Tenant-ID": "tenant1"}
-    tenant1_user = {"email": "tenant1_api@example.com", "password": "Password123!@#", "full_name": "Tenant 1 User"}
+    tenant1_user = {
+        "email": "tenant1_api@example.com",
+        "password": "Password123!@#",
+        "full_name": "Tenant 1 User",
+    }
 
-    response = await test_client.post("/api/auth/register", json=tenant1_user, headers=tenant1_headers)
+    response = await test_client.post(
+        "/api/auth/register", json=tenant1_user, headers=tenant1_headers
+    )
     assert response.status_code == 201
     assert response.json()["email"] == tenant1_user["email"]
 
@@ -31,16 +37,24 @@ async def test_tenant_isolation(test_client, test_user):
 
         # Activate the user
         await session.execute(
-            text("UPDATE users SET status = 'active', is_verified = TRUE WHERE email = :email"),
+            text(
+                "UPDATE users SET status = 'active', is_verified = TRUE WHERE email = :email"
+            ),
             {"email": tenant1_user["email"]},
         )
         await session.commit()
 
     # Register a user in tenant2
     tenant2_headers = {"X-Tenant-ID": "tenant2"}
-    tenant2_user = {"email": "tenant2_api@example.com", "password": "Password456!@#", "full_name": "Tenant 2 User"}
+    tenant2_user = {
+        "email": "tenant2_api@example.com",
+        "password": "Password456!@#",
+        "full_name": "Tenant 2 User",
+    }
 
-    response = await test_client.post("/api/auth/register", json=tenant2_user, headers=tenant2_headers)
+    response = await test_client.post(
+        "/api/auth/register", json=tenant2_user, headers=tenant2_headers
+    )
     assert response.status_code == 201
     assert response.json()["email"] == tenant2_user["email"]
 
@@ -55,7 +69,9 @@ async def test_tenant_isolation(test_client, test_user):
 
         # Activate the user
         await session.execute(
-            text("UPDATE users SET status = 'active', is_verified = TRUE WHERE email = :email"),
+            text(
+                "UPDATE users SET status = 'active', is_verified = TRUE WHERE email = :email"
+            ),
             {"email": tenant2_user["email"]},
         )
         await session.commit()
@@ -63,14 +79,18 @@ async def test_tenant_isolation(test_client, test_user):
     # Login with tenant1 user
     login_data = {"email": "tenant1_api@example.com", "password": "Password123!@#"}
 
-    response = await test_client.post("/api/auth/login", json=login_data, headers=tenant1_headers)
+    response = await test_client.post(
+        "/api/auth/login", json=login_data, headers=tenant1_headers
+    )
     assert response.status_code == 200
     tenant1_token = response.json()["access_token"]
 
     # Login with tenant2 user
     login_data = {"email": "tenant2_api@example.com", "password": "Password456!@#"}
 
-    response = await test_client.post("/api/auth/login", json=login_data, headers=tenant2_headers)
+    response = await test_client.post(
+        "/api/auth/login", json=login_data, headers=tenant2_headers
+    )
     assert response.status_code == 200
     tenant2_token = response.json()["access_token"]
 
@@ -83,9 +103,15 @@ async def test_cross_tenant_access(test_client, test_user):
     """Test that users cannot access resources from other tenants."""
     # Register a user in tenant1
     tenant1_headers = {"X-Tenant-ID": "tenant1"}
-    tenant1_user = {"email": "cross_tenant_test@example.com", "password": "Password123!@#", "full_name": "Tenant 1 User"}
+    tenant1_user = {
+        "email": "cross_tenant_test@example.com",
+        "password": "Password123!@#",
+        "full_name": "Tenant 1 User",
+    }
 
-    response = await test_client.post("/api/auth/register", json=tenant1_user, headers=tenant1_headers)
+    response = await test_client.post(
+        "/api/auth/register", json=tenant1_user, headers=tenant1_headers
+    )
     assert response.status_code == 201
 
     # Activate the user in tenant1
@@ -101,20 +127,30 @@ async def test_cross_tenant_access(test_client, test_user):
 
         # Activate the user
         await session.execute(
-            text("UPDATE users SET status = 'active', is_verified = TRUE WHERE email = :email"),
+            text(
+                "UPDATE users SET status = 'active', is_verified = TRUE WHERE email = :email"
+            ),
             {"email": tenant1_user["email"]},
         )
         await session.commit()
 
     # Login with tenant1 user
-    login_data = {"email": "cross_tenant_test@example.com", "password": "Password123!@#"}
+    login_data = {
+        "email": "cross_tenant_test@example.com",
+        "password": "Password123!@#",
+    }
 
-    response = await test_client.post("/api/auth/login", json=login_data, headers=tenant1_headers)
+    response = await test_client.post(
+        "/api/auth/login", json=login_data, headers=tenant1_headers
+    )
     assert response.status_code == 200
     tenant1_token = response.json()["access_token"]
 
     # Try to use tenant1 token with tenant2 context
-    tenant2_headers = {"X-Tenant-ID": "tenant2", "Authorization": f"Bearer {tenant1_token}"}
+    tenant2_headers = {
+        "X-Tenant-ID": "tenant2",
+        "Authorization": f"Bearer {tenant1_token}",
+    }
 
     # This should fail because the token is for tenant1 but we're using tenant2 context
     response = await test_client.get("/api/auth/me", headers=tenant2_headers)

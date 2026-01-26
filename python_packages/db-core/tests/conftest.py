@@ -27,8 +27,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Sync and async database URLs for testing
-SYNC_TEST_DB_URL = os.environ.get("TEST_DB_URL", "postgresql://postgres:postgres@localhost:5433/db_core_test")
-ASYNC_TEST_DB_URL = os.environ.get("TEST_ASYNC_DB_URL", "postgresql+asyncpg://postgres:postgres@localhost:5433/db_core_test")
+SYNC_TEST_DB_URL = os.environ.get(
+    "TEST_DB_URL", "postgresql://postgres:postgres@localhost:5433/db_core_test"
+)
+ASYNC_TEST_DB_URL = os.environ.get(
+    "TEST_ASYNC_DB_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5433/db_core_test",
+)
 
 # Log the database URLs being used
 logger.info(f"Using sync database URL: {SYNC_TEST_DB_URL}")

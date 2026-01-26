@@ -186,7 +186,9 @@ class TestProcessEvent:
         from a2a.types import FilePart, FileWithUri, Message, Part, Role
 
         # Create a real Message with a FilePart wrapped in Part (RootModel)
-        file = FileWithUri(uri="https://example.com/file.pdf", mime_type="application/pdf")
+        file = FileWithUri(
+            uri="https://example.com/file.pdf", mime_type="application/pdf"
+        )
         file_part = Part(root=FilePart(file=file, kind="file"))
         message = Message(
             message_id="msg-125",

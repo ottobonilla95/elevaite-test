@@ -30,4 +30,3 @@ def init_db() -> None:
     from sqlmodel import SQLModel
 
     SQLModel.metadata.create_all(engine)
-

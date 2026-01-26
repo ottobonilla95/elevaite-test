@@ -16,7 +16,6 @@ Requirements:
 - Test users with role assignments
 """
 
-
 from rbac_sdk.async_client import check_access_async
 from rbac_sdk.client import check_access
 

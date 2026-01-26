@@ -109,9 +109,13 @@ class WorkflowMonitoring:
 
             self._meter = get_meter("workflow-engine.monitoring")
             self._agent_total = self._meter.create_counter("agent_executions_total")
-            self._agent_duration = self._meter.create_histogram("agent_execution_duration_seconds")
+            self._agent_duration = self._meter.create_histogram(
+                "agent_execution_duration_seconds"
+            )
             self._wf_total = self._meter.create_counter("workflow_executions_total")
-            self._wf_duration = self._meter.create_histogram("workflow_execution_duration_seconds")
+            self._wf_duration = self._meter.create_histogram(
+                "workflow_execution_duration_seconds"
+            )
         except Exception:
             self._meter = None
 
@@ -148,11 +152,20 @@ class WorkflowMonitoring:
 
             # Configure Jaeger exporter if endpoint is available
             jaeger_endpoint = os.getenv("JAEGER_ENDPOINT")
-            if jaeger_endpoint and JAEGER_AVAILABLE and JaegerExporter is not None and BatchSpanProcessor is not None:
+            if (
+                jaeger_endpoint
+                and JAEGER_AVAILABLE
+                and JaegerExporter is not None
+                and BatchSpanProcessor is not None
+            ):
                 try:
                     jaeger_exporter = JaegerExporter(
                         agent_host_name=jaeger_endpoint.split("://")[1].split(":")[0],
-                        agent_port=(int(jaeger_endpoint.split(":")[-1]) if ":" in jaeger_endpoint else 14268),
+                        agent_port=(
+                            int(jaeger_endpoint.split(":")[-1])
+                            if ":" in jaeger_endpoint
+                            else 14268
+                        ),
                     )
                     span_processor = BatchSpanProcessor(jaeger_exporter)
                     tracer_provider.add_span_processor(span_processor)
@@ -170,9 +183,13 @@ class WorkflowMonitoring:
                         console_exporter = ConsoleSpanExporter()
                         span_processor = BatchSpanProcessor(console_exporter)
                         tracer_provider.add_span_processor(span_processor)
-                        logger.info("Console span exporter configured (OTEL_CONSOLE_EXPORT=1)")
+                        logger.info(
+                            "Console span exporter configured (OTEL_CONSOLE_EXPORT=1)"
+                        )
                     except Exception as e:
-                        logger.warning(f"Failed to configure console span exporter: {e}")
+                        logger.warning(
+                            f"Failed to configure console span exporter: {e}"
+                        )
 
             self.tracer = trace.get_tracer(self.service_name)
             logger.info("OpenTelemetry tracing initialized")
@@ -286,7 +303,9 @@ class WorkflowMonitoring:
                     if trace is not None:
                         span.set_status(trace.Status(trace.StatusCode.OK))
                     if self.registry:
-                        self.workflow_executions_total.labels(workflow_id=workflow_id, status="completed").inc()
+                        self.workflow_executions_total.labels(
+                            workflow_id=workflow_id, status="completed"
+                        ).inc()
                     # OTEL metrics for workflow
                     if getattr(self, "_wf_total", None):
                         self._wf_total.add(
@@ -303,7 +322,9 @@ class WorkflowMonitoring:
                         span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
                         span.record_exception(e)
                     if self.registry:
-                        self.workflow_executions_total.labels(workflow_id=workflow_id, status="failed").inc()
+                        self.workflow_executions_total.labels(
+                            workflow_id=workflow_id, status="failed"
+                        ).inc()
                     # OTEL metrics for workflow: failed
                     if getattr(self, "_wf_total", None):
                         self._wf_total.add(
@@ -318,7 +339,9 @@ class WorkflowMonitoring:
                 finally:
                     duration = time.time() - start_time
                     if self.registry:
-                        self.workflow_execution_duration.labels(workflow_id=workflow_id).observe(duration)
+                        self.workflow_execution_duration.labels(
+                            workflow_id=workflow_id
+                        ).observe(duration)
                     # OTEL duration histogram
                     if getattr(self, "_wf_duration", None):
                         self._wf_duration.record(
@@ -357,7 +380,9 @@ class WorkflowMonitoring:
                 raise
             finally:
                 trace_data.end_time = time.time()
-                trace_data.duration_ms = (trace_data.end_time - trace_data.start_time) * 1000
+                trace_data.duration_ms = (
+                    trace_data.end_time - trace_data.start_time
+                ) * 1000
                 self.traces.append(trace_data)
 
                 duration = trace_data.end_time - trace_data.start_time
@@ -387,18 +412,24 @@ class WorkflowMonitoring:
                     if trace is not None:
                         span.set_status(trace.Status(trace.StatusCode.OK))
                     if self.registry:
-                        self.step_executions_total.labels(step_type=step_type, status="completed").inc()
+                        self.step_executions_total.labels(
+                            step_type=step_type, status="completed"
+                        ).inc()
                 except Exception as e:
                     if trace is not None:
                         span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
                         span.record_exception(e)
                     if self.registry:
-                        self.step_executions_total.labels(step_type=step_type, status="failed").inc()
+                        self.step_executions_total.labels(
+                            step_type=step_type, status="failed"
+                        ).inc()
                     raise
                 finally:
                     duration = time.time() - start_time
                     if self.registry:
-                        self.step_execution_duration.labels(step_type=step_type).observe(duration)
+                        self.step_execution_duration.labels(
+                            step_type=step_type
+                        ).observe(duration)
         else:
             # Fallback tracing
             trace_data = TraceData(
@@ -428,7 +459,9 @@ class WorkflowMonitoring:
                 raise
             finally:
                 trace_data.end_time = time.time()
-                trace_data.duration_ms = (trace_data.end_time - trace_data.start_time) * 1000
+                trace_data.duration_ms = (
+                    trace_data.end_time - trace_data.start_time
+                ) * 1000
                 self.traces.append(trace_data)
 
                 duration = trace_data.end_time - trace_data.start_time
@@ -443,7 +476,9 @@ class WorkflowMonitoring:
         if self.registry:
             self.errors_total.labels(component=component, error_type=error_type).inc()
         else:
-            self._record_metric("errors_total", 1, {"component": component, "error_type": error_type})
+            self._record_metric(
+                "errors_total", 1, {"component": component, "error_type": error_type}
+            )
 
         logger.error(f"Error in {component}: {error_type} - {error_message}")
 

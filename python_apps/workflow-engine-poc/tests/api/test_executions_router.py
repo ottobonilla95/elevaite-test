@@ -87,7 +87,9 @@ class TestGetExecutionStatus:
     """Tests for GET /executions/{execution_id}"""
 
     @pytest.mark.api
-    def test_get_execution_status_from_engine(self, test_client, auth_headers, mock_app_state, mock_execution_context):
+    def test_get_execution_status_from_engine(
+        self, test_client, auth_headers, mock_app_state, mock_execution_context
+    ):
         """Test getting execution status from in-memory engine context"""
         execution_id = mock_execution_context.execution_id
 
@@ -104,7 +106,9 @@ class TestGetExecutionStatus:
         assert data["total_steps"] == 2
 
     @pytest.mark.api
-    def test_get_execution_status_from_db(self, test_client, auth_headers, mock_app_state, session):
+    def test_get_execution_status_from_db(
+        self, test_client, auth_headers, mock_app_state, session
+    ):
         """Test getting execution status from database when not in memory"""
         from workflow_core_sdk.services.workflows_service import WorkflowsService
 
@@ -132,7 +136,9 @@ class TestGetExecutionStatus:
         assert data["workflow_id"] == workflow_id
 
     @pytest.mark.api
-    def test_get_execution_status_not_found(self, test_client, auth_headers, mock_app_state):
+    def test_get_execution_status_not_found(
+        self, test_client, auth_headers, mock_app_state
+    ):
         """Test getting status for non-existent execution"""
         execution_id = str(uuid.uuid4())
 
@@ -153,7 +159,9 @@ class TestGetExecutionResults:
     """Tests for GET /executions/{execution_id}/results"""
 
     @pytest.mark.api
-    def test_get_execution_results_from_engine(self, test_client, auth_headers, mock_app_state, mock_execution_context):
+    def test_get_execution_results_from_engine(
+        self, test_client, auth_headers, mock_app_state, mock_execution_context
+    ):
         """Test getting execution results from in-memory engine context"""
         execution_id = mock_execution_context.execution_id
 
@@ -170,7 +178,9 @@ class TestGetExecutionResults:
         # Configure mock to return execution context
         mock_app_state.get_execution_context.return_value = mock_execution_context
 
-        response = test_client.get(f"/executions/{execution_id}/results", headers=auth_headers)
+        response = test_client.get(
+            f"/executions/{execution_id}/results", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -181,7 +191,9 @@ class TestGetExecutionResults:
         assert data["step_results"]["step1"]["output_data"] == {"result": "success"}
 
     @pytest.mark.api
-    def test_get_execution_results_from_db(self, test_client, auth_headers, mock_app_state, session):
+    def test_get_execution_results_from_db(
+        self, test_client, auth_headers, mock_app_state, session
+    ):
         """Test getting execution results from database when not in memory"""
         from workflow_core_sdk.services.workflows_service import WorkflowsService
 
@@ -201,7 +213,9 @@ class TestGetExecutionResults:
         # Engine returns None (not in memory)
         mock_app_state.get_execution_context.return_value = None
 
-        response = test_client.get(f"/executions/{created_id}/results", headers=auth_headers)
+        response = test_client.get(
+            f"/executions/{created_id}/results", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -210,14 +224,18 @@ class TestGetExecutionResults:
         assert "execution_summary" in data
 
     @pytest.mark.api
-    def test_get_execution_results_not_found(self, test_client, auth_headers, mock_app_state):
+    def test_get_execution_results_not_found(
+        self, test_client, auth_headers, mock_app_state
+    ):
         """Test getting results for non-existent execution"""
         execution_id = str(uuid.uuid4())
 
         # Engine returns None
         mock_app_state.get_execution_context.return_value = None
 
-        response = test_client.get(f"/executions/{execution_id}/results", headers=auth_headers)
+        response = test_client.get(
+            f"/executions/{execution_id}/results", headers=auth_headers
+        )
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
@@ -231,7 +249,9 @@ class TestGetExecutionAnalytics:
     """Tests for GET /executions/"""
 
     @pytest.mark.api
-    def test_get_execution_analytics_success(self, test_client, auth_headers, mock_app_state, session):
+    def test_get_execution_analytics_success(
+        self, test_client, auth_headers, mock_app_state, session
+    ):
         """Test getting execution analytics"""
         from workflow_core_sdk.services.workflows_service import WorkflowsService
 
@@ -264,7 +284,9 @@ class TestGetExecutionAnalytics:
         assert len(data["db_executions"]) == 3
 
     @pytest.mark.api
-    def test_get_execution_analytics_with_filters(self, test_client, auth_headers, mock_app_state, session):
+    def test_get_execution_analytics_with_filters(
+        self, test_client, auth_headers, mock_app_state, session
+    ):
         """Test getting execution analytics with filters"""
         from workflow_core_sdk.services.workflows_service import WorkflowsService
         from workflow_core_sdk.db.service import DatabaseService
@@ -293,7 +315,10 @@ class TestGetExecutionAnalytics:
         db = DatabaseService()
         db.update_execution(session, exec1_id, {"status": "completed"})
 
-        response = test_client.get(f"/executions/?workflow_id={workflow_id}&status=completed", headers=auth_headers)
+        response = test_client.get(
+            f"/executions/?workflow_id={workflow_id}&status=completed",
+            headers=auth_headers,
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -304,7 +329,9 @@ class TestGetExecutionAnalytics:
             assert exec["status"] == "completed"
 
     @pytest.mark.api
-    def test_get_execution_analytics_exclude_db(self, test_client, auth_headers, mock_app_state):
+    def test_get_execution_analytics_exclude_db(
+        self, test_client, auth_headers, mock_app_state
+    ):
         """Test getting execution analytics with exclude_db flag"""
         # Configure engine analytics
         mock_app_state.get_execution_analytics.return_value = {
@@ -331,14 +358,18 @@ class TestStreamExecutionUpdates:
     """Tests for GET /executions/{execution_id}/stream"""
 
     @pytest.mark.api
-    def test_stream_execution_updates_not_found(self, test_client, auth_headers, mock_app_state):
+    def test_stream_execution_updates_not_found(
+        self, test_client, auth_headers, mock_app_state
+    ):
         """Test streaming for non-existent execution returns 404"""
         execution_id = str(uuid.uuid4())
 
         # Engine returns None (not in memory or DB)
         mock_app_state.get_execution_context.return_value = None
 
-        response = test_client.get(f"/executions/{execution_id}/stream", headers=auth_headers)
+        response = test_client.get(
+            f"/executions/{execution_id}/stream", headers=auth_headers
+        )
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()

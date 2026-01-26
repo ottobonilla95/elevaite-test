@@ -124,7 +124,9 @@ class TestStepExecution:
         step_config = {"step_id": "step1", "step_type": "test_step"}
         input_data = {"value": 21}
 
-        result = await registry.execute_step("test_step", step_config, input_data, execution_context)
+        result = await registry.execute_step(
+            "test_step", step_config, input_data, execution_context
+        )
 
         assert isinstance(result, StepResult)
         assert result.status == StepStatus.COMPLETED
@@ -133,7 +135,9 @@ class TestStepExecution:
         assert result.execution_time_ms is not None
 
     @pytest.mark.asyncio
-    async def test_execute_local_step_returns_step_result(self, registry, execution_context):
+    async def test_execute_local_step_returns_step_result(
+        self, registry, execution_context
+    ):
         """Test executing a local step that returns StepResult"""
 
         # Create a mock step function that returns StepResult
@@ -163,7 +167,9 @@ class TestStepExecution:
         step_config = {"step_id": "step1", "step_type": "waiting_step"}
         input_data = {}
 
-        result = await registry.execute_step("waiting_step", step_config, input_data, execution_context)
+        result = await registry.execute_step(
+            "waiting_step", step_config, input_data, execution_context
+        )
 
         assert isinstance(result, StepResult)
         assert result.status == StepStatus.WAITING
@@ -196,7 +202,9 @@ class TestStepExecution:
         step_config = {"step_id": "step1", "step_type": "failing_step"}
         input_data = {}
 
-        result = await registry.execute_step("failing_step", step_config, input_data, execution_context)
+        result = await registry.execute_step(
+            "failing_step", step_config, input_data, execution_context
+        )
 
         assert isinstance(result, StepResult)
         assert result.status == StepStatus.FAILED
@@ -210,7 +218,9 @@ class TestStepExecution:
         input_data = {}
 
         with pytest.raises(StepExecutionError, match="Unknown step type"):
-            await registry.execute_step("unknown_step", step_config, input_data, execution_context)
+            await registry.execute_step(
+                "unknown_step", step_config, input_data, execution_context
+            )
 
     @pytest.mark.asyncio
     async def test_execute_sync_function(self, registry, execution_context):
@@ -239,7 +249,9 @@ class TestStepExecution:
         step_config = {"step_id": "step1", "step_type": "sync_step"}
         input_data = {}
 
-        result = await registry.execute_step("sync_step", step_config, input_data, execution_context)
+        result = await registry.execute_step(
+            "sync_step", step_config, input_data, execution_context
+        )
 
         assert isinstance(result, StepResult)
         assert result.status == StepStatus.COMPLETED

@@ -31,7 +31,9 @@ class ApprovalsService:
         )
 
     @staticmethod
-    def get_approval_request(session: Session, approval_id: str) -> Optional[Dict[str, Any]]:
+    def get_approval_request(
+        session: Session, approval_id: str
+    ) -> Optional[Dict[str, Any]]:
         db = DatabaseService()
         return db.get_approval_request(session, approval_id)
 
@@ -41,7 +43,8 @@ class ApprovalsService:
         return db.create_approval_request(session, data)
 
     @staticmethod
-    def update_approval_request(session: Session, approval_id: str, changes: Dict[str, Any]) -> bool:
+    def update_approval_request(
+        session: Session, approval_id: str, changes: Dict[str, Any]
+    ) -> bool:
         db = DatabaseService()
         return db.update_approval_request(session, approval_id, changes)
-

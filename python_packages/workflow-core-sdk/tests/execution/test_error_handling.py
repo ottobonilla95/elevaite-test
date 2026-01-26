@@ -50,7 +50,9 @@ class TestRetryStrategies:
         """Test successful execution requires no retry"""
         mock_func = AsyncMock(return_value="success")
 
-        result = await error_handler.execute_with_retry(mock_func, retry_config=retry_config)
+        result = await error_handler.execute_with_retry(
+            mock_func, retry_config=retry_config
+        )
 
         assert result == "success"
         assert mock_func.call_count == 1
@@ -58,9 +60,13 @@ class TestRetryStrategies:
     @pytest.mark.asyncio
     async def test_retry_on_retryable_error(self, error_handler, retry_config):
         """Test retry on retryable error"""
-        mock_func = AsyncMock(side_effect=[RetryableError("Temporary failure"), "success"])
+        mock_func = AsyncMock(
+            side_effect=[RetryableError("Temporary failure"), "success"]
+        )
 
-        result = await error_handler.execute_with_retry(mock_func, retry_config=retry_config)
+        result = await error_handler.execute_with_retry(
+            mock_func, retry_config=retry_config
+        )
 
         assert result == "success"
         assert mock_func.call_count == 2
@@ -168,7 +174,11 @@ class TestCircuitBreaker:
         # Trigger failures to open circuit breaker
         for _ in range(5):
             try:
-                await error_handler.execute_with_retry(mock_func, retry_config=config, context={"component": "test-component"})
+                await error_handler.execute_with_retry(
+                    mock_func,
+                    retry_config=config,
+                    context={"component": "test-component"},
+                )
             except RetryableError:
                 pass
 
@@ -177,7 +187,9 @@ class TestCircuitBreaker:
 
         # Next call should fail with CircuitBreakerError
         with pytest.raises(CircuitBreakerError):
-            await error_handler.execute_with_retry(mock_func, retry_config=config, context={"component": "test-component"})
+            await error_handler.execute_with_retry(
+                mock_func, retry_config=config, context={"component": "test-component"}
+            )
 
     @pytest.mark.asyncio
     async def test_circuit_breaker_recovery(self, error_handler):
@@ -188,13 +200,19 @@ class TestCircuitBreaker:
         # Open circuit breaker
         for _ in range(5):
             try:
-                await error_handler.execute_with_retry(mock_func, retry_config=config, context={"component": "test-component"})
+                await error_handler.execute_with_retry(
+                    mock_func,
+                    retry_config=config,
+                    context={"component": "test-component"},
+                )
             except RetryableError:
                 pass
 
         # Manually set recovery timeout to 0 for testing
         error_handler.circuit_breakers["test-component"]["recovery_timeout"] = 0
-        error_handler.circuit_breakers["test-component"]["last_failure_time"] = time.time() - 1
+        error_handler.circuit_breakers["test-component"]["last_failure_time"] = (
+            time.time() - 1
+        )
 
         # Circuit breaker should transition to half-open
         assert error_handler._is_circuit_breaker_open("test-component") is False
@@ -208,13 +226,19 @@ class TestCircuitBreaker:
         mock_func = AsyncMock(side_effect=RetryableError("Failure"))
         for _ in range(3):
             try:
-                await error_handler.execute_with_retry(mock_func, retry_config=config, context={"component": "test-component"})
+                await error_handler.execute_with_retry(
+                    mock_func,
+                    retry_config=config,
+                    context={"component": "test-component"},
+                )
             except RetryableError:
                 pass
 
         # Now succeed
         mock_func = AsyncMock(return_value="success")
-        result = await error_handler.execute_with_retry(mock_func, retry_config=config, context={"component": "test-component"})
+        result = await error_handler.execute_with_retry(
+            mock_func, retry_config=config, context={"component": "test-component"}
+        )
 
         assert result == "success"
         # Circuit breaker should be reset
@@ -232,7 +256,12 @@ class TestErrorClassification:
 
     def test_step_execution_error(self):
         """Test StepExecutionError creation"""
-        error = StepExecutionError("Step failed", severity=ErrorSeverity.MEDIUM, component="step1", operation="execute")
+        error = StepExecutionError(
+            "Step failed",
+            severity=ErrorSeverity.MEDIUM,
+            component="step1",
+            operation="execute",
+        )
         assert isinstance(error, WorkflowError)
         assert error.severity == ErrorSeverity.MEDIUM
         assert error.component == "step1"
@@ -303,7 +332,9 @@ class TestCustomRetryConfiguration:
         """Test custom non-retryable exceptions list"""
         config = RetryConfig(
             max_attempts=3,
-            non_retryable_exceptions=[ConnectionError],  # Make ConnectionError non-retryable
+            non_retryable_exceptions=[
+                ConnectionError
+            ],  # Make ConnectionError non-retryable
         )
 
         mock_func = AsyncMock(side_effect=ConnectionError("Non-retryable"))
@@ -338,7 +369,9 @@ class TestErrorContext:
 
         try:
             await error_handler.execute_with_retry(
-                mock_func, retry_config=retry_config, context={"component": "test", "operation": "test_op"}
+                mock_func,
+                retry_config=retry_config,
+                context={"component": "test", "operation": "test_op"},
             )
         except RetryableError:
             pass
@@ -360,7 +393,11 @@ class TestErrorContext:
         # Generate some errors (use different components to avoid circuit breaker)
         for i in range(3):
             try:
-                await handler.execute_with_retry(mock_func, retry_config=retry_config, context={"component": f"test-{i}"})
+                await handler.execute_with_retry(
+                    mock_func,
+                    retry_config=retry_config,
+                    context={"component": f"test-{i}"},
+                )
             except RetryableError:
                 pass
 
@@ -376,7 +413,11 @@ class TestErrorContext:
         # Generate errors for different components
         for component in ["comp1", "comp2"]:
             try:
-                await error_handler.execute_with_retry(mock_func, retry_config=retry_config, context={"component": component})
+                await error_handler.execute_with_retry(
+                    mock_func,
+                    retry_config=retry_config,
+                    context={"component": component},
+                )
             except RetryableError:
                 pass
 
@@ -394,7 +435,9 @@ class TestSyncAndAsyncFunctions:
         async def async_func():
             return "async_result"
 
-        result = await error_handler.execute_with_retry(async_func, retry_config=retry_config)
+        result = await error_handler.execute_with_retry(
+            async_func, retry_config=retry_config
+        )
         assert result == "async_result"
 
     @pytest.mark.asyncio
@@ -404,7 +447,9 @@ class TestSyncAndAsyncFunctions:
         def sync_func():
             return "sync_result"
 
-        result = await error_handler.execute_with_retry(sync_func, retry_config=retry_config)
+        result = await error_handler.execute_with_retry(
+            sync_func, retry_config=retry_config
+        )
         assert result == "sync_result"
 
     @pytest.mark.asyncio
@@ -414,5 +459,7 @@ class TestSyncAndAsyncFunctions:
         async def func_with_params(a, b, c=None):
             return f"{a}-{b}-{c}"
 
-        result = await error_handler.execute_with_retry(func_with_params, "arg1", "arg2", c="kwarg1", retry_config=retry_config)
+        result = await error_handler.execute_with_retry(
+            func_with_params, "arg1", "arg2", c="kwarg1", retry_config=retry_config
+        )
         assert result == "arg1-arg2-kwarg1"

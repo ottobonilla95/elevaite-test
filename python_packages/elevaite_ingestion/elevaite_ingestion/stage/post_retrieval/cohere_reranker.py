@@ -1,4 +1,3 @@
-
 ##############################################################  VERSION 1 #############################################################
 # import os
 # import sys
@@ -21,10 +20,10 @@
 # def transform(x: float) -> float:
 #     """
 #     Transform scores using beta distribution CDF
-    
+
 #     Args:
 #         x: Raw score value
-        
+
 #     Returns:
 #         Transformed score
 #     """
@@ -35,47 +34,47 @@
 # def rerank_chunks(query: str, chunks: List[str]) -> Tuple[List[float], List[float]]:
 #     """
 #     Rerank chunks using Cohere's reranking API
-    
+
 #     Args:
 #         query: User query
 #         chunks: List of text chunks to rerank
-        
+
 #     Returns:
 #         Tuple of (similarity_scores, chunk_values)
 #     """
 #     model = "rerank-english-v3.0"
 #     decay_rate = 30
-    
+
 #     reranked_results = cohere_client.rerank(model=model, query=query, documents=chunks)
 #     results = reranked_results.results
 #     reranked_indices = [result.index for result in results]
 #     reranked_similarity_scores = [result.relevance_score for result in results]
-    
+
 #     similarity_scores = [0] * len(chunks)
 #     chunk_values = [0] * len(chunks)
 #     for i, index in enumerate(reranked_indices):
 #         abs_val = transform(reranked_similarity_scores[i])
 #         similarity_scores[index] = abs_val
 #         chunk_values[index] = np.exp(-i / decay_rate) * abs_val
-    
+
 #     return similarity_scores, chunk_values
 
 
 # def cohere_rerank(query: str, chunks: List[Dict], top_k: int = 20) -> List[Dict]:
 #     """
 #     Simplified reranking function that returns reordered chunks
-    
+
 #     Args:
 #         query: User query
 #         chunks: List of chunk dictionaries with metadata
 #         top_k: Number of results to return
-        
+
 #     Returns:
 #         Reranked list of chunks
 #     """
 #     inputs = [chunk["chunk_text"] for chunk in chunks]
 #     response = cohere_client.rerank(
-#         query=query, 
+#         query=query,
 #         documents=inputs,
 #         top_n=top_k,
 #         model="rerank-english-v3.0"
@@ -186,7 +185,13 @@ load_dotenv()
 base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(base_path)
 
-from retrieval_stage.retrieve_qdrant import retrieve_chunks_semantic, retrieve_by_payload, extract_part_numbers, retrieve_by_keywords, extract_keywords
+from retrieval_stage.retrieve_qdrant import (
+    retrieve_chunks_semantic,
+    retrieve_by_payload,
+    extract_part_numbers,
+    retrieve_by_keywords,
+    extract_keywords,
+)
 
 
 cohere_client = cohere.Client(os.getenv("COHERE_API_KEY"))
@@ -197,7 +202,10 @@ def transform(x: float) -> float:
     a, b = 0.4, 0.4
     return beta.cdf(x, a, b)
 
-def rerank_text_chunks(query: str, chunk_texts: List[str], decay_rate: int = 30) -> Tuple[List[float], List[float]]:
+
+def rerank_text_chunks(
+    query: str, chunk_texts: List[str], decay_rate: int = 30
+) -> Tuple[List[float], List[float]]:
     """Use Cohere reranker and apply beta CDF + exponential decay to similarity scores."""
     reranked_results = cohere_client.rerank(
         model="rerank-english-v3.0", query=query, documents=chunk_texts
@@ -214,7 +222,13 @@ def rerank_text_chunks(query: str, chunk_texts: List[str], decay_rate: int = 30)
 
     return scores, values
 
-def dynamic_keyword_boost(query: str, final_chunks: List[Dict], final_scores: List[float], boost_amount: float = 0.15) -> List[float]:
+
+def dynamic_keyword_boost(
+    query: str,
+    final_chunks: List[Dict],
+    final_scores: List[float],
+    boost_amount: float = 0.15,
+) -> List[float]:
     query_keywords = extract_keywords(query)
     boosted_scores = []
     for chunk, score in zip(final_chunks, final_scores):
@@ -225,7 +239,10 @@ def dynamic_keyword_boost(query: str, final_chunks: List[Dict], final_scores: Li
             boosted_scores.append(score)
     return boosted_scores
 
-def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict], List[float]]:
+
+def rerank_separately_then_merge(
+    query: str, top_k: int = 30
+) -> Tuple[List[Dict], List[float]]:
     """
     1. Semantic retrieval + rerank
     2. Exact match retrieval + rerank
@@ -246,8 +263,8 @@ def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict
             chunk["search_type"] = "semantic"
             final_chunks.append(chunk)
             final_scores.append(val)
-    
-    #2 ---
+
+    # 2 ---
     part_numbers = extract_part_numbers(query)
     if part_numbers:
         payload_chunks = []
@@ -266,7 +283,7 @@ def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict
                 final_chunks.append(chunk)
                 final_scores.append(val + 0.05)
 
-    #3 ---
+    # 3 ---
     keywords = extract_keywords(query)
     if keywords:
         sparse_chunks = retrieve_by_keywords(keywords, top_k=30)
@@ -283,6 +300,8 @@ def rerank_separately_then_merge(query: str, top_k: int = 30) -> Tuple[List[Dict
                 final_scores.append(val + 0.02)
 
     # finalboost
-    final_scores = dynamic_keyword_boost(query, final_chunks, final_scores, boost_amount=0.15)
+    final_scores = dynamic_keyword_boost(
+        query, final_chunks, final_scores, boost_amount=0.15
+    )
 
     return final_chunks, final_scores

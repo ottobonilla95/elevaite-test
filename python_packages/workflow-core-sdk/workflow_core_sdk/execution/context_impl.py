@@ -87,7 +87,10 @@ class ExecutionContext:
         # Convert dict to typed WorkflowConfig if needed
         if isinstance(workflow_config, dict):
             # Ensure we have a valid workflow_id before validation
-            if "workflow_id" not in workflow_config or workflow_config["workflow_id"] is None:
+            if (
+                "workflow_id" not in workflow_config
+                or workflow_config["workflow_id"] is None
+            ):
                 workflow_config = {**workflow_config, "workflow_id": str(uuid.uuid4())}
             self._config = WorkflowConfig.model_validate(workflow_config)
         else:
@@ -95,7 +98,9 @@ class ExecutionContext:
             # Ensure workflow_id is set
             if self._config.workflow_id is None:
                 # Create a copy with workflow_id set
-                self._config = self._config.model_copy(update={"workflow_id": str(uuid.uuid4())})
+                self._config = self._config.model_copy(
+                    update={"workflow_id": str(uuid.uuid4())}
+                )
 
         # Core identifiers
         self.execution_id = execution_id or str(uuid.uuid4())
@@ -121,7 +126,9 @@ class ExecutionContext:
         self.step_results: Dict[str, StepResult] = {}
         self.completed_steps: Set[str] = set()
         self.failed_steps: Set[str] = set()
-        self.pending_steps: Set[str] = {step.step_id for step in self.steps_config if step.step_id}
+        self.pending_steps: Set[str] = {
+            step.step_id for step in self.steps_config if step.step_id
+        }
 
         # Data flow between steps
         self.step_io_data: Dict[str, Any] = {}
@@ -204,7 +211,9 @@ class ExecutionContext:
         self.completed_at = datetime.now()
         self.metadata["completed_at"] = self.completed_at.isoformat()
         if self.started_at:
-            self.metadata["duration_ms"] = int((self.completed_at - self.started_at).total_seconds() * 1000)
+            self.metadata["duration_ms"] = int(
+                (self.completed_at - self.started_at).total_seconds() * 1000
+            )
 
         # Emit streaming event
         self._try_emit_status_event("completed")
@@ -216,7 +225,9 @@ class ExecutionContext:
         self.metadata["failed_at"] = self.completed_at.isoformat()
         self.metadata["error_message"] = error_message
         if self.started_at:
-            self.metadata["duration_ms"] = int((self.completed_at - self.started_at).total_seconds() * 1000)
+            self.metadata["duration_ms"] = int(
+                (self.completed_at - self.started_at).total_seconds() * 1000
+            )
 
         # Emit streaming event
         self._try_emit_error_event(error_message)
@@ -242,7 +253,11 @@ class ExecutionContext:
         # Read input_mapping from top-level first, then fall back to config.input_mapping
         # The streaming endpoint writes expanded mappings to top-level, but workflows
         # stored in DB may have the original $prev references in config.input_mapping
-        input_mapping = step_config.input_mapping or step_config.config.get("input_mapping") if step_config.config else {}
+        input_mapping = (
+            step_config.input_mapping or step_config.config.get("input_mapping")
+            if step_config.config
+            else {}
+        )
         input_mapping = input_mapping or {}
         input_data = {}
 
@@ -324,7 +339,9 @@ class ExecutionContext:
 
     def get_ready_steps(self) -> List[str]:
         """Get list of steps that are ready to execute"""
-        return [step_id for step_id in self.pending_steps if self.can_execute_step(step_id)]
+        return [
+            step_id for step_id in self.pending_steps if self.can_execute_step(step_id)
+        ]
 
     def is_execution_complete(self) -> bool:
         """Check if the workflow execution is complete"""
@@ -363,7 +380,9 @@ class ExecutionContext:
             "pending_steps": len(self.pending_steps),
             "total_steps": len(self.steps_config),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
+            "completed_at": (
+                self.completed_at.isoformat() if self.completed_at else None
+            ),
             "error_message": self.metadata.get("error_message"),
             "analytics_ids": {
                 "execution_id": self.analytics_ids.execution_id,
@@ -451,7 +470,9 @@ class ExecutionContext:
     async def _emit_status_event(self, status: str) -> None:
         """Emit a status change event to streaming connections"""
         try:
-            logger.info(f"=== EMITTING STATUS EVENT: {status} for execution {self.execution_id} ===")
+            logger.info(
+                f"=== EMITTING STATUS EVENT: {status} for execution {self.execution_id} ==="
+            )
             event = create_status_event(
                 execution_id=self.execution_id,
                 status=status,
@@ -470,12 +491,18 @@ class ExecutionContext:
             logger.error(f"=== FAILED TO EMIT STATUS EVENT: {e} ===")
             pass
 
-    async def _emit_step_event(self, step_id: str, step_status: str, step_result: "StepResult") -> None:
+    async def _emit_step_event(
+        self, step_id: str, step_status: str, step_result: "StepResult"
+    ) -> None:
         """Emit a step execution event to streaming connections"""
         try:
             event_data = {
-                "step_type": step_result.step_type if hasattr(step_result, "step_type") else None,
-                "duration_ms": step_result.duration_ms if hasattr(step_result, "duration_ms") else None,
+                "step_type": step_result.step_type
+                if hasattr(step_result, "step_type")
+                else None,
+                "duration_ms": step_result.duration_ms
+                if hasattr(step_result, "duration_ms")
+                else None,
             }
             # Include output_data so clients (CLI/UI) can render assistant text and waiting payloads
             try:
@@ -504,7 +531,9 @@ class ExecutionContext:
         """Emit an error event to streaming connections"""
         try:
             event = create_error_event(
-                execution_id=self.execution_id, error_message=error_message, workflow_id=self.workflow_id
+                execution_id=self.execution_id,
+                error_message=error_message,
+                workflow_id=self.workflow_id,
             )
             await stream_manager.emit_execution_event(event)
             if self.workflow_id:
@@ -533,13 +562,17 @@ class ExecutionContext:
             logger.error(f"=== ERROR TRYING TO EMIT STATUS EVENT: {e} ===")
             pass
 
-    def _try_emit_step_event(self, step_id: str, step_status: str, step_result: "StepResult") -> None:
+    def _try_emit_step_event(
+        self, step_id: str, step_status: str, step_result: "StepResult"
+    ) -> None:
         """Safely try to emit a step event"""
         try:
             # Only emit if there's an active event loop
             loop = asyncio.get_running_loop()
             if loop and not loop.is_closed():
-                asyncio.create_task(self._emit_step_event(step_id, step_status, step_result))
+                asyncio.create_task(
+                    self._emit_step_event(step_id, step_status, step_result)
+                )
         except RuntimeError:
             # No active event loop, skip streaming
             pass

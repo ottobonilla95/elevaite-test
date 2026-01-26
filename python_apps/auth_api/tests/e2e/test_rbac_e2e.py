@@ -84,7 +84,9 @@ class RbacTestClient:
             response.raise_for_status()
             return response.json()
 
-    async def create_role(self, name: str, base_type: str, scope_type: str, description: str = None) -> dict:
+    async def create_role(
+        self, name: str, base_type: str, scope_type: str, description: str = None
+    ) -> dict:
         """Create a new role."""
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -113,7 +115,9 @@ class RbacTestClient:
             response.raise_for_status()
             return response.json()
 
-    async def create_group(self, organization_id: str, name: str, description: str = None) -> dict:
+    async def create_group(
+        self, organization_id: str, name: str, description: str = None
+    ) -> dict:
         """Create a new group."""
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -231,7 +235,9 @@ class TestRbacRoleManagement:
         assert role["is_system"] is False
 
     @pytest.mark.asyncio
-    async def test_create_role_as_regular_user_forbidden(self, rbac_client, regular_user_credentials):
+    async def test_create_role_as_regular_user_forbidden(
+        self, rbac_client, regular_user_credentials
+    ):
         """Test that regular users cannot create roles."""
         await rbac_client.login(
             regular_user_credentials["email"],
@@ -290,7 +296,9 @@ class TestRbacGroupManagement:
         assert group_name in group_names
 
     @pytest.mark.asyncio
-    async def test_create_group_as_regular_user_forbidden(self, rbac_client, regular_user_credentials):
+    async def test_create_group_as_regular_user_forbidden(
+        self, rbac_client, regular_user_credentials
+    ):
         """Test that regular users cannot create groups.
 
         Note: The API may return 404 if the organization doesn't exist (checked first)

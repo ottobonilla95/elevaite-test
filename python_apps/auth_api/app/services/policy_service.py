@@ -45,7 +45,9 @@ class PolicyService:
                     logger.info(f"Successfully uploaded policy: {module_name}")
                     return True
                 else:
-                    logger.error(f"Failed to upload policy {module_name}: {response.status_code} - {response.text}")
+                    logger.error(
+                        f"Failed to upload policy {module_name}: {response.status_code} - {response.text}"
+                    )
                     return False
 
         except Exception as e:
@@ -73,7 +75,9 @@ class PolicyService:
                     logger.warning(f"Policy not found: {module_name}")
                     return None
                 else:
-                    logger.error(f"Error getting policy {module_name}: {response.status_code} - {response.text}")
+                    logger.error(
+                        f"Error getting policy {module_name}: {response.status_code} - {response.text}"
+                    )
                     return None
 
         except Exception as e:
@@ -98,7 +102,9 @@ class PolicyService:
                     logger.info(f"Successfully deleted policy: {module_name}")
                     return True
                 else:
-                    logger.error(f"Failed to delete policy {module_name}: {response.status_code} - {response.text}")
+                    logger.error(
+                        f"Failed to delete policy {module_name}: {response.status_code} - {response.text}"
+                    )
                     return False
 
         except Exception as e:
@@ -119,10 +125,15 @@ class PolicyService:
                 if response.status_code == 200:
                     result = response.json().get("result", {})
                     # Convert to list of dicts with module name and ID
-                    policies = [{"id": policy_id, "name": policy_id} for policy_id in result.keys()]
+                    policies = [
+                        {"id": policy_id, "name": policy_id}
+                        for policy_id in result.keys()
+                    ]
                     return policies
                 else:
-                    logger.error(f"Error listing policies: {response.status_code} - {response.text}")
+                    logger.error(
+                        f"Error listing policies: {response.status_code} - {response.text}"
+                    )
                     return []
 
         except Exception as e:
@@ -154,7 +165,11 @@ class PolicyService:
                     await self.delete_policy(test_module)
                     return True, None
                 else:
-                    error_msg = response.json().get("errors", [{}])[0].get("message", "Unknown syntax error")
+                    error_msg = (
+                        response.json()
+                        .get("errors", [{}])[0]
+                        .get("message", "Unknown syntax error")
+                    )
                     return False, error_msg
 
         except Exception as e:

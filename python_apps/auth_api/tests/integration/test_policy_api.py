@@ -37,11 +37,11 @@ def app(mock_superuser, mock_policy_service):
     """Create a test FastAPI app with dependency overrides"""
     test_app = FastAPI()
     test_app.include_router(policies.router, prefix="/api", tags=["policies"])
-    
+
     # Override dependencies
     test_app.dependency_overrides[get_current_superuser] = lambda: mock_superuser
     test_app.dependency_overrides[get_policy_service] = lambda: mock_policy_service
-    
+
     return test_app
 
 
@@ -84,7 +84,9 @@ class TestPolicyGenerateEndpoint:
 
     def test_generate_policy_invalid_syntax(self, client, mock_policy_service):
         """Test policy generation with invalid syntax"""
-        mock_policy_service.generate_service_policy = AsyncMock(return_value="invalid rego")
+        mock_policy_service.generate_service_policy = AsyncMock(
+            return_value="invalid rego"
+        )
         mock_policy_service.validate_rego_syntax = AsyncMock(
             return_value=(False, "syntax error")
         )
@@ -190,4 +192,3 @@ class TestPolicyDeleteEndpoint:
 
         assert response.status_code == 500
         assert "Failed to delete policy" in response.json()["detail"]
-

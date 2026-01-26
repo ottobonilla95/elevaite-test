@@ -85,7 +85,10 @@ class ExecutionContext:
         # Convert dict to typed WorkflowConfig if needed
         if isinstance(workflow_config, dict):
             # Ensure we have a valid workflow_id before validation
-            if "workflow_id" not in workflow_config or workflow_config["workflow_id"] is None:
+            if (
+                "workflow_id" not in workflow_config
+                or workflow_config["workflow_id"] is None
+            ):
                 workflow_config = {**workflow_config, "workflow_id": str(uuid.uuid4())}
             self._config = WorkflowConfig.model_validate(workflow_config)
         else:
@@ -93,7 +96,9 @@ class ExecutionContext:
             # Ensure workflow_id is set
             if self._config.workflow_id is None:
                 # Create a copy with workflow_id set
-                self._config = self._config.model_copy(update={"workflow_id": str(uuid.uuid4())})
+                self._config = self._config.model_copy(
+                    update={"workflow_id": str(uuid.uuid4())}
+                )
 
         # Core identifiers
         self.execution_id = execution_id or str(uuid.uuid4())
@@ -119,7 +124,9 @@ class ExecutionContext:
         self.step_results: Dict[str, StepResult] = {}
         self.completed_steps: Set[str] = set()
         self.failed_steps: Set[str] = set()
-        self.pending_steps: Set[str] = {step.step_id for step in self.steps_config if step.step_id}
+        self.pending_steps: Set[str] = {
+            step.step_id for step in self.steps_config if step.step_id
+        }
 
         # Data flow between steps
         self.step_io_data: Dict[str, Any] = {}
@@ -202,7 +209,9 @@ class ExecutionContext:
         self.completed_at = datetime.now()
         self.metadata["completed_at"] = self.completed_at.isoformat()
         if self.started_at:
-            self.metadata["duration_ms"] = int((self.completed_at - self.started_at).total_seconds() * 1000)
+            self.metadata["duration_ms"] = int(
+                (self.completed_at - self.started_at).total_seconds() * 1000
+            )
 
         # Emit streaming event
         self._try_emit_status_event("completed")
@@ -214,7 +223,9 @@ class ExecutionContext:
         self.metadata["failed_at"] = self.completed_at.isoformat()
         self.metadata["error_message"] = error_message
         if self.started_at:
-            self.metadata["duration_ms"] = int((self.completed_at - self.started_at).total_seconds() * 1000)
+            self.metadata["duration_ms"] = int(
+                (self.completed_at - self.started_at).total_seconds() * 1000
+            )
 
         # Emit streaming event
         self._try_emit_error_event(error_message)
@@ -259,11 +270,15 @@ class ExecutionContext:
                     source_data = self.step_io_data[source_step_id]
                     if isinstance(source_data, dict) and field_name in source_data:
                         input_data[input_key] = source_data[field_name]
-                        logger.debug(f"  Mapped {input_key} <- {source_spec} (field found)")
+                        logger.debug(
+                            f"  Mapped {input_key} <- {source_spec} (field found)"
+                        )
                     else:
                         # If field doesn't exist, use the whole source data
                         input_data[input_key] = source_data
-                        logger.debug(f"  Mapped {input_key} <- {source_spec} (field not found, using whole data)")
+                        logger.debug(
+                            f"  Mapped {input_key} <- {source_spec} (field not found, using whole data)"
+                        )
                 else:
                     logger.warning(
                         f"  Could not map {input_key} <- {source_spec}: source step '{source_step_id}' not in step_io_data"
@@ -271,13 +286,17 @@ class ExecutionContext:
             elif isinstance(source_spec, str) and source_spec in self.step_io_data:
                 # Direct step reference
                 input_data[input_key] = self.step_io_data[source_spec]
-                logger.debug(f"  Mapped {input_key} <- {source_spec} (direct step reference)")
+                logger.debug(
+                    f"  Mapped {input_key} <- {source_spec} (direct step reference)"
+                )
             elif isinstance(source_spec, str) and source_spec in self.global_variables:
                 # Global variable reference
                 input_data[input_key] = self.global_variables[source_spec]
                 logger.debug(f"  Mapped {input_key} <- {source_spec} (global variable)")
             else:
-                logger.warning(f"  Could not map {input_key} <- {source_spec}: not found in step_io_data or global_variables")
+                logger.warning(
+                    f"  Could not map {input_key} <- {source_spec}: not found in step_io_data or global_variables"
+                )
 
         # Add any direct input_data from step config (check if it exists in config dict)
         step_config_dict = step_config.config if step_config.config else {}
@@ -285,7 +304,9 @@ class ExecutionContext:
             input_data.update(step_config_dict["input_data"])
             logger.debug("  Added direct input_data from step config")
 
-        logger.info(f"get_step_input_data({step_id}): resolved input_data keys={list(input_data.keys())}")
+        logger.info(
+            f"get_step_input_data({step_id}): resolved input_data keys={list(input_data.keys())}"
+        )
         return input_data
 
     def store_step_result(self, step_result: StepResult) -> None:
@@ -334,7 +355,9 @@ class ExecutionContext:
 
         # Input nodes: ready when data is available (no dependencies allowed)
         if step_type == "input":
-            return not deps and (step_id in self.step_io_data or "trigger_raw" in self.step_io_data)
+            return not deps and (
+                step_id in self.step_io_data or "trigger_raw" in self.step_io_data
+            )
 
         # Merge nodes: OR logic for first_available, AND logic for wait_all
         if step_type == "merge":
@@ -357,7 +380,9 @@ class ExecutionContext:
 
     def get_ready_steps(self) -> List[str]:
         """Get list of steps that are ready to execute"""
-        return [step_id for step_id in self.pending_steps if self.can_execute_step(step_id)]
+        return [
+            step_id for step_id in self.pending_steps if self.can_execute_step(step_id)
+        ]
 
     def is_execution_complete(self) -> bool:
         """Check if the workflow execution is complete"""
@@ -396,7 +421,9 @@ class ExecutionContext:
             "pending_steps": len(self.pending_steps),
             "total_steps": len(self.steps_config),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
+            "completed_at": (
+                self.completed_at.isoformat() if self.completed_at else None
+            ),
             "error_message": self.metadata.get("error_message"),
             "analytics_ids": {
                 "execution_id": self.analytics_ids.execution_id,
@@ -499,12 +526,18 @@ class ExecutionContext:
             # Don't let streaming errors break execution
             pass
 
-    async def _emit_step_event(self, step_id: str, step_status: str, step_result: "StepResult") -> None:
+    async def _emit_step_event(
+        self, step_id: str, step_status: str, step_result: "StepResult"
+    ) -> None:
         """Emit a step execution event to streaming connections"""
         try:
             event_data = {
-                "step_type": step_result.step_type if hasattr(step_result, "step_type") else None,
-                "duration_ms": step_result.duration_ms if hasattr(step_result, "duration_ms") else None,
+                "step_type": step_result.step_type
+                if hasattr(step_result, "step_type")
+                else None,
+                "duration_ms": step_result.duration_ms
+                if hasattr(step_result, "duration_ms")
+                else None,
             }
             # Include output_data so clients (CLI/UI) can render assistant text and waiting payloads
             try:
@@ -533,7 +566,9 @@ class ExecutionContext:
         """Emit an error event to streaming connections"""
         try:
             event = create_error_event(
-                execution_id=self.execution_id, error_message=error_message, workflow_id=self.workflow_id
+                execution_id=self.execution_id,
+                error_message=error_message,
+                workflow_id=self.workflow_id,
             )
             await stream_manager.emit_execution_event(event)
             if self.workflow_id:
@@ -556,13 +591,17 @@ class ExecutionContext:
             # Don't let streaming errors break execution
             pass
 
-    def _try_emit_step_event(self, step_id: str, step_status: str, step_result: "StepResult") -> None:
+    def _try_emit_step_event(
+        self, step_id: str, step_status: str, step_result: "StepResult"
+    ) -> None:
         """Safely try to emit a step event"""
         try:
             # Only emit if there's an active event loop
             loop = asyncio.get_running_loop()
             if loop and not loop.is_closed():
-                asyncio.create_task(self._emit_step_event(step_id, step_status, step_result))
+                asyncio.create_task(
+                    self._emit_step_event(step_id, step_status, step_result)
+                )
         except RuntimeError:
             # No active event loop, skip streaming
             pass

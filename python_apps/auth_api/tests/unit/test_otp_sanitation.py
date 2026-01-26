@@ -10,7 +10,6 @@ from app.services.email_service import (
 
 
 class TestOTPGeneration:
-
     def test_generate_multiple_passwords(self):
         """Generate multiple passwords and analyze them for potential problematic characters."""
         # Generate a large sample of passwords
@@ -26,7 +25,7 @@ class TestOTPGeneration:
         # Print some sample passwords
         print("\nSample generated passwords:")
         for i in range(min(10, num_samples)):
-            print(f"  {i+1}. {passwords[i]}")
+            print(f"  {i + 1}. {passwords[i]}")
 
         for password in passwords:
             # Count special characters
@@ -125,9 +124,9 @@ class TestOTPEmailRendering:
 
             # Check if the password appears correctly in the email
             # For text part
-            assert (
-                password in email_content
-            ), f"Password '{password}' not found in email content"
+            assert password in email_content, (
+                f"Password '{password}' not found in email content"
+            )
 
             # For HTML part (this is more complex as it might be encoded)
             # Extract the HTML part
@@ -168,9 +167,7 @@ class TestOTPEmailRendering:
             # Call the function
             email = "test@example.com"
             name = "Test User"
-            await send_password_reset_email_with_new_password(
-                email, name, password
-            )
+            await send_password_reset_email_with_new_password(email, name, password)
 
             # Check that send_email was called with the correct arguments
             assert mock_send_email.called
@@ -181,9 +178,9 @@ class TestOTPEmailRendering:
             html_body = call_args[3]
 
             # Check text body
-            assert (
-                password in text_body
-            ), f"Password '{password}' not found in text body"
+            assert password in text_body, (
+                f"Password '{password}' not found in text body"
+            )
 
             # For HTML body, we need to check if the password is properly escaped
             # Extract the password from the HTML
@@ -207,16 +204,16 @@ class TestOTPEmailRendering:
                         or password in html_password_section
                     ), f"Password '{password}' not properly escaped in HTML"
                 else:
-                    assert (
-                        password in html_password_section
-                    ), f"Password '{password}' not found in HTML section"
+                    assert password in html_password_section, (
+                        f"Password '{password}' not found in HTML section"
+                    )
             else:
                 # If we can't find the styled paragraph, just check if the password is in the HTML
                 from html import escape as _escape
 
-                assert (
-                    password in html_body or _escape(password) in html_body
-                ), f"Password '{password}' not found in HTML body"
+                assert password in html_body or _escape(password) in html_body, (
+                    f"Password '{password}' not found in HTML body"
+                )
 
             # Reset the mock for the next iteration
             mock_send_email.reset_mock()

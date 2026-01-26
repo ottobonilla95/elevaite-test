@@ -100,7 +100,9 @@ async def lifespan(app: FastAPI):
         logger.warning("⚠️  Falling back to non-tenant database mode")
 
     # Tables should be created via migrations (Alembic)
-    logger.info("✅ Database schemas initialized. Tables expected to exist from migrations.")
+    logger.info(
+        "✅ Database schemas initialized. Tables expected to exist from migrations."
+    )
 
     # Initialize step registry using SDK
     logger.info("Initializing step registry from SDK...")

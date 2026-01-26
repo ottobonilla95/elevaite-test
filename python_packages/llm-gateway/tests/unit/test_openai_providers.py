@@ -9,7 +9,9 @@ from llm_gateway.models.vision.openai import OpenAIVisionProvider
 from llm_gateway.models.embeddings.core.interfaces import EmbeddingInfo, EmbeddingType
 
 
-def _create_responses_api_mock(text_content="", tool_calls=None, tokens_in=10, tokens_out=5):
+def _create_responses_api_mock(
+    text_content="", tool_calls=None, tokens_in=10, tokens_out=5
+):
     """Helper to create a mock Responses API response."""
     mock_response = Mock()
     mock_response.output = []
@@ -79,7 +81,13 @@ class TestOpenAITextGenerationProvider:
         """Test text generation with tool calls using Responses API"""
         mock_response = _create_responses_api_mock(
             text_content="",
-            tool_calls=[{"id": "call_123", "name": "get_weather", "arguments": '{"location": "NYC"}'}],
+            tool_calls=[
+                {
+                    "id": "call_123",
+                    "name": "get_weather",
+                    "arguments": '{"location": "NYC"}',
+                }
+            ],
             tokens_in=20,
             tokens_out=10,
         )
@@ -152,7 +160,9 @@ class TestOpenAITextGenerationProvider:
         provider = OpenAITextGenerationProvider(api_key="test-key")
         provider.client.responses.create = Mock(side_effect=Exception("API Error"))
 
-        with pytest.raises(RuntimeError, match="Text generation failed after 1 attempts"):
+        with pytest.raises(
+            RuntimeError, match="Text generation failed after 1 attempts"
+        ):
             provider.generate_text(
                 model_name="gpt-4o",
                 temperature=0.7,
@@ -183,7 +193,9 @@ class TestOpenAITextGenerationProvider:
 
         # Create a context manager mock for streaming
         mock_stream = Mock()
-        mock_stream.__enter__ = Mock(return_value=iter([mock_event1, mock_event2, mock_event3]))
+        mock_stream.__enter__ = Mock(
+            return_value=iter([mock_event1, mock_event2, mock_event3])
+        )
         mock_stream.__exit__ = Mock(return_value=False)
 
         provider = OpenAITextGenerationProvider(api_key="test-key")
@@ -238,7 +250,9 @@ class TestOpenAITextGenerationProvider:
         call_args = provider.client.responses.create.call_args
         assert "tools" in call_args.kwargs
         tools = call_args.kwargs["tools"]
-        file_search_tool = next((t for t in tools if t.get("type") == "file_search"), None)
+        file_search_tool = next(
+            (t for t in tools if t.get("type") == "file_search"), None
+        )
         assert file_search_tool is not None
         assert file_search_tool["vector_store_ids"] == ["vs_123"]
 
@@ -287,7 +301,9 @@ class TestOpenAITextGenerationProvider:
         call_args = provider.client.responses.create.call_args
         assert "tools" in call_args.kwargs
         tools = call_args.kwargs["tools"]
-        file_search_tool = next((t for t in tools if t.get("type") == "file_search"), None)
+        file_search_tool = next(
+            (t for t in tools if t.get("type") == "file_search"), None
+        )
         assert file_search_tool is not None
         assert "vs_auto_123" in file_search_tool["vector_store_ids"]
 
@@ -329,7 +345,9 @@ class TestOpenAIEmbeddingProvider:
         mock_response2.usage.total_tokens = 4
 
         provider = OpenAIEmbeddingProvider(api_key="test-key")
-        provider.client.embeddings.create = Mock(side_effect=[mock_response1, mock_response2])
+        provider.client.embeddings.create = Mock(
+            side_effect=[mock_response1, mock_response2]
+        )
 
         info = EmbeddingInfo(type=EmbeddingType.OPENAI, name="text-embedding-ada-002")
         result = provider.embed_documents(texts=["First doc", "Second doc"], info=info)
@@ -388,7 +406,9 @@ class TestOpenAIVisionProvider:
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message = Mock()
-        mock_response.choices[0].message.content = "The first image shows a cat, the second shows a dog"
+        mock_response.choices[
+            0
+        ].message.content = "The first image shows a cat, the second shows a dog"
         mock_response.choices[0].finish_reason = "stop"
         mock_response.usage = Mock()
         mock_response.usage.prompt_tokens = 200
@@ -415,9 +435,13 @@ class TestOpenAIVisionProvider:
     def test_generate_text_api_error(self):
         """Test handling of API errors"""
         provider = OpenAIVisionProvider(api_key="test-key")
-        provider.client.chat.completions.create = Mock(side_effect=Exception("API Error"))
+        provider.client.chat.completions.create = Mock(
+            side_effect=Exception("API Error")
+        )
 
-        with pytest.raises(RuntimeError, match="Image processing failed after 1 attempts"):
+        with pytest.raises(
+            RuntimeError, match="Image processing failed after 1 attempts"
+        ):
             provider.generate_text(
                 images=["https://example.com/cat.jpg"],
                 model_name="gpt-4o",

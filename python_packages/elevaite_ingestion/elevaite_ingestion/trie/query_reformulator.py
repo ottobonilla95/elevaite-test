@@ -15,6 +15,7 @@ for abbr, full in abbreviations.items():
     trie.insert(abbr, full)
     trie.insert(full, abbr)
 
+
 def extract_abbreviation_expansions(query: str) -> dict:
     words = query.split()
     matches = {}
@@ -31,11 +32,16 @@ def extract_abbreviation_expansions(query: str) -> dict:
                     matches[phrase] = mapped_value
     return matches
 
-def reformulate_query_with_llm(original_query: str, abbreviation_expansions: dict, openai_model="gpt-4o") -> str:
+
+def reformulate_query_with_llm(
+    original_query: str, abbreviation_expansions: dict, openai_model="gpt-4o"
+) -> str:
     if not abbreviation_expansions:
         return original_query
 
-    expansion_context = ", ".join(f"{k} = {v}" for k, v in abbreviation_expansions.items())
+    expansion_context = ", ".join(
+        f"{k} = {v}" for k, v in abbreviation_expansions.items()
+    )
 
     system_prompt = """
 You are a helpful AI assistant for query rewriting.
@@ -58,12 +64,13 @@ Rewritten Query:
         model=openai_model,
         messages=[
             {"role": "system", "content": system_prompt.strip()},
-            {"role": "user", "content": user_prompt.strip()}
+            {"role": "user", "content": user_prompt.strip()},
         ],
-        temperature=0.2
+        temperature=0.2,
     )
 
     return response.choices[0].message.content.strip()
+
 
 if __name__ == "__main__":
     query = "for sco, provide assembly list"
@@ -79,5 +86,5 @@ if __name__ == "__main__":
     end_time_2 = time.time()
 
     print("\n==> Reformulated Query:", rewritten)
-    print(f"==> Matching time: {(end_time_1 - start_time_1)*1000:.3f} ms")
-    print(f"==> Reformulation time: {(end_time_2 - start_time_2)*1000:.3f} ms")
+    print(f"==> Matching time: {(end_time_1 - start_time_1) * 1000:.3f} ms")
+    print(f"==> Reformulation time: {(end_time_2 - start_time_2) * 1000:.3f} ms")

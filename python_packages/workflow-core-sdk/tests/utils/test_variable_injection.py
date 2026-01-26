@@ -27,7 +27,9 @@ class TestVariablePattern:
 
     def test_multiple_variables(self):
         """Test matching multiple variables."""
-        matches = VARIABLE_PATTERN.findall("{{greeting}} {{name}}, time is {{current_time}}")
+        matches = VARIABLE_PATTERN.findall(
+            "{{greeting}} {{name}}, time is {{current_time}}"
+        )
         assert len(matches) == 3
         assert "greeting" in [m.strip() for m in matches]
         assert "name" in [m.strip() for m in matches]
@@ -147,7 +149,9 @@ class TestResolveVariable:
     def test_resolve_dot_notation_with_context(self):
         """Test resolving dot notation with execution context."""
         mock_context = MagicMock()
-        mock_context.step_io_data = {"step_1": {"output": "step output value", "count": 42}}
+        mock_context.step_io_data = {
+            "step_1": {"output": "step output value", "count": 42}
+        }
         result = resolve_variable("step_1.output", {}, mock_context)
         assert result == "step output value"
 
@@ -174,7 +178,9 @@ class TestInjectVariables:
 
     def test_inject_multiple_variables(self):
         """Test injecting multiple variables."""
-        result = inject_variables("{{greeting}} {{name}}!", {"greeting": "Hello", "name": "Bob"})
+        result = inject_variables(
+            "{{greeting}} {{name}}!", {"greeting": "Hello", "name": "Bob"}
+        )
         assert result == "Hello Bob!"
 
     def test_inject_builtin_variable(self):
@@ -184,7 +190,9 @@ class TestInjectVariables:
 
     def test_inject_mixed_custom_and_builtin(self):
         """Test injecting both custom and built-in variables."""
-        result = inject_variables("Hello {{name}}, year is {{current_year}}", {"name": "Alice"})
+        result = inject_variables(
+            "Hello {{name}}, year is {{current_year}}", {"name": "Alice"}
+        )
         assert "Hello Alice" in result
         assert str(datetime.now().year) in result
 
@@ -219,7 +227,9 @@ class TestInjectVariables:
         mock_context = MagicMock()
         mock_context.step_io_data = {"step_1": {"result": "success"}}
 
-        result = inject_variables("Status: {{step_1.result}}", {}, execution_context=mock_context)
+        result = inject_variables(
+            "Status: {{step_1.result}}", {}, execution_context=mock_context
+        )
         assert result == "Status: success"
 
     def test_inject_numeric_value(self):
@@ -236,7 +246,9 @@ Previous step output: {{prev_step.data}}."""
         mock_context = MagicMock()
         mock_context.step_io_data = {"prev_step": {"data": "important info"}}
 
-        result = inject_variables(template, {"user_name": "Alice"}, execution_context=mock_context)
+        result = inject_variables(
+            template, {"user_name": "Alice"}, execution_context=mock_context
+        )
 
         assert "User name: Alice" in result
         assert "Previous step output: important info" in result

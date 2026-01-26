@@ -6,8 +6,6 @@ Uses conftest.py fixtures for proper database and DBOS mocking.
 """
 
 
-
-
 class TestEndToEndJobFlow:
     """End-to-end tests for complete job lifecycle"""
 

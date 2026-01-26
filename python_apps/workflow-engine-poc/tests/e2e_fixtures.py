@@ -107,13 +107,21 @@ WORKFLOWS: Mapping[str, Dict[str, Any]] = {
     "interactive_agent1_only": {
         "name": "Interactive Agent 1 Only",
         "description": "Agent 1 pauses for user input, Agent 2 runs to analyze.",
-        "steps": [deepcopy(CHAT_TRIGGER_STEP), deepcopy(AGENT1_INTERACTIVE_STEP), deepcopy(AGENT2_NON_INTERACTIVE_STEP)],
+        "steps": [
+            deepcopy(CHAT_TRIGGER_STEP),
+            deepcopy(AGENT1_INTERACTIVE_STEP),
+            deepcopy(AGENT2_NON_INTERACTIVE_STEP),
+        ],
     },
     # Both agents are interactive and multi-turn
     "interactive_two_agents": {
         "name": "Interactive Two Agents",
         "description": "Agent 1 pauses for user input, Agent 2 depends on Agent 1 and pauses as well.",
-        "steps": [deepcopy(CHAT_TRIGGER_STEP), deepcopy(AGENT1_INTERACTIVE_STEP), deepcopy(AGENT2_INTERACTIVE_STEP)],
+        "steps": [
+            deepcopy(CHAT_TRIGGER_STEP),
+            deepcopy(AGENT1_INTERACTIVE_STEP),
+            deepcopy(AGENT2_INTERACTIVE_STEP),
+        ],
     },
 }
 
@@ -132,4 +140,3 @@ def build_workflow(key: str, overrides: Dict[str, Any] | None = None) -> Dict[st
 def list_workflows() -> list[str]:
     """List available workflow fixture keys."""
     return list(WORKFLOWS.keys())
-

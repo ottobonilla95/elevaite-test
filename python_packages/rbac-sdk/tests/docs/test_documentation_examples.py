@@ -113,10 +113,16 @@ class TestUsagePatterns:
 
     def test_pattern3_custom_principal_resolver(self):
         """Test Pattern 3: Custom Principal Resolver."""
-        from rbac_sdk import principal_resolvers, require_permission_async, resource_builders
+        from rbac_sdk import (
+            principal_resolvers,
+            require_permission_async,
+            resource_builders,
+        )
 
         # Use custom header for user ID
-        custom_resolver = principal_resolvers.user_id_header(header_name="X-Custom-User")
+        custom_resolver = principal_resolvers.user_id_header(
+            header_name="X-Custom-User"
+        )
 
         guard = require_permission_async(
             action="view_project",
@@ -129,7 +135,12 @@ class TestUsagePatterns:
 
     def test_pattern4_api_key_validation_with_caching(self):
         """Test Pattern 4: API Key Validation with Caching."""
-        from rbac_sdk import api_key_http_validator, principal_resolvers, require_permission_async, resource_builders
+        from rbac_sdk import (
+            api_key_http_validator,
+            principal_resolvers,
+            require_permission_async,
+            resource_builders,
+        )
 
         # Create validator with caching (60s TTL)
         validator = api_key_http_validator(
@@ -141,7 +152,9 @@ class TestUsagePatterns:
         guard = require_permission_async(
             action="view_project",
             resource_builder=resource_builders.project_from_headers(),
-            principal_resolver=principal_resolvers.api_key_or_user(validate_api_key=validator),
+            principal_resolver=principal_resolvers.api_key_or_user(
+                validate_api_key=validator
+            ),
         )
 
         assert guard is not None
@@ -149,7 +162,12 @@ class TestUsagePatterns:
 
     def test_pattern5_jwt_api_key_validation(self):
         """Test Pattern 5: JWT API Key Validation."""
-        from rbac_sdk import api_key_jwt_validator, principal_resolvers, require_permission_async, resource_builders
+        from rbac_sdk import (
+            api_key_jwt_validator,
+            principal_resolvers,
+            require_permission_async,
+            resource_builders,
+        )
 
         # Create JWT validator
         validator = api_key_jwt_validator(
@@ -161,7 +179,9 @@ class TestUsagePatterns:
         guard = require_permission_async(
             action="view_project",
             resource_builder=resource_builders.project_from_headers(),
-            principal_resolver=principal_resolvers.api_key_or_user(validate_api_key=validator),
+            principal_resolver=principal_resolvers.api_key_or_user(
+                validate_api_key=validator
+            ),
         )
 
         assert guard is not None
@@ -223,7 +243,11 @@ class TestAPIReferenceExamples:
     @pytest.mark.asyncio
     async def test_require_permission_async_example(self):
         """Test require_permission_async example."""
-        from rbac_sdk import require_permission_async, resource_builders, principal_resolvers
+        from rbac_sdk import (
+            require_permission_async,
+            resource_builders,
+            principal_resolvers,
+        )
 
         guard = require_permission_async(
             action="view_project",
@@ -389,7 +413,11 @@ class TestPerformanceGuideExamples:
 
     def test_async_guard_example(self):
         """Test async guard example."""
-        from rbac_sdk import require_permission_async, resource_builders, principal_resolvers
+        from rbac_sdk import (
+            require_permission_async,
+            resource_builders,
+            principal_resolvers,
+        )
 
         # Async guard - non-blocking
         guard = require_permission_async(
@@ -420,7 +448,9 @@ class TestPerformanceGuideExamples:
         guard = require_permission_async(
             action="view_project",
             resource_builder=resource_builders.project_from_headers(),
-            principal_resolver=principal_resolvers.api_key_or_user(validate_api_key=validator),
+            principal_resolver=principal_resolvers.api_key_or_user(
+                validate_api_key=validator
+            ),
         )
 
         assert guard is not None

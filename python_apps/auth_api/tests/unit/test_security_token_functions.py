@@ -31,7 +31,9 @@ class TestTokenFunctions:
         assert len(token) > 0
 
         # Decode the token to verify its contents
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         assert payload["sub"] == str(subject)
         assert payload["tenant_id"] == tenant_id
         assert payload["type"] == "access"
@@ -50,7 +52,9 @@ class TestTokenFunctions:
         assert len(token) > 0
 
         # Decode the token to verify its contents
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         assert payload["sub"] == str(subject)
         assert payload["tenant_id"] == tenant_id
         assert payload["type"] == "refresh"
@@ -108,7 +112,9 @@ class TestTokenFunctions:
             expires_delta = timedelta(minutes=-10)  # Expired 10 minutes ago
 
             # Create token with custom expiration
-            token = create_access_token(subject=subject, tenant_id=tenant_id, expires_delta=expires_delta)
+            token = create_access_token(
+                subject=subject, tenant_id=tenant_id, expires_delta=expires_delta
+            )
 
             # Verify token - should raise an exception
             with pytest.raises(HTTPException) as excinfo:

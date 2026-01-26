@@ -12,4 +12,3 @@ class OrchestrationClient:
 
     async def report_status(self, execution_id: str, status: str) -> None:
         raise NotImplementedError
-

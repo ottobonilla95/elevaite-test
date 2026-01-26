@@ -8,7 +8,9 @@ from ...config.load_config import LOADING_CONFIG
 load_dotenv()
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
 logger = logging.getLogger()
 
 
@@ -32,7 +34,9 @@ def load_files_to_destination():
         if source_type == "s3":
             s3_config = LOADING_CONFIG["sources"].get("s3", {})
             bucket_name = s3_config.get("bucket_name")
-            input_directory = LOADING_CONFIG["sources"].get("local", {}).get("input_directory")
+            input_directory = (
+                LOADING_CONFIG["sources"].get("local", {}).get("input_directory")
+            )
 
             if not bucket_name:
                 logger.error("❌ No S3 bucket name found in config.")
@@ -53,7 +57,10 @@ def load_files_to_destination():
 
             with ThreadPoolExecutor(max_workers=5) as executor:
                 future_to_file = {
-                    executor.submit(upload_file_to_s3, file, bucket_name, os.path.basename(file)): file for file in files
+                    executor.submit(
+                        upload_file_to_s3, file, bucket_name, os.path.basename(file)
+                    ): file
+                    for file in files
                 }
 
                 for future in future_to_file:

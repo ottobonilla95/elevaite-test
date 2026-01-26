@@ -91,24 +91,51 @@ def servicenow_itsm_create_incident(
             payload["cmdb_ci"] = cmdb_ci
 
         response = requests.post(
-            f"{SERVICENOW_API_BASE}/incidents", json=payload, headers={"Content-Type": "application/json"}, timeout=30
+            f"{SERVICENOW_API_BASE}/incidents",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=30,
         )
 
         if response.status_code == 200:
-            return json.dumps({"success": True, "message": "Incident created successfully", "data": response.json()})
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": "Incident created successfully",
+                    "data": response.json(),
+                }
+            )
         else:
             return json.dumps(
-                {"success": False, "message": f"Failed to create incident: {response.status_code}", "error": response.text}
+                {
+                    "success": False,
+                    "message": f"Failed to create incident: {response.status_code}",
+                    "error": response.text,
+                }
             )
 
     except requests.exceptions.RequestException as e:
-        return json.dumps({"success": False, "message": f"Network error while creating incident: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Network error while creating incident: {str(e)}",
+                "error": str(e),
+            }
+        )
     except Exception as e:
-        return json.dumps({"success": False, "message": f"Unexpected error while creating incident: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Unexpected error while creating incident: {str(e)}",
+                "error": str(e),
+            }
+        )
 
 
 @function_schema
-def servicenow_itsm_get_incident(identifier: str, identifier_type: str = "sys_id") -> str:
+def servicenow_itsm_get_incident(
+    identifier: str, identifier_type: str = "sys_id"
+) -> str:
     """
     Retrieve a ServiceNow incident by sys_id or incident number.
 
@@ -125,22 +152,50 @@ def servicenow_itsm_get_incident(identifier: str, identifier_type: str = "sys_id
         else:
             endpoint = f"{SERVICENOW_API_BASE}/incidents/{identifier}"
 
-        response = requests.get(endpoint, headers={"Content-Type": "application/json"}, timeout=30)
+        response = requests.get(
+            endpoint, headers={"Content-Type": "application/json"}, timeout=30
+        )
 
         if response.status_code == 200:
-            return json.dumps({"success": True, "message": "Incident retrieved successfully", "data": response.json()})
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": "Incident retrieved successfully",
+                    "data": response.json(),
+                }
+            )
         elif response.status_code == 404:
-            return json.dumps({"success": False, "message": f"Incident not found: {identifier}", "error": "Incident not found"})
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Incident not found: {identifier}",
+                    "error": "Incident not found",
+                }
+            )
         else:
             return json.dumps(
-                {"success": False, "message": f"Failed to retrieve incident: {response.status_code}", "error": response.text}
+                {
+                    "success": False,
+                    "message": f"Failed to retrieve incident: {response.status_code}",
+                    "error": response.text,
+                }
             )
 
     except requests.exceptions.RequestException as e:
-        return json.dumps({"success": False, "message": f"Network error while retrieving incident: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Network error while retrieving incident: {str(e)}",
+                "error": str(e),
+            }
+        )
     except Exception as e:
         return json.dumps(
-            {"success": False, "message": f"Unexpected error while retrieving incident: {str(e)}", "error": str(e)}
+            {
+                "success": False,
+                "message": f"Unexpected error while retrieving incident: {str(e)}",
+                "error": str(e),
+            }
         )
 
 
@@ -194,22 +249,53 @@ def servicenow_itsm_update_incident(
             payload["close_notes"] = close_notes
 
         response = requests.put(
-            f"{SERVICENOW_API_BASE}/incidents/{sys_id}", json=payload, headers={"Content-Type": "application/json"}, timeout=30
+            f"{SERVICENOW_API_BASE}/incidents/{sys_id}",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=30,
         )
 
         if response.status_code == 200:
-            return json.dumps({"success": True, "message": "Incident updated successfully", "data": response.json()})
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": "Incident updated successfully",
+                    "data": response.json(),
+                }
+            )
         elif response.status_code == 404:
-            return json.dumps({"success": False, "message": f"Incident not found: {sys_id}", "error": "Incident not found"})
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Incident not found: {sys_id}",
+                    "error": "Incident not found",
+                }
+            )
         else:
             return json.dumps(
-                {"success": False, "message": f"Failed to update incident: {response.status_code}", "error": response.text}
+                {
+                    "success": False,
+                    "message": f"Failed to update incident: {response.status_code}",
+                    "error": response.text,
+                }
             )
 
     except requests.exceptions.RequestException as e:
-        return json.dumps({"success": False, "message": f"Network error while updating incident: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Network error while updating incident: {str(e)}",
+                "error": str(e),
+            }
+        )
     except Exception as e:
-        return json.dumps({"success": False, "message": f"Unexpected error while updating incident: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Unexpected error while updating incident: {str(e)}",
+                "error": str(e),
+            }
+        )
 
 
 # ==================== CSM Tools (Case Management) ====================
@@ -284,20 +370,45 @@ def servicenow_csm_create_case(
             payload["account"] = account
 
         response = requests.post(
-            f"{SERVICENOW_API_BASE}/cases", json=payload, headers={"Content-Type": "application/json"}, timeout=30
+            f"{SERVICENOW_API_BASE}/cases",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=30,
         )
 
         if response.status_code == 200:
-            return json.dumps({"success": True, "message": "Case created successfully", "data": response.json()})
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": "Case created successfully",
+                    "data": response.json(),
+                }
+            )
         else:
             return json.dumps(
-                {"success": False, "message": f"Failed to create case: {response.status_code}", "error": response.text}
+                {
+                    "success": False,
+                    "message": f"Failed to create case: {response.status_code}",
+                    "error": response.text,
+                }
             )
 
     except requests.exceptions.RequestException as e:
-        return json.dumps({"success": False, "message": f"Network error while creating case: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Network error while creating case: {str(e)}",
+                "error": str(e),
+            }
+        )
     except Exception as e:
-        return json.dumps({"success": False, "message": f"Unexpected error while creating case: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Unexpected error while creating case: {str(e)}",
+                "error": str(e),
+            }
+        )
 
 
 @function_schema
@@ -318,21 +429,51 @@ def servicenow_csm_get_case(identifier: str, identifier_type: str = "sys_id") ->
         else:
             endpoint = f"{SERVICENOW_API_BASE}/cases/{identifier}"
 
-        response = requests.get(endpoint, headers={"Content-Type": "application/json"}, timeout=30)
+        response = requests.get(
+            endpoint, headers={"Content-Type": "application/json"}, timeout=30
+        )
 
         if response.status_code == 200:
-            return json.dumps({"success": True, "message": "Case retrieved successfully", "data": response.json()})
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": "Case retrieved successfully",
+                    "data": response.json(),
+                }
+            )
         elif response.status_code == 404:
-            return json.dumps({"success": False, "message": f"Case not found: {identifier}", "error": "Case not found"})
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Case not found: {identifier}",
+                    "error": "Case not found",
+                }
+            )
         else:
             return json.dumps(
-                {"success": False, "message": f"Failed to retrieve case: {response.status_code}", "error": response.text}
+                {
+                    "success": False,
+                    "message": f"Failed to retrieve case: {response.status_code}",
+                    "error": response.text,
+                }
             )
 
     except requests.exceptions.RequestException as e:
-        return json.dumps({"success": False, "message": f"Network error while retrieving case: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Network error while retrieving case: {str(e)}",
+                "error": str(e),
+            }
+        )
     except Exception as e:
-        return json.dumps({"success": False, "message": f"Unexpected error while retrieving case: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Unexpected error while retrieving case: {str(e)}",
+                "error": str(e),
+            }
+        )
 
 
 @function_schema
@@ -389,22 +530,53 @@ def servicenow_csm_update_case(
             payload["escalation"] = escalation
 
         response = requests.put(
-            f"{SERVICENOW_API_BASE}/cases/{sys_id}", json=payload, headers={"Content-Type": "application/json"}, timeout=30
+            f"{SERVICENOW_API_BASE}/cases/{sys_id}",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=30,
         )
 
         if response.status_code == 200:
-            return json.dumps({"success": True, "message": "Case updated successfully", "data": response.json()})
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": "Case updated successfully",
+                    "data": response.json(),
+                }
+            )
         elif response.status_code == 404:
-            return json.dumps({"success": False, "message": f"Case not found: {sys_id}", "error": "Case not found"})
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Case not found: {sys_id}",
+                    "error": "Case not found",
+                }
+            )
         else:
             return json.dumps(
-                {"success": False, "message": f"Failed to update case: {response.status_code}", "error": response.text}
+                {
+                    "success": False,
+                    "message": f"Failed to update case: {response.status_code}",
+                    "error": response.text,
+                }
             )
 
     except requests.exceptions.RequestException as e:
-        return json.dumps({"success": False, "message": f"Network error while updating case: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Network error while updating case: {str(e)}",
+                "error": str(e),
+            }
+        )
     except Exception as e:
-        return json.dumps({"success": False, "message": f"Unexpected error while updating case: {str(e)}", "error": str(e)})
+        return json.dumps(
+            {
+                "success": False,
+                "message": f"Unexpected error while updating case: {str(e)}",
+                "error": str(e),
+            }
+        )
 
 
 # Export store and schemas for aggregation in basic_tools
@@ -417,4 +589,6 @@ SERVICENOW_TOOL_STORE = {
     "servicenow_csm_update_case": servicenow_csm_update_case,
 }
 
-SERVICENOW_TOOL_SCHEMAS = {name: func.openai_schema for name, func in SERVICENOW_TOOL_STORE.items()}
+SERVICENOW_TOOL_SCHEMAS = {
+    name: func.openai_schema for name, func in SERVICENOW_TOOL_STORE.items()
+}

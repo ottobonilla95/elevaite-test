@@ -26,4 +26,3 @@ class ExecutionContext:
             "completed_steps": len(self.completed_steps),
             "failed_steps": len(self.failed_steps),
         }
-

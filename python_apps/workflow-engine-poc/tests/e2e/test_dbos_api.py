@@ -36,7 +36,9 @@ SMOKE_DBOS = os.environ.get("SMOKE_DBOS", "1")
 TIMEOUT = float(os.environ.get("SMOKE_TIMEOUT", "25"))
 
 
-def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
+def _http(
+    method: str, path: str, json_body: Optional[Dict[str, Any]] = None
+) -> httpx.Response:
     # Ensure path starts with /
     if not path.startswith("/"):
         path = "/" + path
@@ -69,7 +71,12 @@ def test_dbos_api_end_to_end_tool_step_only():
                 "step_id": "trigger",
                 "step_type": "trigger",
                 "name": "Trigger",
-                "config": {"kind": "chat", "need_history": False, "allowed_modalities": ["text"], "max_files": 0},
+                "config": {
+                    "kind": "chat",
+                    "need_history": False,
+                    "allowed_modalities": ["text"],
+                    "max_files": 0,
+                },
             },
             {
                 "step_id": "agent_step",
@@ -126,7 +133,15 @@ def test_dbos_api_end_to_end_tool_step_only():
         assert r.status_code == 200, r.text
         exe = r.json()
         status = exe.get("status")
-        assert status in ("enqueued", "pending", "running", "completed", "failed", "cancelled", "timeout"), exe
+        assert status in (
+            "enqueued",
+            "pending",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "timeout",
+        ), exe
         if status in ("completed", "failed", "cancelled", "timeout"):
             break
         time.sleep(0.5)

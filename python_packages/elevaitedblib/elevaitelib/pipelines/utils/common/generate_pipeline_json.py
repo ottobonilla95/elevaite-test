@@ -55,7 +55,7 @@ def convert_script_to_pipeline_json(script_path: str, schedule: dict):
     variables = []
 
     for idx, (func, func_doc) in enumerate(func_defs):
-        task_id = f"task{idx+1}"
+        task_id = f"task{idx + 1}"
         output_var = f"{func}_output"
         variables.append({"name": output_var, "var_type": "string"})
 

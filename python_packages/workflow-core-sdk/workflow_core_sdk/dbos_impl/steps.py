@@ -58,18 +58,25 @@ async def dbos_execute_step_durable(
         execution_context=execution_context,
     )
 
-    execution_context.step_io_data[step_config.get("step_id", "unknown")] = step_result.output_data
+    execution_context.step_io_data[step_config.get("step_id", "unknown")] = (
+        step_result.output_data
+    )
 
     # Derive a human-readable status for DBOS based primarily on the step output payload.
     # This allows domain-specific statuses like "ingesting" to propagate through, while
     # still falling back to the enum name when no explicit status is provided.
-    if isinstance(step_result.output_data, dict) and "status" in step_result.output_data:
+    if (
+        isinstance(step_result.output_data, dict)
+        and "status" in step_result.output_data
+    ):
         status_val = str(step_result.output_data.get("status") or "").lower()
     else:
         status_val = (
             getattr(step_result.status, "name", "").lower()
             if hasattr(step_result.status, "name")
-            else ("completed" if step_result.execution_time_ms is not None else "unknown")
+            else (
+                "completed" if step_result.execution_time_ms is not None else "unknown"
+            )
         )
 
     return {

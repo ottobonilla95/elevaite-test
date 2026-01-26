@@ -74,18 +74,24 @@ class TestWorkflowEntities:
     """Tests for workflow entity operations"""
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
-    def test_list_workflows_entities(self, mock_db_class, mock_session, sample_workflow):
+    def test_list_workflows_entities(
+        self, mock_db_class, mock_session, sample_workflow
+    ):
         """Test listing workflow entities"""
         mock_db = MagicMock()
         mock_db.list_workflow_entities.return_value = [sample_workflow]
         mock_db_class.return_value = mock_db
 
-        workflows = WorkflowsService.list_workflows_entities(mock_session, limit=100, offset=0)
+        workflows = WorkflowsService.list_workflows_entities(
+            mock_session, limit=100, offset=0
+        )
 
         assert len(workflows) == 1
         assert workflows[0].id == sample_workflow.id
         assert workflows[0].name == "test_workflow"
-        mock_db.list_workflow_entities.assert_called_once_with(mock_session, limit=100, offset=0)
+        mock_db.list_workflow_entities.assert_called_once_with(
+            mock_session, limit=100, offset=0
+        )
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
     def test_list_workflows_entities_with_pagination(self, mock_db_class, mock_session):
@@ -94,24 +100,34 @@ class TestWorkflowEntities:
         mock_db.list_workflow_entities.return_value = []
         mock_db_class.return_value = mock_db
 
-        workflows = WorkflowsService.list_workflows_entities(mock_session, limit=10, offset=20)
+        workflows = WorkflowsService.list_workflows_entities(
+            mock_session, limit=10, offset=20
+        )
 
         assert len(workflows) == 0
-        mock_db.list_workflow_entities.assert_called_once_with(mock_session, limit=10, offset=20)
+        mock_db.list_workflow_entities.assert_called_once_with(
+            mock_session, limit=10, offset=20
+        )
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
-    def test_get_workflow_entity_success(self, mock_db_class, mock_session, sample_workflow):
+    def test_get_workflow_entity_success(
+        self, mock_db_class, mock_session, sample_workflow
+    ):
         """Test getting a workflow entity by ID"""
         mock_db = MagicMock()
         mock_db.get_workflow_entity.return_value = sample_workflow
         mock_db_class.return_value = mock_db
 
-        workflow = WorkflowsService.get_workflow_entity(mock_session, str(sample_workflow.id))
+        workflow = WorkflowsService.get_workflow_entity(
+            mock_session, str(sample_workflow.id)
+        )
 
         assert workflow is not None
         assert workflow.id == sample_workflow.id
         assert workflow.name == "test_workflow"
-        mock_db.get_workflow_entity.assert_called_once_with(mock_session, str(sample_workflow.id))
+        mock_db.get_workflow_entity.assert_called_once_with(
+            mock_session, str(sample_workflow.id)
+        )
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
     def test_get_workflow_entity_not_found(self, mock_db_class, mock_session):
@@ -127,7 +143,14 @@ class TestWorkflowEntities:
 
     @patch("workflow_core_sdk.services.workflows_service.uuid_module")
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
-    def test_create_workflow_success(self, mock_db_class, mock_uuid, mock_session, sample_workflow_data, sample_workflow):
+    def test_create_workflow_success(
+        self,
+        mock_db_class,
+        mock_uuid,
+        mock_session,
+        sample_workflow_data,
+        sample_workflow,
+    ):
         """Test creating a new workflow"""
         workflow_id = str(uuid.uuid4())
         mock_uuid.uuid4.return_value = uuid.UUID(workflow_id)
@@ -141,12 +164,16 @@ class TestWorkflowEntities:
 
         assert workflow is not None
         assert workflow.id == sample_workflow.id
-        mock_db.save_workflow.assert_called_once_with(mock_session, workflow_id, sample_workflow_data)
+        mock_db.save_workflow.assert_called_once_with(
+            mock_session, workflow_id, sample_workflow_data
+        )
         mock_db.get_workflow_entity.assert_called_once_with(mock_session, workflow_id)
 
     @patch("workflow_core_sdk.services.workflows_service.uuid_module")
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
-    def test_create_workflow_retrieval_failure(self, mock_db_class, mock_uuid, mock_session, sample_workflow_data):
+    def test_create_workflow_retrieval_failure(
+        self, mock_db_class, mock_uuid, mock_session, sample_workflow_data
+    ):
         """Test creating a workflow but failing to retrieve it"""
         workflow_id = str(uuid.uuid4())
         mock_uuid.uuid4.return_value = uuid.UUID(workflow_id)
@@ -156,7 +183,9 @@ class TestWorkflowEntities:
         mock_db.get_workflow_entity.return_value = None  # Retrieval fails
         mock_db_class.return_value = mock_db
 
-        with pytest.raises(RuntimeError, match="Failed to retrieve saved workflow entity"):
+        with pytest.raises(
+            RuntimeError, match="Failed to retrieve saved workflow entity"
+        ):
             WorkflowsService.create_workflow(mock_session, sample_workflow_data)
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
@@ -201,11 +230,15 @@ class TestWorkflowConfiguration:
         mock_db.get_workflow.return_value = workflow_config
         mock_db_class.return_value = mock_db
 
-        config = WorkflowsService.get_workflow_config(mock_session, workflow_config["workflow_id"])
+        config = WorkflowsService.get_workflow_config(
+            mock_session, workflow_config["workflow_id"]
+        )
 
         assert config is not None
         assert config["name"] == "test_workflow"
-        mock_db.get_workflow.assert_called_once_with(mock_session, workflow_config["workflow_id"])
+        mock_db.get_workflow.assert_called_once_with(
+            mock_session, workflow_config["workflow_id"]
+        )
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
     def test_get_workflow_config_not_found(self, mock_db_class, mock_session):
@@ -254,7 +287,9 @@ class TestExecutions:
         assert execution is not None
         assert execution["id"] == sample_execution["id"]
         assert execution["status"] == "completed"
-        mock_db.get_execution.assert_called_once_with(mock_session, sample_execution["id"])
+        mock_db.get_execution.assert_called_once_with(
+            mock_session, sample_execution["id"]
+        )
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
     def test_get_execution_not_found(self, mock_db_class, mock_session):
@@ -269,7 +304,9 @@ class TestExecutions:
         assert execution is None
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
-    def test_list_executions_no_filters(self, mock_db_class, mock_session, sample_execution):
+    def test_list_executions_no_filters(
+        self, mock_db_class, mock_session, sample_execution
+    ):
         """Test listing executions without filters"""
         mock_db = MagicMock()
         mock_db.list_executions.return_value = [sample_execution]
@@ -279,23 +316,33 @@ class TestExecutions:
 
         assert len(executions) == 1
         assert executions[0]["id"] == sample_execution["id"]
-        mock_db.list_executions.assert_called_once_with(mock_session, workflow_id=None, status=None, limit=100, offset=0)
+        mock_db.list_executions.assert_called_once_with(
+            mock_session, workflow_id=None, status=None, limit=100, offset=0
+        )
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
-    def test_list_executions_with_workflow_filter(self, mock_db_class, mock_session, sample_execution):
+    def test_list_executions_with_workflow_filter(
+        self, mock_db_class, mock_session, sample_execution
+    ):
         """Test listing executions filtered by workflow ID"""
         mock_db = MagicMock()
         mock_db.list_executions.return_value = [sample_execution]
         mock_db_class.return_value = mock_db
 
         workflow_id = sample_execution["workflow_id"]
-        executions = WorkflowsService.list_executions(mock_session, workflow_id=workflow_id)
+        executions = WorkflowsService.list_executions(
+            mock_session, workflow_id=workflow_id
+        )
 
         assert len(executions) == 1
-        mock_db.list_executions.assert_called_once_with(mock_session, workflow_id=workflow_id, status=None, limit=100, offset=0)
+        mock_db.list_executions.assert_called_once_with(
+            mock_session, workflow_id=workflow_id, status=None, limit=100, offset=0
+        )
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
-    def test_list_executions_with_status_filter(self, mock_db_class, mock_session, sample_execution):
+    def test_list_executions_with_status_filter(
+        self, mock_db_class, mock_session, sample_execution
+    ):
         """Test listing executions filtered by status"""
         mock_db = MagicMock()
         mock_db.list_executions.return_value = [sample_execution]
@@ -305,7 +352,9 @@ class TestExecutions:
 
         assert len(executions) == 1
         assert executions[0]["status"] == "completed"
-        mock_db.list_executions.assert_called_once_with(mock_session, workflow_id=None, status="completed", limit=100, offset=0)
+        mock_db.list_executions.assert_called_once_with(
+            mock_session, workflow_id=None, status="completed", limit=100, offset=0
+        )
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
     def test_list_executions_with_pagination(self, mock_db_class, mock_session):
@@ -317,7 +366,9 @@ class TestExecutions:
         executions = WorkflowsService.list_executions(mock_session, limit=10, offset=20)
 
         assert len(executions) == 0
-        mock_db.list_executions.assert_called_once_with(mock_session, workflow_id=None, status=None, limit=10, offset=20)
+        mock_db.list_executions.assert_called_once_with(
+            mock_session, workflow_id=None, status=None, limit=10, offset=20
+        )
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
     def test_update_execution_status_success(self, mock_db_class, mock_session):
@@ -327,7 +378,9 @@ class TestExecutions:
         mock_db_class.return_value = mock_db
 
         execution_id = str(uuid.uuid4())
-        result = WorkflowsService.update_execution_status(mock_session, execution_id, "running")
+        result = WorkflowsService.update_execution_status(
+            mock_session, execution_id, "running"
+        )
 
         assert result is True
         # Verify the status was converted to enum
@@ -345,7 +398,9 @@ class TestExecutions:
 
         execution_id = str(uuid.uuid4())
         # Should not raise, just pass through to DB layer
-        result = WorkflowsService.update_execution_status(mock_session, execution_id, "invalid_status")
+        result = WorkflowsService.update_execution_status(
+            mock_session, execution_id, "invalid_status"
+        )
 
         assert result is False
         mock_db.update_execution.assert_called_once()
@@ -419,7 +474,9 @@ class TestAgentMessages:
         mock_db_class.return_value = mock_db
 
         execution_id = str(uuid.uuid4())
-        result = WorkflowsService.list_agent_messages(mock_session, execution_id=execution_id)
+        result = WorkflowsService.list_agent_messages(
+            mock_session, execution_id=execution_id
+        )
 
         assert len(result) == 2
         assert result[0]["role"] == "user"
@@ -439,11 +496,17 @@ class TestAgentMessages:
 
         execution_id = str(uuid.uuid4())
         step_id = "agent_step_1"
-        result = WorkflowsService.list_agent_messages(mock_session, execution_id=execution_id, step_id=step_id)
+        result = WorkflowsService.list_agent_messages(
+            mock_session, execution_id=execution_id, step_id=step_id
+        )
 
         assert len(result) == 1
         mock_db.list_agent_messages.assert_called_once_with(
-            mock_session, execution_id=execution_id, step_id=step_id, limit=100, offset=0
+            mock_session,
+            execution_id=execution_id,
+            step_id=step_id,
+            limit=100,
+            offset=0,
         )
 
     @patch("workflow_core_sdk.services.workflows_service.DatabaseService")
@@ -454,7 +517,9 @@ class TestAgentMessages:
         mock_db_class.return_value = mock_db
 
         execution_id = str(uuid.uuid4())
-        result = WorkflowsService.list_agent_messages(mock_session, execution_id=execution_id, limit=10, offset=20)
+        result = WorkflowsService.list_agent_messages(
+            mock_session, execution_id=execution_id, limit=10, offset=20
+        )
 
         assert len(result) == 0
         mock_db.list_agent_messages.assert_called_once_with(
@@ -469,6 +534,8 @@ class TestAgentMessages:
         mock_db_class.return_value = mock_db
 
         execution_id = str(uuid.uuid4())
-        result = WorkflowsService.list_agent_messages(mock_session, execution_id=execution_id)
+        result = WorkflowsService.list_agent_messages(
+            mock_session, execution_id=execution_id
+        )
 
         assert len(result) == 0

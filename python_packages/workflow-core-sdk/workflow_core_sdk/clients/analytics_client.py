@@ -14,4 +14,3 @@ class AnalyticsClient:
     async def stream_events(self, events: "list[dict]") -> None:
         """Send a batch/stream of events (placeholder)."""
         raise NotImplementedError
-

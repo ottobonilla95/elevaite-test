@@ -216,7 +216,9 @@ class TestMultipleGuards:
         )
 
         # Add a route with both guards
-        @fastapi_app.get("/multi-guard", dependencies=[Depends(guard1), Depends(guard2)])
+        @fastapi_app.get(
+            "/multi-guard", dependencies=[Depends(guard1), Depends(guard2)]
+        )
         async def protected_endpoint():
             return {"status": "success"}
 
@@ -257,7 +259,9 @@ class TestMultipleGuards:
         )
 
         # Add a route with both guards
-        @fastapi_app.get("/multi-guard-fail", dependencies=[Depends(guard1), Depends(guard2)])
+        @fastapi_app.get(
+            "/multi-guard-fail", dependencies=[Depends(guard1), Depends(guard2)]
+        )
         async def protected_endpoint():
             return {"status": "success"}
 
@@ -294,7 +298,9 @@ class TestCustomResolvers:
             action="view_project",
             resource_builder=resource_builders.project_from_headers(),
             principal_resolver=principal_resolvers.api_key_or_user(
-                validate_api_key=lambda key, req: str(test_user_active["id"]) if key == "valid-key" else None
+                validate_api_key=lambda key, req: str(test_user_active["id"])
+                if key == "valid-key"
+                else None
             ),
         )
 
@@ -533,7 +539,10 @@ class TestErrorPropagation:
 
         # Should be bad request
         assert response.status_code == 400
-        assert "Missing" in response.json()["detail"] and "header" in response.json()["detail"]
+        assert (
+            "Missing" in response.json()["detail"]
+            and "header" in response.json()["detail"]
+        )
 
     async def test_guard_runs_before_handler(
         self,

@@ -34,7 +34,9 @@ TIMEOUT = float(os.environ.get("SMOKE_TIMEOUT", "60"))
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
-def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
+def _http(
+    method: str, path: str, json_body: Optional[Dict[str, Any]] = None
+) -> httpx.Response:
     if not path.startswith("/"):
         path = "/" + path
     url = BASE_URL + path
@@ -81,7 +83,9 @@ def _check_server():
         return False
 
 
-@pytest.mark.skipif(SMOKE_DBOS != "1", reason="SMOKE_DBOS=1 required for live server tests")
+@pytest.mark.skipif(
+    SMOKE_DBOS != "1", reason="SMOKE_DBOS=1 required for live server tests"
+)
 @pytest.mark.parametrize("backend", ["dbos"])
 def test_ad_copy_transformer_workflow_e2e(backend: str):
     """
@@ -135,7 +139,9 @@ def test_ad_copy_transformer_workflow_e2e(backend: str):
 
     # Debug output if failed
     if last_status == "failed":
-        print(f"Execution failed. Results: {json.dumps(results, indent=2, default=str)}")
+        print(
+            f"Execution failed. Results: {json.dumps(results, indent=2, default=str)}"
+        )
 
     # Validate execution completed
     assert last_status == "completed", f"Expected completed, got {last_status}"
@@ -143,15 +149,22 @@ def test_ad_copy_transformer_workflow_e2e(backend: str):
     # Validate input-node executed and provided raw_copy
     assert "input-node" in step_results, "input-node step should be in results"
     input_output = step_results.get("input-node", {}).get("output_data", {})
-    assert input_output.get("data", {}).get("raw_copy") == "Arlo Pro 5 camera 2K video color night vision weather resistant"
+    assert (
+        input_output.get("data", {}).get("raw_copy")
+        == "Arlo Pro 5 camera 2K video color night vision weather resistant"
+    )
 
     # Validate prompt-node executed with proper structure
     assert "prompt-node" in step_results, "prompt-node step should be in results"
     prompt_output = step_results.get("prompt-node", {}).get("output_data", {})
     assert prompt_output.get("step_type") == "prompt"
     system_prompt = prompt_output.get("system_prompt", "")
-    assert "advertising copywriter" in system_prompt, f"Expected copywriter in system_prompt: {system_prompt}"
-    assert "under 100 characters" in system_prompt, "Instructions should be in system prompt"
+    assert "advertising copywriter" in system_prompt, (
+        f"Expected copywriter in system_prompt: {system_prompt}"
+    )
+    assert "under 100 characters" in system_prompt, (
+        "Instructions should be in system prompt"
+    )
     model_overrides = prompt_output.get("model_overrides", {})
     assert model_overrides.get("model_name") == "gpt-5.2"
 
@@ -166,7 +179,9 @@ def test_ad_copy_transformer_workflow_e2e(backend: str):
     assert "output-node" in step_results, "output-node step should be in results"
     output_data = step_results.get("output-node", {}).get("output_data", {})
     assert output_data.get("success") is True, "Output step should succeed"
-    assert output_data.get("label") == "Ad Copy Result", "Output should have correct label"
+    assert output_data.get("label") == "Ad Copy Result", (
+        "Output should have correct label"
+    )
     assert output_data.get("format") == "text", "Output should have correct format"
     assert "data" in output_data, "Output should contain data from agent"
     pprint("Output node data:")
@@ -175,7 +190,9 @@ def test_ad_copy_transformer_workflow_e2e(backend: str):
 
 @pytest.mark.integration
 @pytest.mark.parametrize("backend", ["local"])
-def test_ad_copy_transformer_variable_injection(authenticated_client: TestClient, backend: str):
+def test_ad_copy_transformer_variable_injection(
+    authenticated_client: TestClient, backend: str
+):
     """
     Verify that the agent node correctly injects the input data as the query.
 
@@ -218,4 +235,6 @@ def test_ad_copy_transformer_variable_injection(authenticated_client: TestClient
     prompt_result = step_results.get("prompt-node", {})
     prompt_output = prompt_result.get("output_data", {})
     system_prompt = prompt_output.get("system_prompt", "")
-    assert "advertising copywriter" in system_prompt, "System prompt should have instructions"
+    assert "advertising copywriter" in system_prompt, (
+        "System prompt should have instructions"
+    )

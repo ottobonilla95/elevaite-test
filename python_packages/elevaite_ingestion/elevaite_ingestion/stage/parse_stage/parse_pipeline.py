@@ -23,7 +23,9 @@ def map_to_parser(file_type):
     return parsers.get(file_type)
 
 
-def process_file(file_path, output_dir, original_filename, config: Optional[PipelineConfig] = None):
+def process_file(
+    file_path, output_dir, original_filename, config: Optional[PipelineConfig] = None
+):
     """Processes a single file and preserves the original filename.
 
     Args:
@@ -111,7 +113,9 @@ def main_parse(config: Optional[PipelineConfig] = None):
 
         for file_name in os.listdir(input_dir):
             file_path = os.path.join(input_dir, file_name)
-            md_path, file_data = process_file(file_path, output_dir, file_name, config=config)
+            md_path, file_data = process_file(
+                file_path, output_dir, file_name, config=config
+            )
             if md_path:
                 markdown_files.append(md_path)
                 structured_data[md_path] = file_data

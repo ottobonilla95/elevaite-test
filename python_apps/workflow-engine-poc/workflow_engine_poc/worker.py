@@ -37,9 +37,7 @@ async def process_message(
             trigger_data = payload.get("trigger_data", {})
             user_context_data = payload.get("user_context", {})
 
-            logger.info(
-                f"Processing workflow {workflow_id}, execution {execution_id}"
-            )
+            logger.info(f"Processing workflow {workflow_id}, execution {execution_id}")
 
             # Get workflow config from database
             async for session in get_session():
@@ -164,7 +162,9 @@ async def main():
     # Declare resume dead-letter queue
     await channel.declare_queue(f"{RESUME_QUEUE_NAME}.dlq", durable=True)
 
-    logger.info(f"✅ Connected to RabbitMQ, listening on queues: {QUEUE_NAME}, {RESUME_QUEUE_NAME}")
+    logger.info(
+        f"✅ Connected to RabbitMQ, listening on queues: {QUEUE_NAME}, {RESUME_QUEUE_NAME}"
+    )
 
     # Consume execute messages
     async def execute_handler(message: AbstractIncomingMessage):

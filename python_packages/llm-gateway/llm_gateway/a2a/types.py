@@ -97,4 +97,3 @@ class A2AMessageResponse:
 
     error: Optional[str] = None
     """Error message if the request failed."""
-

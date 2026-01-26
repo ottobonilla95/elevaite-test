@@ -415,9 +415,9 @@ async def test_cross_tenant_token_invalid(test_client: AsyncClient, test_session
 
     # Verify the token contains the tenant ID
     assert "tenant_id" in payload, "Token does not contain tenant_id"
-    assert (
-        payload["tenant_id"] == "default"
-    ), f"Token has wrong tenant_id: {payload['tenant_id']}"
+    assert payload["tenant_id"] == "default", (
+        f"Token has wrong tenant_id: {payload['tenant_id']}"
+    )
 
     # We don't need to actually try the token in tenant1 since we've verified it has the tenant ID
     # The middleware would reject it in a real request

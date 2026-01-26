@@ -39,7 +39,8 @@ def _tool_read_from_db(record: Tool) -> ToolRead:
         version=record.version,
         tool_type=record.tool_type,  # type: ignore[arg-type]
         execution_type=record.execution_type,  # type: ignore[arg-type]
-        parameters_schema=record.parameters_schema or {"type": "object", "properties": {}, "required": []},
+        parameters_schema=record.parameters_schema
+        or {"type": "object", "properties": {}, "required": []},
         return_schema=record.return_schema,
         module_path=record.module_path,
         function_name=record.function_name,
@@ -64,7 +65,9 @@ def _tool_read_from_db(record: Tool) -> ToolRead:
     )
 
 
-def _tool_read_from_local(name: str, description: str, parameters: Dict[str, Any], source: str = "local") -> ToolRead:
+def _tool_read_from_local(
+    name: str, description: str, parameters: Dict[str, Any], source: str = "local"
+) -> ToolRead:
     """Convert a local/registry tool to ToolRead."""
     now = datetime.now(timezone.utc)
     return ToolRead(
@@ -120,7 +123,11 @@ async def list_tools(
             if db_record:
                 items.append(_tool_read_from_db(db_record))
                 continue
-        items.append(_tool_read_from_local(ut.name, ut.description, ut.parameters_schema, ut.source))
+        items.append(
+            _tool_read_from_local(
+                ut.name, ut.description, ut.parameters_schema, ut.source
+            )
+        )
 
     if q:
         ql = q.lower()
@@ -345,7 +352,9 @@ async def get_tool(
     # Fallback to local via registry
     ut = tool_registry.get_tool_by_name(session, tool_name)
     if ut:
-        return _tool_read_from_local(ut.name, ut.description, ut.parameters_schema, ut.source)
+        return _tool_read_from_local(
+            ut.name, ut.description, ut.parameters_schema, ut.source
+        )
 
     raise HTTPException(status_code=404, detail="Tool not found")
 
@@ -357,7 +366,11 @@ async def update_tool_stub(
     _principal: str = Depends(api_key_or_user_guard("edit_tool")),
 ):
     """Stub for updating a tool."""
-    return {"message": "Not implemented yet", "tool_name": tool_name, "request": body.model_dump(exclude_unset=True)}
+    return {
+        "message": "Not implemented yet",
+        "tool_name": tool_name,
+        "request": body.model_dump(exclude_unset=True),
+    }
 
 
 @router.delete("/{tool_name}")

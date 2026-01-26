@@ -30,4 +30,3 @@ def get_embedding(text: str, model: Optional[str] = None) -> List[float]:
     mdl = _get_model(model_name)
     vec = mdl.encode(text)
     return vec.tolist() if hasattr(vec, "tolist") else list(vec)
-

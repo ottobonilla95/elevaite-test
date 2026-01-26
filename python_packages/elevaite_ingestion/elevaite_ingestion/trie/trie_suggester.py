@@ -1,8 +1,8 @@
-
 class TrieNode:
     def __init__(self):
         self.children = {}
         self.value = None
+
 
 class AbbreviationTrie:
     def __init__(self):
@@ -19,7 +19,7 @@ class AbbreviationTrie:
     def get_all_with_prefix(self, prefix: str):
         def dfs(node, path, results):
             if node.value:
-                results.append((''.join(path), node.value))
+                results.append(("".join(path), node.value))
             for char, next_node in node.children.items():
                 dfs(next_node, path + [char], results)
 

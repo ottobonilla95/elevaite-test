@@ -8,4 +8,3 @@ Files are loaded in order to respect foreign key relationships:
 3. agents.json - Agent configs (depends on prompts)
 4. workflows.json - Workflow definitions (may reference agents)
 """
-

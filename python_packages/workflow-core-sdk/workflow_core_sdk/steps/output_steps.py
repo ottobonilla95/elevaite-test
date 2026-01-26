@@ -6,7 +6,9 @@ from workflow_core_sdk.execution_context import ExecutionContext
 
 
 async def output_step(
-    step_config: Dict[str, Any], input_data: Dict[str, Any], execution_context: ExecutionContext
+    step_config: Dict[str, Any],
+    input_data: Dict[str, Any],
+    execution_context: ExecutionContext,
 ) -> Dict[str, Any]:
     """Pass through data from immediate dependencies only. Used to mark workflow endpoints on canvas.
 

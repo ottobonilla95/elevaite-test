@@ -96,7 +96,9 @@ def a2a_echo_server():
         http_handler=request_handler,
     )
 
-    config = uvicorn.Config(app.build(), host="127.0.0.1", port=port, log_level="warning")
+    config = uvicorn.Config(
+        app.build(), host="127.0.0.1", port=port, log_level="warning"
+    )
     server = uvicorn.Server(config)
 
     # Run server in a background thread
@@ -115,7 +117,11 @@ def a2a_echo_server():
         except Exception:
             time.sleep(0.1)
 
-    yield {"base_url": f"http://127.0.0.1:{port}", "agent_name": "Test Echo Agent", "port": port}
+    yield {
+        "base_url": f"http://127.0.0.1:{port}",
+        "agent_name": "Test Echo Agent",
+        "port": port,
+    }
 
     # Server will be stopped when thread is garbage collected (daemon=True)
 
@@ -158,7 +164,9 @@ def create_a2a_agent_record(a2a_echo_server):
 class TestA2AAgentDispatch:
     """Tests for A2A agent dispatch routing in agent_execution_step."""
 
-    async def test_dispatches_to_a2a_when_a2a_agent_id_provided(self, execution_context):
+    async def test_dispatches_to_a2a_when_a2a_agent_id_provided(
+        self, execution_context
+    ):
         """When a2a_agent_id is in config, should dispatch to A2A execution."""
         from workflow_core_sdk.steps.ai_steps import agent_execution_step
 
@@ -176,15 +184,25 @@ class TestA2AAgentDispatch:
             "workflow_core_sdk.steps.ai_steps._execute_a2a_agent",
             new_callable=AsyncMock,
         ) as mock_execute_a2a:
-            mock_execute_a2a.return_value = {"success": True, "response": "Hello from A2A!", "mode": "a2a"}
+            mock_execute_a2a.return_value = {
+                "success": True,
+                "response": "Hello from A2A!",
+                "mode": "a2a",
+            }
 
-            result = await agent_execution_step(step_config, input_data, execution_context)
+            result = await agent_execution_step(
+                step_config, input_data, execution_context
+            )
 
-            mock_execute_a2a.assert_called_once_with(step_config, input_data, execution_context)
+            mock_execute_a2a.assert_called_once_with(
+                step_config, input_data, execution_context
+            )
             assert result["success"] is True
             assert result["mode"] == "a2a"
 
-    async def test_does_not_dispatch_to_a2a_without_a2a_agent_id(self, execution_context):
+    async def test_does_not_dispatch_to_a2a_without_a2a_agent_id(
+        self, execution_context
+    ):
         """When a2a_agent_id is not provided, should NOT call _execute_a2a_agent."""
         from workflow_core_sdk.steps.ai_steps import agent_execution_step
 
@@ -194,10 +212,15 @@ class TestA2AAgentDispatch:
         }
         input_data = {"current_message": "Hello"}
 
-        with patch("workflow_core_sdk.steps.ai_steps._execute_a2a_agent", new_callable=AsyncMock) as mock_a2a:
+        with patch(
+            "workflow_core_sdk.steps.ai_steps._execute_a2a_agent",
+            new_callable=AsyncMock,
+        ) as mock_a2a:
             with patch("workflow_core_sdk.steps.ai_steps.AgentStep") as mock_agent_step:
                 mock_agent = MagicMock()
-                mock_agent.execute = AsyncMock(return_value={"response": "Hi", "tool_calls": []})
+                mock_agent.execute = AsyncMock(
+                    return_value={"response": "Hi", "tool_calls": []}
+                )
                 mock_agent._dynamic_agent_tools = {}
                 mock_agent.tools = []
                 mock_agent._ensure_dynamic_agent_tools = AsyncMock()
@@ -219,7 +242,9 @@ def mock_session_with_agent(agent):
 class TestA2AAgentExecutionIntegration:
     """Integration tests using real A2A server."""
 
-    async def test_successful_a2a_call(self, a2a_echo_server, execution_context, create_a2a_agent_record):
+    async def test_successful_a2a_call(
+        self, a2a_echo_server, execution_context, create_a2a_agent_record
+    ):
         """Test successful A2A call against real server."""
         from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
 
@@ -260,7 +285,9 @@ class TestA2AAgentExecutionIntegration:
         assert result["success"] is False
         assert "not found" in result["error"]
 
-    async def test_a2a_agent_inactive(self, a2a_echo_server, execution_context, create_a2a_agent_record):
+    async def test_a2a_agent_inactive(
+        self, a2a_echo_server, execution_context, create_a2a_agent_record
+    ):
         """Test error when A2A agent is not active."""
         from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
 
@@ -280,7 +307,9 @@ class TestA2AAgentExecutionIntegration:
         assert result["success"] is False
         assert "not active" in result["error"]
 
-    async def test_query_from_input_data(self, a2a_echo_server, execution_context, create_a2a_agent_record):
+    async def test_query_from_input_data(
+        self, a2a_echo_server, execution_context, create_a2a_agent_record
+    ):
         """Test that query can come from input_data if not in config."""
         from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
 
@@ -296,7 +325,9 @@ class TestA2AAgentExecutionIntegration:
         input_data = {"current_message": "Hello from input_data"}
 
         with mock_session_with_agent(agent):
-            result = await _execute_a2a_agent(step_config, input_data, execution_context)
+            result = await _execute_a2a_agent(
+                step_config, input_data, execution_context
+            )
 
         assert result["success"] is True
         assert "Echo: Hello from input_data" in result["response"]
@@ -319,7 +350,9 @@ class TestA2AAgentExecutionIntegration:
         assert result["success"] is False
         assert "query is required" in result["error"]
 
-    async def test_query_template_interpolation(self, a2a_echo_server, execution_context, create_a2a_agent_record):
+    async def test_query_template_interpolation(
+        self, a2a_echo_server, execution_context, create_a2a_agent_record
+    ):
         """Test that {variable} placeholders in query are interpolated from input_data."""
         from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
 
@@ -336,7 +369,9 @@ class TestA2AAgentExecutionIntegration:
         input_data = {"name": "Alice", "order_id": "12345"}
 
         with mock_session_with_agent(agent):
-            result = await _execute_a2a_agent(step_config, input_data, execution_context)
+            result = await _execute_a2a_agent(
+                step_config, input_data, execution_context
+            )
 
         assert result["success"] is True
         assert "Echo: Hello Alice, your order is 12345" in result["response"]
@@ -360,13 +395,17 @@ class TestA2AAgentExecutionIntegration:
         input_data = {"name": "Bob"}  # missing_var not provided
 
         with mock_session_with_agent(agent):
-            result = await _execute_a2a_agent(step_config, input_data, execution_context)
+            result = await _execute_a2a_agent(
+                step_config, input_data, execution_context
+            )
 
         assert result["success"] is True
         # Missing variable should be replaced with empty string
         assert "Echo: Hello Bob, missing: " in result["response"]
 
-    async def test_response_structure_complete(self, a2a_echo_server, execution_context, create_a2a_agent_record):
+    async def test_response_structure_complete(
+        self, a2a_echo_server, execution_context, create_a2a_agent_record
+    ):
         """Test that response contains all expected fields."""
         from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
 
@@ -396,7 +435,9 @@ class TestA2AAgentExecutionIntegration:
         assert "task_id" in result
         assert "context_id" in result
 
-    async def test_streaming_emits_events(self, a2a_echo_server, execution_context, create_a2a_agent_record):
+    async def test_streaming_emits_events(
+        self, a2a_echo_server, execution_context, create_a2a_agent_record
+    ):
         """Test that streaming mode emits SSE events via stream_manager."""
         from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
 
@@ -417,7 +458,9 @@ class TestA2AAgentExecutionIntegration:
             emitted_events.append(event)
 
         with mock_session_with_agent(agent):
-            with patch("workflow_core_sdk.steps.ai_steps.stream_manager") as mock_stream:
+            with patch(
+                "workflow_core_sdk.steps.ai_steps.stream_manager"
+            ) as mock_stream:
                 mock_stream.emit_execution_event = AsyncMock(side_effect=capture_event)
                 mock_stream.emit_workflow_event = AsyncMock()
 
@@ -427,7 +470,9 @@ class TestA2AAgentExecutionIntegration:
         # Should have emitted at least one streaming event
         assert mock_stream.emit_execution_event.call_count >= 1
 
-    async def test_streaming_requires_step_id(self, a2a_echo_server, execution_context, create_a2a_agent_record):
+    async def test_streaming_requires_step_id(
+        self, a2a_echo_server, execution_context, create_a2a_agent_record
+    ):
         """Test that streaming without step_id falls back to non-streaming."""
         from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
 
@@ -443,7 +488,9 @@ class TestA2AAgentExecutionIntegration:
         }
 
         with mock_session_with_agent(agent):
-            with patch("workflow_core_sdk.steps.ai_steps.stream_manager") as mock_stream:
+            with patch(
+                "workflow_core_sdk.steps.ai_steps.stream_manager"
+            ) as mock_stream:
                 mock_stream.emit_execution_event = AsyncMock()
 
                 result = await _execute_a2a_agent(step_config, {}, execution_context)
@@ -452,7 +499,9 @@ class TestA2AAgentExecutionIntegration:
         # Should NOT have emitted events because no step_id
         mock_stream.emit_execution_event.assert_not_called()
 
-    async def test_query_from_input_data_query_field(self, a2a_echo_server, execution_context, create_a2a_agent_record):
+    async def test_query_from_input_data_query_field(
+        self, a2a_echo_server, execution_context, create_a2a_agent_record
+    ):
         """Test that query can come from input_data['query'] if no current_message."""
         from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
 
@@ -465,10 +514,14 @@ class TestA2AAgentExecutionIntegration:
                 # No query in config
             },
         }
-        input_data = {"query": "Hello from query field"}  # Uses 'query' not 'current_message'
+        input_data = {
+            "query": "Hello from query field"
+        }  # Uses 'query' not 'current_message'
 
         with mock_session_with_agent(agent):
-            result = await _execute_a2a_agent(step_config, input_data, execution_context)
+            result = await _execute_a2a_agent(
+                step_config, input_data, execution_context
+            )
 
         assert result["success"] is True
         assert "Echo: Hello from query field" in result["response"]
@@ -491,7 +544,9 @@ class TestA2AAgentExecutionIntegration:
         assert result["success"] is False
         assert "error" in result
 
-    async def test_unreachable_server_returns_error(self, execution_context, create_a2a_agent_record):
+    async def test_unreachable_server_returns_error(
+        self, execution_context, create_a2a_agent_record
+    ):
         """Test error handling when A2A server is unreachable."""
         from workflow_core_sdk.steps.ai_steps import _execute_a2a_agent
 

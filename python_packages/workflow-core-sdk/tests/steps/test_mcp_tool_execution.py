@@ -71,7 +71,13 @@ class TestMCPToolExecution:
     @patch("workflow_core_sdk.steps.tool_steps.mcp_client")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
     async def test_execute_mcp_tool_success(
-        self, mock_stream, mock_mcp_client, mock_session_class, mcp_tool_record, mcp_server, execution_context
+        self,
+        mock_stream,
+        mock_mcp_client,
+        mock_session_class,
+        mcp_tool_record,
+        mcp_server,
+        execution_context,
     ):
         """Test successful MCP tool execution."""
         mock_stream.emit_execution_event = AsyncMock()
@@ -87,7 +93,11 @@ class TestMCPToolExecution:
 
         # Mock MCP client execution
         mock_mcp_client.execute_tool = AsyncMock(
-            return_value={"status": "success", "result": "Tool executed successfully", "execution_time": 150}
+            return_value={
+                "status": "success",
+                "result": "Tool executed successfully",
+                "execution_time": 150,
+            }
         )
 
         # Execute tool
@@ -123,7 +133,13 @@ class TestMCPToolExecution:
     @patch("workflow_core_sdk.steps.tool_steps.mcp_client")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
     async def test_execute_mcp_tool_with_param_mapping(
-        self, mock_stream, mock_mcp_client, mock_session_class, mcp_tool_record, mcp_server, execution_context
+        self,
+        mock_stream,
+        mock_mcp_client,
+        mock_session_class,
+        mcp_tool_record,
+        mcp_server,
+        execution_context,
     ):
         """Test MCP tool execution with parameter mapping."""
         mock_stream.emit_execution_event = AsyncMock()
@@ -138,7 +154,9 @@ class TestMCPToolExecution:
         mock_session.exec.return_value.first.side_effect = [mcp_tool_record, mcp_server]
 
         # Mock MCP client execution
-        mock_mcp_client.execute_tool = AsyncMock(return_value={"status": "success", "result": "Mapped execution"})
+        mock_mcp_client.execute_tool = AsyncMock(
+            return_value={"status": "success", "result": "Mapped execution"}
+        )
 
         # Execute tool with parameter mapping
         step_config = {
@@ -164,7 +182,12 @@ class TestMCPToolExecution:
     @patch("workflow_core_sdk.steps.tool_steps.mcp_client")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
     async def test_execute_mcp_tool_server_not_found(
-        self, mock_stream, mock_mcp_client, mock_session_class, mcp_tool_record, execution_context
+        self,
+        mock_stream,
+        mock_mcp_client,
+        mock_session_class,
+        mcp_tool_record,
+        execution_context,
     ):
         """Test MCP tool execution when server is not found."""
         mock_stream.emit_execution_event = AsyncMock()
@@ -199,7 +222,13 @@ class TestMCPToolExecution:
     @patch("workflow_core_sdk.steps.tool_steps.mcp_client")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
     async def test_execute_mcp_tool_execution_error(
-        self, mock_stream, mock_mcp_client, mock_session_class, mcp_tool_record, mcp_server, execution_context
+        self,
+        mock_stream,
+        mock_mcp_client,
+        mock_session_class,
+        mcp_tool_record,
+        mcp_server,
+        execution_context,
     ):
         """Test MCP tool execution when tool execution fails."""
         from workflow_core_sdk.clients.mcp_client import MCPToolExecutionError
@@ -216,7 +245,9 @@ class TestMCPToolExecution:
         mock_session.exec.return_value.first.side_effect = [mcp_tool_record, mcp_server]
 
         # Mock MCP client execution failure
-        mock_mcp_client.execute_tool = AsyncMock(side_effect=MCPToolExecutionError("Tool execution failed"))
+        mock_mcp_client.execute_tool = AsyncMock(
+            side_effect=MCPToolExecutionError("Tool execution failed")
+        )
 
         # Execute tool
         step_config = {
@@ -239,7 +270,13 @@ class TestMCPToolExecution:
     @patch("workflow_core_sdk.steps.tool_steps.mcp_client")
     @patch("workflow_core_sdk.steps.tool_steps.stream_manager")
     async def test_execute_mcp_tool_server_unavailable(
-        self, mock_stream, mock_mcp_client, mock_session_class, mcp_tool_record, mcp_server, execution_context
+        self,
+        mock_stream,
+        mock_mcp_client,
+        mock_session_class,
+        mcp_tool_record,
+        mcp_server,
+        execution_context,
     ):
         """Test MCP tool execution when server is unavailable."""
         from workflow_core_sdk.clients.mcp_client import MCPServerUnavailableError
@@ -256,7 +293,9 @@ class TestMCPToolExecution:
         mock_session.exec.return_value.first.side_effect = [mcp_tool_record, mcp_server]
 
         # Mock MCP client server unavailable
-        mock_mcp_client.execute_tool = AsyncMock(side_effect=MCPServerUnavailableError("Server unavailable"))
+        mock_mcp_client.execute_tool = AsyncMock(
+            side_effect=MCPServerUnavailableError("Server unavailable")
+        )
 
         # Execute tool
         step_config = {
@@ -272,4 +311,3 @@ class TestMCPToolExecution:
         # Verify error result
         assert result["success"] is False
         assert "MCP server unavailable" in result["error"]
-

@@ -43,11 +43,13 @@ def kevel_get_sites() -> str:
     """
     try:
         if not KEVEL_API_KEY:
-            return json.dumps({
-                "success": False,
-                "message": "Kevel API key not configured",
-                "error": "Missing KEVEL_API_KEY in environment variables"
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "Kevel API key not configured",
+                    "error": "Missing KEVEL_API_KEY in environment variables",
+                }
+            )
 
         headers = {
             "X-Adzerk-ApiKey": KEVEL_API_KEY,
@@ -67,7 +69,9 @@ def kevel_get_sites() -> str:
             try:
                 r = requests.get(endpoint, headers=headers, timeout=10)
                 # Debug logging (trim to avoid huge logs)
-                print(f"[Kevel] Sites endpoint={endpoint} status={r.status_code} body={r.text[:200]}...")
+                print(
+                    f"[Kevel] Sites endpoint={endpoint} status={r.status_code} body={r.text[:200]}..."
+                )
                 if r.status_code == 200:
                     response = r
                     break
@@ -78,34 +82,42 @@ def kevel_get_sites() -> str:
                 continue
         else:
             # If loop completes without break
-            return json.dumps({
-                "success": False,
-                "message": "Failed to retrieve sites from all attempted endpoints",
-                "error": f"Last error: {last_error}",
-                "attempted_endpoints": endpoints_to_try,
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "Failed to retrieve sites from all attempted endpoints",
+                    "error": f"Last error: {last_error}",
+                    "attempted_endpoints": endpoints_to_try,
+                }
+            )
 
         assert response is not None
         if response.status_code == 200:
             sites = response.json()
-            return json.dumps({
-                "success": True,
-                "message": f"Retrieved {len(sites)} sites from network {KEVEL_NETWORK_ID}",
-                "sites": sites,
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": f"Retrieved {len(sites)} sites from network {KEVEL_NETWORK_ID}",
+                    "sites": sites,
+                }
+            )
         else:
-            return json.dumps({
-                "success": False,
-                "message": f"Failed to retrieve sites: HTTP {response.status_code}",
-                "error": response.text,
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Failed to retrieve sites: HTTP {response.status_code}",
+                    "error": response.text,
+                }
+            )
 
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "message": "Error connecting to Kevel API",
-            "error": str(e),
-        })
+        return json.dumps(
+            {
+                "success": False,
+                "message": "Error connecting to Kevel API",
+                "error": str(e),
+            }
+        )
 
 
 @function_schema
@@ -125,11 +137,13 @@ def kevel_get_ad_types() -> str:
         import uuid
 
         if not KEVEL_API_KEY:
-            return json.dumps({
-                "success": False,
-                "message": "Kevel API key not configured",
-                "error": "Missing KEVEL_API_KEY in environment variables",
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "Kevel API key not configured",
+                    "error": "Missing KEVEL_API_KEY in environment variables",
+                }
+            )
 
         headers = {
             "X-Adzerk-ApiKey": KEVEL_API_KEY,
@@ -156,24 +170,30 @@ def kevel_get_ad_types() -> str:
                 unique_id = str(uuid.uuid4())[:8]
                 ad_type["element_id"] = f"azk{unique_id}"
 
-            return json.dumps({
-                "success": True,
-                "message": f"Retrieved {len(ad_types)} ad types from network {KEVEL_NETWORK_ID} with unique element IDs",
-                "ad_types": ad_types,
-            })
+            return json.dumps(
+                {
+                    "success": True,
+                    "message": f"Retrieved {len(ad_types)} ad types from network {KEVEL_NETWORK_ID} with unique element IDs",
+                    "ad_types": ad_types,
+                }
+            )
         else:
-            return json.dumps({
-                "success": False,
-                "message": f"Failed to retrieve ad types: HTTP {response.status_code}",
-                "error": response.text,
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": f"Failed to retrieve ad types: HTTP {response.status_code}",
+                    "error": response.text,
+                }
+            )
 
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "message": "Error connecting to Kevel API",
-            "error": str(e),
-        })
+        return json.dumps(
+            {
+                "success": False,
+                "message": "Error connecting to Kevel API",
+                "error": str(e),
+            }
+        )
 
 
 @function_schema
@@ -185,11 +205,13 @@ def kevel_debug_api() -> str:
     """
     try:
         if not KEVEL_API_KEY:
-            return json.dumps({
-                "success": False,
-                "message": "Kevel API key not configured",
-                "error": "Missing KEVEL_API_KEY in environment variables",
-            })
+            return json.dumps(
+                {
+                    "success": False,
+                    "message": "Kevel API key not configured",
+                    "error": "Missing KEVEL_API_KEY in environment variables",
+                }
+            )
 
         headers = {
             "X-Adzerk-ApiKey": KEVEL_API_KEY,
@@ -213,38 +235,48 @@ def kevel_debug_api() -> str:
             try:
                 url = f"{KEVEL_API_BASE}{endpoint}"
                 response = requests.get(url, headers=headers, timeout=5)
-                results.append({
-                    "endpoint": endpoint,
-                    "url": url,
-                    "status_code": response.status_code,
-                    "success": response.status_code == 200,
-                    "response_size": len(response.text),
-                    "error": None if response.status_code == 200 else response.text[:200],
-                })
+                results.append(
+                    {
+                        "endpoint": endpoint,
+                        "url": url,
+                        "status_code": response.status_code,
+                        "success": response.status_code == 200,
+                        "response_size": len(response.text),
+                        "error": None
+                        if response.status_code == 200
+                        else response.text[:200],
+                    }
+                )
             except Exception as e:  # network or other error
-                results.append({
-                    "endpoint": endpoint,
-                    "url": f"{KEVEL_API_BASE}{endpoint}",
-                    "status_code": None,
-                    "success": False,
-                    "response_size": 0,
-                    "error": str(e),
-                })
+                results.append(
+                    {
+                        "endpoint": endpoint,
+                        "url": f"{KEVEL_API_BASE}{endpoint}",
+                        "status_code": None,
+                        "success": False,
+                        "response_size": 0,
+                        "error": str(e),
+                    }
+                )
 
-        return json.dumps({
-            "success": True,
-            "message": f"Tested {len(endpoints_to_test)} endpoints",
-            "api_base": KEVEL_API_BASE,
-            "network_id": KEVEL_NETWORK_ID,
-            "results": results,
-        })
+        return json.dumps(
+            {
+                "success": True,
+                "message": f"Tested {len(endpoints_to_test)} endpoints",
+                "api_base": KEVEL_API_BASE,
+                "network_id": KEVEL_NETWORK_ID,
+                "results": results,
+            }
+        )
 
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "message": "Error during API debug",
-            "error": str(e),
-        })
+        return json.dumps(
+            {
+                "success": False,
+                "message": "Error during API debug",
+                "error": str(e),
+            }
+        )
 
 
 # Export store and schemas for aggregation in basic_tools
@@ -254,5 +286,6 @@ KEVEL_TOOL_STORE = {
     "kevel_debug_api": kevel_debug_api,
 }
 
-KEVEL_TOOL_SCHEMAS = {name: func.openai_schema for name, func in KEVEL_TOOL_STORE.items()}
-
+KEVEL_TOOL_SCHEMAS = {
+    name: func.openai_schema for name, func in KEVEL_TOOL_STORE.items()
+}

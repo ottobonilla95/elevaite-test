@@ -132,14 +132,19 @@ class TestApiKeyOrUserResolver:
 
         assert user_id == "123"
 
-    @patch.dict(os.environ, {"RBAC_SDK_APIKEY_ENABLE_LOCAL_JWT": "true", "API_KEY_SECRET": "test-secret"})
+    @patch.dict(
+        os.environ,
+        {"RBAC_SDK_APIKEY_ENABLE_LOCAL_JWT": "true", "API_KEY_SECRET": "test-secret"},
+    )
     def test_api_key_local_jwt_validation(self):
         """Test API key with local JWT validation enabled."""
         request = Mock()
         # This is a mock JWT - in real tests we'd need a valid JWT
         request.headers = {HDR_API_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test"}
 
-        with patch("rbac_sdk.fastapi_helpers.api_key_jwt_validator") as mock_jwt_validator:
+        with patch(
+            "rbac_sdk.fastapi_helpers.api_key_jwt_validator"
+        ) as mock_jwt_validator:
             mock_validator_func = Mock(return_value="jwt-user-123")
             mock_jwt_validator.return_value = mock_validator_func
 
@@ -154,7 +159,9 @@ class TestApiKeyOrUserResolver:
         request = Mock()
         request.headers = {HDR_API_KEY: "raw-api-key-123"}
 
-        resolver = principal_resolvers.api_key_or_user(allow_insecure_apikey_as_principal=True)
+        resolver = principal_resolvers.api_key_or_user(
+            allow_insecure_apikey_as_principal=True
+        )
         user_id = resolver(request)
 
         # Should return the raw API key as user_id (INSECURE!)
@@ -165,7 +172,9 @@ class TestApiKeyOrUserResolver:
         request = Mock()
         request.headers = {HDR_API_KEY: "some-key"}
 
-        resolver = principal_resolvers.api_key_or_user(allow_insecure_apikey_as_principal=False)
+        resolver = principal_resolvers.api_key_or_user(
+            allow_insecure_apikey_as_principal=False
+        )
 
         with pytest.raises(HTTPException) as exc_info:
             resolver(request)
@@ -179,7 +188,9 @@ class TestApiKeyOrUserResolver:
         request = Mock()
         request.headers = {HDR_API_KEY: "some-jwt"}
 
-        resolver = principal_resolvers.api_key_or_user(allow_insecure_apikey_as_principal=False)
+        resolver = principal_resolvers.api_key_or_user(
+            allow_insecure_apikey_as_principal=False
+        )
 
         with pytest.raises(HTTPException) as exc_info:
             resolver(request)
@@ -243,36 +254,48 @@ class TestApiKeyOrUserEnvironmentVariables:
 
     def test_insecure_env_var_1(self):
         """Test that RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL=1 enables insecure mode."""
-        with patch.dict(os.environ, {"RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL": "1"}):
+        with patch.dict(
+            os.environ, {"RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL": "1"}
+        ):
             request = Mock()
             request.headers = {HDR_API_KEY: "raw-key"}
 
             # Explicitly pass allow_insecure_apikey_as_principal=True since default is evaluated at module load time
-            resolver = principal_resolvers.api_key_or_user(allow_insecure_apikey_as_principal=True)
+            resolver = principal_resolvers.api_key_or_user(
+                allow_insecure_apikey_as_principal=True
+            )
             user_id = resolver(request)
 
             assert user_id == "raw-key"
 
     def test_insecure_env_var_true(self):
         """Test that RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL=true enables insecure mode."""
-        with patch.dict(os.environ, {"RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL": "true"}):
+        with patch.dict(
+            os.environ, {"RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL": "true"}
+        ):
             request = Mock()
             request.headers = {HDR_API_KEY: "raw-key"}
 
             # Explicitly pass allow_insecure_apikey_as_principal=True since default is evaluated at module load time
-            resolver = principal_resolvers.api_key_or_user(allow_insecure_apikey_as_principal=True)
+            resolver = principal_resolvers.api_key_or_user(
+                allow_insecure_apikey_as_principal=True
+            )
             user_id = resolver(request)
 
             assert user_id == "raw-key"
 
     def test_insecure_env_var_yes(self):
         """Test that RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL=yes enables insecure mode."""
-        with patch.dict(os.environ, {"RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL": "yes"}):
+        with patch.dict(
+            os.environ, {"RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL": "yes"}
+        ):
             request = Mock()
             request.headers = {HDR_API_KEY: "raw-key"}
 
             # Explicitly pass allow_insecure_apikey_as_principal=True since default is evaluated at module load time
-            resolver = principal_resolvers.api_key_or_user(allow_insecure_apikey_as_principal=True)
+            resolver = principal_resolvers.api_key_or_user(
+                allow_insecure_apikey_as_principal=True
+            )
             user_id = resolver(request)
 
             assert user_id == "raw-key"
@@ -316,7 +339,9 @@ class TestApiKeyOrUserEnvironmentVariables:
         request = Mock()
         request.headers = {HDR_API_KEY: "jwt-token"}
 
-        with patch("rbac_sdk.fastapi_helpers.api_key_jwt_validator") as mock_jwt_validator:
+        with patch(
+            "rbac_sdk.fastapi_helpers.api_key_jwt_validator"
+        ) as mock_jwt_validator:
             mock_validator_func = Mock(return_value="jwt-user")
             mock_jwt_validator.return_value = mock_validator_func
 
@@ -332,7 +357,9 @@ class TestApiKeyOrUserEnvironmentVariables:
         request = Mock()
         request.headers = {HDR_API_KEY: "jwt-token"}
 
-        with patch("rbac_sdk.fastapi_helpers.api_key_jwt_validator") as mock_jwt_validator:
+        with patch(
+            "rbac_sdk.fastapi_helpers.api_key_jwt_validator"
+        ) as mock_jwt_validator:
             mock_validator_func = Mock(return_value="jwt-user")
             mock_jwt_validator.return_value = mock_validator_func
 
@@ -347,7 +374,9 @@ class TestApiKeyOrUserEnvironmentVariables:
         request = Mock()
         request.headers = {HDR_API_KEY: "jwt-token"}
 
-        with patch("rbac_sdk.fastapi_helpers.api_key_jwt_validator") as mock_jwt_validator:
+        with patch(
+            "rbac_sdk.fastapi_helpers.api_key_jwt_validator"
+        ) as mock_jwt_validator:
             mock_validator_func = Mock(return_value="jwt-user")
             mock_jwt_validator.return_value = mock_validator_func
 

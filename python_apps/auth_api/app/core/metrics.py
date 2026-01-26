@@ -99,7 +99,9 @@ class _Metrics:
         if self._meter is None:
             return _NoOpHistogram()
         try:
-            return self._meter.create_histogram(name, unit="ms", description=description)  # type: ignore[attr-defined]
+            return self._meter.create_histogram(
+                name, unit="ms", description=description
+            )  # type: ignore[attr-defined]
         except Exception:
             return _NoOpHistogram()
 
@@ -127,19 +129,27 @@ class _Metrics:
         self.redis_errors.add(1, attributes=self._attrs(operation, tenant_id))  # type: ignore[arg-type]
 
     def debounce_acquired(self, operation: str, tenant_id: Optional[str] = None):
-        self.redis_debounce_acquired.add(1, attributes=self._attrs(operation, tenant_id))  # type: ignore[arg-type]
+        self.redis_debounce_acquired.add(
+            1, attributes=self._attrs(operation, tenant_id)
+        )  # type: ignore[arg-type]
 
     def debounce_skipped(self, operation: str, tenant_id: Optional[str] = None):
         self.redis_debounce_skipped.add(1, attributes=self._attrs(operation, tenant_id))  # type: ignore[arg-type]
 
     def bulk_extended(self, tenant_id: Optional[str], count: int):
-        self.redis_bulk_extend.add(count, attributes=self._attrs("extend_all", tenant_id))  # type: ignore[arg-type]
+        self.redis_bulk_extend.add(
+            count, attributes=self._attrs("extend_all", tenant_id)
+        )  # type: ignore[arg-type]
 
     def session_marked(self, tenant_id: Optional[str]):
-        self.redis_session_mark.add(1, attributes=self._attrs("mark_session", tenant_id))  # type: ignore[arg-type]
+        self.redis_session_mark.add(
+            1, attributes=self._attrs("mark_session", tenant_id)
+        )  # type: ignore[arg-type]
 
     def session_removed(self, tenant_id: Optional[str]):
-        self.redis_session_remove.add(1, attributes=self._attrs("remove_session", tenant_id))  # type: ignore[arg-type]
+        self.redis_session_remove.add(
+            1, attributes=self._attrs("remove_session", tenant_id)
+        )  # type: ignore[arg-type]
 
     def availability(self, available: bool):
         # No attributes; one-time signal is good enough
@@ -150,19 +160,29 @@ class _Metrics:
 
     # Endpoint helpers
     def endpoint_success(self, tenant_id: Optional[str] = None):
-        self.extend_session_success.add(1, attributes={"tenant_id": tenant_id} if tenant_id else None)  # type: ignore[arg-type]
+        self.extend_session_success.add(
+            1, attributes={"tenant_id": tenant_id} if tenant_id else None
+        )  # type: ignore[arg-type]
 
     def endpoint_failure(self, tenant_id: Optional[str] = None):
-        self.extend_session_failure.add(1, attributes={"tenant_id": tenant_id} if tenant_id else None)  # type: ignore[arg-type]
+        self.extend_session_failure.add(
+            1, attributes={"tenant_id": tenant_id} if tenant_id else None
+        )  # type: ignore[arg-type]
 
     def endpoint_db_fallback(self, tenant_id: Optional[str] = None):
-        self.extend_session_db_fallback.add(1, attributes={"tenant_id": tenant_id} if tenant_id else None)  # type: ignore[arg-type]
+        self.extend_session_db_fallback.add(
+            1, attributes={"tenant_id": tenant_id} if tenant_id else None
+        )  # type: ignore[arg-type]
 
     def endpoint_db_write_through(self, tenant_id: Optional[str] = None):
-        self.extend_session_db_write_through.add(1, attributes={"tenant_id": tenant_id} if tenant_id else None)  # type: ignore[arg-type]
+        self.extend_session_db_write_through.add(
+            1, attributes={"tenant_id": tenant_id} if tenant_id else None
+        )  # type: ignore[arg-type]
 
     def endpoint_latency_ms(self, value_ms: float, tenant_id: Optional[str] = None):
-        self.extend_session_latency_ms.record(value_ms, attributes={"tenant_id": tenant_id} if tenant_id else None)  # type: ignore[arg-type]
+        self.extend_session_latency_ms.record(
+            value_ms, attributes={"tenant_id": tenant_id} if tenant_id else None
+        )  # type: ignore[arg-type]
 
 
 metrics = _Metrics()

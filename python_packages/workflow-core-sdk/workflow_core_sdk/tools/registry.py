@@ -54,7 +54,9 @@ class ToolRegistry:
             schema = schemas.get(name) or {}
             func_block = schema.get("function", {}) if isinstance(schema, dict) else {}
             description = func_block.get("description", "")
-            parameters = func_block.get("parameters", {"type": "object", "properties": {}, "required": []})
+            parameters = func_block.get(
+                "parameters", {"type": "object", "properties": {}, "required": []}
+            )
             uri = f"local://{func.__module__}:{getattr(func, '__name__', name)}"
             out[name] = UnifiedTool(
                 name=name,
@@ -76,7 +78,8 @@ class ToolRegistry:
             out[r.name] = UnifiedTool(
                 name=r.name,
                 description=r.description,
-                parameters_schema=r.parameters_schema or {"type": "object", "properties": {}, "required": []},
+                parameters_schema=r.parameters_schema
+                or {"type": "object", "properties": {}, "required": []},
                 return_schema=r.return_schema,
                 execution_type=r.execution_type or "function",
                 version=r.version or "1.0.0",
@@ -113,7 +116,8 @@ class ToolRegistry:
             return UnifiedTool(
                 name=rec.name,
                 description=rec.description,
-                parameters_schema=rec.parameters_schema or {"type": "object", "properties": {}, "required": []},
+                parameters_schema=rec.parameters_schema
+                or {"type": "object", "properties": {}, "required": []},
                 return_schema=rec.return_schema,
                 execution_type=rec.execution_type or "function",
                 version=rec.version or "1.0.0",
@@ -139,7 +143,9 @@ class ToolRegistry:
             updated += _u
         return {"created": created, "updated": updated}
 
-    def sync_local_tool_by_name(self, session: Session, name: str) -> Optional[uuid.UUID]:
+    def sync_local_tool_by_name(
+        self, session: Session, name: str
+    ) -> Optional[uuid.UUID]:
         """Ensure a single local tool exists in DB; return its id.
         Creates or updates the DB row as needed; returns None if the local tool is unknown.
         """
@@ -149,12 +155,16 @@ class ToolRegistry:
             return None
         created, _updated = self._upsert_local_tool(session, ut)
         # Fetch id
-        rec = session.exec(select(DBTool).where(DBTool.name == name, DBTool.version == ut.version)).first()
+        rec = session.exec(
+            select(DBTool).where(DBTool.name == name, DBTool.version == ut.version)
+        ).first()
         return getattr(rec, "id", None)
 
     # Internal helper
     def _upsert_local_tool(self, session: Session, ut: UnifiedTool) -> tuple[int, int]:
-        existing = session.exec(select(DBTool).where(DBTool.name == ut.name, DBTool.version == ut.version)).first()
+        existing = session.exec(
+            select(DBTool).where(DBTool.name == ut.name, DBTool.version == ut.version)
+        ).first()
         if existing:
             changed = False
             if existing.description != ut.description:

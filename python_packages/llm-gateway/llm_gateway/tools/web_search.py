@@ -22,6 +22,7 @@ GOOGLE_SEARCH_CX_ID = os.getenv("GOOGLE_SEARCH_CX_ID") or os.getenv("CX_ID_PERSO
 @dataclass
 class WebSearchResult:
     """Represents a single web search result."""
+
     title: str
     url: str
     snippet: str
@@ -31,28 +32,28 @@ class WebSearchResult:
 def url_to_markdown(url: str, max_chars: int = 20000) -> str:
     """
     Convert a webpage URL to Markdown format.
-    
+
     Args:
         url: The URL of the webpage to convert
         max_chars: Maximum characters to return (default: 20000)
-        
+
     Returns:
         The webpage content in Markdown format or an error message
     """
     try:
         response = requests.get(
-            url, 
+            url,
             headers={"User-Agent": "Mozilla/5.0 (compatible; LLMGateway/1.0)"},
-            timeout=10
+            timeout=10,
         )
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
-        
+
         # Remove script and style elements
         for element in soup(["script", "style", "nav", "footer", "header"]):
             element.decompose()
-        
+
         content = soup.find("body")
 
         if content:
@@ -69,26 +70,26 @@ def url_to_markdown(url: str, max_chars: int = 20000) -> str:
 
 
 def web_search(
-    query: str, 
+    query: str,
     num_results: int = 3,
     fetch_content: bool = True,
     max_content_chars: int = 10000,
 ) -> List[WebSearchResult]:
     """
     Perform a web search using Google Custom Search API.
-    
+
     This is a fallback implementation for providers that don't have
     built-in web search support (Bedrock, On-Prem).
-    
+
     Args:
         query: The search query
         num_results: Number of results to return (default: 3, max: 10)
         fetch_content: Whether to fetch and convert page content to markdown
         max_content_chars: Maximum characters per page content
-        
+
     Returns:
         List of WebSearchResult objects
-        
+
     Raises:
         ValueError: If Google API credentials are not configured
         RuntimeError: If the search request fails
@@ -98,9 +99,9 @@ def web_search(
             "Google Custom Search API credentials not configured. "
             "Set GOOGLE_API_KEY and GOOGLE_SEARCH_CX_ID environment variables."
         )
-    
+
     num_results = min(max(1, num_results), 10)  # Clamp between 1 and 10
-    
+
     try:
         # Perform Google Custom Search
         search_url = (
@@ -110,16 +111,16 @@ def web_search(
             f"&cx={GOOGLE_SEARCH_CX_ID}"
             f"&num={num_results}"
         )
-        
+
         response = requests.get(search_url, timeout=10)
         response.raise_for_status()
-        
+
         search_data = response.json()
-        
+
         if "items" not in search_data:
             logging.info(f"No search results found for query: {query}")
             return []
-        
+
         results = []
         for item in search_data["items"]:
             result = WebSearchResult(
@@ -127,34 +128,36 @@ def web_search(
                 url=item.get("link", ""),
                 snippet=item.get("snippet", ""),
             )
-            
+
             # Optionally fetch full page content
             if fetch_content and result.url:
                 result.content = url_to_markdown(result.url, max_content_chars)
-            
+
             results.append(result)
-        
+
         return results
-        
+
     except requests.RequestException as e:
         logging.error(f"Web search request failed: {e}")
         raise RuntimeError(f"Web search failed: {e}")
 
 
-def format_search_results(results: List[WebSearchResult], include_content: bool = True) -> str:
+def format_search_results(
+    results: List[WebSearchResult], include_content: bool = True
+) -> str:
     """
     Format search results as a readable string for LLM consumption.
-    
+
     Args:
         results: List of WebSearchResult objects
         include_content: Whether to include full page content
-        
+
     Returns:
         Formatted string with search results
     """
     if not results:
         return "No search results found."
-    
+
     formatted = []
     for i, result in enumerate(results, 1):
         parts = [
@@ -165,6 +168,5 @@ def format_search_results(results: List[WebSearchResult], include_content: bool 
         if include_content and result.content:
             parts.append(f"\n**Content:**\n{result.content}")
         formatted.append("\n".join(parts))
-    
-    return "\n\n---\n\n".join(formatted)
 
+    return "\n\n---\n\n".join(formatted)

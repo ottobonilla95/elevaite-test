@@ -2,7 +2,9 @@ from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 import time
 
-from elevaite_ingestion.stage.post_retrieval.cohere_reranker import rerank_separately_then_merge
+from elevaite_ingestion.stage.post_retrieval.cohere_reranker import (
+    rerank_separately_then_merge,
+)
 from elevaite_ingestion.stage.post_retrieval.rse import get_best_segments
 
 
@@ -25,11 +27,16 @@ async def query_kb(request: QueryRequest):
         total_start_time = time.time()
 
         retrieval_start_time = time.time()
-        retrieved_chunks, chunk_values = rerank_separately_then_merge(query=request.query, top_k=request.top_k)
+        retrieved_chunks, chunk_values = rerank_separately_then_merge(
+            query=request.query, top_k=request.top_k
+        )
         retrieval_time = (time.time() - retrieval_start_time) * 1000
 
         if not retrieved_chunks:
-            raise HTTPException(status_code=404, detail="No relevant information found for the given query.")
+            raise HTTPException(
+                status_code=404,
+                detail="No relevant information found for the given query.",
+            )
 
         relevance_values = [v - request.irrelevant_chunk_penalty for v in chunk_values]
 
@@ -62,7 +69,11 @@ async def query_kb(request: QueryRequest):
                     }
                 )
 
-            segment_metadata = {"segment_id": i + 1, "score": scores[i], "chunks": segment_chunks}
+            segment_metadata = {
+                "segment_id": i + 1,
+                "score": scores[i],
+                "chunks": segment_chunks,
+            }
             selected_segments.append(segment_metadata)
 
         total_time = (time.time() - total_start_time) * 1000

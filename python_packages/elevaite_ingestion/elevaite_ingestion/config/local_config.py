@@ -9,5 +9,5 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 LOCAL_CONFIG = {
     "input_directory": "data/raw",
-    "output_parsed_directory": "data/processed"
+    "output_parsed_directory": "data/processed",
 }

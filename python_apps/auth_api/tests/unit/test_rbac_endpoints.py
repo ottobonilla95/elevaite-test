@@ -155,7 +155,9 @@ class TestListRoles:
         assert result.roles[0].name == "Test Role"
 
     @pytest.mark.asyncio
-    async def test_list_roles_with_filters(self, mock_superuser, mock_session, mock_role):
+    async def test_list_roles_with_filters(
+        self, mock_superuser, mock_session, mock_role
+    ):
         """Test listing roles with filters."""
         count_result = MagicMock()
         count_result.scalar.return_value = 1
@@ -254,7 +256,9 @@ class TestCreateRole:
         mock_session.add.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_create_role_forbidden_non_superuser(self, mock_regular_user, mock_session):
+    async def test_create_role_forbidden_non_superuser(
+        self, mock_regular_user, mock_session
+    ):
         """Test that non-superusers cannot create roles."""
         role_data = RoleCreate(
             name="New Role",
@@ -274,7 +278,9 @@ class TestCreateRole:
         assert "superusers" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    async def test_create_role_duplicate_name(self, mock_superuser, mock_session, mock_role):
+    async def test_create_role_duplicate_name(
+        self, mock_superuser, mock_session, mock_role
+    ):
         """Test creating a role with duplicate name."""
         role_data = RoleCreate(
             name="Test Role",  # Same as mock_role
@@ -303,7 +309,9 @@ class TestAddRolePermission:
     """Tests for add_role_permission endpoint."""
 
     @pytest.mark.asyncio
-    async def test_add_role_permission_success(self, mock_superuser, mock_session, mock_role):
+    async def test_add_role_permission_success(
+        self, mock_superuser, mock_session, mock_role
+    ):
         """Test successfully adding a permission to a role."""
         permission_data = RolePermissionCreate(
             service_name="test_service",
@@ -340,7 +348,9 @@ class TestAddRolePermission:
         assert result.allowed_actions == ["read", "write"]
 
     @pytest.mark.asyncio
-    async def test_add_role_permission_role_not_found(self, mock_superuser, mock_session):
+    async def test_add_role_permission_role_not_found(
+        self, mock_superuser, mock_session
+    ):
         """Test adding permission to non-existent role."""
         permission_data = RolePermissionCreate(
             service_name="test_service",
@@ -362,7 +372,9 @@ class TestAddRolePermission:
         assert exc_info.value.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_add_role_permission_forbidden_non_superuser(self, mock_regular_user, mock_session):
+    async def test_add_role_permission_forbidden_non_superuser(
+        self, mock_regular_user, mock_session
+    ):
         """Test that non-superusers cannot add role permissions."""
         permission_data = RolePermissionCreate(
             service_name="test_service",
@@ -380,7 +392,9 @@ class TestAddRolePermission:
         assert exc_info.value.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_add_role_permission_duplicate(self, mock_superuser, mock_session, mock_role):
+    async def test_add_role_permission_duplicate(
+        self, mock_superuser, mock_session, mock_role
+    ):
         """Test adding duplicate permission to role."""
         permission_data = RolePermissionCreate(
             service_name="test_service",
@@ -441,7 +455,9 @@ class TestListGroups:
         assert result.groups[0].name == "Test Group"
 
     @pytest.mark.asyncio
-    async def test_list_groups_with_org_filter(self, mock_superuser, mock_session, mock_group):
+    async def test_list_groups_with_org_filter(
+        self, mock_superuser, mock_session, mock_group
+    ):
         """Test listing groups with organization filter."""
         count_result = MagicMock()
         count_result.scalar.return_value = 1
@@ -502,7 +518,9 @@ class TestCreateGroup:
     """Tests for create_group endpoint."""
 
     @pytest.mark.asyncio
-    async def test_create_group_success(self, mock_superuser, mock_session, mock_organization):
+    async def test_create_group_success(
+        self, mock_superuser, mock_session, mock_organization
+    ):
         """Test successfully creating a group."""
         group_data = GroupCreate(
             organization_id=mock_organization.id,
@@ -537,7 +555,9 @@ class TestCreateGroup:
         assert result.name == "New Group"
 
     @pytest.mark.asyncio
-    async def test_create_group_forbidden_non_superuser(self, mock_regular_user, mock_session, mock_organization):
+    async def test_create_group_forbidden_non_superuser(
+        self, mock_regular_user, mock_session, mock_organization
+    ):
         """Test that non-superusers cannot create groups."""
         group_data = GroupCreate(
             organization_id=mock_organization.id,
@@ -673,7 +693,9 @@ class TestAddGroupPermission:
     """Tests for add_group_permission endpoint."""
 
     @pytest.mark.asyncio
-    async def test_add_group_permission_success(self, mock_superuser, mock_session, mock_group):
+    async def test_add_group_permission_success(
+        self, mock_superuser, mock_session, mock_group
+    ):
         """Test successfully adding a permission to a group."""
         permission_data = GroupPermissionCreate(
             service_name="test_service",
@@ -712,7 +734,9 @@ class TestAddGroupPermission:
         assert result.deny_actions == ["delete"]
 
     @pytest.mark.asyncio
-    async def test_add_group_permission_group_not_found(self, mock_superuser, mock_session):
+    async def test_add_group_permission_group_not_found(
+        self, mock_superuser, mock_session
+    ):
         """Test adding permission to non-existent group."""
         permission_data = GroupPermissionCreate(
             service_name="test_service",
@@ -738,7 +762,9 @@ class TestUpdateGroupPermission:
     """Tests for update_group_permission endpoint."""
 
     @pytest.mark.asyncio
-    async def test_update_group_permission_success(self, mock_superuser, mock_session, mock_group):
+    async def test_update_group_permission_success(
+        self, mock_superuser, mock_session, mock_group
+    ):
         """Test successfully updating a group permission."""
         permission_id = uuid4()
         permission_data = GroupPermissionUpdate(
@@ -782,7 +808,9 @@ class TestDeleteGroupPermission:
     """Tests for delete_group_permission endpoint."""
 
     @pytest.mark.asyncio
-    async def test_delete_group_permission_success(self, mock_superuser, mock_session, mock_group):
+    async def test_delete_group_permission_success(
+        self, mock_superuser, mock_session, mock_group
+    ):
         """Test successfully deleting a group permission."""
         permission_id = uuid4()
         mock_permission = MagicMock(spec=GroupPermission)
@@ -813,7 +841,9 @@ class TestListGroupMembers:
     """Tests for list_group_members endpoint."""
 
     @pytest.mark.asyncio
-    async def test_list_group_members_success(self, mock_superuser, mock_session, mock_group):
+    async def test_list_group_members_success(
+        self, mock_superuser, mock_session, mock_group
+    ):
         """Test successfully listing group members."""
         # Mock group exists
         group_result = MagicMock()
@@ -835,7 +865,9 @@ class TestListGroupMembers:
         members_result = MagicMock()
         members_result.scalars.return_value.all.return_value = [mock_membership]
 
-        mock_session.execute = AsyncMock(side_effect=[group_result, count_result, members_result])
+        mock_session.execute = AsyncMock(
+            side_effect=[group_result, count_result, members_result]
+        )
 
         result = await list_group_members(
             group_id=mock_group.id,
@@ -850,7 +882,9 @@ class TestListGroupMembers:
         assert len(result.memberships) == 1
 
     @pytest.mark.asyncio
-    async def test_list_group_members_group_not_found(self, mock_superuser, mock_session):
+    async def test_list_group_members_group_not_found(
+        self, mock_superuser, mock_session
+    ):
         """Test listing members of non-existent group."""
         group_result = MagicMock()
         group_result.scalars.return_value.first.return_value = None
@@ -873,7 +907,9 @@ class TestAddGroupMember:
     """Tests for add_group_member endpoint."""
 
     @pytest.mark.asyncio
-    async def test_add_group_member_success(self, mock_superuser, mock_session, mock_group, mock_organization):
+    async def test_add_group_member_success(
+        self, mock_superuser, mock_session, mock_group, mock_organization
+    ):
         """Test successfully adding a member to a group."""
         membership_data = UserGroupMembershipCreate(
             user_id=2,
@@ -899,7 +935,9 @@ class TestAddGroupMember:
         existing_result = MagicMock()
         existing_result.scalars.return_value.first.return_value = None
 
-        mock_session.execute = AsyncMock(side_effect=[group_result, user_result, resource_result, existing_result])
+        mock_session.execute = AsyncMock(
+            side_effect=[group_result, user_result, resource_result, existing_result]
+        )
         mock_session.add = MagicMock()
 
         async def mock_refresh(obj):
@@ -918,7 +956,9 @@ class TestAddGroupMember:
         assert result.group_id == mock_group.id
 
     @pytest.mark.asyncio
-    async def test_add_group_member_forbidden_non_superuser(self, mock_regular_user, mock_session, mock_group):
+    async def test_add_group_member_forbidden_non_superuser(
+        self, mock_regular_user, mock_session, mock_group
+    ):
         """Test that non-superusers cannot add group members."""
         membership_data = UserGroupMembershipCreate(
             user_id=3,
@@ -941,7 +981,9 @@ class TestRemoveGroupMember:
     """Tests for remove_group_member endpoint."""
 
     @pytest.mark.asyncio
-    async def test_remove_group_member_success(self, mock_superuser, mock_session, mock_group):
+    async def test_remove_group_member_success(
+        self, mock_superuser, mock_session, mock_group
+    ):
         """Test successfully removing a member from a group."""
         resource_id = uuid4()
         mock_membership = MagicMock(spec=UserGroupMembership)
@@ -965,7 +1007,9 @@ class TestRemoveGroupMember:
         mock_session.delete.assert_called_once_with(mock_membership)
 
     @pytest.mark.asyncio
-    async def test_remove_group_member_not_found(self, mock_superuser, mock_session, mock_group):
+    async def test_remove_group_member_not_found(
+        self, mock_superuser, mock_session, mock_group
+    ):
         """Test removing non-existent membership."""
         mock_result = MagicMock()
         mock_result.scalars.return_value.first.return_value = None
@@ -987,7 +1031,9 @@ class TestListUserGroups:
     """Tests for list_user_groups endpoint."""
 
     @pytest.mark.asyncio
-    async def test_list_user_groups_success(self, mock_superuser, mock_session, mock_group):
+    async def test_list_user_groups_success(
+        self, mock_superuser, mock_session, mock_group
+    ):
         """Test successfully listing a user's groups."""
         # Mock user exists
         mock_user = MagicMock(spec=User)
@@ -1011,7 +1057,9 @@ class TestListUserGroups:
         memberships_result = MagicMock()
         memberships_result.scalars.return_value.all.return_value = [mock_membership]
 
-        mock_session.execute = AsyncMock(side_effect=[user_result, count_result, memberships_result])
+        mock_session.execute = AsyncMock(
+            side_effect=[user_result, count_result, memberships_result]
+        )
 
         result = await list_user_groups(
             user_id=2,
@@ -1054,7 +1102,9 @@ class TestGetMyRbac:
     """Tests for get_my_rbac endpoint."""
 
     @pytest.mark.asyncio
-    async def test_get_my_rbac_success_with_all_data(self, mock_superuser, mock_session, mock_group):
+    async def test_get_my_rbac_success_with_all_data(
+        self, mock_superuser, mock_session, mock_group
+    ):
         """Test getting current user's RBAC info with roles, groups, and overrides."""
         # Mock role assignment
         mock_role_assignment = MagicMock(spec=UserRoleAssignment)
@@ -1093,7 +1143,9 @@ class TestGetMyRbac:
         override_result = MagicMock()
         override_result.scalars.return_value.all.return_value = [mock_override]
 
-        mock_session.execute = AsyncMock(side_effect=[role_result, membership_result, override_result])
+        mock_session.execute = AsyncMock(
+            side_effect=[role_result, membership_result, override_result]
+        )
 
         result = await get_my_rbac(
             session=mock_session,
@@ -1107,7 +1159,9 @@ class TestGetMyRbac:
         assert len(result.permission_overrides) == 1
 
     @pytest.mark.asyncio
-    async def test_get_my_rbac_empty_for_new_user(self, mock_regular_user, mock_session):
+    async def test_get_my_rbac_empty_for_new_user(
+        self, mock_regular_user, mock_session
+    ):
         """Test getting RBAC info for user with no assignments."""
         # Mock empty results
         role_result = MagicMock()
@@ -1119,7 +1173,9 @@ class TestGetMyRbac:
         override_result = MagicMock()
         override_result.scalars.return_value.all.return_value = []
 
-        mock_session.execute = AsyncMock(side_effect=[role_result, membership_result, override_result])
+        mock_session.execute = AsyncMock(
+            side_effect=[role_result, membership_result, override_result]
+        )
 
         result = await get_my_rbac(
             session=mock_session,
@@ -1155,7 +1211,9 @@ class TestGetMyRbac:
         override_result = MagicMock()
         override_result.scalars.return_value.all.return_value = []
 
-        mock_session.execute = AsyncMock(side_effect=[role_result, membership_result, override_result])
+        mock_session.execute = AsyncMock(
+            side_effect=[role_result, membership_result, override_result]
+        )
 
         result = await get_my_rbac(
             session=mock_session,
@@ -1175,7 +1233,9 @@ class TestCheckAccessRoleResolution:
     """
 
     @pytest.mark.asyncio
-    async def test_check_access_uses_role_ref_base_type(self, mock_superuser, mock_session):
+    async def test_check_access_uses_role_ref_base_type(
+        self, mock_superuser, mock_session
+    ):
         """Test that check_access uses role_ref.base_type when role_id FK is set."""
         from app.routers.authz import check_access
         from app.schemas.rbac import AccessCheckRequest, ResourceInfo
@@ -1241,7 +1301,9 @@ class TestCheckAccessRoleResolution:
             assert user_assignments[0]["role"] == "superadmin"
 
     @pytest.mark.asyncio
-    async def test_check_access_falls_back_to_legacy_role_string(self, mock_superuser, mock_session):
+    async def test_check_access_falls_back_to_legacy_role_string(
+        self, mock_superuser, mock_session
+    ):
         """Test that check_access falls back to legacy role string when role_ref is None."""
         from app.routers.authz import check_access
         from app.schemas.rbac import AccessCheckRequest, ResourceInfo
@@ -1303,7 +1365,9 @@ class TestCheckAccessRoleResolution:
             assert user_assignments[0]["role"] == "admin"
 
     @pytest.mark.asyncio
-    async def test_check_access_handles_both_role_fields_null(self, mock_superuser, mock_session):
+    async def test_check_access_handles_both_role_fields_null(
+        self, mock_superuser, mock_session
+    ):
         """Test that check_access handles edge case where both role fields are null."""
         from app.routers.authz import check_access
         from app.schemas.rbac import AccessCheckRequest, ResourceInfo
@@ -1343,7 +1407,9 @@ class TestCheckAccessRoleResolution:
         # Mock OPA service
         with patch("app.routers.authz.get_opa_service") as mock_opa:
             mock_opa_instance = MagicMock()
-            mock_opa_instance.check_access = AsyncMock(return_value={"allowed": False, "deny_reason": "no_matching_role"})
+            mock_opa_instance.check_access = AsyncMock(
+                return_value={"allowed": False, "deny_reason": "no_matching_role"}
+            )
             mock_opa.return_value = mock_opa_instance
 
             request = AccessCheckRequest(

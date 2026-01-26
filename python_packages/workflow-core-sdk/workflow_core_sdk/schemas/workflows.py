@@ -135,7 +135,9 @@ class ToolOverride(BaseModel):
 
     title: Optional[str] = None  # Override tool title for this workflow
     description: Optional[str] = None  # Override tool description for this workflow
-    parameter_overrides: Dict[str, Any] = Field(default_factory=dict)  # Override specific parameter titles/descriptions
+    parameter_overrides: Dict[str, Any] = Field(
+        default_factory=dict
+    )  # Override specific parameter titles/descriptions
 
 
 class StepBase(BaseModel):
@@ -151,8 +153,12 @@ class StepBase(BaseModel):
     config: Dict[str, Any] = Field(default_factory=dict)
 
     # Execution control fields
-    critical: bool = Field(default=True, description="If True, step failure fails the entire workflow")
-    timeout_seconds: Optional[int] = Field(default=None, description="Maximum execution time for this step")
+    critical: bool = Field(
+        default=True, description="If True, step failure fails the entire workflow"
+    )
+    timeout_seconds: Optional[int] = Field(
+        default=None, description="Maximum execution time for this step"
+    )
 
     # Retry configuration
     max_retries: int = Field(default=3, description="Maximum number of retry attempts")
@@ -160,8 +166,12 @@ class StepBase(BaseModel):
         default="exponential_backoff",
         description="Retry strategy: none, fixed_delay, exponential_backoff, linear_backoff",
     )
-    retry_delay_seconds: float = Field(default=1.0, description="Initial delay between retries")
-    max_retry_delay_seconds: float = Field(default=60.0, description="Maximum delay between retries")
+    retry_delay_seconds: float = Field(
+        default=1.0, description="Initial delay between retries"
+    )
+    max_retry_delay_seconds: float = Field(
+        default=60.0, description="Maximum delay between retries"
+    )
 
     # Conditional execution
     conditions: Optional[Union[str, Dict[str, Any], List[Any]]] = Field(
@@ -251,8 +261,12 @@ class PromptVariable(BaseModel):
 
     name: str = Field(..., description="Variable name (used as {{name}} in prompt)")
     description: Optional[str] = Field(None, description="Description of the variable")
-    default_value: Optional[str] = Field(None, description="Default value if not provided")
-    required: bool = Field(default=False, description="Whether the variable is required")
+    default_value: Optional[str] = Field(
+        None, description="Default value if not provided"
+    )
+    required: bool = Field(
+        default=False, description="Whether the variable is required"
+    )
     source: Optional[str] = Field(
         None,
         description="Source for the variable value (e.g., 'step_id.field', 'input.message')",
@@ -292,10 +306,15 @@ class PromptStepParameters(BaseModel):
 
     # Model configuration overrides
     provider: Optional[str] = Field(
-        None, description="Override provider type for the agent (e.g., openai_textgen, gemini, bedrock)"
+        None,
+        description="Override provider type for the agent (e.g., openai_textgen, gemini, bedrock)",
     )
-    model_name: Optional[str] = Field(None, description="Override model name for the agent")
-    temperature: Optional[float] = Field(None, description="Override temperature setting")
+    model_name: Optional[str] = Field(
+        None, description="Override model name for the agent"
+    )
+    temperature: Optional[float] = Field(
+        None, description="Override temperature setting"
+    )
     max_tokens: Optional[int] = Field(None, description="Override max tokens setting")
 
 
@@ -319,7 +338,9 @@ class PromptStepConfig(StepBase):
     parameters: PromptStepParameters = Field(default_factory=PromptStepParameters)
 
 
-StepConfig = Union[TriggerStepConfig, InputStepConfig, MergeStepConfig, PromptStepConfig, StepBase]
+StepConfig = Union[
+    TriggerStepConfig, InputStepConfig, MergeStepConfig, PromptStepConfig, StepBase
+]
 
 
 class WorkflowConfig(BaseModel):
@@ -335,7 +356,8 @@ class WorkflowConfig(BaseModel):
 
     # UI metadata for visual workflow editor
     connections: List[StepConnection] = Field(
-        default_factory=list, description="Visual connections between steps for UI rendering"
+        default_factory=list,
+        description="Visual connections between steps for UI rendering",
     )
 
     @classmethod
@@ -366,7 +388,11 @@ class WorkflowConfig(BaseModel):
                                 },
                             },
                         },
-                        {"step_type": "agent", "name": "TimeAgent", "parameters": {"agent_name": "Time Agent"}},
+                        {
+                            "step_type": "agent",
+                            "name": "TimeAgent",
+                            "parameters": {"agent_name": "Time Agent"},
+                        },
                     ],
                     "tags": ["demo"],
                 }

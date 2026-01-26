@@ -1,4 +1,1 @@
-from . import (
-   register,
-   rbac_permissions
-)
+from . import register, rbac_permissions

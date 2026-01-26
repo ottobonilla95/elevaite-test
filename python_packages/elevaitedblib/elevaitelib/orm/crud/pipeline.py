@@ -68,8 +68,12 @@ def create_pipeline(db: Session, pipeline_dto: PipelineCreate) -> models.Pipelin
     return _pipeline
 
 
-def update_pipeline(db: Session, pipeline_id: str, dto: PipelineUpdate) -> models.Pipeline:
-    _pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
+def update_pipeline(
+    db: Session, pipeline_id: str, dto: PipelineUpdate
+) -> models.Pipeline:
+    _pipeline = (
+        db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
+    )
     if dto.name is not None:
         _pipeline.name = dto.name
     if dto.description is not None:
@@ -82,15 +86,23 @@ def update_pipeline(db: Session, pipeline_id: str, dto: PipelineUpdate) -> model
 
 
 def delete_pipeline(db: Session, pipeline_id: str) -> models.Pipeline:
-    _pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
+    _pipeline = (
+        db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
+    )
     db.delete(_pipeline)
     db.commit()
     return _pipeline
 
 
-def add_tasks_to_pipeline(db: Session, pipeline_id: str, task_id: str) -> models.Pipeline:
-    _pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
-    _task = db.query(models.PipelineTask).filter(models.PipelineTask.id == task_id).one()
+def add_tasks_to_pipeline(
+    db: Session, pipeline_id: str, task_id: str
+) -> models.Pipeline:
+    _pipeline = (
+        db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
+    )
+    _task = (
+        db.query(models.PipelineTask).filter(models.PipelineTask.id == task_id).one()
+    )
     _pipeline.tasks.append(_task)
     db.commit()
     db.refresh(_pipeline)
@@ -100,7 +112,9 @@ def add_tasks_to_pipeline(db: Session, pipeline_id: str, task_id: str) -> models
 # --- Pipeline Schedule Endpoints ---
 
 
-def create_pipeline_schedule(db: Session, pipeline_id: str, dto: PipelineScheduleCreate) -> models.PipelineSchedule:
+def create_pipeline_schedule(
+    db: Session, pipeline_id: str, dto: PipelineScheduleCreate
+) -> models.PipelineSchedule:
     pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
     schedule = models.PipelineSchedule(**dto.dict())
     pipeline.schedule = schedule
@@ -115,7 +129,9 @@ def get_pipeline_schedule(db: Session, pipeline_id: str) -> models.PipelineSched
     return pipeline.schedule
 
 
-def update_pipeline_schedule(db: Session, pipeline_id: str, dto: PipelineScheduleCreate) -> models.PipelineSchedule:
+def update_pipeline_schedule(
+    db: Session, pipeline_id: str, dto: PipelineScheduleCreate
+) -> models.PipelineSchedule:
     pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).one()
     schedule = pipeline.schedule
     if schedule is None:
@@ -168,7 +184,9 @@ def get_pipeline_task_by_id(
 
 
 def create_pipeline_task(db: Session, dto: PipelineTaskCreate) -> models.PipelineTask:
-    _task = models.PipelineTask(name=dto.name, task_type=dto.task_type, src=dto.src, config=dto.config)
+    _task = models.PipelineTask(
+        name=dto.name, task_type=dto.task_type, src=dto.src, config=dto.config
+    )
 
     db.add(_task)
     db.commit()
@@ -176,24 +194,38 @@ def create_pipeline_task(db: Session, dto: PipelineTaskCreate) -> models.Pipelin
     return _task
 
 
-def update_pipeline_task(db: Session, id: str, dto: PipelineTaskUpdate) -> models.PipelineTask:
+def update_pipeline_task(
+    db: Session, id: str, dto: PipelineTaskUpdate
+) -> models.PipelineTask:
     _task = db.query(models.PipelineTask).filter(models.PipelineTask.id == id).one()
     if dto.dependencies:
         _task.dependencies = []
         for dep in dto.dependencies:
-            __task = db.query(models.PipelineTask).filter(models.PipelineTask.id == dep.id).one()
+            __task = (
+                db.query(models.PipelineTask)
+                .filter(models.PipelineTask.id == dep.id)
+                .one()
+            )
             _task.dependencies.append(__task)
 
     if dto.input:
         _task.input = []
         for var in dto.input:
-            _var = db.query(models.PipelineVariable).filter(models.PipelineVariable.name == var.name).one()
+            _var = (
+                db.query(models.PipelineVariable)
+                .filter(models.PipelineVariable.name == var.name)
+                .one()
+            )
             _task.input.append(_var)
 
     if dto.output:
         _task.output = []
         for var in dto.output:
-            _var = db.query(models.PipelineVariable).filter(models.PipelineVariable.name == var.name).one()
+            _var = (
+                db.query(models.PipelineVariable)
+                .filter(models.PipelineVariable.name == var.name)
+                .one()
+            )
             _task.output.append(_var)
 
     if dto.name:
@@ -214,14 +246,20 @@ def update_pipeline_task(db: Session, id: str, dto: PipelineTaskUpdate) -> model
 
 
 def delete_pipeline_task(db: Session, task_id: str) -> models.PipelineTask:
-    _task = db.query(models.PipelineTask).filter(models.PipelineTask.id == task_id).one()
+    _task = (
+        db.query(models.PipelineTask).filter(models.PipelineTask.id == task_id).one()
+    )
     db.delete(_task)
     db.commit()
     return _task
 
 
-def add_dependency_to_task(db: Session, target_id: str, dep_id: str) -> models.PipelineTask:
-    _target = db.query(models.PipelineTask).filter(models.PipelineTask.id == target_id).one()
+def add_dependency_to_task(
+    db: Session, target_id: str, dep_id: str
+) -> models.PipelineTask:
+    _target = (
+        db.query(models.PipelineTask).filter(models.PipelineTask.id == target_id).one()
+    )
     _dep = db.query(models.PipelineTask).filter(models.PipelineTask.id == dep_id).one()
 
     _target.dependencies.append(_dep)
@@ -230,8 +268,12 @@ def add_dependency_to_task(db: Session, target_id: str, dep_id: str) -> models.P
     return _target
 
 
-def remove_dependency_from_task(db: Session, target_id: str, dep_id: str) -> models.PipelineTask:
-    _target = db.query(models.PipelineTask).filter(models.PipelineTask.id == target_id).one()
+def remove_dependency_from_task(
+    db: Session, target_id: str, dep_id: str
+) -> models.PipelineTask:
+    _target = (
+        db.query(models.PipelineTask).filter(models.PipelineTask.id == target_id).one()
+    )
     _dep = db.query(models.PipelineTask).filter(models.PipelineTask.id == dep_id).one()
     if _dep in _target.dependencies:
         _target.dependencies.remove(_dep)
@@ -256,7 +298,9 @@ def get_pipeline_variables(
     return query.offset(skip).limit(limit).all()
 
 
-def create_pipeline_variable(db: Session, dto: PipelineVariableCreate) -> models.PipelineVariable:
+def create_pipeline_variable(
+    db: Session, dto: PipelineVariableCreate
+) -> models.PipelineVariable:
     _var = models.PipelineVariable(name=dto.name, var_type=dto.var_type)
 
     db.add(_var)
@@ -265,8 +309,14 @@ def create_pipeline_variable(db: Session, dto: PipelineVariableCreate) -> models
     return _var
 
 
-def update_pipeline_variable(db: Session, variable_id: str, dto: PipelineVariableUpdate) -> models.PipelineVariable:
-    _var = db.query(models.PipelineVariable).filter(models.PipelineVariable.id == variable_id).one()
+def update_pipeline_variable(
+    db: Session, variable_id: str, dto: PipelineVariableUpdate
+) -> models.PipelineVariable:
+    _var = (
+        db.query(models.PipelineVariable)
+        .filter(models.PipelineVariable.id == variable_id)
+        .one()
+    )
     if dto.name is not None:
         _var.name = dto.name
     if dto.var_type is not None:
@@ -277,7 +327,11 @@ def update_pipeline_variable(db: Session, variable_id: str, dto: PipelineVariabl
 
 
 def delete_pipeline_variable(db: Session, variable_id: str) -> models.PipelineVariable:
-    _var = db.query(models.PipelineVariable).filter(models.PipelineVariable.id == variable_id).one()
+    _var = (
+        db.query(models.PipelineVariable)
+        .filter(models.PipelineVariable.id == variable_id)
+        .one()
+    )
     db.delete(_var)
     db.commit()
     return _var

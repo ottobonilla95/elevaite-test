@@ -9,7 +9,9 @@ from qdrant_client.http.exceptions import UnexpectedResponse
 
 
 class PineconeClient:
-    def __init__(self, api_key: str, cloud: str, region: str, index_name: str, dimension: int):
+    def __init__(
+        self, api_key: str, cloud: str, region: str, index_name: str, dimension: int
+    ):
         self.client = Pinecone(api_key=api_key)
         self.spec = ServerlessSpec(cloud=cloud, region=region)
         self.index_name = index_name
@@ -36,13 +38,18 @@ class PineconeClient:
 
 class ChromaClient:
     def __init__(self, db_path: str):
-        self.client = PersistentClient(path=db_path, settings=Settings(allow_reset=True, anonymized_telemetry=False))
+        self.client = PersistentClient(
+            path=db_path,
+            settings=Settings(allow_reset=True, anonymized_telemetry=False),
+        )
 
     def init_collection(self, collection_name: str):
         return self.client.get_or_create_collection(name=collection_name)
 
     def add(self, collection, documents, embeddings, metadatas, ids):
-        collection.add(documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids)
+        collection.add(
+            documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids
+        )
 
 
 class QdrantClientWrapper:
@@ -60,7 +67,12 @@ class QdrantClientWrapper:
                 self._collection_locks[collection_name] = threading.Lock()
             return self._collection_locks[collection_name]
 
-    def ensure_collection(self, collection_name: str, vector_size: int = 1536, distance: "models.Distance" = None):
+    def ensure_collection(
+        self,
+        collection_name: str,
+        vector_size: int = 1536,
+        distance: "models.Distance" = None,
+    ):
         """Check if the collection exists, create it if it doesn't.
 
         Thread-safe: uses locking to prevent race conditions when multiple threads
@@ -69,17 +81,27 @@ class QdrantClientWrapper:
         lock = self._get_collection_lock(collection_name)
         with lock:
             existing_collections = self.client.get_collections().collections
-            if not any(collection.name == collection_name for collection in existing_collections):
+            if not any(
+                collection.name == collection_name
+                for collection in existing_collections
+            ):
                 try:
                     self.client.create_collection(
                         collection_name=collection_name,
-                        vectors_config=models.VectorParams(size=vector_size, distance=distance or models.Distance.COSINE),
+                        vectors_config=models.VectorParams(
+                            size=vector_size,
+                            distance=distance or models.Distance.COSINE,
+                        ),
                     )
-                    print(f"✅ Created collection '{collection_name}' with vector size {vector_size}.")
+                    print(
+                        f"✅ Created collection '{collection_name}' with vector size {vector_size}."
+                    )
                 except UnexpectedResponse as e:
                     # Handle race condition: collection was created by another process
                     if e.status_code == 409:
-                        print(f"✅ Collection '{collection_name}' already exists (created by another process).")
+                        print(
+                            f"✅ Collection '{collection_name}' already exists (created by another process)."
+                        )
                     else:
                         raise
             else:

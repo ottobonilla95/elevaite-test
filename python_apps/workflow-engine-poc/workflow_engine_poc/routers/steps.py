@@ -156,7 +156,9 @@ async def register_step(
     try:
         step_registry: StepRegistry = request.app.state.step_registry
         await step_registry.register_step(step_config.model_dump())
-        return StepRegistrationResponse(message="Step registered successfully", step_type=step_config.step_type)
+        return StepRegistrationResponse(
+            message="Step registered successfully", step_type=step_config.step_type
+        )
     except Exception as e:
         logger.error(f"Failed to register step: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -171,7 +173,9 @@ async def list_registered_steps(
     try:
         step_registry: StepRegistry = request.app.state.step_registry
         steps = await step_registry.get_registered_steps()
-        return RegisteredStepsResponse(steps=[StepInfoResponse(**step) for step in steps], total=len(steps))
+        return RegisteredStepsResponse(
+            steps=[StepInfoResponse(**step) for step in steps], total=len(steps)
+        )
     except Exception as e:
         logger.error(f"Failed to list steps: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -219,7 +223,9 @@ async def list_builtin_variables(
                 variables.append(
                     BuiltinVariableInfo(
                         name=var_name,
-                        description=metadata.get("description", f"Variable: {var_name}"),
+                        description=metadata.get(
+                            "description", f"Variable: {var_name}"
+                        ),
                         example=metadata.get("example"),
                         category=metadata.get("category", "context"),
                         source="context",
@@ -247,7 +253,9 @@ async def get_step_info(
         step_info = await step_registry.get_step_info(step_type)
 
         if not step_info:
-            raise HTTPException(status_code=404, detail=f"Step type '{step_type}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Step type '{step_type}' not found"
+            )
 
         return StepInfoResponse(**step_info)
     except HTTPException:

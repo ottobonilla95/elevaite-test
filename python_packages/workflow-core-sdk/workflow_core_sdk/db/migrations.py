@@ -59,7 +59,9 @@ def run_migrations_for_tenant(
         database_url: Database URL (uses env var if not provided)
         revision: Target revision (default: "head" for latest)
     """
-    logger.info(f"Running migrations for schema '{tenant_schema}' to revision '{revision}'")
+    logger.info(
+        f"Running migrations for schema '{tenant_schema}' to revision '{revision}'"
+    )
 
     config = get_alembic_config(database_url=database_url, tenant_schema=tenant_schema)
     command.upgrade(config, revision)
@@ -122,4 +124,3 @@ def stamp_revision(
     config = get_alembic_config(database_url=database_url, tenant_schema=tenant_schema)
     command.stamp(config, revision)
     logger.info(f"Schema '{tenant_schema}' stamped with revision '{revision}'")
-

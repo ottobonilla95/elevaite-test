@@ -28,7 +28,9 @@ class ExecutionsService:
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
         db = DatabaseService()
-        return db.list_executions(session, workflow_id=workflow_id, status=status, limit=limit, offset=offset)
+        return db.list_executions(
+            session, workflow_id=workflow_id, status=status, limit=limit, offset=offset
+        )
 
     @staticmethod
     def execution_exists(session: Session, execution_id: str) -> bool:
@@ -42,7 +44,9 @@ class ExecutionsService:
         return db.create_execution(session, execution_data)
 
     @staticmethod
-    def update_execution(session: Session, execution_id: str, update_data: Dict[str, Any]) -> bool:
+    def update_execution(
+        session: Session, execution_id: str, update_data: Dict[str, Any]
+    ) -> bool:
         """Update an execution with the given data."""
         db = DatabaseService()
         # Convert string status to enum if needed

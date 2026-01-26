@@ -27,15 +27,11 @@ FastAPILogger.attach_to_uvicorn(
     log_group=log_group,
     log_stream=log_stream,
     filter_fastapi=True,
-    
     # OpenTelemetry configuration
     service_name=service_name,
-    otlp_endpoint=otlp_endpoint, 
+    otlp_endpoint=otlp_endpoint,
     configure_otel=True,
-    resource_attributes={
-        "deployment.environment": "example",
-        "cloud.provider": "aws"
-    }
+    resource_attributes={"deployment.environment": "example", "cloud.provider": "aws"},
 )
 
 # Get a reference to the logger
@@ -45,20 +41,18 @@ logger = FastAPILogger(
     cloudwatch_enabled=True,
     log_group=log_group,
     log_stream=log_stream,
-    
     # OpenTelemetry configuration
     service_name=service_name,
     otlp_endpoint=otlp_endpoint,
     configure_otel=True,
-    resource_attributes={
-        "deployment.environment": "example",
-        "cloud.provider": "aws"
-    }
+    resource_attributes={"deployment.environment": "example", "cloud.provider": "aws"},
 ).get_logger()
 
 # Get the tracer from the global provider
 from opentelemetry import trace
+
 tracer = trace.get_tracer("combined-example")
+
 
 @app.middleware("http")
 async def add_tracing_context(request: Request, call_next):
@@ -71,20 +65,21 @@ async def add_tracing_context(request: Request, call_next):
             "http.schema": request.url.scheme,
             "http.host": request.url.netloc,
             "http.target": request.url.path,
-        }
+        },
     ) as span:
         # Add user-agent to span
         if "user-agent" in request.headers:
             span.set_attribute("http.user_agent", request.headers["user-agent"])
-        
+
         # Process the request - this log goes to both CloudWatch and includes trace IDs
         logger.info(f"Processing request: {request.method} {request.url.path}")
         response = await call_next(request)
-        
+
         # Add response info to span
         span.set_attribute("http.status_code", response.status_code)
-        
+
         return response
+
 
 @app.get("/")
 async def root():
@@ -92,19 +87,21 @@ async def root():
         logger.info("Processing request to root endpoint")
         return {"message": "Hello World"}
 
+
 @app.get("/items/{item_id}")
 async def get_item(item_id: int):
     with tracer.start_as_current_span("get_item_operation") as span:
         logger.info(f"Retrieving item with ID: {item_id}")
         span.set_attribute("item.id", item_id)
-        
+
         # Simulate a database query
         with tracer.start_as_current_span("database_query"):
             logger.info(f"Querying database for item {item_id}")
             # Simulate database latency
             time.sleep(0.1)
-        
+
         return {"item_id": item_id, "name": f"Item {item_id}"}
+
 
 # Print information about where to find logs and traces
 print("\nRunning example FastAPI app with CloudWatch and OpenTelemetry enabled")

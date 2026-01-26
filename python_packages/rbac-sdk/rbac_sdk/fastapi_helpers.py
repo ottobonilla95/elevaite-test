@@ -29,7 +29,9 @@ class principal_resolvers:
         def resolver(request: Request) -> str:
             user_id = request.headers.get(header_name)
             if not user_id:
-                raise HTTPException(status_code=401, detail=f"Missing {header_name} header")
+                raise HTTPException(
+                    status_code=401, detail=f"Missing {header_name} header"
+                )
             return user_id
 
         return resolver
@@ -39,7 +41,8 @@ class principal_resolvers:
         validate_api_key: Optional[Callable[[str, Request], Optional[str]]] = None,
         *,
         allow_insecure_apikey_as_principal: bool = bool(
-            os.getenv("RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL", "false").lower() in {"1", "true", "yes"}
+            os.getenv("RBAC_SDK_ALLOW_INSECURE_APIKEY_AS_PRINCIPAL", "false").lower()
+            in {"1", "true", "yes"}
         ),
     ) -> Callable[[Request], str]:
         """
@@ -60,7 +63,9 @@ class principal_resolvers:
                         raise HTTPException(status_code=401, detail="Invalid API key")
                     return user_id
                 # 2) optional local JWT validation via env flag
-                enable_local = os.getenv("RBAC_SDK_APIKEY_ENABLE_LOCAL_JWT", "false").lower() in {"1", "true", "yes"}
+                enable_local = os.getenv(
+                    "RBAC_SDK_APIKEY_ENABLE_LOCAL_JWT", "false"
+                ).lower() in {"1", "true", "yes"}
                 if enable_local:
                     validator = api_key_jwt_validator()
                     user_id = validator(api_key, request)
@@ -70,7 +75,10 @@ class principal_resolvers:
                 # 3) dev-only insecure fallback
                 if allow_insecure_apikey_as_principal:
                     return api_key
-                raise HTTPException(status_code=401, detail="API key provided but no validator configured")
+                raise HTTPException(
+                    status_code=401,
+                    detail="API key provided but no validator configured",
+                )
             # Fallback to user id header
             return _default_principal_resolver(request)
 
@@ -94,7 +102,9 @@ def api_key_http_validator(
 ) -> Callable[[str, Request], Optional[str]]:
     auth_base = (base_url or os.getenv("AUTH_API_BASE", "")).rstrip("/")
     if not auth_base:
-        raise RuntimeError("AUTH_API_BASE must be set or base_url provided for api_key_http_validator")
+        raise RuntimeError(
+            "AUTH_API_BASE must be set or base_url provided for api_key_http_validator"
+        )
 
     cache: Dict[str, tuple[str, float]] = {}
 
@@ -187,9 +197,13 @@ class resource_builders:
             org_id = request.headers.get(org_header)
             account_id = request.headers.get(account_header)
             if not project_id:
-                raise HTTPException(status_code=400, detail=f"Missing {project_header} header")
+                raise HTTPException(
+                    status_code=400, detail=f"Missing {project_header} header"
+                )
             if not org_id:
-                raise HTTPException(status_code=400, detail=f"Missing {org_header} header")
+                raise HTTPException(
+                    status_code=400, detail=f"Missing {org_header} header"
+                )
             # account_id optional for project-scoped checks in current rego; include if present
             res: Dict[str, Any] = {
                 "type": "project",
@@ -211,9 +225,13 @@ class resource_builders:
             account_id = request.headers.get(account_header)
             org_id = request.headers.get(org_header)
             if not account_id:
-                raise HTTPException(status_code=400, detail=f"Missing {account_header} header")
+                raise HTTPException(
+                    status_code=400, detail=f"Missing {account_header} header"
+                )
             if not org_id:
-                raise HTTPException(status_code=400, detail=f"Missing {org_header} header")
+                raise HTTPException(
+                    status_code=400, detail=f"Missing {org_header} header"
+                )
             # For compatibility with rego that expects account_id on resource
             return {
                 "type": "account",
@@ -231,7 +249,9 @@ class resource_builders:
         def builder(request: Request) -> Dict[str, Any]:
             org_id = request.headers.get(org_header)
             if not org_id:
-                raise HTTPException(status_code=400, detail=f"Missing {org_header} header")
+                raise HTTPException(
+                    status_code=400, detail=f"Missing {org_header} header"
+                )
             return {
                 "type": "organization",
                 "id": org_id,
@@ -262,10 +282,14 @@ def require_permission_async(
 
     async def dependency(request: Request) -> None:
         if check_access_async is None:
-            raise HTTPException(status_code=500, detail="Async RBAC client not available")
+            raise HTTPException(
+                status_code=500, detail="Async RBAC client not available"
+            )
         user_id = principal_resolver(request)
         resource = resource_builder(request)
-        allowed = await check_access_async(user_id=user_id, action=action, resource=resource, base_url=base_url)
+        allowed = await check_access_async(
+            user_id=user_id, action=action, resource=resource, base_url=base_url
+        )
         if not allowed:
             raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -291,7 +315,9 @@ def require_permission(
     def dependency(request: Request) -> None:
         user_id = principal_resolver(request)
         resource = resource_builder(request)
-        allowed = check_access(user_id=user_id, action=action, resource=resource, base_url=base_url)
+        allowed = check_access(
+            user_id=user_id, action=action, resource=resource, base_url=base_url
+        )
         if not allowed:
             raise HTTPException(status_code=403, detail="Forbidden")
 

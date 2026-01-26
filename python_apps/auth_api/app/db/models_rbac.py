@@ -4,7 +4,15 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
 
-from sqlalchemy import ForeignKey, String, DateTime, CheckConstraint, Boolean, Index, text
+from sqlalchemy import (
+    ForeignKey,
+    String,
+    DateTime,
+    CheckConstraint,
+    Boolean,
+    Index,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,18 +45,27 @@ class Role(Base):
 
     __tablename__ = "roles"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()"))
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()")
+    )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     base_type: Mapped[str] = mapped_column(String(50), nullable=False)
     scope_type: Mapped[str] = mapped_column(String(50), nullable=False)
     is_system: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
 
     # Relationships
     permissions: Mapped[List["RolePermission"]] = relationship(
-        "RolePermission", back_populates="role", cascade="all, delete-orphan", lazy="selectin"
+        "RolePermission",
+        back_populates="role",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
     user_assignments: Mapped[List["UserRoleAssignment"]] = relationship(
         "UserRoleAssignment", back_populates="role_ref", cascade="all, delete-orphan"
@@ -82,16 +99,24 @@ class RolePermission(Base):
 
     __tablename__ = "role_permissions"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()"))
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()")
+    )
     role_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("roles.id", ondelete="CASCADE"),
         nullable=False,
     )
     service_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    allowed_actions: Mapped[List[str]] = mapped_column(JSONB, nullable=False, default=list)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
+    allowed_actions: Mapped[List[str]] = mapped_column(
+        JSONB, nullable=False, default=list
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
 
     # Relationships
     role: Mapped["Role"] = relationship("Role", back_populates="permissions")
@@ -99,7 +124,9 @@ class RolePermission(Base):
     __table_args__ = (
         Index("idx_role_permissions_role_id", "role_id"),
         Index("idx_role_permissions_service", "service_name"),
-        Index("idx_role_permissions_role_service", "role_id", "service_name", unique=True),
+        Index(
+            "idx_role_permissions_role_service", "role_id", "service_name", unique=True
+        ),
     )
 
     def __repr__(self) -> str:
@@ -123,7 +150,9 @@ class Group(Base):
 
     __tablename__ = "groups"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()"))
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()")
+    )
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("organizations.id", ondelete="CASCADE"),
@@ -131,13 +160,22 @@ class Group(Base):
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
 
     # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", back_populates="groups")
+    organization: Mapped["Organization"] = relationship(
+        "Organization", back_populates="groups"
+    )
     permissions: Mapped[List["GroupPermission"]] = relationship(
-        "GroupPermission", back_populates="group", cascade="all, delete-orphan", lazy="selectin"
+        "GroupPermission",
+        back_populates="group",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
     memberships: Mapped[List["UserGroupMembership"]] = relationship(
         "UserGroupMembership", back_populates="group", cascade="all, delete-orphan"
@@ -164,17 +202,25 @@ class GroupPermission(Base):
 
     __tablename__ = "group_permissions"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()"))
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()")
+    )
     group_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("groups.id", ondelete="CASCADE"),
         nullable=False,
     )
     service_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    allow_actions: Mapped[List[str]] = mapped_column(JSONB, nullable=False, default=list)
+    allow_actions: Mapped[List[str]] = mapped_column(
+        JSONB, nullable=False, default=list
+    )
     deny_actions: Mapped[List[str]] = mapped_column(JSONB, nullable=False, default=list)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
 
     # Relationships
     group: Mapped["Group"] = relationship("Group", back_populates="permissions")
@@ -182,7 +228,12 @@ class GroupPermission(Base):
     __table_args__ = (
         Index("idx_group_permissions_group_id", "group_id"),
         Index("idx_group_permissions_service", "service_name"),
-        Index("idx_group_permissions_group_service", "group_id", "service_name", unique=True),
+        Index(
+            "idx_group_permissions_group_service",
+            "group_id",
+            "service_name",
+            unique=True,
+        ),
     )
 
     def __repr__(self) -> str:
@@ -211,9 +262,13 @@ class UserGroupMembership(Base):
         primary_key=True,
         nullable=False,
     )
-    resource_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, nullable=False)
+    resource_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, nullable=False
+    )
     resource_type: Mapped[str] = mapped_column(String(50), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
 
     # Relationships
     group: Mapped["Group"] = relationship("Group", back_populates="memberships")
@@ -230,9 +285,7 @@ class UserGroupMembership(Base):
 
     def __repr__(self) -> str:
         """String representation."""
-        return (
-            f"<UserGroupMembership user={self.user_id} group={self.group_id} resource={self.resource_type}:{self.resource_id}>"
-        )
+        return f"<UserGroupMembership user={self.user_id} group={self.group_id} resource={self.resource_type}:{self.resource_id}>"
 
 
 # =============================================================================
@@ -245,15 +298,25 @@ class Organization(Base):
 
     __tablename__ = "organizations"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()"))
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()")
+    )
     name: Mapped[str] = mapped_column(String(), unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
 
     # Relationships
-    groups: Mapped[List["Group"]] = relationship("Group", back_populates="organization", cascade="all, delete-orphan")
-    accounts: Mapped[List["Account"]] = relationship("Account", back_populates="organization", cascade="all, delete-orphan")
+    groups: Mapped[List["Group"]] = relationship(
+        "Group", back_populates="organization", cascade="all, delete-orphan"
+    )
+    accounts: Mapped[List["Account"]] = relationship(
+        "Account", back_populates="organization", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """String representation."""
@@ -265,7 +328,9 @@ class Account(Base):
 
     __tablename__ = "accounts"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()"))
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()")
+    )
     organization_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("organizations.id", ondelete="CASCADE"),
@@ -273,12 +338,20 @@ class Account(Base):
     )
     name: Mapped[str] = mapped_column(String(), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
 
     # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", back_populates="accounts")
-    projects: Mapped[List["Project"]] = relationship("Project", back_populates="account", cascade="all, delete-orphan")
+    organization: Mapped["Organization"] = relationship(
+        "Organization", back_populates="accounts"
+    )
+    projects: Mapped[List["Project"]] = relationship(
+        "Project", back_populates="account", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """String representation."""
@@ -290,7 +363,9 @@ class Project(Base):
 
     __tablename__ = "projects"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()"))
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("uuid_generate_v4()")
+    )
     account_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("accounts.id", ondelete="CASCADE"),
@@ -303,8 +378,12 @@ class Project(Base):
     )
     name: Mapped[str] = mapped_column(String(), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
 
     # Relationships
     account: Mapped["Account"] = relationship("Account", back_populates="projects")
@@ -332,7 +411,9 @@ class UserRoleAssignment(Base):
         primary_key=True,
         nullable=False,
     )
-    resource_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, nullable=False)
+    resource_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, nullable=False
+    )
     # New: FK to roles table (nullable during migration, will become NOT NULL)
     role_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
@@ -342,10 +423,14 @@ class UserRoleAssignment(Base):
     # Legacy: Keep for backward compatibility, will be removed after migration
     role: Mapped[Optional[str]] = mapped_column(String(), nullable=True)
     resource_type: Mapped[str] = mapped_column(String(), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
 
     # Relationships
-    role_ref: Mapped[Optional["Role"]] = relationship("Role", back_populates="user_assignments")
+    role_ref: Mapped[Optional["Role"]] = relationship(
+        "Role", back_populates="user_assignments"
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -385,12 +470,20 @@ class PermissionOverride(Base):
         primary_key=True,
         nullable=False,
     )
-    resource_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, nullable=False)
+    resource_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, nullable=False
+    )
     resource_type: Mapped[str] = mapped_column(String(), nullable=False)
-    allow_actions: Mapped[List[str]] = mapped_column(JSONB, nullable=False, default=list)
+    allow_actions: Mapped[List[str]] = mapped_column(
+        JSONB, nullable=False, default=list
+    )
     deny_actions: Mapped[List[str]] = mapped_column(JSONB, nullable=False, default=list)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
 
     __table_args__ = (
         CheckConstraint(

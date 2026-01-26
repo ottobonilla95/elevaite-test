@@ -64,4 +64,3 @@ def sample_user_id() -> int:
 def sample_action() -> str:
     """Sample action for testing."""
     return "view_project"
-

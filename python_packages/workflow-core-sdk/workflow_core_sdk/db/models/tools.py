@@ -50,7 +50,9 @@ class ToolCategory(SQLModel, table=True):
         default_factory=get_utc_datetime,
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
-    updated_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now()))
+    updated_at: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now())
+    )
 
 
 # ---------- MCP Servers ----------
@@ -117,17 +119,23 @@ class MCPServer(SQLModel, table=True):
     tags: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
 
     status: str = Field(default="active")
-    last_health_check: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    last_health_check: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True))
+    )
     consecutive_failures: int = 0
 
     registered_at: datetime = Field(
         default_factory=get_utc_datetime,
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
-    last_seen: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    last_seen: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True))
+    )
     updated_at: datetime = Field(
         default_factory=get_utc_datetime,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now()),
+        sa_column=Column(
+            DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        ),
     )
 
 
@@ -205,8 +213,12 @@ class Tool(SQLModel, table=True):
     version: str = "1.0.0"
     tool_type: str
     execution_type: str = "function"
-    parameters_schema: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
-    return_schema: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    parameters_schema: Dict[str, Any] = Field(
+        default_factory=dict, sa_column=Column(JSON)
+    )
+    return_schema: Optional[Dict[str, Any]] = Field(
+        default=None, sa_column=Column(JSON)
+    )
     module_path: Optional[str] = None
     function_name: Optional[str] = None
     mcp_server_id: Optional[uuid_module.UUID] = None
@@ -218,11 +230,15 @@ class Tool(SQLModel, table=True):
     category_id: Optional[uuid_module.UUID] = None
     tags: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
     documentation: Optional[str] = None
-    examples: Optional[List[Dict[str, Any]]] = Field(default=None, sa_column=Column(JSON))
+    examples: Optional[List[Dict[str, Any]]] = Field(
+        default=None, sa_column=Column(JSON)
+    )
 
     is_active: bool = True
     is_available: bool = True
-    last_used: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    last_used: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True))
+    )
     usage_count: int = 0
 
     created_at: datetime = Field(
@@ -231,5 +247,7 @@ class Tool(SQLModel, table=True):
     )
     updated_at: datetime = Field(
         default_factory=get_utc_datetime,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now()),
+        sa_column=Column(
+            DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        ),
     )
