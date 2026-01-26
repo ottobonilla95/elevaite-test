@@ -164,7 +164,8 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync
+        run: |
+          uv sync --all-packages
 
       - name: Run Python tests with coverage
         run: |
