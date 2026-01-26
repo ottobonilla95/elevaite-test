@@ -63,8 +63,10 @@ async def test_engine():
     # Override the database URL for testing
     engine = create_async_engine(TEST_DATABASE_URL)
 
-    # Create all tables in the public schema
+    # Enable UUID extension and create all tables in the public schema
     async with engine.begin() as conn:
+        # Enable uuid-ossp extension for UUID generation
+        await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
@@ -94,6 +96,8 @@ async def test_db_setup(test_engine):
 
         # Create tables in each schema
         async with test_engine.begin() as conn:
+            # Enable uuid-ossp extension for each schema
+            await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
             await conn.execute(text(f'SET search_path TO "{schema_name}"'))
             await conn.run_sync(Base.metadata.create_all)
 
