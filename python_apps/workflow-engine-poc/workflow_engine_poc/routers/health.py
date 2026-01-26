@@ -3,6 +3,7 @@ Health and system status endpoints
 """
 
 import logging
+import os
 from fastapi import APIRouter, Request
 
 from workflow_core_sdk import StepRegistry
@@ -85,3 +86,18 @@ async def monitoring_health_check():
             "status": "degraded",
             "error": str(e),
         }
+
+
+@router.get("/environment")
+async def get_environment():
+    """Get current environment information"""
+    environment = os.getenv("ENVIRONMENT", "development")
+    backend_url = os.getenv("BACKEND_URL", "http://localhost:8006")
+
+    return {
+        "environment": environment,
+        "backend_url": backend_url,
+        "service": "workflow-engine-poc",
+        "worker_architecture": "enabled",
+        "queue_system": "rabbitmq",
+    }
