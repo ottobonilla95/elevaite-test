@@ -43,6 +43,7 @@ export async function SessionWrapper({
 
   if (session?.user) {
     // filter out sensitive data before passing to client.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Filtering sensitive session data
     session.user = {
       id: session.user.id,
       name: session.user.name,
@@ -50,6 +51,7 @@ export async function SessionWrapper({
       image: session.user.image,
       // Preserve accountMemberships if they exist
       ...(session.user.accountMemberships && {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Preserving accountMemberships
         accountMemberships: session.user.accountMemberships,
       }),
     };
