@@ -101,6 +101,7 @@ jobs:
           echo "storage_bucket=$(terraform output -raw storage_bucket)" >> $GITHUB_OUTPUT
 
       - name: Create PR Database
+        if: steps.terraform.outputs.db_host != ''
         env:
           DB_HOST: ${{ steps.terraform.outputs.db_host }}
           DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
@@ -109,16 +110,18 @@ jobs:
         run: |
           # Install psql
           sudo apt-get update && sudo apt-get install -y postgresql-client
-          
+
           # Create database for this PR
           PGPASSWORD="$DB_PASSWORD" psql \
             -h "$DB_HOST" \
             -U "$DB_USER" \
             -d "$DB_ADMIN_DATABASE" \
             -c "CREATE DATABASE pr_${{ env.PR_NUMBER }};" || echo "Database may already exist"
-          
+
           # Run migrations
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
+          # Strip any port from DB_HOST if present to avoid double-port issues
+          DB_HOST_CLEAN=$(echo "$DB_HOST" | cut -d: -f1)
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST_CLEAN}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
           cd python_apps/workflow-engine-poc
           uv sync
           uv run alembic upgrade head
