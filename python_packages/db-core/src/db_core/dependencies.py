@@ -113,7 +113,7 @@ async def get_tenant_async_db(
         from db_core.utils import get_schema_name
 
         # Handle the case where tenant_id might be a Depends object
-        if hasattr(tenant_id, "__call__"):
+        if callable(tenant_id):
             # Skip setting schema if tenant_id is a dependency
             pass
         else:

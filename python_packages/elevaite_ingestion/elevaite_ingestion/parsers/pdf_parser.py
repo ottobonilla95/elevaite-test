@@ -1,4 +1,3 @@
-import os
 import fitz
 import re
 from typing import List, Dict

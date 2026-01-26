@@ -6,14 +6,11 @@ from typing import Any, Callable, Dict, Optional
 
 from opentelemetry import trace
 import opentelemetry.metrics as otelmetrics
-from opentelemetry.sdk.metrics import MeterProvider  # only for types
 
 from fastapi_logger.observability_constants import (
     COMPONENT_AGENT_STUDIO,
-    COMPONENT_WORKFLOW_ENGINE,
     ATTR_COMPONENT,
     ATTR_STATUS,
-    ATTR_EXECUTION_ID,
     ATTR_TOOL_NAME,
     SPAN_TOOL_CALL,
     METRIC_TOOL_CALLS_TOTAL,

@@ -1,4 +1,3 @@
-from uuid import UUID
 from typing import Callable, Union
 from sqlalchemy.orm import Session, Query
 

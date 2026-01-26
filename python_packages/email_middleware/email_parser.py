@@ -1,6 +1,5 @@
 import re
 from regex_rules import RegexRules
-import sys
 
 class EmailConversationParser:
     
@@ -12,7 +11,7 @@ class EmailConversationParser:
         email_content_paragraphs_list = self.get_paragraphs(email_content_without_footers)
         all_email_conversations = self.get_emails(email_content_paragraphs_list)
         # Remove signatures
-        all_email_conversations_with_header = [ self.remove_signature(email) for email in all_email_conversations ]
+        [ self.remove_signature(email) for email in all_email_conversations ]
         all_email_conversations_without_header = [self.remove_conversation_header(conversation) for conversation in all_email_conversations]
 
         return all_email_conversations_without_header
@@ -37,17 +36,15 @@ class EmailConversationParser:
         most_recent_email_content = self.email_content.split("\n\n")[0]
         historical_email_content = "\n\n".join(self.email_content.split("\n\n")[1:])
         most_recent_email_without_header = []
-        message_id = None
-        subject = None
         _from = None
         # Remove email header from the most recent email conversation
         for line in most_recent_email_content.split("\n"):
             if(":" in line):
                 [key, value] = [line.split(":")[0], ":".join(line.split(":")[1:])]
                 if(key == "MessageId"):
-                    message_id = value.strip()
+                    value.strip()
                 elif(key == "Subject"):
-                    subject = value.strip()
+                    value.strip()
                 elif(key == "Sender Email" or key == "From"):
                     _from = value.strip()
                 else:
@@ -56,7 +53,7 @@ class EmailConversationParser:
                 pass
             else:
                 if(re.match(RegexRules().email_seperator_regex, line.strip().lower())):
-                    break;
+                    break
                 most_recent_email_without_header.append(line)
         email_content_without_header = "\n".join(most_recent_email_without_header) + "\n\n" + historical_email_content
         return email_content_without_header
@@ -170,7 +167,7 @@ class EmailConversationParser:
             for line in list_lines:
                 if (re.match(RegexRules().email_seperator_regex, line.strip().lower())):
                     list_matched_paragraph_index.append(index)
-                    break;
+                    break
                 list_first_words.append([word.strip()
                                          for word in line.split(" ")][0])
             list_first_words_cleaned = []

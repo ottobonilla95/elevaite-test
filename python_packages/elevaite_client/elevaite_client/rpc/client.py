@@ -11,7 +11,6 @@ from .interfaces import (
     LogInfo,
     MaxDatasetVersionInput,
     PipelineStepStatusInput,
-    RPCResponse,
     RegisterPipelineInput,
     RepoNameInput,
     SetInstanceChartDataInput,

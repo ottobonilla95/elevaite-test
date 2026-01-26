@@ -11,7 +11,7 @@ These tests cover:
 """
 
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch
 from fastapi import HTTPException
 from rbac_sdk.fastapi_helpers import (
     require_permission,

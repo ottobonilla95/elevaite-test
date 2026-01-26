@@ -61,7 +61,7 @@ class AccessTokenOrApikeyAuthentication(AuthenticationInterface):
             )
             if not access_token_header.startswith("Bearer "):
                 print(
-                    f"in authenticate middleware : Request auth header must contain bearer iDP access_token for authentication"
+                    "in authenticate middleware : Request auth header must contain bearer iDP access_token for authentication"
                 )
                 raise ApiError.unauthorized(
                     "Request auth header must contain bearer iDP access_token for authentication"
@@ -76,7 +76,7 @@ class AccessTokenOrApikeyAuthentication(AuthenticationInterface):
                     idp_type=idp_type if idp_type else auth_schemas.iDPType.GOOGLE
                 )
                 email = idp.get_user_email(access_token=token)
-                pprint(f"user email obtained from token successfully")
+                pprint("user email obtained from token successfully")
                 RedisSingleton().connection.setex(token, 60 * 60, email)
             else:
                 email = cached_email
@@ -130,7 +130,7 @@ class AccessTokenAuthentication(AuthenticationInterface):
 
         if not access_token_header.startswith("Bearer "):  # access token authentication
             print(
-                f"in authenticate middleware : Request auth header must contain bearer iDP access_token for authentication"
+                "in authenticate middleware : Request auth header must contain bearer iDP access_token for authentication"
             )
             raise ApiError.unauthorized(
                 "Request auth header must contain bearer iDP access_token for authentication"

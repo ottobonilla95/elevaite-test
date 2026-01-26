@@ -6,11 +6,10 @@ Uses the simplified approach: single table model + response models that extend i
 """
 
 import uuid as uuid_module
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from datetime import datetime
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, JSON, Text, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
 from enum import Enum
 
 from .base import get_utc_datetime

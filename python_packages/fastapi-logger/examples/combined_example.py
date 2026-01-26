@@ -88,7 +88,7 @@ async def add_tracing_context(request: Request, call_next):
 
 @app.get("/")
 async def root():
-    with tracer.start_as_current_span("root_operation") as span:
+    with tracer.start_as_current_span("root_operation"):
         logger.info("Processing request to root endpoint")
         return {"message": "Hello World"}
 
@@ -99,7 +99,7 @@ async def get_item(item_id: int):
         span.set_attribute("item.id", item_id)
         
         # Simulate a database query
-        with tracer.start_as_current_span("database_query") as child_span:
+        with tracer.start_as_current_span("database_query"):
             logger.info(f"Querying database for item {item_id}")
             # Simulate database latency
             time.sleep(0.1)
@@ -107,7 +107,7 @@ async def get_item(item_id: int):
         return {"item_id": item_id, "name": f"Item {item_id}"}
 
 # Print information about where to find logs and traces
-print(f"\nRunning example FastAPI app with CloudWatch and OpenTelemetry enabled")
+print("\nRunning example FastAPI app with CloudWatch and OpenTelemetry enabled")
 print(f"Service Name: {service_name}")
 print(f"OTLP Endpoint: {otlp_endpoint}")
 print(f"Log Group: {log_group}")

@@ -1,5 +1,4 @@
 import os
-import json
 from typing import Optional
 
 from elevaite_ingestion.config.pipeline_config import PipelineConfig
@@ -9,7 +8,6 @@ from elevaite_ingestion.config.parser_config import PARSER_CONFIG
 from elevaite_ingestion.parsers.docx_parser import DocxParser
 from elevaite_ingestion.parsers.xlsx_parser import XlsxParser
 from elevaite_ingestion.parsers.pdf_parser import PdfParser
-from elevaite_ingestion.structured_data.markdown_writer import MarkdownWriter
 from elevaite_ingestion.utils.logger import get_logger
 
 logger = get_logger(__name__)

@@ -5,7 +5,6 @@ URL to Markdown conversion tool.
 import requests
 from bs4 import BeautifulSoup
 import markdownify
-from typing import Optional
 
 try:
     from ..registry import function_schema

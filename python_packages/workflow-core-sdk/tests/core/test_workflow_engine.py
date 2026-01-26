@@ -5,7 +5,7 @@ Tests workflow execution patterns: sequential, parallel, conditional, and depend
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 from workflow_core_sdk.workflow_engine import WorkflowEngine
 from workflow_core_sdk.execution.context_impl import ExecutionContext, StepResult
 from workflow_core_sdk.models import ExecutionStatus, StepStatus

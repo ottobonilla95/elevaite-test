@@ -5,7 +5,6 @@ Tests the {{variable}} template syntax for runtime value injection in prompts
 and other workflow templates.
 """
 
-import pytest
 from datetime import datetime
 from unittest.mock import MagicMock
 

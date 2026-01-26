@@ -1,7 +1,7 @@
 from enum import Enum
 from pydantic import BaseModel, Field, validator, Extra, Field
-from typing import Optional, Union, Literal
-from datetime import datetime, timezone
+from typing import Union, Literal
+from datetime import datetime
 import uuid
 from ..util.func import (
     get_utc_datetime,

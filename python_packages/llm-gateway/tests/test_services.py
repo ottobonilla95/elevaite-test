@@ -6,8 +6,7 @@ with mocked providers to avoid external API calls.
 """
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from typing import Dict, Any
+from unittest.mock import MagicMock, patch
 
 from llm_gateway.services import (
     TextGenerationService,

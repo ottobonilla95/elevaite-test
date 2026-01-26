@@ -243,7 +243,7 @@ def example_3_tool_overrides():
             print(f"    Override Title: {step.tool_override.title}")
             print(f"    Override Description: {step.tool_override.description}")
             if step.tool_override.parameter_overrides:
-                print(f"    Parameter Overrides:")
+                print("    Parameter Overrides:")
                 for param_name, override in step.tool_override.parameter_overrides.items():
                     print(f"      - {param_name}: {override.get('title', 'N/A')}")
     
@@ -346,10 +346,10 @@ def main():
     print("="*80)
     
     # Run examples
-    workflow1 = example_1_basic_positions()
-    workflow2 = example_2_with_connections()
+    example_1_basic_positions()
+    example_2_with_connections()
     workflow3 = example_3_tool_overrides()
-    workflow4 = example_4_complete_workflow()
+    example_4_complete_workflow()
     
     # Show JSON output for one workflow
     print("\n" + "="*80)

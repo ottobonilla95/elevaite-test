@@ -8,7 +8,6 @@ from elevaitelib.util.func import get_utc_datetime
 
 from elevaitelib.schemas import (
     permission as permission_schemas,
-    application as connector_schemas,
     instance as instance_schemas,
 )
 from elevaitelib.orm.db import models

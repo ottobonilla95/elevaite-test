@@ -10,7 +10,6 @@ from rbac_lib.utils.api_error import ApiError
 from typing import Any, Optional
 from pprint import pprint
 
-from rbac_lib.utils.deps import get_db
 from elevaitelib.orm.db import models
 from elevaitelib.schemas import (
     api as api_schemas,
@@ -29,8 +28,8 @@ async def validate_patch_organization(
     try:
         try:
             org_id = UUID(os.getenv("ORGANIZATION_ID", None))
-        except Exception as e:
-            raise ApiError.notfound(f"Organization not found")
+        except Exception:
+            raise ApiError.notfound("Organization not found")
 
         if not logged_in_user.is_superadmin:
             raise ApiError.forbidden(
@@ -43,7 +42,7 @@ async def validate_patch_organization(
             .first()
         )
         if not org_to_patch:
-            raise ApiError.notfound(f"Organization not found")
+            raise ApiError.notfound("Organization not found")
 
         return {"Organization": org_to_patch}
     except HTTPException as e:
@@ -80,8 +79,8 @@ async def validate_get_organization(
     try:
         try:
             org_id = UUID(os.getenv("ORGANIZATION_ID", None))
-        except Exception as e:
-            raise ApiError.notfound(f"Organization not found")
+        except Exception:
+            raise ApiError.notfound("Organization not found")
 
         db_org = (
             db.query(models.Organization)
@@ -89,7 +88,7 @@ async def validate_get_organization(
             .first()
         )
         if not db_org:
-            raise ApiError.notfound(f"Organization not found")
+            raise ApiError.notfound("Organization not found")
 
         return {"Organization": db_org}
     except HTTPException as e:
@@ -127,11 +126,11 @@ async def validate_get_org_users(
     try:
         try:
             org_id = UUID(os.getenv("ORGANIZATION_ID", None))
-        except Exception as e:
-            raise ApiError.notfound(f"Organization not found")
+        except Exception:
+            raise ApiError.notfound("Organization not found")
 
         if not db.query(exists().where(models.Organization.id == org_id)).scalar():
-            raise ApiError.notfound(f"Organization not found")
+            raise ApiError.notfound("Organization not found")
 
         if account_id:
             account_exists = db.query(
@@ -156,7 +155,7 @@ async def validate_get_org_users(
             .filter(
                 models.User_Account.user_id == logged_in_user.id,
                 models.User_Account.account_id == account_id,
-                models.User_Account.is_admin == True,
+                models.User_Account.is_admin,
                 models.Account.organization_id == org_id,
             )
             .first()

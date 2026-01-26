@@ -20,7 +20,7 @@ searcher = Searcher(index=COLBERT_INDEX_PATH)
 
 def colbert_rerank(query: str, chunks: List[Dict], top_k: int = 3) -> List[Dict]:
     # Extract raw texts from chunks
-    texts = [chunk["chunk_text"] for chunk in chunks]
+    [chunk["chunk_text"] for chunk in chunks]
 
     # Simulate ranking using Searcher's score (note: real ColBERT usage requires indexing these chunks first)
     # This is a simulated reranking by querying the original corpus index and matching returned scores

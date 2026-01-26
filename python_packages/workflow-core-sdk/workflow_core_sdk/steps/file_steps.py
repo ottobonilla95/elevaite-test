@@ -7,10 +7,9 @@ embedding generation, and vector storage for RAG workflows.
 
 import os
 import uuid
-import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 from pathlib import Path
 
 # Try to import elevaite_ingestion components (optional)

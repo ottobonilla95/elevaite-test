@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 from typing import Optional, Callable
 from dotenv import load_dotenv
@@ -104,7 +103,7 @@ def execute_embedding_stage(config: Optional[PipelineConfig] = None) -> dict:
         embedding_provider = config.embedder.provider
         embedding_model = config.embedder.model
     else:
-        embedder = get_embedder()
+        get_embedder()
         input_s3_bucket = AWS_CONFIG["intermediate_bucket"]
         embedding_provider = EMBEDDER_CONFIG["provider"]
         embedding_model = EMBEDDER_CONFIG["model"]

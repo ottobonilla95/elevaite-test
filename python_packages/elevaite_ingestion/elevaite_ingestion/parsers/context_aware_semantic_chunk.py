@@ -1,6 +1,5 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from openai import OpenAI
 from custom_parser import PdfParser, enrich_sentence_with_context
 import json
 import openai

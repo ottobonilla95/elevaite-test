@@ -5,7 +5,6 @@ Test SDK in realistic production scenarios.
 """
 
 import time
-import pytest
 from unittest.mock import Mock, patch
 
 from rbac_sdk.fastapi_helpers import (

@@ -55,7 +55,6 @@ def _parse_docstring_params(docstring: Optional[str]) -> Dict[str, Dict[str, str
     lines = args_section.split("\n")
     current_param = None
     current_desc_lines = []
-    base_indent = None
 
     for line in lines:
         # Check if this line starts a new parameter (has a colon and word before it)
@@ -69,7 +68,7 @@ def _parse_docstring_params(docstring: Optional[str]) -> Dict[str, Dict[str, str
                 params_info[current_param] = {"title": title, "description": description}
 
             # Start new parameter
-            base_indent = len(param_match.group(1))
+            len(param_match.group(1))
             current_param = param_match.group(2)
             current_desc_lines = [param_match.group(3)] if param_match.group(3).strip() else []
         elif current_param and line.strip():

@@ -9,7 +9,7 @@ import json
 import os
 import requests
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional
 from .decorators import function_schema, tool_handler
 
 

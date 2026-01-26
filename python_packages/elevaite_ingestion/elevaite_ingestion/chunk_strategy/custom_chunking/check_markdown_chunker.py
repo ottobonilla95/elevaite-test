@@ -1,6 +1,5 @@
 from markdown_chunker import MarkdownHeaderTextSplitter
 from markitdown import MarkItDown
-import os
 
 
 from markitdown import MarkItDown

@@ -1,4 +1,3 @@
-import os
 import time
 import threading
 from pinecone import Pinecone, ServerlessSpec

@@ -6,7 +6,7 @@ without HTTP request handling.
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock, MagicMock
+from unittest.mock import Mock, AsyncMock
 from sqlmodel import Session
 
 from workflow_core_sdk.services.execution_service import ExecutionService

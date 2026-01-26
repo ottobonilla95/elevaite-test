@@ -9,23 +9,22 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional, Set
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
+from db_core.audit import (
+    TenantAuditEvent,
+    log_tenant_activated,
+    log_tenant_created,
+    log_tenant_deactivated,
+    log_tenant_deleted,
+    log_tenant_event,
+    log_tenant_init_completed,
+    log_tenant_init_failed,
+    log_tenant_init_started,
+    log_tenant_updated,
+)
 from db_core.config import MultitenancySettings
 from db_core.models import Tenant, TenantStatus
 from db_core.utils import get_schema_name
-from db_core.audit import (
-    log_tenant_created,
-    log_tenant_updated,
-    log_tenant_activated,
-    log_tenant_deactivated,
-    log_tenant_deleted,
-    log_tenant_init_started,
-    log_tenant_init_completed,
-    log_tenant_init_failed,
-    TenantAuditEvent,
-    log_tenant_event,
-)
 
 logger = logging.getLogger(__name__)
 

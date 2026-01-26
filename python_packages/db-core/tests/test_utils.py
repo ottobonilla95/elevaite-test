@@ -5,7 +5,6 @@ Tests for the utils module of db-core package.
 import pytest
 from sqlalchemy import text
 
-from db_core import MultitenancySettings
 from db_core.exceptions import InvalidTenantIdError
 from db_core.utils import (
     async_create_tenant_schema,

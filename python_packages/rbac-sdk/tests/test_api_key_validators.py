@@ -11,13 +11,10 @@ These tests cover:
 
 import pytest
 import os
-import sys
-import time
 from unittest.mock import Mock, patch
 from rbac_sdk.fastapi_helpers import (
     api_key_http_validator,
     api_key_jwt_validator,
-    HDR_API_KEY,
 )
 
 

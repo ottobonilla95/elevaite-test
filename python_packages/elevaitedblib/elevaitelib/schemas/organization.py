@@ -34,7 +34,7 @@ class OrganizationPatchRequestDTO(OrganizationBase):
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            print(f"Inside PATCH /organization - OrganizationPatchRequestDTO schema validation")
+            print("Inside PATCH /organization - OrganizationPatchRequestDTO schema validation")
             raise ValueError("At least one field must be provided in payload")
         return values
     

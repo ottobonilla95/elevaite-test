@@ -3,17 +3,15 @@ Tests for the dependencies module of db-core package.
 """
 
 import pytest
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.testclient import TestClient
 
-from db_core import get_tenant_db, get_tenant_async_db
+from db_core import get_tenant_db
 from db_core.dependencies import (
     AdminOnly,
     TenantValidator,
     get_multitenancy_settings,
     get_tenant_id,
-    multitenancy_settings_dependency,
-    tenant_id_dependency,
 )
 from db_core.middleware import TenantMiddleware, set_current_tenant_id
 

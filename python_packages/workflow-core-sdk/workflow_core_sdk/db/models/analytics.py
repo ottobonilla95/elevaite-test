@@ -5,7 +5,7 @@ import uuid as uuid_module
 from typing import Optional
 from datetime import datetime
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, Integer, DateTime, Text
+from sqlalchemy import Column, DateTime, Text
 
 
 class AgentExecutionMetrics(SQLModel, table=True):

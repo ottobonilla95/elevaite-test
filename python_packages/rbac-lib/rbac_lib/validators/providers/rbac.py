@@ -1,8 +1,8 @@
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, Query
 from sqlalchemy import and_
 
-from typing import Any, Dict, Type, Optional, List, Tuple, Set, Callable
+from typing import Any, Dict, Type, Optional, List, Callable
 from collections import OrderedDict
 from uuid import UUID
 
@@ -11,8 +11,6 @@ from elevaitelib.schemas import (
    permission as permission_schemas,
    auth as auth_schemas
 )
-from pydantic import ValidationError
-from pprint import pprint
 from rbac_lib.utils.api_error import ApiError
 
 from rbac_lib.utils.funcs import (
@@ -23,8 +21,6 @@ from rbac_lib.utils.cte import (
    is_user_project_association_till_root,
 )
 from .config import (
-   model_classStr_to_class,
-   validation_precedence_order,
    account_scoped_permissions as account_scoped_permissions_schema,
    project_scoped_permissions as project_scoped_permissions_schema,
    apikey_scoped_permissions as apikey_scoped_permissions_schema
@@ -213,7 +209,7 @@ class RBACProvider:
 
             if not isinstance(value, dict): # if this is a leaf action
                current_entity = current_cumulative_entities_in_path[-1]
-               if not current_entity in valid_entity_actions_map:
+               if current_entity not in valid_entity_actions_map:
                   valid_entity_actions_map[current_entity] = set()
                valid_entity_actions_map[current_entity].add(tuple(current_action_sequence))
                
@@ -226,7 +222,7 @@ class RBACProvider:
                if current_entity not in entity_to_typevalues_list: # pop the empty type when stepping out of leaf action
                   current_cumulative_typevalues_in_path.pop() 
          else:
-            raise ValueError(f"Not all of schema keys are prefixed with one of 'ENTITY_', 'TYPENAMES_', 'TYPEVALUES_', 'ACTION_'")
+            raise ValueError("Not all of schema keys are prefixed with one of 'ENTITY_', 'TYPENAMES_', 'TYPEVALUES_', 'ACTION_'")
          
          # Recursively handle nested dictionaries
          if isinstance(value, dict):
@@ -294,12 +290,12 @@ class RBACProvider:
          try:
             match field_name:
                case "IS_PROJECT_ADMIN":
-                  if not models.Project in model_class_to_instance:
+                  if models.Project not in model_class_to_instance:
                      raise ApiError.validationerror("X-elevAIte-ProjectId header is required to evaluate 'IS_PROJECT_ADMIN' permissions for user")
                   logged_in_user_project_association = logged_in_user_account_and_project_associations.get("logged_in_user_project_association", None)
                   response_data[field_name] = {"OVERALL_PERMISSIONS" : logged_in_user_project_association.is_admin if logged_in_user_project_association else False}
                case "IS_ACCOUNT_ADMIN":
-                  if not models.Account in model_class_to_instance:
+                  if models.Account not in model_class_to_instance:
                      raise ApiError.validationerror("X-elevAIte-AccountId or X-elevAIte-ProjectId header is required to evaluate 'IS_ACCOUNT_ADMIN' permissions for user")
                   logged_in_user_account_association = logged_in_user_account_and_project_associations.get("logged_in_user_account_association", None)
                   response_data[field_name] = {"OVERALL_PERMISSIONS": logged_in_user_account_association.is_admin if logged_in_user_account_association else False}
@@ -312,7 +308,7 @@ class RBACProvider:
                   if not target_model_class:
                      print(f'in rbac.validate_rbac_permissions : no target class found for target_model_class_str = {target_model_class_str}')
                      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-                  if not target_model_action_sequence in self._account_scoped_permissions_valid_entity_actions_map[target_model_class]:
+                  if target_model_action_sequence not in self._account_scoped_permissions_valid_entity_actions_map[target_model_class]:
                      print(f'in rbac.validate_rbac_permissions : target model action sequence - "{target_model_action_sequence}" - not found in valid_entity_actions_map')
                      raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
                   
@@ -320,16 +316,16 @@ class RBACProvider:
                   MODEL_ACTION_IS_ONLY_ACCOUNT_SCOPED: bool = False
                   # validate account/project endpoint params requirements met or not based on action scope
                   if auth_schemas.PermissionsEvaluationRequest.validate_permission_scope(field_name, auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE) and auth_schemas.PermissionsEvaluationRequest.validate_permission_scope(field_name, auth_schemas.RBACPermissionScope.PROJECT_SCOPE): # if endpoint supports account scoped and project scoped actions
-                     if not logged_in_user.is_superadmin and not models.Account in model_class_to_instance:
+                     if not logged_in_user.is_superadmin and models.Account not in model_class_to_instance:
                         raise ApiError.validationerror(f"X-elevAIte-AccountId is required to evaluate {field_name} permissions for user")
                   elif auth_schemas.PermissionsEvaluationRequest.validate_permission_scope(field_name, auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE): # if endpoint only supports account scoped actions
-                     if not logged_in_user.is_superadmin and not models.Account in model_class_to_instance:
+                     if not logged_in_user.is_superadmin and models.Account not in model_class_to_instance:
                         raise ApiError.validationerror(f"X-elevAIte-AccountId is required to evaluate {field_name} permissions for user")
                      MODEL_ACTION_IS_ONLY_ACCOUNT_SCOPED = True
                   else: # endpoint action is only project scoped
                      if not logged_in_user.is_superadmin:
                         logged_in_user_account_association = logged_in_user_account_and_project_associations.get("logged_in_user_account_association", None)
-                        if not (logged_in_user_account_association.is_admin if logged_in_user_account_association else False) and not models.Project in model_class_to_instance:
+                        if not (logged_in_user_account_association.is_admin if logged_in_user_account_association else False) and models.Project not in model_class_to_instance:
                            raise ApiError.validationerror(f"X-elevAIte-ProjectId is required to evaluate {field_name} permissions for user")
 
                   # Prepare field endpoint parameters for validation
@@ -422,13 +418,13 @@ class RBACProvider:
    ) -> dict[str, Any]:
       params = {**request.path_params}
       
-      if not 'account_id' in request.path_params and not 'project_id' in request.path_params: # if account_id in path params or project_id in path params (account can be derived from project), dont consider account_id header
+      if 'account_id' not in request.path_params and 'project_id' not in request.path_params: # if account_id in path params or project_id in path params (account can be derived from project), dont consider account_id header
          if hasattr(request.state, 'account_context_exists') and request.state.account_context_exists: # if endpoint has account context, consider account header
             account_id = request.headers.get('X-elevAIte-AccountId', None)
             if account_id is not None:
                params['account_id'] = account_id
 
-      if not 'project_id' in request.path_params:  # if project_id in path params, dont consider project header
+      if 'project_id' not in request.path_params:  # if project_id in path params, dont consider project header
          if hasattr(request.state, 'project_context_exists') and request.state.project_context_exists: # if endpoint has project context, consider project header
             project_id = request.headers.get('X-elevAIte-ProjectId', None) 
             if project_id is not None:
@@ -445,7 +441,7 @@ class RBACProvider:
       model_classStr_to_instanceIds = self._map_model_classStr_to_instanceIds(account_and_project_params)
       model_class_to_instance = await self._map_model_class_to_instances(db, model_classStr_to_instanceIds) 
 
-      if 'project_id' in account_and_project_params and not 'account_id' in account_and_project_params: # if only project_id provided and not account_id, extract account_id from project and update map
+      if 'project_id' in account_and_project_params and 'account_id' not in account_and_project_params: # if only project_id provided and not account_id, extract account_id from project and update map
          model_class_to_instance.update(await self._map_model_class_to_instances(db, {'Account' : model_class_to_instance[models.Project].account_id}))
          params.update({'account_id' : model_class_to_instance[models.Project].account_id})
          account_and_project_params.update({'account_id' : model_class_to_instance[models.Project].account_id})
@@ -570,7 +566,7 @@ class RBACProvider:
                   raise ApiError.forbidden(f"you are not assigned to one or more projects in the project hierarchy of parent project - '{parent_project_id}'")
       else: #  authenticated entity is Apikey
          logged_in_apikey: models.Apikey = authenticated_entity
-         if not models.Project in model_class_to_instance or model_class_to_instance[models.Project].id != logged_in_apikey.project_id:
+         if models.Project not in model_class_to_instance or model_class_to_instance[models.Project].id != logged_in_apikey.project_id:
             raise ApiError.forbidden(f"your permissions are restricted to resources within project - '{logged_in_apikey.project_id}'")
          
       return logged_in_entity_account_and_project_association_info
@@ -594,7 +590,7 @@ class RBACProvider:
          if logged_in_user_is_superadmin:
             return permission_validation_info
          
-         if not models.Account in model_class_to_instance:
+         if models.Account not in model_class_to_instance:
             raise ApiError.forbidden("you do not have superadmin permissions and must provide an account_id")
          
          logged_in_user_account_association = logged_in_entity_account_and_project_association_info.get("logged_in_entity_account_association", None)
@@ -713,7 +709,7 @@ class RBACProvider:
                         model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
                         target_model_action_sequence=("READ",),
                      )
-                  except Exception as e:  # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
+                  except Exception:  # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
                      path_exists_in_project_scoped_permissions = False
                   if path_exists_in_project_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, model_read_action_permission_path):
                      raise ApiError.forbidden(read_action_project_permissions_error_msg)
@@ -728,7 +724,7 @@ class RBACProvider:
                      model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
                      target_model_action_sequence=("READ",),
                   )
-               except Exception as e: # current permission field doesn't exist in ApiKeyScopedRBACPermission schema; assume that it is account-scoped/project-scoped model eventually leading up to an api-key scoped target model-action sequence and skip. If not, permissions will be denied when target is evaluated.
+               except Exception: # current permission field doesn't exist in ApiKeyScopedRBACPermission schema; assume that it is account-scoped/project-scoped model eventually leading up to an api-key scoped target model-action sequence and skip. If not, permissions will be denied when target is evaluated.
                   path_exists_in_api_scoped_permissions = False
                if path_exists_in_api_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, model_read_action_permission_path):
                   raise ApiError.forbidden(read_action_apikey_permissions_error_msg)
@@ -785,7 +781,7 @@ class RBACProvider:
                            model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
                            target_model_action_sequence=target_model_action_sequence,
                         )
-                     except Exception as e: # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
+                     except Exception: # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
                         path_exists_in_project_scoped_permissions = False
                      if path_exists_in_project_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
                         if validation_info_key in permission_validation_info:
@@ -803,7 +799,7 @@ class RBACProvider:
                         model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
                         target_model_action_sequence=target_model_action_sequence,
                      )
-                  except Exception as e: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
+                  except Exception: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
                      path_exists_in_project_scoped_permissions = False
                      if validation_info_key in permission_validation_info:
                         permission_validation_info[validation_info_key]["apikey_scoped_error_msg"] = target_action_apikey_permissions_error_msg
@@ -855,7 +851,7 @@ class RBACProvider:
                         model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
                         target_model_action_sequence=target_model_action_sequence,
                      )
-                  except Exception as e: # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
+                  except Exception: # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
                      path_exists_in_project_scoped_permissions = False
                   if path_exists_in_project_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
                      raise ApiError.forbidden(target_action_project_permissions_error_msg)
@@ -869,7 +865,7 @@ class RBACProvider:
                      model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
                      target_model_action_sequence=target_model_action_sequence,
                   )
-               except Exception as e: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
+               except Exception: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
                   raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
                if await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
                   raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
@@ -914,7 +910,7 @@ class RBACProvider:
                         model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
                         target_model_action_sequence=target_model_action_sequence,
                      )
-                  except Exception as e: # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
+                  except Exception: # field doesn't exist in project scoped rbac permission schema but it did in account scoped rbac permission schema, so skip it
                      path_exists_in_project_scoped_permissions = False
                   if path_exists_in_project_scoped_permissions and await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
                      raise ApiError.forbidden(target_action_project_permissions_error_msg)
@@ -928,7 +924,7 @@ class RBACProvider:
                      model_typevalues_sequence=tuple(cumulative_pathparam_typevalues_sequence) if cumulative_pathparam_typevalues_sequence else ((),),
                      target_model_action_sequence=target_model_action_sequence,
                   )
-               except Exception as e: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
+               except Exception: # target permission field doesn't exist in ApiKeyScopedRBACPermission schema; restrict project-scoped permissions
                   raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
                if await self._check_project_scoped_permission_overrides_exist(logged_in_entity_account_and_project_association_info, target_model_action_permission_path):
                   raise ApiError.forbidden(target_action_apikey_permissions_error_msg)
@@ -1004,27 +1000,27 @@ class RBACProvider:
    ):
       paths_map_input_tuple = (model_class_sequence, model_typevalues_sequence, target_model_action_sequence)
       if permissions_scope is auth_schemas.RBACPermissionScope.ACCOUNT_SCOPE:
-         if not target_model_action_sequence in self._account_scoped_permissions_valid_entity_actions_map[target_model_class]:
+         if target_model_action_sequence not in self._account_scoped_permissions_valid_entity_actions_map[target_model_class]:
             print(f"action sequence - '{target_model_action_sequence}' - for {target_model_class} resource not found in account-scoped-permissions schema")
             raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-         if not paths_map_input_tuple in self._account_scoped_permissions_leaf_action_paths_map:
+         if paths_map_input_tuple not in self._account_scoped_permissions_leaf_action_paths_map:
             print(f"action path not found in account-scoped-permissions schema for target model class - '{target_model_class}' - with model class sequence - '{model_class_sequence}' - with model_type_values_sequence - '{model_typevalues_sequence}' - with target_model_action_sequence - '{target_model_action_sequence}'")
             raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
          action_path: list[str] = self._account_scoped_permissions_leaf_action_paths_map[paths_map_input_tuple]
       elif permissions_scope is auth_schemas.RBACPermissionScope.PROJECT_SCOPE:
          if isinstance(authenticated_entity, models.User):
-            if not target_model_action_sequence in self._project_scoped_permissions_valid_entity_actions_map[target_model_class]:
+            if target_model_action_sequence not in self._project_scoped_permissions_valid_entity_actions_map[target_model_class]:
                print(f"action sequence - '{target_model_action_sequence}' - for {target_model_class} resource not found in project-scoped-permissions schema")
                raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-            if not paths_map_input_tuple in self._project_scoped_permissions_leaf_action_paths_map:
+            if paths_map_input_tuple not in self._project_scoped_permissions_leaf_action_paths_map:
                print(f"action path not found in project-scoped-permissions schema for target model class - '{target_model_class}' - with model class sequence - '{model_class_sequence}' - with model_type_values_sequence - '{model_typevalues_sequence}' - with target_model_action_sequence - '{target_model_action_sequence}'")
                raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
             action_path: list[str] = self._project_scoped_permissions_leaf_action_paths_map[paths_map_input_tuple]
          else: # authenticated entity is Apikey
-            if not target_model_action_sequence in self._apikey_scoped_permissions_valid_entity_actions_map[target_model_class]:
+            if target_model_action_sequence not in self._apikey_scoped_permissions_valid_entity_actions_map[target_model_class]:
                print(f"action sequence - '{target_model_action_sequence}' - for {target_model_class} resource not found in apikey-scoped-permissions schema")
                raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
-            if not paths_map_input_tuple in self._apikey_scoped_permissions_leaf_action_paths_map:
+            if paths_map_input_tuple not in self._apikey_scoped_permissions_leaf_action_paths_map:
                print(f"action path not found in apikey-scoped-permissions schema for target model class - '{target_model_class}' - with model class sequence - '{model_class_sequence}' - with model_type_values_sequence - '{model_typevalues_sequence}' - with target_model_action_sequence - '{target_model_action_sequence}'")
                raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
             action_path: list[str] = self._apikey_scoped_permissions_leaf_action_paths_map[paths_map_input_tuple]
@@ -1044,7 +1040,7 @@ class RBACProvider:
       model_action_sequence,
       model_class_to_instance
    ):
-      if not model_action_sequence in self._account_scoped_permissions_valid_entity_actions_map[target_model_class]:
+      if model_action_sequence not in self._account_scoped_permissions_valid_entity_actions_map[target_model_class]:
          print(f"undefined action sequence - '{model_action_sequence}' - for {target_model_class} resource")
          raise ApiError.serviceunavailable("The server is currently unavailable, please try again later.")
       

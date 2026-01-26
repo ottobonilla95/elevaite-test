@@ -105,7 +105,7 @@ async def trigger_error():
             return {"error": str(e)}
 
 # Print information about where to find the telemetry data
-print(f"\nRunning example FastAPI app with OpenTelemetry enabled")
+print("\nRunning example FastAPI app with OpenTelemetry enabled")
 print(f"Service Name: {service_name}")
 print(f"OTLP Endpoint: {otlp_endpoint}")
 print("\nTo view traces, make sure you have an OpenTelemetry collector running.")

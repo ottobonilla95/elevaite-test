@@ -90,7 +90,6 @@ def create_pipeline(
         else:
             raise ValueError(f"Unknown task_type: {task['task_type']}")
 
-        input_path = f"/opt/ml/processing/input/{task_id}.json"
         output_path = f"/opt/ml/processing/output/{task_id}.json"
 
         # Build job arguments

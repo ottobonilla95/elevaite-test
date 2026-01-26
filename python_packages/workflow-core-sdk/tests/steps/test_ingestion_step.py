@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 import uuid
 
-from workflow_core_sdk.steps.ingestion_steps import ingestion_step, _check_job_completion
+from workflow_core_sdk.steps.ingestion_steps import ingestion_step
 from workflow_core_sdk.execution_context import ExecutionContext
 
 

@@ -283,7 +283,7 @@ class ExecutionContext:
         step_config_dict = step_config.config if step_config.config else {}
         if "input_data" in step_config_dict:
             input_data.update(step_config_dict["input_data"])
-            logger.debug(f"  Added direct input_data from step config")
+            logger.debug("  Added direct input_data from step config")
 
         logger.info(f"get_step_input_data({step_id}): resolved input_data keys={list(input_data.keys())}")
         return input_data
@@ -495,7 +495,7 @@ class ExecutionContext:
             await stream_manager.emit_execution_event(event)
             if self.workflow_id:
                 await stream_manager.emit_workflow_event(event)
-        except Exception as e:
+        except Exception:
             # Don't let streaming errors break execution
             pass
 
@@ -525,7 +525,7 @@ class ExecutionContext:
             await stream_manager.emit_execution_event(event)
             if self.workflow_id:
                 await stream_manager.emit_workflow_event(event)
-        except Exception as e:
+        except Exception:
             # Don't let streaming errors break execution
             pass
 
@@ -538,7 +538,7 @@ class ExecutionContext:
             await stream_manager.emit_execution_event(event)
             if self.workflow_id:
                 await stream_manager.emit_workflow_event(event)
-        except Exception as e:
+        except Exception:
             # Don't let streaming errors break execution
             pass
 

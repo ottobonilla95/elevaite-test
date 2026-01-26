@@ -6,7 +6,7 @@ Tests the business logic of prompt CRUD operations with mocked database session.
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -190,7 +190,7 @@ class TestCreatePrompt:
         mock_session.commit = MagicMock()
         mock_session.refresh = MagicMock(side_effect=lambda obj: setattr(obj, "id", sample_prompt.id))
 
-        prompt = PromptsService.create_prompt(mock_session, sample_prompt_create)
+        PromptsService.create_prompt(mock_session, sample_prompt_create)
 
         mock_session.add.assert_called_once()
         mock_session.commit.assert_called_once()

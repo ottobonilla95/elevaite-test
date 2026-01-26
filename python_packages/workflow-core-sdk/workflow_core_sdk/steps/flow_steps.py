@@ -30,7 +30,6 @@ async def subflow_step(
     - output_mapping: How to map subflow output back to current workflow
     - inherit_context: Whether to inherit user context from parent workflow (default: True)
     """
-    from ..workflow_engine import WorkflowEngine
     from ..db.service import DatabaseService
     from ..db.database import engine
     from sqlmodel import Session

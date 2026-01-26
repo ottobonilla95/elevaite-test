@@ -7,9 +7,8 @@ This module contains all workflow-related database models using SQLModel.
 import uuid as uuid_module
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import Column, JSON, Text, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlmodel import SQLModel, Field
+from sqlalchemy import Column, JSON, DateTime, func
 from enum import Enum
 
 from .base import get_utc_datetime

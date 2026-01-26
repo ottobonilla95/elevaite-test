@@ -2,7 +2,7 @@ from typing import List, Optional
 
 try:
     from sentence_transformers import SentenceTransformer
-except Exception as e:  # pragma: no cover
+except Exception:  # pragma: no cover
     SentenceTransformer = None  # type: ignore
 
 

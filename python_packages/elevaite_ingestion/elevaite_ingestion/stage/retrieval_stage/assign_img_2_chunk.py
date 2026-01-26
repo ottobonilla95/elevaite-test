@@ -301,7 +301,7 @@
 import torch
 from qdrant_client import QdrantClient
 from transformers import CLIPProcessor, CLIPModel
-from typing import List, Dict
+from typing import List
 from tqdm import tqdm
 
 client = QdrantClient(url="http://3.101.65.253", port=5333)
@@ -376,7 +376,7 @@ def assign_images_to_chunks():
 
         header = payload.get("contexual_header", "")
         text = payload.get("chunk_text", "")
-        page_range = payload.get("page_range", [])
+        payload.get("page_range", [])
 
         combined_text = f"{header} {text}".strip()
         text_emb = get_clip_text_embedding(combined_text)

@@ -1,4 +1,4 @@
-from fastapi import Depends, Body, Path, Depends, HTTPException, Request, Header
+from fastapi import Depends, Path, Depends, HTTPException, Request, Header
 from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -50,7 +50,7 @@ async def validate_get_user_profile(
                 )
                 .filter(
                     models.User_Account.user_id == logged_in_user.id,
-                    models.User_Account.is_admin == True,
+                    models.User_Account.is_admin,
                     models.Account.organization_id == os.getenv("ORGANIZATION_ID"),
                 )
                 .first()

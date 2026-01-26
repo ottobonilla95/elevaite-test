@@ -461,10 +461,10 @@ class ExecutionContext:
                 failed_steps=len(self.failed_steps),
             )
             await stream_manager.emit_execution_event(event)
-            logger.info(f"=== STATUS EVENT EMITTED TO EXECUTION STREAM ===")
+            logger.info("=== STATUS EVENT EMITTED TO EXECUTION STREAM ===")
             if self.workflow_id:
                 await stream_manager.emit_workflow_event(event)
-                logger.info(f"=== STATUS EVENT EMITTED TO WORKFLOW STREAM ===")
+                logger.info("=== STATUS EVENT EMITTED TO WORKFLOW STREAM ===")
         except Exception as e:
             # Don't let streaming errors break execution
             logger.error(f"=== FAILED TO EMIT STATUS EVENT: {e} ===")
@@ -496,7 +496,7 @@ class ExecutionContext:
             await stream_manager.emit_execution_event(event)
             if self.workflow_id:
                 await stream_manager.emit_workflow_event(event)
-        except Exception as e:
+        except Exception:
             # Don't let streaming errors break execution
             pass
 
@@ -509,7 +509,7 @@ class ExecutionContext:
             await stream_manager.emit_execution_event(event)
             if self.workflow_id:
                 await stream_manager.emit_workflow_event(event)
-        except Exception as e:
+        except Exception:
             # Don't let streaming errors break execution
             pass
 
@@ -520,10 +520,10 @@ class ExecutionContext:
             # Only emit if there's an active event loop
             loop = asyncio.get_running_loop()
             if loop and not loop.is_closed():
-                logger.info(f"=== EVENT LOOP FOUND, CREATING TASK ===")
+                logger.info("=== EVENT LOOP FOUND, CREATING TASK ===")
                 asyncio.create_task(self._emit_status_event(status))
             else:
-                logger.warning(f"=== NO ACTIVE EVENT LOOP OR LOOP IS CLOSED ===")
+                logger.warning("=== NO ACTIVE EVENT LOOP OR LOOP IS CLOSED ===")
         except RuntimeError as e:
             # No active event loop, skip streaming
             logger.warning(f"=== NO RUNNING EVENT LOOP: {e} ===")

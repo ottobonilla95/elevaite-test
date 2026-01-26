@@ -409,7 +409,7 @@ class DatabaseService:
 
     def list_step_types(self, session: Session, category: Optional[str] = None) -> List[Dict[str, Any]]:
         """List all step types"""
-        query = select(StepType).where(StepType.is_active == True)
+        query = select(StepType).where(StepType.is_active)
         if category:
             query = query.where(StepType.category == category)
 

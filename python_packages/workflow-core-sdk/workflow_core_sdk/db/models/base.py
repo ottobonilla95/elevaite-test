@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from typing import Optional
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
 
 
 def get_utc_datetime() -> datetime:

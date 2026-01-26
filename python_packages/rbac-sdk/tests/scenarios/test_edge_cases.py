@@ -23,7 +23,6 @@ import pytest
 from rbac_sdk.fastapi_helpers import (
     api_key_http_validator,
     api_key_jwt_validator,
-    principal_resolvers,
     resource_builders,
 )
 

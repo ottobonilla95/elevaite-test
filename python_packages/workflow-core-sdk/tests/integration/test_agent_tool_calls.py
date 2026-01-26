@@ -11,11 +11,9 @@ Run with:
 """
 
 import pytest
-import asyncio
 import logging
-from unittest.mock import MagicMock, patch, AsyncMock
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 # Set up detailed logging to see the debug output
 logging.basicConfig(level=logging.INFO)

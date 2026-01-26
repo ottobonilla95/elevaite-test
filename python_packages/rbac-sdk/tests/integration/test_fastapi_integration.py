@@ -13,9 +13,8 @@ Run with:
 """
 
 import pytest
-from fastapi import FastAPI, Depends, Request
+from fastapi import FastAPI, Depends
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
 
 from rbac_sdk.fastapi_helpers import (
     require_permission,

@@ -1,4 +1,3 @@
-import os
 import time
 from pinecone import Pinecone, ServerlessSpec
 from chromadb import PersistentClient

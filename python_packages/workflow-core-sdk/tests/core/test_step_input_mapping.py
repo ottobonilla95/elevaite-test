@@ -9,11 +9,9 @@ was incorrectly receiving input from all previous steps instead of just Tool1.
 """
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 
 from workflow_core_sdk.execution_context import ExecutionContext
 from workflow_core_sdk.execution.context_impl import UserContext
-from workflow_core_sdk.models import ExecutionStatus, StepStatus
 
 
 @pytest.fixture
@@ -238,7 +236,7 @@ class TestPrevExpansionLogic:
         def expand_prev_references(steps):
             """Simulate the graph-based $prev expansion"""
             # Build graph
-            step_by_id = {s["step_id"]: s for s in steps}
+            {s["step_id"]: s for s in steps}
             incoming = {s["step_id"]: list(s.get("dependencies", [])) for s in steps}
 
             for s in steps:

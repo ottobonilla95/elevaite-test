@@ -1,7 +1,6 @@
 import re
 import time
 import logging
-import boto3
 from typing import Optional, Any
 
 from opentelemetry import trace

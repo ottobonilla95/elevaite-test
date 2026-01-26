@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 import requests
 import json
-from typing import Dict, Any, Optional
+from typing import Optional
 
 from .decorators import function_schema
 

@@ -4,7 +4,7 @@ Configuration options for schema-based multitenancy.
 
 from typing import Any, ClassVar, Dict, Optional
 
-from pydantic import BaseModel, field_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class MultitenancySettings(BaseModel):

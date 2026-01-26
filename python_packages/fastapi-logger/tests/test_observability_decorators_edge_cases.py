@@ -142,7 +142,7 @@ def test_parent_child_span_relationship(otel_env):
     def tool(x):
         return x
 
-    with tracer.start_as_current_span("parent") as parent:
+    with tracer.start_as_current_span("parent"):
         tool(3)
 
     spans = exporter.get_finished_spans()

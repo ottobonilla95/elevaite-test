@@ -14,7 +14,11 @@ from starlette.responses import Response
 from starlette.types import ASGIApp
 
 from db_core.config import MultitenancySettings
-from db_core.exceptions import InvalidTenantIdError, MissingTenantIdError, TenantNotFoundError
+from db_core.exceptions import (
+    InvalidTenantIdError,
+    MissingTenantIdError,
+    TenantNotFoundError,
+)
 from db_core.utils import validate_tenant_id
 
 logger = logging.getLogger(__name__)

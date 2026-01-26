@@ -14,7 +14,6 @@ from ..streaming import stream_manager, create_status_event, create_step_event, 
 from ..db.service import DatabaseService as _DBService
 from ..db.models import ExecutionStatus as _ExecStatus
 from . import get_dbos_adapter
-from .messaging import make_decision_topic
 
 
 logger = logging.getLogger(__name__)

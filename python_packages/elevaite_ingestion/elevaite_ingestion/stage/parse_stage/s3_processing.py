@@ -2,7 +2,6 @@ import os
 import json
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 
 import boto3
 from dotenv import load_dotenv

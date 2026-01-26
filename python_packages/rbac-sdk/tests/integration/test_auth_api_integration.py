@@ -13,7 +13,6 @@ Run with:
 """
 
 import pytest
-import httpx
 from unittest.mock import Mock
 from datetime import datetime, timedelta, timezone
 from jose import jwt

@@ -6,8 +6,7 @@ This ensures documentation stays up-to-date and examples are accurate.
 
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
-from fastapi import FastAPI, Depends, Request, HTTPException
-from fastapi.testclient import TestClient
+from fastapi import FastAPI, Depends
 
 
 class TestQuickStartExamples:

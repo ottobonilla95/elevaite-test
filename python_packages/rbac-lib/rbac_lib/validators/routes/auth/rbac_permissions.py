@@ -1,4 +1,4 @@
-from fastapi import Depends, Body, Depends, HTTPException, Header, Request
+from fastapi import Depends, Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from uuid import UUID
@@ -6,10 +6,8 @@ from pprint import pprint
 from typing import Any, Optional
 from rbac_lib.utils.api_error import ApiError
 from rbac_lib.auth.impl import AccessTokenAuthentication
-from rbac_lib.utils.deps import get_db
 from elevaitelib.orm.db import models
 from elevaitelib.schemas import (
-    auth as auth_schemas,
     api as api_schemas,
 )
 from ....audit import AuditorProvider

@@ -3,7 +3,7 @@ from typing import List
 
 try:
     import cohere
-except Exception as e:  # pragma: no cover
+except Exception:  # pragma: no cover
     cohere = None  # type: ignore
 
 

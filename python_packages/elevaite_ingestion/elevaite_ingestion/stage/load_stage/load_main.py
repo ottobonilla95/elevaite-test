@@ -1,11 +1,10 @@
 import os
-import sys
 import json
 import logging
 import time
 from datetime import datetime
 from elevaite_ingestion.config.load_config import LOADING_CONFIG
-from elevaite_ingestion.stage.load_stage.load_pipeline import load_files_to_destination, upload_file_to_s3
+from elevaite_ingestion.stage.load_stage.load_pipeline import upload_file_to_s3
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -90,7 +89,7 @@ def execute_pipeline():
                 return pipeline_status
 
             if not output_directory:
-                logger.error(f"❌ No output directory specified in config.")
+                logger.error("❌ No output directory specified in config.")
                 return pipeline_status
 
             os.makedirs(output_directory, exist_ok=True)

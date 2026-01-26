@@ -34,7 +34,7 @@ def _get_redis() -> redis.Redis:
     )
     try:
         r.ping()
-    except Exception as e:
+    except Exception:
         print("Could not connect to Redis")
     return r
 
@@ -62,4 +62,4 @@ def with_db(func):
 def payload_schema(schema: Type[BaseModel]):
     def wrap(f):
         def inner(*args, **kwargs):
-            input = schema()
+            schema()

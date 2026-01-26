@@ -7,14 +7,12 @@ Supports both in-memory (StepRegistry) and database-backed step types.
 
 from typing import Dict, Any, List, Optional
 from sqlmodel import Session, select
-from datetime import datetime
 import uuid
 
-from ..db.models.step_registry import StepType, StepTypeCreate, StepTypeUpdate
+from ..db.models.step_registry import StepType, StepTypeCreate
 from ..utils.schema_utils import (
     create_step_input_schema,
     create_step_output_schema,
-    function_to_openai_schema,
 )
 
 

@@ -73,7 +73,7 @@ def load_files_to_destination():
                 return
 
             if not output_directory:
-                logger.error(f"❌ No output directory specified in config.")
+                logger.error("❌ No output directory specified in config.")
                 return
 
             os.makedirs(output_directory, exist_ok=True)

@@ -8,7 +8,6 @@ import uuid as uuid_module
 from typing import Optional, List, Dict, Any, Literal, Union
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, JSON, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
 
 from datetime import datetime
 from .base import get_utc_datetime

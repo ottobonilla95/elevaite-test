@@ -9,7 +9,6 @@ This test suite verifies that:
 """
 
 import json
-import pytest
 from workflow_core_sdk.tools.basic_tools import get_all_tools, get_all_schemas
 
 
@@ -238,7 +237,7 @@ def test_tool_parameter_extraction():
 def test_no_duplicate_tools():
     """Test that there are no duplicate tools in the registry."""
     tools = get_all_tools()
-    schemas = get_all_schemas()
+    get_all_schemas()
 
     # Tool names should be unique (dict keys are unique by definition)
     # But let's verify that migrated tools aren't duplicated

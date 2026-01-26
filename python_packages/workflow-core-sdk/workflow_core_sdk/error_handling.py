@@ -8,7 +8,7 @@ and graceful failure recovery for production reliability.
 import asyncio
 import logging
 import time
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type
 from enum import Enum
 from dataclasses import dataclass
 import random

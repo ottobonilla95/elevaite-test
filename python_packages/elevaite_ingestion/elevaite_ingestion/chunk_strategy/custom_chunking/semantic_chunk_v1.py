@@ -50,13 +50,13 @@ async def chunk_text(parsed_data: Dict, chunking_params: Dict) -> List[Dict]:
         return []
 
     embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
-    enc = encoding_for_model("text-embedding-3-small")
+    encoding_for_model("text-embedding-3-small")
 
     buffer_size = chunking_params.get("buffer_size", 1)
     threshold_type = chunking_params.get("breakpoint_threshold_type", "percentile")
     threshold_value = chunking_params.get("breakpoint_threshold_amount", 80)
     max_chunk_size = chunking_params.get("max_chunk_size", 1500)
-    min_chunk_size = chunking_params.get("min_chunk_size", 500)
+    chunking_params.get("min_chunk_size", 500)
     filename = parsed_data.get("filename", "unknown.pdf")
 
     # --- NEW: Extract total_pages safely ---

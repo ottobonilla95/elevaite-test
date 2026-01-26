@@ -2,7 +2,6 @@ import os
 import pdfplumber
 from PIL import Image
 import pytesseract
-import camelot
 import pandas as pd
 
 class DocumentLine:

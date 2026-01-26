@@ -70,7 +70,7 @@ def get_cloudwatch_logs(job_name: str, start_time=None, end_time=None) -> list:
         logs_client = boto3.client("logs")
 
         # Get the log group and stream
-        log_group = f"/aws/sagemaker/ProcessingJobs"
+        log_group = "/aws/sagemaker/ProcessingJobs"
 
         # Get log streams for this job
         streams = logs_client.describe_log_streams(

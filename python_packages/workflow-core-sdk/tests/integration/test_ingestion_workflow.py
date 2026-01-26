@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch, AsyncMock
 import uuid
 import asyncio
 
-from workflow_core_sdk.dbos_impl.workflows import dbos_execute_workflow_durable
 from workflow_core_sdk.execution_context import ExecutionContext
 
 
@@ -185,7 +184,7 @@ async def test_ingestion_step_idempotency(mock_stream, mock_http_client):
 
     # Second call with same context - should NOT create another job
     # (This would happen after DBOS event is received)
-    result2 = await ingestion_step(step_config, {}, execution_context)
+    await ingestion_step(step_config, {}, execution_context)
 
     # Should still only have 1 POST call (job creation)
     assert mock_client_instance.post.call_count == 1

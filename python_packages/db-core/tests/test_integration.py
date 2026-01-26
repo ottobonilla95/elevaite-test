@@ -3,13 +3,12 @@ Integration tests for the db-core package.
 """
 
 import pytest
-from fastapi import Depends, FastAPI
+from fastapi import Depends
 from sqlalchemy import Column, Integer, String, select, text
-from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
 
-from db_core import Base, MultitenancySettings, TenantMiddleware, get_tenant_db, init_db
+from db_core import Base, get_tenant_db
 from db_core.middleware import get_current_tenant_id
 from db_core.utils import get_schema_name
 

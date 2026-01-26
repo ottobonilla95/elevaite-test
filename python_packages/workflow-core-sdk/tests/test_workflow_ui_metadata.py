@@ -2,7 +2,6 @@
 Tests for workflow UI metadata (positions, connections, tool overrides)
 """
 
-import pytest
 from workflow_core_sdk.schemas.workflows import (
     WorkflowConfig,
     StepBase,

@@ -12,7 +12,7 @@ These tests cover:
 import pytest
 import httpx
 from unittest.mock import patch, Mock, AsyncMock
-from rbac_sdk.async_client import check_access_async, DEFAULT_AUTHZ_SERVICE_URL
+from rbac_sdk.async_client import check_access_async
 
 
 class TestCheckAccessAsyncHappyPath:

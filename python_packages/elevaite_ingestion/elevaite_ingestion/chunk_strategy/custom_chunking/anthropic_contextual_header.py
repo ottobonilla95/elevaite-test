@@ -1,9 +1,7 @@
-import os
 from typing import List, Dict
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, PromptTemplate
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
-from tiktoken import encoding_for_model
 import asyncio
 
 load_dotenv()

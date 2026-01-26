@@ -1,9 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
-from typing import List, Dict, Optional, Union
 import time
 
-from elevaite_ingestion.stage.retrieval_stage.retrieve_qdrant import multi_strategy_search as enhanced_hybrid_search
 from elevaite_ingestion.stage.post_retrieval.cohere_reranker import rerank_separately_then_merge
 from elevaite_ingestion.stage.post_retrieval.rse import get_best_segments
 

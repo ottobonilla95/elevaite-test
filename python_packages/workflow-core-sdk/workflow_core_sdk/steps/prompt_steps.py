@@ -11,7 +11,7 @@ Features:
 - Pass model configuration overrides (model_name, temperature, max_tokens)
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from workflow_core_sdk.execution_context import ExecutionContext
 from workflow_core_sdk.utils.variable_injection import inject_variables, extract_variables

@@ -308,7 +308,7 @@ class TestCheckAccessEdgeCases:
         mock_response.json.return_value = {"allowed": False}
         mock_post.return_value = mock_response
 
-        result = check_access(
+        check_access(
             user_id=-1,
             action=sample_action,
             resource=sample_resource,

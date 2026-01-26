@@ -5,8 +5,7 @@ Tests error handling, retry logic, circuit breakers, and error classification.
 """
 
 import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 import time
 
 from workflow_core_sdk.execution.error_handling import (
@@ -14,7 +13,6 @@ from workflow_core_sdk.execution.error_handling import (
     ErrorSeverity,
     RetryStrategy,
     RetryConfig,
-    ErrorContext,
     WorkflowError,
     StepExecutionError,
     ValidationError,

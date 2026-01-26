@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Annotated
+from typing import Any, List, Optional, Annotated
 import uuid
 from pydantic import Json
 from sqlalchemy import (
@@ -8,11 +8,9 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
-    Integer,
     String,
     Table,
     Uuid,
-    JSON,
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column

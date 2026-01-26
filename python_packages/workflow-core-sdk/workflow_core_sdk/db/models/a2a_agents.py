@@ -6,7 +6,7 @@ This model stores connection information for external agents exposed via A2A pro
 """
 
 from enum import Enum
-from typing import ClassVar, Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any
 import uuid as uuid_module
 from datetime import datetime
 from sqlmodel import SQLModel, Field

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Optional
 from pydantic import BaseModel, Field, root_validator, Extra
 from uuid import UUID
 from . import common as common_schemas
@@ -35,7 +35,7 @@ class AccountPatchRequestDTO(BaseModel):
    def check_not_all_none(cls, values):
       # Check if all values are None
       if all(value is None for value in values.values()):
-         print(f"Inside PATCH /accounts/account_id - AccountPatchRequestDTO schema validation")
+         print("Inside PATCH /accounts/account_id - AccountPatchRequestDTO schema validation")
          raise ValueError("At least one field must be provided in payload")
       return values
     

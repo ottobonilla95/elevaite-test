@@ -12,11 +12,9 @@ Based on Agent Studio's MCP client implementation, adapted for workflow-core-sdk
 """
 
 import asyncio
-import json
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Literal
-from urllib.parse import urljoin
 import httpx
 import logging
 

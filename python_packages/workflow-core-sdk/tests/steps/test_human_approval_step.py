@@ -5,8 +5,7 @@ Tests human approval workflow step with local and DBOS backends.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
-from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 from workflow_core_sdk.steps.human_steps import human_approval_step
 from workflow_core_sdk.execution_context import ExecutionContext, StepStatus, ExecutionStatus

@@ -630,7 +630,7 @@ class BedrockKnowledgeBase:
                 logger.error(f"Error checking knowledge base status: {e}")
                 time.sleep(sleep_time)
 
-        logger.warning(f"Timed out waiting for knowledge base to become active")
+        logger.warning("Timed out waiting for knowledge base to become active")
 
 
 class LambdaTaskExecutor:

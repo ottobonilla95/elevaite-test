@@ -2,12 +2,10 @@
 Tests for the middleware module of db-core package.
 """
 
-import pytest
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 
-from db_core import MultitenancySettings, TenantMiddleware
+from db_core import TenantMiddleware
 from db_core.middleware import get_current_tenant_id, set_current_tenant_id
 
 

@@ -1,5 +1,5 @@
 import threading
-from typing import List, Union
+from typing import List
 
 from .base import PipelineProvider
 from ..utils.common.docker import remove_docker_image as delete

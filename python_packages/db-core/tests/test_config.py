@@ -88,7 +88,7 @@ class TestMultitenancySettings:
     def test_schema_strategy(self):
         """Test schema strategy settings."""
         # Schema strategy is the only supported strategy
-        settings = MultitenancySettings()
+        MultitenancySettings()
         
         # Verify schema prefix can be customized
         custom_settings = MultitenancySettings(schema_prefix="custom_")

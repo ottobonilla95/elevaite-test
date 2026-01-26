@@ -84,7 +84,6 @@ async def chunk_text(elements: List[Dict]) -> List[str]:
     - Return output **only** as a valid JSON list of strings, with no additional text.
     """
 
-    max_tokens_per_request = 2000
     batched_chunks = []
 
     for i in range(0, len(elements), 5):

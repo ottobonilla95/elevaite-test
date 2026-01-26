@@ -134,7 +134,7 @@ def print_schema_info(tool_func):
     print(f"Tool: {schema['function']['name']}")
     print(f"{'='*80}")
     print(f"\nDescription: {schema['function']['description'][:100]}...")
-    print(f"\nParameters:")
+    print("\nParameters:")
     
     params = schema['function']['parameters']['properties']
     required = schema['function']['parameters'].get('required', [])
@@ -182,7 +182,7 @@ def main():
     for param_name, param_info in params.items():
         title = param_info.get('title', param_name)
         description = param_info.get('description', '')
-        param_type = param_info.get('type', 'string')
+        param_info.get('type', 'string')
         
         print(f"  <label>{title}</label>")
         print(f"  <input type=\"text\" name=\"{param_name}\" title=\"{description}\" />")

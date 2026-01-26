@@ -104,7 +104,7 @@ def execute_pipeline(mode: Optional[str] = None, config: Optional[PipelineConfig
             event_status = process_s3_files(input_bucket, intermediate_bucket)
 
             successful_files = [e for e in event_status if e["status"] == "Success"]
-            failed_files = [e for e in event_status if e["status"] != "Success"]
+            [e for e in event_status if e["status"] != "Success"]
 
             pipeline_status["STAGE_2: PARSING"].update(
                 {

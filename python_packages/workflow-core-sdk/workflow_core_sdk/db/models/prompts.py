@@ -7,7 +7,6 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, JSON, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
 
 from .base import get_utc_datetime
 

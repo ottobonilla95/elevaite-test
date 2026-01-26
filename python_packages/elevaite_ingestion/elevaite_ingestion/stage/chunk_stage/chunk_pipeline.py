@@ -1,9 +1,7 @@
 import os
-import sys
 import json
 import boto3
 import importlib
-import asyncio
 from typing import Optional
 from dotenv import load_dotenv
 
@@ -13,7 +11,7 @@ from elevaite_ingestion.config.pipeline_config import PipelineConfig
 from elevaite_ingestion.config.chunker_config import CHUNKER_CONFIG
 from elevaite_ingestion.config.aws_config import AWS_CONFIG
 from elevaite_ingestion.utils.logger import get_logger
-from elevaite_ingestion.utils.s3_utils import list_s3_files, fetch_json_from_s3
+from elevaite_ingestion.utils.s3_utils import fetch_json_from_s3
 
 load_dotenv()
 logger = get_logger(__name__)
@@ -22,7 +20,7 @@ s3_client = boto3.client("s3")
 
 def create_s3_folder(bucket_name, folder_name):
     if not folder_name.strip():
-        logger.warning(f"⚠️ Skipping folder creation: Empty folder_name received.")
+        logger.warning("⚠️ Skipping folder creation: Empty folder_name received.")
         return
 
     try:

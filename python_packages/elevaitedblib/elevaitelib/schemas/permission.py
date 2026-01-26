@@ -1,7 +1,5 @@
 from pydantic import BaseModel, Field, Extra, root_validator
-from typing import Optional, Literal, List, Any
-from uuid import UUID
-from datetime import datetime
+from typing import Optional, Literal, Any
 from enum import Enum
 
 # define nested structure for AccountScopedRBACPermission which goes into Role.permissions
@@ -650,8 +648,8 @@ class ApikeyScopedRBACPermission(BaseModel):
         if rbac_permission_scope is RBACPermissionScope.PROJECT_SCOPE:
             # validate permissions against permission_scope
             try:
-                validated_project_scoped_rbac_permissions = ProjectScopedRBACPermission.parse_obj(rbac_permissions).dict()
-            except Exception as e:
+                ProjectScopedRBACPermission.parse_obj(rbac_permissions).dict()
+            except Exception:
                 print(
                     f"error in map_to_apikey_scoped_permissions: malformed project-scoped rbac permissions object - {rbac_permissions}"
                 )

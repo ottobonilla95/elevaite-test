@@ -3,7 +3,6 @@
 Uses a real A2A test server for integration testing instead of mocks.
 """
 
-import asyncio
 import socket
 import uuid
 from threading import Thread

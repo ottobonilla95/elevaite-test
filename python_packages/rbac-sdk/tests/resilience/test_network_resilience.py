@@ -5,7 +5,6 @@ Test SDK's ability to handle network failures, service outages, and degraded
 network conditions.
 """
 
-import asyncio
 import time
 from unittest.mock import Mock, patch
 

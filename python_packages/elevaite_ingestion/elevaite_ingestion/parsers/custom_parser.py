@@ -209,8 +209,6 @@
 #     # for idx, chunk in enumerate(final_chunks[:10]):
 #     #     print(f"\nChunk {idx + 1}:\n{chunk}\n")
 
-import sys
-import os
 import fitz
 import nltk
 from nltk.tokenize import sent_tokenize

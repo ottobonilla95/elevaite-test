@@ -1,8 +1,8 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any, List, Optional, TypeGuard
-from .service_now import ServiceNowIngestBody, ServiceNowTicket
-from pydantic import UUID4, BaseModel, Json
+from .service_now import ServiceNowTicket
+from pydantic import UUID4, BaseModel
 
 
 class EmbeddingType(str, Enum):

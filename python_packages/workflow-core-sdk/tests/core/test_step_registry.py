@@ -5,7 +5,6 @@ Tests step registration, function loading, and execution.
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from workflow_core_sdk.step_registry import StepRegistry, StepExecutionError
 from workflow_core_sdk.execution.context_impl import ExecutionContext, StepResult
 from workflow_core_sdk.models import StepStatus

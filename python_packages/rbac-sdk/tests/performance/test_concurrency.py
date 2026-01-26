@@ -8,7 +8,6 @@ async client concurrency, and thread safety.
 import asyncio
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
 from unittest.mock import Mock, patch
 
 import pytest

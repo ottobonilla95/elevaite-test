@@ -7,13 +7,11 @@ import requests
 from email.header import decode_header
 import config as cfg
 import json
-import sys
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.message import MIMEMessage
 import email
-from bs4 import BeautifulSoup
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -52,7 +50,6 @@ def readmessage(params):
             imap_server.login(params['username'], params['password'])
             imap_server.select("INBOX")
             status, messages = imap_server.search(None, '(UNSEEN)')
-            N = 1
             #for i in range(messages, messages-N, -1):
             for i in messages[0].split():
                 # fetch the email message by ID
@@ -157,7 +154,7 @@ def elevaitequery(query1):
         headers = {'Content-Type' : 'application/json'}      
         data = requests.post(cfg.ELEVAITE_QUERY_API_URL, data = json.dumps(req_json), headers = headers)         
         resp = data.json()        
-        jsonstring = json.dumps(resp)
+        json.dumps(resp)
         query_result = resp['text']     
         return query_result
 

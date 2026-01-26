@@ -2,7 +2,7 @@ import asyncio
 import logging
 import random
 from datetime import datetime, timezone, timedelta
-from typing import Any, Optional
+from typing import Optional
 from zoneinfo import ZoneInfo
 from croniter import croniter
 

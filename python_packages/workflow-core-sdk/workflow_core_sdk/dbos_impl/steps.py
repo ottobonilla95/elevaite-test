@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, TypedDict, cast
-from pprint import pprint
+from typing import Any, Dict, Optional, TypedDict
 
 from dbos import DBOS
 

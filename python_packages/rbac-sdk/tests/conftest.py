@@ -1,7 +1,7 @@
 """Pytest configuration and fixtures for RBAC SDK tests."""
 
 import pytest
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock
 from fastapi import Request
 from typing import Dict, Any
 

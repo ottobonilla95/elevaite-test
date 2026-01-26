@@ -11,13 +11,10 @@ Tests for common JWT vulnerabilities:
 - Weak secrets
 """
 
-import os
-import time
 from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock
 
 import jwt
-import pytest
 
 from rbac_sdk.fastapi_helpers import api_key_jwt_validator
 

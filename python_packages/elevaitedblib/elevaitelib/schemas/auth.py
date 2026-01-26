@@ -1,8 +1,6 @@
 from pydantic import BaseModel, Field, Extra, root_validator
-from typing import Optional, Literal, Union, Type, Tuple
-from uuid import UUID
+from typing import Optional, Literal, Union
 from enum import Enum
-from abc import ABC, abstractmethod
 from .permission import (
     RBACPermissionScope,
 )
@@ -172,7 +170,7 @@ class PermissionsEvaluationRequest(
         # Check if all values are None
         if all(value is None for value in values.values()):
             print(
-                f"Inside POST /auth/rbac-permissions - PermissionsEvaluationRequest root validator"
+                "Inside POST /auth/rbac-permissions - PermissionsEvaluationRequest root validator"
             )
             raise ValueError("At least one field must be provided in payload")
         return values

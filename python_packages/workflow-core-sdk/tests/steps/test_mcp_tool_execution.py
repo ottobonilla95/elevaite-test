@@ -7,9 +7,8 @@ Tests the integration of MCP client with tool execution step.
 import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
 
-from workflow_core_sdk.steps.tool_steps import tool_execution_step, _execute_mcp_tool
+from workflow_core_sdk.steps.tool_steps import tool_execution_step
 from workflow_core_sdk.execution_context import ExecutionContext
 from workflow_core_sdk.db.models import Tool as DBTool, MCPServer
 

@@ -9,7 +9,7 @@ import uuid
 import importlib
 import asyncio
 import aiohttp
-from typing import Dict, Any, List, Optional, Callable, Union
+from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 import logging
 

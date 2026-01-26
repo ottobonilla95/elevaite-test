@@ -19,7 +19,6 @@ from ..schemas.instance import (
     InstancePipelineStepData,
     InstanceStatus,
     InstanceUpdate,
-    InstanceChartData,
     PipelineStepStatus,
     InstancePipelineStepStatusUpdate,
     chart_data_from_redis,
@@ -68,7 +67,7 @@ def _get_redis() -> redis.Redis:
     )
     try:
         r.ping()
-    except Exception as e:
+    except Exception:
         print("Could not connect to Redis")
     return r
 
