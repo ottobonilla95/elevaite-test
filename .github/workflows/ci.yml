@@ -167,29 +167,56 @@ jobs:
         run: |
           uv sync --all-packages
 
-      - name: Run Python tests with coverage
+      - name: Run auth-api tests with coverage
         run: |
           uv run pytest \
             python_apps/auth_api \
-            python_apps/workflow-engine-poc \
-            python_apps/ingestion-service \
-            python_packages \
             --tb=short \
             --cov=python_apps/auth_api \
-            --cov=python_apps/workflow-engine-poc \
-            --cov=python_apps/ingestion-service \
-            --cov=python_packages \
             --cov-report=term-missing \
-            --cov-report=xml \
+            --cov-report=xml:coverage-auth-api.xml \
             --cov-fail-under=40 \
             -q
 
-      - name: Upload coverage report
+      - name: Run workflow-engine tests with coverage
+        run: |
+          uv run pytest \
+            python_apps/workflow-engine-poc \
+            --tb=short \
+            --cov=python_apps/workflow-engine-poc \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage-workflow-engine.xml \
+            --cov-fail-under=40 \
+            -q
+
+      - name: Run ingestion-service tests with coverage
+        run: |
+          uv run pytest \
+            python_apps/ingestion-service \
+            --tb=short \
+            --cov=python_apps/ingestion-service \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage-ingestion-service.xml \
+            --cov-fail-under=40 \
+            -q
+
+      - name: Run python_packages tests with coverage
+        run: |
+          uv run pytest \
+            python_packages \
+            --tb=short \
+            --cov=python_packages \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage-python-packages.xml \
+            --cov-fail-under=40 \
+            -q
+
+      - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coverage-report
-          path: coverage.xml
+          name: coverage-reports
+          path: coverage-*.xml
           retention-days: 7
 
   # ============================================================

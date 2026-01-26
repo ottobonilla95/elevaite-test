@@ -1,13 +1,15 @@
 """Test fixtures for the authentication API."""
 
 import asyncio
+import uuid
 from datetime import datetime, timezone
 from typing import AsyncGenerator, Dict
+from urllib.parse import urlsplit, urlunsplit
 
+import httpx
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI
-import httpx
 from httpx import AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
@@ -19,9 +21,6 @@ from db_core.utils import async_create_tenant_schema, get_schema_name
 from app.core.config import settings
 from app.core.multitenancy import multitenancy_settings
 from app.db.models import Base
-
-
-from urllib.parse import urlsplit, urlunsplit
 
 
 def _derive_test_db_url(db_url: str) -> str:
@@ -39,10 +38,11 @@ def _derive_test_db_url(db_url: str) -> str:
 
 
 # Get the database URL from settings or use a default for testing
-base_db_url = (
-    settings.DATABASE_URI
-    or "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth"
-)
+try:
+    base_db_url = settings.DATABASE_URI
+except ValueError:
+    # If DATABASE_URI is not set (e.g., in CI), use test default
+    base_db_url = "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth"
 TEST_DATABASE_URL = _derive_test_db_url(base_db_url)
 
 
@@ -168,9 +168,6 @@ async def test_client(test_db_setup) -> AsyncGenerator[AsyncClient, None]:
 
 
 # Helper fixture to relax rate limiting during tests that don't validate rate limits
-import uuid
-
-
 @pytest_asyncio.fixture
 async def relax_auth_rate_limit():
     """Temporarily override auth router limiter key_func to avoid cross-test 429s.
@@ -204,9 +201,6 @@ async def relax_auth_rate_limit():
 
 
 # Ensure rate limiter storage is clean between tests to avoid cross-test interference
-import pytest
-
-
 @pytest.fixture(autouse=True)
 def _reset_auth_rate_limiter_between_tests():
     try:

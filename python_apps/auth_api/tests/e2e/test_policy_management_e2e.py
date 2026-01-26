@@ -14,6 +14,7 @@ Prerequisites:
 - Auth API running at http://localhost:8004
 """
 
+import os
 import pytest
 import httpx
 import asyncio
@@ -24,10 +25,10 @@ from typing import Dict, Optional
 OPA_URL = "http://localhost:8181"
 AUTH_API_URL = "http://localhost:8004/auth-api"
 
-# Skip all tests if OPA is not available
+# Skip all tests if E2E testing is not enabled via environment variable
 pytestmark = pytest.mark.skipif(
-    not pytest.config.getoption("--run-e2e", default=False),
-    reason="E2E tests require --run-e2e flag and running OPA instance",
+    os.getenv("RUN_E2E_TESTS", "").lower() not in ("true", "1", "yes"),
+    reason="E2E tests require RUN_E2E_TESTS=true environment variable and running OPA instance",
 )
 
 
