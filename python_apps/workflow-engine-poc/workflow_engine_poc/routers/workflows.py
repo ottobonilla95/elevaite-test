@@ -37,7 +37,6 @@ from workflow_core_sdk.db.database import get_db_session
 from workflow_core_sdk.db.models import WorkflowRead, WorkflowBase, WorkflowExecutionRead, ExecutionStatus
 from workflow_core_sdk.services.workflows_service import WorkflowsService
 from workflow_core_sdk import WorkflowEngine
-from workflow_core_sdk.dbos_impl.workflows import execute_and_persist_dbos_result
 from workflow_core_sdk.db.service import DatabaseService
 from workflow_core_sdk.streaming import (
     stream_manager,
@@ -50,6 +49,7 @@ from workflow_core_sdk.execution.context_impl import ExecutionContext, UserConte
 from db_core.middleware import get_current_tenant_id
 from ..schemas.workflows import WorkflowConfig, ExecutionRequest
 from ..util import api_key_or_user_guard
+from ..services.queue_service import get_queue_service
 
 # NOTE: Pydantic BaseModel not strictly required for these new routes
 
@@ -328,43 +328,25 @@ async def execute_workflow_by_id(
         if input_data:
             execution_context.step_io_data.update(input_data)
 
-        # Decide backend: DBOS vs local engine
-        # Default to local in test mode, dbos otherwise
-        default_backend = "local" if os.getenv("TESTING") else "dbos"
-        chosen_backend = (backend or body_data.get("backend") or body_data.get("execution_backend") or default_backend).lower()
-        if chosen_backend not in ("dbos", "local"):
-            raise HTTPException(status_code=400, detail=f"Invalid execution backend: {chosen_backend}")
+        # Queue the workflow execution job
+        # Get current tenant_id for multitenancy support
+        current_tenant = get_current_tenant_id()
 
-        if chosen_backend == "dbos":
-            # Execute via DBOS adapter and persist normalized results using helper
-            # Get current tenant_id for multitenancy support in DBOS workflows
-            current_tenant = get_current_tenant_id()
-            try:
-                execution_id = await execute_and_persist_dbos_result(
-                    session,
-                    DatabaseService(),
-                    workflow=workflow,
-                    trigger_payload=trigger_payload,
-                    user_context={
-                        "user_id": user_id,
-                        "session_id": session_id_val,
-                        "organization_id": organization_id,
-                        "tenant_id": current_tenant,  # Pass tenant_id for DBOS persistence
-                    },
-                    execution_id=execution_id,
-                    wait=wait,
-                    metadata=metadata,
-                    chosen_backend=chosen_backend,
-                )
-            except RuntimeError as e:
-                raise HTTPException(status_code=502, detail=str(e))
-        else:
-            # Local backend: async or sync based on 'wait'
-            if wait:
-                await workflow_engine.execute_workflow(execution_context)
-            else:
-                # Use background_tasks for async execution
-                background_tasks.add_task(workflow_engine.execute_workflow, execution_context)
+        # Publish job to RabbitMQ queue
+        queue_service = await get_queue_service()
+        await queue_service.publish_workflow_execution(
+            execution_id=execution_id,
+            workflow_id=workflow_id,
+            trigger_data=trigger_payload,
+            user_context={
+                "user_id": user_id,
+                "session_id": session_id_val,
+                "organization_id": organization_id,
+                "tenant_id": current_tenant,
+            },
+        )
+
+        logger.info(f"Queued workflow {workflow_id} execution {execution_id}")
 
         # Commit and refresh session to see updates from workflow engine (which uses its own session)
         # The workflow engine commits in a separate session, so we need to end our transaction

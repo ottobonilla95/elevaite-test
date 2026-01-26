@@ -42,7 +42,7 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      test: ["CMD-SHELL", "timeout 1 sh -c '</dev/tcp/127.0.0.1/6333' || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -100,6 +100,7 @@ services:
       SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/auth
       DEBUG: "1"
       LOG_LEVEL: DEBUG
+      CORS_ORIGINS: "http://localhost:3005,http://localhost:3001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -141,7 +142,7 @@ services:
       rabbitmq:
         condition: service_healthy
       qdrant:
-        condition: service_healthy
+        condition: service_started
       ingestion:
         condition: service_healthy
     healthcheck:
@@ -150,6 +151,39 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  worker:
+    build:
+      context: .
+      dockerfile: python_apps/workflow-engine-poc/Dockerfile
+    container_name: elevaite-worker
+    command: ["python", "-m", "workflow_engine_poc.worker"]
+    env_file:
+      - .env
+    environment:
+      SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/workflow_engine
+      RABBITMQ_URL: amqp://elevaite:elevaite@rabbitmq:5672/
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: "6333"
+      INGESTION_SERVICE_URL: http://ingestion:8000
+      LOG_LEVEL: DEBUG
+      # MinIO for S3-compatible object storage
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_SECURE: "false"
+      # Dummy AWS creds to skip slow EC2 metadata lookup in local dev
+      AWS_ACCESS_KEY_ID: "local-dev-key"
+      AWS_SECRET_ACCESS_KEY: "local-dev-secret"
+      AWS_DEFAULT_REGION: "us-west-1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
 
   ingestion:
     build:

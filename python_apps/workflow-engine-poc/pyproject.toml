@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.5.0",
     "aiohttp>=3.9.1",
+    "aio-pika>=9.0.0",
     "llm-gateway",
     "elevaite-ingestion",
     "elevaite-logger",

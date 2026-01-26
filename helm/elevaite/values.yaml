@@ -439,6 +439,26 @@ serviceAccount:
   # GCP: iam.gke.io/gcp-service-account: elevaite@project.iam.gserviceaccount.com
 
 # =============================================================================
+# DATABASE MIGRATIONS
+# =============================================================================
+migrations:
+  # Enable pre-deployment migrations via Kubernetes Job
+  enabled: true
+
+  # Job retry configuration
+  backoffLimit: 3
+
+  # TTL for completed migration jobs (5 minutes)
+  ttlSecondsAfterFinished: 300
+
+  # List of tenants to migrate (multi-tenant services: auth-api, workflow-engine)
+  # Ingestion service uses a single schema and ignores this list
+  tenants:
+    - default
+    - toshiba
+    - iopex
+
+# =============================================================================
 # POD SETTINGS
 # =============================================================================
 podAnnotations: {}

@@ -361,28 +361,94 @@ psql -h localhost -p 5433 -U elevaite -d auth
 ```
 
 ### Run specific service
-```bash
-# Backend only
-cd python_apps/workflow-engine-poc
-uv run uvicorn app.main:app --reload --port 8006
 
-# Frontend only
+**Recommended:** Use docker-compose for backend services (ensures correct env vars):
+```bash
+# Run only a specific backend service
+docker-compose -f docker-compose.dev.yaml up auth-api
+docker-compose -f docker-compose.dev.yaml up workflow-engine
+docker-compose -f docker-compose.dev.yaml up ingestion
+```
+
+**For frontend only:**
+```bash
 cd apps/elevaite
 npm run dev
+# OR
+cd apps/auth
+npm run dev
+```
+
+**Advanced - Running Python services standalone** (for debugging):
+```bash
+# Export env vars from root .env first
+set -a; source .env; set +a
+
+# Then run the service
+cd python_apps/workflow-engine-poc
+uv run uvicorn app.main:app --reload --port 8006
 ```
 
 ## Environment Variables
 
-**Local:** `.env` (create from `.env.example`)
+### Local Development
 
-**Required:**
+**Single `.env` file at repo root** - Copy from `.env.example`:
+```bash
+cp .env.example .env
+```
+
+**Required for local dev:**
 - `OPENAI_API_KEY` - For LLM calls
 - `GOOGLE_CLIENT_ID` - For OAuth
 - `GOOGLE_CLIENT_SECRET` - For OAuth
-- `DATABASE_URL` - PostgreSQL connection string
-- `RABBITMQ_URL` - RabbitMQ connection string
 
-**Staging/Production:** Set in Kubernetes secrets (deployed via Helm)
+**All other vars** (database, RabbitMQ, frontend URLs) have defaults in `.env.example`.
+
+### GitHub Repository Variables (CI/CD)
+
+For staging/production deployments, these variables are set in GitHub repo settings.
+
+**Location:** Repo → Settings → Secrets and variables → Actions
+
+#### GitHub Secrets (sensitive - use "Secrets" tab)
+
+| Secret | Purpose |
+|--------|---------|
+| `OPENAI_API_KEY` | LLM API access |
+| `GOOGLE_CLIENT_ID` | OAuth authentication |
+| `GOOGLE_CLIENT_SECRET` | OAuth authentication |
+| `JWT_SECRET` | Token signing |
+| `NEXTAUTH_SECRET` | NextAuth session encryption |
+| `STAGING_DB_USER` | Staging database username |
+| `STAGING_DB_PASSWORD` | Staging database password |
+| `STAGING_STORAGE_ACCESS_KEY` | S3/MinIO access (staging) |
+| `STAGING_STORAGE_SECRET_KEY` | S3/MinIO secret (staging) |
+| `STAGING_RABBITMQ_PASSWORD` | Message queue auth (staging) |
+| `STAGING_QDRANT_API_KEY` | Vector DB auth (staging, optional) |
+| `PROD_DB_USER` | Production database username |
+| `PROD_DB_PASSWORD` | Production database password |
+| `PROD_STORAGE_ACCESS_KEY` | S3/MinIO access (production) |
+| `PROD_STORAGE_SECRET_KEY` | S3/MinIO secret (production) |
+| `PROD_RABBITMQ_PASSWORD` | Message queue auth (production) |
+| `PROD_QDRANT_API_KEY` | Vector DB auth (production, optional) |
+| `AWS_ACCESS_KEY_ID` | AWS deployment credentials |
+| `AWS_SECRET_ACCESS_KEY` | AWS deployment credentials |
+
+#### GitHub Variables (non-sensitive URLs - use "Variables" tab)
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `CLOUD_PROVIDER` | Target cloud (aws/azure/gcp) | `aws` |
+| `AWS_REGION` | AWS region | `us-west-1` |
+| `STAGING_BACKEND_URL` | Workflow engine URL (staging) | `https://api-staging.example.com` |
+| `STAGING_AUTH_API_URL` | Auth API URL (staging) | `https://auth-staging.example.com` |
+| `STAGING_AUTH_URL` | Auth frontend URL (staging) | `https://login-staging.example.com` |
+| `PROD_BACKEND_URL` | Workflow engine URL (production) | `https://api.example.com` |
+| `PROD_AUTH_API_URL` | Auth API URL (production) | `https://auth.example.com` |
+| `PROD_AUTH_URL` | Auth frontend URL (production) | `https://login.example.com` |
+
+**Note:** If deploy workflows fail with "missing variable" errors, check this list.
 
 ## Important Files
 

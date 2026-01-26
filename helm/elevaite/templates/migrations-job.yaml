@@ -1,0 +1,150 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "elevaite.fullname" . }}-migrations
+  labels:
+    {{- include "elevaite.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrations
+  annotations:
+    # Run migrations before deployment upgrades and installs
+    helm.sh/hook: pre-upgrade,pre-install
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "elevaite.labels" . | nindent 8 }}
+        app.kubernetes.io/component: migrations
+    spec:
+      restartPolicy: Never
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+
+      # Wait for PostgreSQL to be ready
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until pg_isready -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER}; do
+                echo "PostgreSQL is unavailable - sleeping"
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: elevaite-secrets
+                  key: db_host
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: elevaite-secrets
+                  key: db_port
+                  optional: true
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: elevaite-secrets
+                  key: db_user
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elevaite-secrets
+                  key: db_password
+
+      containers:
+        # Auth API Migrations (Multi-tenant)
+        - name: auth-api-migrations
+          image: {{ .Values.global.imageRegistry }}/{{ .Values.authApi.image.repository }}:{{ .Values.authApi.image.tag }}
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cd /elevaite/python_apps/auth_api
+
+              echo "Running auth-api migrations for tenants: {{ join " " .Values.migrations.tenants }}"
+
+              {{- range .Values.migrations.tenants }}
+              echo "Migrating schema: auth_{{ . }}"
+              ALEMBIC_SCHEMA=auth_{{ . }} uv run alembic upgrade head
+              echo "✅ auth_{{ . }} migration completed"
+              {{- end }}
+
+              echo "✅ All auth-api migrations completed"
+          envFrom:
+            - secretRef:
+                name: elevaite-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+
+        # Workflow Engine Migrations (Multi-tenant)
+        - name: workflow-engine-migrations
+          image: {{ .Values.global.imageRegistry }}/{{ .Values.workflowEngine.image.repository }}:{{ .Values.workflowEngine.image.tag }}
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cd /elevaite/python_apps/workflow-engine-poc
+
+              echo "Running workflow-engine migrations for tenants: {{ join " " .Values.migrations.tenants }}"
+
+              {{- range .Values.migrations.tenants }}
+              echo "Migrating schema: workflow_{{ . }}"
+              ALEMBIC_SCHEMA=workflow_{{ . }} uv run alembic upgrade head
+              echo "✅ workflow_{{ . }} migration completed"
+              {{- end }}
+
+              echo "✅ All workflow-engine migrations completed"
+          envFrom:
+            - secretRef:
+                name: elevaite-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+
+        # Ingestion Service Migrations (Single schema)
+        - name: ingestion-service-migrations
+          image: {{ .Values.global.imageRegistry }}/{{ .Values.ingestion.image.repository }}:{{ .Values.ingestion.image.tag }}
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              cd /elevaite/python_apps/ingestion-service
+
+              echo "Running ingestion-service migrations..."
+              uv run alembic upgrade head
+              echo "✅ Ingestion-service migrations completed"
+          envFrom:
+            - secretRef:
+                name: elevaite-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+{{- end }}

@@ -44,6 +44,6 @@ ENV PATH="/elevaite/.venv/bin:/elevaite/python_apps/ingestion-service/.venv/bin:
 # Expose the FastAPI port
 EXPOSE 8000
 
-# Run migrations and start the service
-CMD ["sh", "-c", "alembic upgrade head && uvicorn ingestion_service.main:app --host 0.0.0.0 --port 8000"]
+# Start the service (migrations should be run separately via Kubernetes Job or manual script)
+CMD ["uvicorn", "ingestion_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
 

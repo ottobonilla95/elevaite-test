@@ -120,6 +120,11 @@ jobs:
           context: .
           file: apps/auth/Dockerfile
           push: true
+          build-args: |
+            AUTH_URL=${{ vars.PROD_AUTH_URL }}
+            AUTH_API_URL=${{ vars.PROD_AUTH_API_URL }}
+            NEXTAUTH_URL_INTERNAL=${{ vars.PROD_AUTH_URL }}
+            RBAC_BACKEND_URL=${{ vars.PROD_AUTH_API_URL }}
           tags: |
             ghcr.io/${{ github.repository }}/auth-app:${{ steps.meta.outputs.version }}
             ghcr.io/${{ github.repository }}/auth-app:latest
@@ -132,6 +137,13 @@ jobs:
           context: .
           file: apps/elevaite/Dockerfile
           push: true
+          build-args: |
+            NEXT_PUBLIC_BACKEND_URL=${{ vars.PROD_BACKEND_URL }}
+            NEXT_PUBLIC_AUTH_API_URL=${{ vars.PROD_AUTH_API_URL }}
+            NEXT_PUBLIC_NATIVEAUTH_URL=${{ vars.PROD_AUTH_API_URL }}
+            NEXT_PUBLIC_MODELS_API_URL=${{ vars.PROD_BACKEND_URL }}
+            NEXT_PUBLIC_CONTRACTS_API_URL=${{ vars.PROD_BACKEND_URL }}
+            NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=${{ vars.PROD_BACKEND_URL }}
           tags: |
             ghcr.io/${{ github.repository }}/elevaite-app:${{ steps.meta.outputs.version }}
             ghcr.io/${{ github.repository }}/elevaite-app:latest

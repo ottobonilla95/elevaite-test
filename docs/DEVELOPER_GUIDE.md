@@ -450,12 +450,14 @@ docker-compose -f docker-compose.dev.yaml build
 
 ### Environment Files
 
+**We use a SINGLE `.env` file for all local development.**
+
 | File | Purpose | Committed? |
 |------|---------|------------|
-| `.env.example` | Template with all required variables | ✅ Yes |
-| `.env` | Local development secrets | ❌ No |
-| `.env.staging` | Staging environment (CI/CD only) | ❌ No |
-| `.env.production` | Production environment (CI/CD only) | ❌ No |
+| `.env.example` | Template with all required variables (Python + Node.js) | ✅ Yes |
+| `.env` | Local development secrets - copy from `.env.example` | ❌ No |
+
+**For staging/production:** Environment variables are set in GitHub repository settings (Secrets and Variables), not in `.env` files. See `CLAUDE.md` for the complete list of required GitHub variables.
 
 ### Required Environment Variables
 

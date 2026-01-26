@@ -20,7 +20,13 @@ COPY .gitignore .gitignore
 COPY --from=builder /app/out/json/ .
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 RUN npm ci
- 
+
+# Add build args for auth app vars (baked at build time)
+ARG AUTH_URL
+ARG AUTH_API_URL
+ARG NEXTAUTH_URL_INTERNAL
+ARG RBAC_BACKEND_URL
+
 # Build the project
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json

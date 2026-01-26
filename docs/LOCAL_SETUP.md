@@ -36,6 +36,9 @@ You'll see status feedback as services start:
   ✅ RabbitMQ ready
   ✅ MinIO ready
 
+🗄️  Running database migrations...
+  ✅ Database migrations completed
+
 🔧 Starting backend services...
   ✅ auth-api ready (port 8004)
   ✅ workflow-engine ready (port 8006)
@@ -43,6 +46,8 @@ You'll see status feedback as services start:
 
 🎉 ELEVAITE IS RUNNING!
 ```
+
+**Note**: Database migrations run automatically on startup. For advanced migration control, see [Migrations Guide](./MIGRATIONS.md).
 
 ## Services & URLs
 
@@ -75,12 +80,17 @@ For the full list of environment variables, see [Developer Guide > Environment C
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start everything |
+| `npm run dev` | Start everything (auto-runs migrations) |
+| `npm run dev:skip-migrations` | Start without running migrations (faster) |
 | `npm run dev:down` | Stop everything |
 | `npm run dev:death` | Nuclear reset (wipes all data) |
 | `npm run dev:logs` | View container logs |
+| `npm run migrate` | Run database migrations manually |
+| `npm run migrate:status` | Check migration status |
 
 For the full command reference, see [Developer Guide > Quick Reference](./DEVELOPER_GUIDE.md#quick-reference).
+
+For detailed migration documentation, see [Migrations Guide](./MIGRATIONS.md).
 
 ---
 

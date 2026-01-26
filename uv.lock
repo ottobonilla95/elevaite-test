@@ -175,6 +175,19 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [[package]]
+name = "aio-pika"
+version = "9.5.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiormq" },
+    { name = "yarl" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c5/73/8d1020683970de5532b3b01732d75c8bf922a6505fcdad1a9c7c6405242a/aio_pika-9.5.8.tar.gz", hash = "sha256:7c36874115f522bbe7486c46d8dd711a4dbedd67c4e8a8c47efe593d01862c62", size = 47408, upload-time = "2025-11-12T10:37:10.215Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7c/91/513971861d845d28160ecb205ae2cfaf618b16918a9cd4e0b832b5360ce7/aio_pika-9.5.8-py3-none-any.whl", hash = "sha256:f4c6cb8a6c5176d00f39fd7431e9702e638449bc6e86d1769ad7548b2a506a8d", size = 54397, upload-time = "2025-11-12T10:37:08.374Z" },
+]
+
+[[package]]
 name = "aiobotocore"
 version = "2.25.1"
 source = { registry = "https://pypi.org/simple" }
@@ -251,6 +264,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/06/de/38491a84ab323b47c7f86e94d2830e748780525f7a10c8600b67ead7e9ea/aioitertools-0.12.0.tar.gz", hash = "sha256:c2a9055b4fbb7705f561b9d86053e8af5d10cc845d22c32008c43490b2d8dd6b", size = 19369, upload-time = "2024-09-02T03:33:40.349Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/85/13/58b70a580de00893223d61de8fea167877a3aed97d4a5e1405c9159ef925/aioitertools-0.12.0-py3-none-any.whl", hash = "sha256:fc1f5fac3d737354de8831cbba3eb04f79dd649d8f3afb4c5b114925e662a796", size = 24345, upload-time = "2024-09-02T03:34:59.454Z" },
+]
+
+[[package]]
+name = "aiormq"
+version = "6.9.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pamqp" },
+    { name = "yarl" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8e/f6/01bc850db6d9b46ae825e3c373f610b0544e725a1159745a6de99ad0d9f1/aiormq-6.9.2.tar.gz", hash = "sha256:d051d46086079934d3a7157f4d8dcb856b77683c2a94aee9faa165efa6a785d3", size = 30554, upload-time = "2025-10-20T10:49:59.763Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/52/ec/763b13f148f3760c1562cedb593feaffbae177eeece61af5d0ace7b72a3e/aiormq-6.9.2-py3-none-any.whl", hash = "sha256:ab0f4e88e70f874b0ea344b3c41634d2484b5dc8b17cb6ae0ae7892a172ad003", size = 31829, upload-time = "2025-10-20T10:49:58.547Z" },
 ]
 
 [[package]]
@@ -2491,6 +2517,7 @@ version = "0.1.0"
 source = { editable = "python_apps/ingestion-service" }
 dependencies = [
     { name = "alembic" },
+    { name = "asyncpg" },
     { name = "dbos" },
     { name = "elevaite-ingestion" },
     { name = "fastapi" },
@@ -2516,6 +2543,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.12.0" },
+    { name = "asyncpg", specifier = ">=0.29.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
     { name = "dbos", specifier = ">=0.9.0" },
     { name = "elevaite-ingestion", editable = "python_packages/elevaite_ingestion" },
@@ -3121,10 +3149,13 @@ source = { editable = "python_packages/llm-gateway" }
 dependencies = [
     { name = "a2a-sdk" },
     { name = "aiohttp" },
+    { name = "beautifulsoup4" },
     { name = "boto3" },
     { name = "google-genai" },
+    { name = "markdownify" },
     { name = "openai" },
     { name = "pytest" },
+    { name = "requests" },
     { name = "tiktoken" },
 ]
 
@@ -3132,10 +3163,13 @@ dependencies = [
 requires-dist = [
     { name = "a2a-sdk", specifier = ">=0.3.22" },
     { name = "aiohttp", specifier = ">=3.11.11" },
+    { name = "beautifulsoup4", specifier = ">=4.12.0" },
     { name = "boto3", specifier = ">=1.35.91" },
     { name = "google-genai", specifier = ">=1.31.0" },
+    { name = "markdownify", specifier = ">=0.11.0" },
     { name = "openai", specifier = ">=1.33.0" },
     { name = "pytest", specifier = ">=8.3.4" },
+    { name = "requests", specifier = ">=2.31.0" },
     { name = "tiktoken", specifier = ">=0.8.0" },
 ]
 
@@ -4256,6 +4290,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ec/46/68dde5b6bc00c1296ec6466ab27dddede6aec9af1b99090e1107091b3b84/paginate-0.5.7.tar.gz", hash = "sha256:22bd083ab41e1a8b4f3690544afb2c60c25e5c9a63a30fa2f483f6c60c8e5945", size = 19252, upload-time = "2024-08-25T14:17:24.139Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/90/96/04b8e52da071d28f5e21a805b19cb9390aa17a47462ac87f5e2696b9566d/paginate-0.5.7-py2.py3-none-any.whl", hash = "sha256:b885e2af73abcf01d9559fd5216b57ef722f8c42affbb63942377668e35c7591", size = 13746, upload-time = "2024-08-25T14:17:22.55Z" },
+]
+
+[[package]]
+name = "pamqp"
+version = "3.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fb/62/35bbd3d3021e008606cd0a9532db7850c65741bbf69ac8a3a0d8cfeb7934/pamqp-3.3.0.tar.gz", hash = "sha256:40b8795bd4efcf2b0f8821c1de83d12ca16d5760f4507836267fd7a02b06763b", size = 30993, upload-time = "2024-01-12T20:37:25.085Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ac/8d/c1e93296e109a320e508e38118cf7d1fc2a4d1c2ec64de78565b3c445eb5/pamqp-3.3.0-py2.py3-none-any.whl", hash = "sha256:c901a684794157ae39b52cbf700db8c9aae7a470f13528b9d7b4e5f7202f8eb0", size = 33848, upload-time = "2024-01-12T20:37:21.359Z" },
 ]
 
 [[package]]
@@ -6525,6 +6568,7 @@ name = "workflow-engine-poc"
 version = "0.1.0"
 source = { editable = "python_apps/workflow-engine-poc" }
 dependencies = [
+    { name = "aio-pika" },
     { name = "aiohttp" },
     { name = "alembic" },
     { name = "asyncpg" },
@@ -6569,6 +6613,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aio-pika", specifier = ">=9.0.0" },
     { name = "aiohttp", specifier = ">=3.9.1" },
     { name = "alembic", specifier = ">=1.13.0" },
     { name = "asyncpg", specifier = ">=0.29.0" },

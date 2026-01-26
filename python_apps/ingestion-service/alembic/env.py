@@ -26,6 +26,12 @@ target_metadata = SQLModel.metadata
 
 # Get database URL from environment
 database_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/ingestion_db")
+
+# Alembic requires synchronous database drivers
+# Convert async URLs (postgresql+asyncpg://) to sync (postgresql://)
+if "+asyncpg" in database_url:
+    database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+
 config.set_main_option("sqlalchemy.url", database_url)
 
 

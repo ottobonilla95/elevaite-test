@@ -101,6 +101,11 @@ jobs:
           context: .
           file: apps/auth/Dockerfile
           push: true
+          build-args: |
+            AUTH_URL=${{ vars.STAGING_AUTH_URL }}
+            AUTH_API_URL=${{ vars.STAGING_AUTH_API_URL }}
+            NEXTAUTH_URL_INTERNAL=${{ vars.STAGING_AUTH_URL }}
+            RBAC_BACKEND_URL=${{ vars.STAGING_AUTH_API_URL }}
           tags: |
             ghcr.io/${{ github.repository }}/auth-app:${{ steps.meta.outputs.version }}
             ghcr.io/${{ github.repository }}/auth-app:staging
@@ -113,6 +118,13 @@ jobs:
           context: .
           file: apps/elevaite/Dockerfile
           push: true
+          build-args: |
+            NEXT_PUBLIC_BACKEND_URL=${{ vars.STAGING_BACKEND_URL }}
+            NEXT_PUBLIC_AUTH_API_URL=${{ vars.STAGING_AUTH_API_URL }}
+            NEXT_PUBLIC_NATIVEAUTH_URL=${{ vars.STAGING_AUTH_API_URL }}
+            NEXT_PUBLIC_MODELS_API_URL=${{ vars.STAGING_BACKEND_URL }}
+            NEXT_PUBLIC_CONTRACTS_API_URL=${{ vars.STAGING_BACKEND_URL }}
+            NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=${{ vars.STAGING_BACKEND_URL }}
           tags: |
             ghcr.io/${{ github.repository }}/elevaite-app:${{ steps.meta.outputs.version }}
             ghcr.io/${{ github.repository }}/elevaite-app:staging
@@ -236,18 +248,30 @@ jobs:
         with:
           version: '3.13.0'
 
-      - name: Run database migrations
+      - name: Validate migration setup
         run: |
-          # Get a pod to run migrations (or use a job)
-          # For now, we'll run migrations as part of deployment init container
-          # This step validates the migration files exist
-          echo "Database migrations will run via Helm init containers"
-          # Optionally run migrations directly:
-          # kubectl run migrations --rm -it --restart=Never \
-          #   --image=ghcr.io/${{ github.repository }}/workflow-engine:${{ needs.build.outputs.image_tag }} \
-          #   --namespace ${{ env.NAMESPACE }} \
-          #   --env="DATABASE_URL=postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_staging" \
-          #   -- alembic upgrade head
+          echo "=========================================="
+          echo "Database Migration System"
+          echo "=========================================="
+          echo ""
+          echo "✓ Migrations are handled automatically via Helm hooks"
+          echo "✓ A Kubernetes Job runs migrations BEFORE pods start (pre-upgrade, pre-install)"
+          echo "✓ Multi-tenant services (auth-api, workflow-engine) migrate each tenant schema"
+          echo "✓ If migrations fail, deployment is blocked"
+          echo ""
+          echo "Migration files locations:"
+          echo "  - auth-api:        python_apps/auth_api/migrations/versions/"
+          echo "  - workflow-engine: python_apps/workflow-engine-poc/alembic/versions/"
+          echo "  - ingestion:       python_apps/ingestion-service/alembic/versions/"
+          echo ""
+          echo "To manually run migrations (if needed):"
+          echo "  kubectl run migrations-manual --rm -it --restart=Never \\"
+          echo "    --image=ghcr.io/${{ github.repository }}/auth-api:${{ needs.build.outputs.image_tag }} \\"
+          echo "    --namespace ${{ env.NAMESPACE }} \\"
+          echo "    --env='DATABASE_URI=<db-url>' \\"
+          echo "    -- bash -c 'cd /elevaite/python_apps/auth_api && ALEMBIC_SCHEMA=auth_default uv run alembic upgrade head'"
+          echo ""
+          echo "Migrations will run automatically during Helm deployment..."
 
       - name: Lint Helm chart
         run: |

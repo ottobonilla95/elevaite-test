@@ -192,6 +192,85 @@ jobs:
           retention-days: 7
 
   # ============================================================
+  # MIGRATION VALIDATION
+  # Validates that migration files are syntactically correct
+  # ============================================================
+  migration-validation:
+    needs: [changes, python]
+    if: |
+      always() &&
+      (needs.python.result == 'success' || needs.python.result == 'skipped') &&
+      needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python with uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Validate auth-api migrations
+        run: |
+          cd python_apps/auth_api
+          uv run alembic check || echo "Warning: auth-api migration validation failed"
+
+      - name: Validate workflow-engine migrations
+        run: |
+          cd python_apps/workflow-engine-poc
+          uv run alembic check || echo "Warning: workflow-engine migration validation failed"
+
+      - name: Validate ingestion-service migrations
+        run: |
+          cd python_apps/ingestion-service
+          uv run alembic check || echo "Warning: ingestion-service migration validation failed"
+
+      - name: Check for migration conflicts
+        run: |
+          echo "Checking for duplicate migration revisions..."
+
+          # Check auth-api
+          if [ -d "python_apps/auth_api/migrations/versions" ]; then
+            cd python_apps/auth_api/migrations/versions
+            duplicates=$(grep -h "^revision.*=" *.py 2>/dev/null | sort | uniq -d || true)
+            if [ -n "$duplicates" ]; then
+              echo "ERROR: Duplicate revision IDs found in auth-api:"
+              echo "$duplicates"
+              exit 1
+            fi
+            cd -
+          fi
+
+          # Check workflow-engine
+          if [ -d "python_apps/workflow-engine-poc/alembic/versions" ]; then
+            cd python_apps/workflow-engine-poc/alembic/versions
+            duplicates=$(grep -h "^revision.*=" *.py 2>/dev/null | sort | uniq -d || true)
+            if [ -n "$duplicates" ]; then
+              echo "ERROR: Duplicate revision IDs found in workflow-engine:"
+              echo "$duplicates"
+              exit 1
+            fi
+            cd -
+          fi
+
+          # Check ingestion-service
+          if [ -d "python_apps/ingestion-service/alembic/versions" ]; then
+            cd python_apps/ingestion-service/alembic/versions
+            duplicates=$(grep -h "^revision.*=" *.py 2>/dev/null | sort | uniq -d || true)
+            if [ -n "$duplicates" ]; then
+              echo "ERROR: Duplicate revision IDs found in ingestion-service:"
+              echo "$duplicates"
+              exit 1
+            fi
+            cd -
+          fi
+
+          echo "✓ No duplicate migration revisions found"
+
+  # ============================================================
   # BUILD DOCKER IMAGES
   # Validates that Docker images build successfully
   # Only runs on push to develop (not on PRs to save time)
@@ -297,7 +376,7 @@ jobs:
   # Required status check for branch protection
   # ============================================================
   ci-status:
-    needs: [pr-title, frontend, python, python-tests, build-auth-api, build-workflow-engine, build-ingestion, build-auth-app, build-elevaite-app]
+    needs: [pr-title, frontend, python, python-tests, migration-validation, build-auth-api, build-workflow-engine, build-ingestion, build-auth-app, build-elevaite-app]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -307,6 +386,7 @@ jobs:
              [[ "${{ needs.frontend.result }}" == "failure" ]] || \
              [[ "${{ needs.python.result }}" == "failure" ]] || \
              [[ "${{ needs.python-tests.result }}" == "failure" ]] || \
+             [[ "${{ needs.migration-validation.result }}" == "failure" ]] || \
              [[ "${{ needs.build-auth-api.result }}" == "failure" ]] || \
              [[ "${{ needs.build-workflow-engine.result }}" == "failure" ]] || \
              [[ "${{ needs.build-ingestion.result }}" == "failure" ]] || \

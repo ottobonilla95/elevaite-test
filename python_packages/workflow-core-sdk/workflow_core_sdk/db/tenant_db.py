@@ -44,13 +44,15 @@ def _attach_tenant_event_listener(engine, settings: MultitenancySettings):
 def initialize_tenant_db(
     settings: Optional[MultitenancySettings] = None,
     tenant_ids: Optional[list] = None,
+    create_tables: bool = False,
 ) -> dict:
     """
-    Initialize database with tenant schemas and tables.
+    Initialize database with tenant schemas and optionally tables.
 
     Args:
         settings: Multitenancy settings (defaults to module settings)
         tenant_ids: Tenant IDs to create schemas for (defaults to DEFAULT_TENANTS)
+        create_tables: Whether to create tables (default: False, tables should be created via migrations)
 
     Returns:
         Dictionary with engine info
@@ -69,12 +71,17 @@ def initialize_tenant_db(
             if not create_tenant_schema(engine, schema_name):
                 raise RuntimeError(f"Failed to create schema {schema_name}")
 
-            # Clone metadata with target schema and create tables
-            target_metadata = MetaData(schema=schema_name)
-            for table in SQLModel.metadata.tables.values():
-                table.to_metadata(target_metadata, schema=schema_name)
-            target_metadata.create_all(engine)
-            logger.info(f"Created schema {schema_name} with tables")
+            if create_tables:
+                # Clone metadata with target schema and create tables
+                target_metadata = MetaData(schema=schema_name)
+                for table in SQLModel.metadata.tables.values():
+                    table.to_metadata(target_metadata, schema=schema_name)
+                target_metadata.create_all(engine)
+                logger.info(f"Created schema {schema_name} with tables")
+            else:
+                logger.info(
+                    f"Created schema {schema_name}. Tables should be created via migrations."
+                )
         else:
             logger.debug(f"Schema {schema_name} already exists")
 

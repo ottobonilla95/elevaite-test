@@ -6,15 +6,15 @@ import logging
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlmodel import Session
 
 from workflow_core_sdk.db.database import get_db_session
 from workflow_core_sdk.services.workflows_service import WorkflowsService
 from workflow_core_sdk.services.executions_service import ExecutionsService
-from workflow_core_sdk import WorkflowEngine
 from ..util import api_key_or_user_guard
+from ..services.queue_service import get_queue_service
 
 logger = logging.getLogger(__name__)
 
@@ -45,20 +45,16 @@ class AgentMessageResponse(BaseModel):
 async def list_step_messages(
     execution_id: str,
     step_id: str,
-    request: Request,
     limit: int = 100,
     offset: int = 0,
     session: Session = Depends(get_db_session),
     _principal: str = Depends(api_key_or_user_guard("view_message")),
 ):
     try:
-        # Ensure execution exists (prefer engine context)
-        workflow_engine: WorkflowEngine = request.app.state.workflow_engine
-        ctx = await workflow_engine.get_execution_context(execution_id)
-        if not ctx:
-            details = ExecutionsService.get_execution(session, execution_id)
-            if not details:
-                raise HTTPException(status_code=404, detail="Execution not found")
+        # Ensure execution exists
+        details = ExecutionsService.get_execution(session, execution_id)
+        if not details:
+            raise HTTPException(status_code=404, detail="Execution not found")
 
         rows = WorkflowsService.list_agent_messages(
             session,
@@ -80,22 +76,17 @@ async def create_step_message(
     execution_id: str,
     step_id: str,
     body: AgentMessageCreate,
-    request: Request,
     session: Session = Depends(get_db_session),
     _principal: str = Depends(api_key_or_user_guard("send_message")),
 ):
     try:
-        workflow_engine: WorkflowEngine = request.app.state.workflow_engine
-
         # Validate execution exists
-        ctx = await workflow_engine.get_execution_context(execution_id)
-        if not ctx:
-            details = ExecutionsService.get_execution(session, execution_id)
-            if not details:
-                raise HTTPException(status_code=404, detail="Execution not found")
+        details = ExecutionsService.get_execution(session, execution_id)
+        if not details:
+            raise HTTPException(status_code=404, detail="Execution not found")
 
         # Persist message
-        msg_id = WorkflowsService.create_agent_message(
+        WorkflowsService.create_agent_message(
             session,
             execution_id=execution_id,
             step_id=step_id,
@@ -106,73 +97,33 @@ async def create_step_message(
             session_id=body.session_id,
         )
 
-        # Resume engine if paused on this step (local engine)
-        try:
-            if ctx:
-                await workflow_engine.resume_execution(
-                    execution_id=execution_id,
-                    step_id=step_id,
-                    decision_output={
-                        "messages": [{"role": body.role, "content": body.content, "metadata": body.metadata}],
-                        "final_turn": bool((body.metadata or {}).get("final_turn", False)),
-                    },
-                )
-                # Persist 'running' to DB so status reads are consistent even across workers/processes
-                try:
-                    WorkflowsService.update_execution_status(session, execution_id, "running")
-                except Exception as _upd:
-                    logger.debug(f"Non-fatal: failed to persist running status for {execution_id}: {_upd}")
-        except Exception as re:
-            logger.warning(f"Resume attempt failed for {execution_id}/{step_id}: {re}")
-
-        # Signal DBOS event only when this execution is running under the DBOS backend.
-        details = ExecutionsService.get_execution(session, execution_id) or {}
+        # Get backend from execution metadata
         meta = (details.get("metadata") or {}) if isinstance(details, dict) else {}
         backend_val = str(meta.get("backend") or "").lower()
-        dbos_wfid = meta.get("dbos_workflow_id")
 
-        should_send_dbos = backend_val == "dbos" or bool(dbos_wfid)
-        if should_send_dbos:
-            try:
-                from dbos import DBOS as _DBOS  # Import lazily so local backend doesn't require DBOS
-            except Exception as _imp_err:
-                # If DBOS is required but not available, surface as a 502
-                logger.error(f"DBOS import failed for exec={execution_id}/{step_id}: {_imp_err}")
-                raise HTTPException(status_code=502, detail="DBOS not available while backend=dbos")
+        # For local backend, queue resume for worker
+        if backend_val != "dbos":
+            decision_output = {
+                "messages": [{"role": body.role, "content": body.content, "metadata": body.metadata}],
+                "final_turn": bool((body.metadata or {}).get("final_turn", False)),
+            }
 
-            decision_key = f"wf:{execution_id}:{step_id}:user_msg"
-            try:
-                if not isinstance(dbos_wfid, str) or not dbos_wfid:
-                    raise RuntimeError("DBOS workflow ID not recorded for this execution yet")
-                # Send the message directly to the DBOS workflow instance using topic-based messaging
-                _DBOS.send(destination_id=dbos_wfid, message={"message_id": msg_id}, topic=decision_key)
-                logger.info(
-                    f"DBOS send done for exec={execution_id}/{step_id} wf_id={dbos_wfid} topic={decision_key} msg_id={msg_id}"
-                )
-            except Exception as _e2:
-                logger.error(f"DBOS send failed: {_e2}")
-                raise HTTPException(
-                    status_code=502, detail=f"Failed to signal DBOS message for {execution_id}/{step_id}: {_e2}"
-                )
-        else:
-            # Local backend: we already resumed the in-memory engine above; nothing else to do.
-            pass
+            queue_service = await get_queue_service()
+            await queue_service.publish_workflow_resume(
+                execution_id=execution_id,
+                step_id=step_id,
+                decision_output=decision_output,
+            )
+        # For DBOS backend, the workflow polls the database for messages; nothing to do
 
-        # Persist 'running' to DB so status reads are consistent even if context is on another worker
+        # Persist 'running' to DB so status reads are consistent
         try:
             WorkflowsService.update_execution_status(session, execution_id, "running")
-        except Exception as _upd2:
-            logger.debug(f"Non-fatal: failed to persist running status (post-send) for {execution_id}: {_upd2}")
+        except Exception as _upd:
+            logger.debug(f"Non-fatal: failed to persist running status for {execution_id}: {_upd}")
 
-        # Emit status/step event to wake up clients regardless (helps UI reflect running)
+        # Emit status/step event to wake up clients
         from workflow_core_sdk.streaming import stream_manager, create_step_event, create_status_event
-
-        try:
-            # Read-back status for debugging
-            _after = ExecutionsService.get_execution(session, execution_id) or {}
-            logger.info(f"Execution {execution_id} DB status after message: {_after.get('status')} (backend={backend_val})")
-        except Exception:
-            pass
 
         awaiting_evt = create_status_event(execution_id=execution_id, status="running")
         await stream_manager.emit_execution_event(awaiting_evt)

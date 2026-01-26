@@ -69,13 +69,9 @@ async def initialize_db():
                     f"Failed to create schema {schema_name} for tenant {tenant_id}"
                 )
 
-            # Create tables in the schema
-            async with engine.begin() as conn:
-                await conn.execute(text(f'SET search_path TO "{schema_name}", public'))
-                await conn.run_sync(Base.metadata.create_all)
-
+            # Tables will be created by migrations (Alembic)
             print(
-                f"Created schema {schema_name} for tenant {tenant_id} with all tables"
+                f"Created schema {schema_name} for tenant {tenant_id}. Run migrations to create tables."
             )
         else:
             print(f"Schema {schema_name} for tenant {tenant_id} already exists")
@@ -142,13 +138,9 @@ async def create_tenant_schema_if_not_exists(tenant_id: str) -> bool:
                 print(f"Failed to create schema {schema_name} for tenant {tenant_id}")
                 return False
 
-            # Create tables in the schema
-            async with engine.begin() as conn:
-                await conn.execute(text(f'SET search_path TO "{schema_name}", public'))
-                await conn.run_sync(Base.metadata.create_all)
-
+            # Tables will be created by migrations (Alembic)
             print(
-                f"Created schema {schema_name} for tenant {tenant_id} with all tables"
+                f"Created schema {schema_name} for tenant {tenant_id}. Run migrations to create tables."
             )
         else:
             print(f"Schema {schema_name} for tenant {tenant_id} already exists")

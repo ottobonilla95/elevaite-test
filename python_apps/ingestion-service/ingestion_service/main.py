@@ -42,7 +42,7 @@ except Exception as e:
 
 # Import workflows AFTER DBOS is initialized
 from .models import IngestionJob, CreateJobRequest, JobResponse, JobStatus
-from .database import get_session, init_db
+from .database import get_session
 from .workflows import run_ingestion_job
 
 
@@ -51,9 +51,8 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     logger.info("Starting Ingestion Service...")
 
-    # Initialize database
-    init_db()
-    logger.info("Database initialized")
+    # Database tables should be created via migrations (Alembic)
+    logger.info("Database tables expected to exist from migrations")
 
     # Initialize DBOS (synchronous call)
     try:

@@ -17,7 +17,6 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from workflow_core_sdk import (
     StepRegistry,
     WorkflowEngine,
-    create_db_and_tables,
     tool_registry,
 )
 
@@ -48,31 +47,9 @@ from workflow_engine_poc.tenant_admin import (
     get_admin_session,
     get_tenant_registry,
 )
+from workflow_engine_poc.services.queue_service import get_queue_service
 
 from fastapi_logger import ElevaiteLogger
-
-# Early DBOS bootstrap
-try:
-    from dbos import DBOS as _DBOS_EARLY, DBOSConfig as _DBOSConfig_EARLY
-    from workflow_core_sdk.db.database import DATABASE_URL as _ENGINE_DB_URL
-
-    _dbos_db_url_early = (
-        os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _ENGINE_DB_URL
-    )
-    _app_name_early = os.getenv("DBOS_APPLICATION_NAME") or "workflow-engine-poc-sdk"
-    _app_version_early = os.getenv(
-        "DBOS_APPLICATION_VERSION"
-    )  # Fixed version for recovery
-    _cfg_early: _DBOSConfig_EARLY = {
-        "name": _app_name_early,
-        "system_database_url": _dbos_db_url_early,
-    }
-    if _app_version_early:
-        _cfg_early["application_version"] = _app_version_early
-    _DBOS_EARLY(config=_cfg_early)
-    logging.getLogger(__name__).info("✅ DBOS pre-initialized (SDK version)")
-except Exception as _e:
-    logging.getLogger(__name__).warning(f"DBOS pre-init skipped: {_e}")
 
 # Configure logging
 ElevaiteLogger.attach_to_uvicorn(
@@ -122,9 +99,8 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize tenant schemas: {e}")
         logger.warning("⚠️  Falling back to non-tenant database mode")
 
-    # ALWAYS create tables in public schema for scheduler (it queries without tenant context)
-    create_db_and_tables()
-    logger.info("✅ Public schema tables ensured (for scheduler)")
+    # Tables should be created via migrations (Alembic)
+    logger.info("✅ Database schemas initialized. Tables expected to exist from migrations.")
 
     # Initialize step registry using SDK
     logger.info("Initializing step registry from SDK...")
@@ -144,40 +120,18 @@ async def lifespan(app: FastAPI):
     app.state.tool_registry = tool_registry
     logger.info("✅ Tool registry initialized (SDK)")
 
-    # Launch DBOS executor if configured (skip in test mode)
-    if not os.getenv("TESTING"):
-        logger.info("Launching DBOS executor...")
-        try:
-            from dbos import DBOS as _DBOS_CLASS
+    # Initialize queue service for async workflow execution
+    logger.info("Initializing queue service...")
+    queue_service = await get_queue_service()
+    await queue_service.connect()
+    app.state.queue_service = queue_service
+    logger.info("✅ Queue service initialized")
 
-            _DBOS_CLASS.launch()
-            logger.info("✅ DBOS executor launched (SDK)")
-        except Exception as e:
-            # DBOS tables may already exist from early initialization - this is expected
-            error_msg = str(e)
-            if "already exists" in error_msg or "DuplicateTable" in error_msg:
-                logger.debug(f"DBOS already initialized (tables exist): {error_msg}")
-                logger.info("✅ DBOS executor ready (already initialized)")
-            else:
-                logger.warning(f"DBOS launch skipped/failed: {e}")
-    else:
-        logger.info("⏭️  DBOS executor skipped (test mode)")
+    # DBOS executor - skipped (using simple queue pattern)
+    logger.info("⏭️  DBOS executor skipped (using RabbitMQ queue pattern)")
 
-    # Start scheduler if available (skip in test mode to avoid cleanup issues)
-    if not os.getenv("TESTING"):
-        try:
-            from workflow_core_sdk.scheduler import WorkflowScheduler
-
-            scheduler = WorkflowScheduler(
-                poll_interval_seconds=int(os.getenv("SCHEDULER_POLL_SECONDS", "15"))
-            )
-            app.state.scheduler = scheduler
-            await scheduler.start(app)
-            logger.info("✅ Scheduler started (SDK)")
-        except Exception as e:
-            logger.warning(f"Scheduler start skipped/failed: {e}")
-    else:
-        logger.info("⏭️  Scheduler skipped (test mode)")
+    # Scheduler - skipped for Phase 1 (will add later)
+    logger.info("⏭️  Scheduler skipped (Phase 1 - queue pattern only)")
 
     logger.info("=" * 70)
     logger.info("✅ Workflow Engine PoC Ready - Powered by workflow-core-sdk")
@@ -187,10 +141,11 @@ async def lifespan(app: FastAPI):
 
     logger.info("🛑 Shutting down Workflow Engine PoC (SDK version)")
     try:
-        if getattr(app.state, "scheduler", None):
-            await app.state.scheduler.stop()
-    except Exception:
-        pass
+        if getattr(app.state, "queue_service", None):
+            await app.state.queue_service.close()
+            logger.info("✅ Queue service closed")
+    except Exception as e:
+        logger.warning(f"Failed to close queue service: {e}")
 
 
 # Create FastAPI app
@@ -258,37 +213,6 @@ api_router.include_router(prompts)
 api_router.include_router(messages)
 api_router.include_router(approvals)
 app.include_router(api_router)
-
-# Initialize DBOS context if available (skip in test mode)
-if not os.getenv("TESTING"):
-    try:
-        from dbos import DBOS as _DBOS, DBOSConfig as _DBOSConfig
-        from workflow_core_sdk.db.database import DATABASE_URL as _ENGINE_DB_URL
-
-        _dbos_db_url = (
-            os.getenv("DBOS_DATABASE_URL")
-            or os.getenv("DATABASE_URL")
-            or _ENGINE_DB_URL
-        )
-        _app_name = os.getenv("DBOS_APPLICATION_NAME") or "workflow-engine-poc-sdk"
-        _app_version = os.getenv(
-            "DBOS_APPLICATION_VERSION"
-        )  # Fixed version for recovery
-        _cfg: _DBOSConfig = {
-            "name": _app_name,
-            "system_database_url": _dbos_db_url,
-        }
-        if _app_version:
-            _cfg["application_version"] = _app_version
-        _dbos_inst = _DBOS(config=_cfg, fastapi=app)
-        app.state.dbos = _dbos_inst
-        logger.info(
-            f"✅ DBOS initialized for {_dbos_db_url} (app={_app_name}, version={_app_version or 'auto'})"
-        )
-    except Exception as _e:
-        logger.warning(f"DBOS not initialized: {_e}")
-else:
-    logger.info("⏭️  DBOS initialization skipped (test mode)")
 
 
 if __name__ == "__main__":

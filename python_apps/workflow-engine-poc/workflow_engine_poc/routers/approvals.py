@@ -5,15 +5,15 @@ Approvals API router: list, get, approve, deny
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
 from workflow_core_sdk.db.database import get_db_session
 from workflow_core_sdk.services.approvals_service import ApprovalsService
 from workflow_core_sdk.db.models import ApprovalStatus, ApprovalRequestRead
-from workflow_core_sdk import WorkflowEngine
 from ..util import api_key_or_user_guard
 from ..schemas import ApprovalDecisionRequest, ApprovalDecisionResponse
+from ..services.queue_service import get_queue_service
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
 
@@ -59,7 +59,6 @@ def _decision_output(decision: str, body: ApprovalDecisionRequest) -> Dict[str, 
 async def approve(
     approval_id: str,
     body: ApprovalDecisionRequest,
-    request: Request,
     session: Session = Depends(get_db_session),
     _principal: str = Depends(api_key_or_user_guard("approve_request")),
 ):
@@ -81,7 +80,6 @@ async def approve(
 
     # Continue execution
     backend = (rec.get("approval_metadata") or {}).get("backend") or "local"
-    workflow_id = rec["workflow_id"]
     execution_id = rec["execution_id"]
     step_id = rec["step_id"]
 
@@ -90,9 +88,13 @@ async def approve(
         # for this approval decision. We've already updated the DB record above.
         return ApprovalDecisionResponse(status="ok", backend=backend)
     else:
-        # Resume local engine
-        engine: WorkflowEngine = request.app.state.workflow_engine
-        await engine.resume_execution(execution_id, step_id, _decision_output("approved", body))
+        # Queue resume for worker
+        queue_service = await get_queue_service()
+        await queue_service.publish_workflow_resume(
+            execution_id=execution_id,
+            step_id=step_id,
+            decision_output=_decision_output("approved", body),
+        )
         return ApprovalDecisionResponse(status="ok", backend=backend)
 
 
@@ -100,7 +102,6 @@ async def approve(
 async def deny(
     approval_id: str,
     body: ApprovalDecisionRequest,
-    request: Request,
     session: Session = Depends(get_db_session),
     _principal: str = Depends(api_key_or_user_guard("deny_request")),
 ):
@@ -128,6 +129,11 @@ async def deny(
         # DBOS workflow now polls the database for the decision; nothing to signal here
         return ApprovalDecisionResponse(status="ok", backend=backend)
     else:
-        engine: WorkflowEngine = request.app.state.workflow_engine
-        await engine.resume_execution(execution_id, step_id, _decision_output("denied", body))
+        # Queue resume for worker
+        queue_service = await get_queue_service()
+        await queue_service.publish_workflow_resume(
+            execution_id=execution_id,
+            step_id=step_id,
+            decision_output=_decision_output("denied", body),
+        )
         return ApprovalDecisionResponse(status="ok", backend=backend)

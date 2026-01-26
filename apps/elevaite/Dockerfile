@@ -19,8 +19,16 @@ WORKDIR /app
 COPY .gitignore .gitignore
 COPY --from=builder /app/out/json/ .
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
-RUN npm cache clear --force 
+RUN npm cache clear --force
 RUN npm ci
+
+# Add build args for NEXT_PUBLIC_* vars (baked at build time)
+ARG NEXT_PUBLIC_BACKEND_URL
+ARG NEXT_PUBLIC_AUTH_API_URL
+ARG NEXT_PUBLIC_NATIVEAUTH_URL
+ARG NEXT_PUBLIC_MODELS_API_URL
+ARG NEXT_PUBLIC_CONTRACTS_API_URL
+ARG NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL
 
 # Build the project
 COPY --from=builder /app/out/full/ .

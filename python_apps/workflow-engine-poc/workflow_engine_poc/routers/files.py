@@ -8,9 +8,9 @@ from typing import Optional
 from pathlib import Path
 from datetime import datetime
 
-from workflow_core_sdk.execution.context_impl import ExecutionContext, UserContext
 from ..util import api_key_or_user_guard
 from ..schemas import FileUploadResponse
+from ..services.queue_service import get_queue_service
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,6 @@ async def upload_file(
 
         # Generate unique filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_extension = Path(file.filename).suffix
         unique_filename = f"{timestamp}_{file.filename}"
         file_path = upload_dir / unique_filename
 
@@ -57,26 +56,25 @@ async def upload_file(
 
         # Auto-process if requested
         if auto_process and workflow_id:
-            database = request.app.state.database
-            workflow_config = await database.get_workflow(workflow_id)
+            from uuid import uuid4
 
-            if workflow_config:
-                # Execute workflow with file path
-                workflow_engine = request.app.state.workflow_engine
-                user_context = UserContext(user_id="file_upload_user")
-                execution_context = ExecutionContext(workflow_config=workflow_config, user_context=user_context)
-                execution_context.step_io_data["file_upload"] = {"file_path": str(file_path)}
+            # Generate execution ID
+            execution_id = str(uuid4())
 
-                # Start execution in background
-                import asyncio
+            # Queue the workflow execution
+            queue_service = await get_queue_service()
+            await queue_service.publish_workflow_execution(
+                execution_id=execution_id,
+                workflow_id=workflow_id,
+                trigger_data={"file_path": str(file_path)},
+                user_context={"user_id": "file_upload_user"},
+            )
 
-                asyncio.create_task(workflow_engine.execute_workflow(execution_context))
-
-                result["auto_processing"] = {
-                    "execution_id": execution_context.execution_id,
-                    "workflow_id": workflow_id,
-                    "status": "started",
-                }
+            result["auto_processing"] = {
+                "execution_id": execution_id,
+                "workflow_id": workflow_id,
+                "status": "queued",
+            }
 
         return result
 

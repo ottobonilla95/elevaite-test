@@ -22,6 +22,7 @@ from workflow_core_sdk.streaming import (
 
 from workflow_core_sdk import WorkflowEngine
 from ..util import api_key_or_user_guard
+from ..services.queue_service import get_queue_service
 
 from rbac_sdk import (
     HDR_API_KEY,
@@ -428,8 +429,7 @@ async def step_callback(
     Receive callback from external services (e.g., ingestion service) when a step completes.
 
     This endpoint is called by external services to notify the workflow engine that
-    an asynchronous step has completed. For DBOS workflows, this sends a message to
-    the workflow instance to resume execution.
+    an asynchronous step has completed. The callback is queued for the worker to process.
 
     Args:
         execution_id: The execution ID
@@ -439,12 +439,8 @@ async def step_callback(
     try:
         logger.info(f"Received callback for execution {execution_id}, step {step_id}: {callback_data}")
 
-        # Get execution from database to determine backend
-        from ..db.service import DatabaseService
-
-        db_service = DatabaseService()
-        execution = db_service.get_execution(session, execution_id)
-
+        # Verify execution exists
+        execution = ExecutionsService.get_execution(session, execution_id)
         if not execution:
             raise HTTPException(status_code=404, detail=f"Execution {execution_id} not found")
 
@@ -452,35 +448,19 @@ async def step_callback(
         metadata = execution.get("metadata", {})
         backend = metadata.get("backend", "local")
 
-        if backend == "dbos":
-            # For DBOS workflows, send a message to the workflow instance
-            try:
-                from dbos import DBOS as _DBOS
-
-                # Get DBOS workflow ID from execution metadata
-                dbos_workflow_id = metadata.get("dbos_workflow_id")
-                if not dbos_workflow_id:
-                    raise HTTPException(
-                        status_code=400, detail=f"DBOS workflow ID not found in execution metadata for {execution_id}"
-                    )
-
-                # Send message to DBOS workflow
-                callback_topic = f"wf:{execution_id}:{step_id}:ingestion_done"
-                logger.info(f"Sending DBOS message to workflow {dbos_workflow_id} on topic {callback_topic}")
-                _DBOS.send(destination_id=dbos_workflow_id, message=callback_data, topic=callback_topic)
-                logger.info(f"DBOS message sent successfully")
-
-                return {"status": "ok", "message": "Callback received and forwarded to DBOS workflow"}
-            except Exception as e:
-                logger.error(f"Failed to send DBOS message: {e}", exc_info=True)
-                raise HTTPException(status_code=500, detail=f"Failed to forward callback to DBOS: {str(e)}")
-        else:
-            # For local backend, resume execution directly
-            # TODO: Implement local backend callback handling if needed
-            logger.warning(
-                f"Callback received for local backend execution {execution_id}, but local callback handling is not implemented yet"
+        # For local backend, queue resume for worker
+        if backend != "dbos":
+            queue_service = await get_queue_service()
+            await queue_service.publish_workflow_resume(
+                execution_id=execution_id,
+                step_id=step_id,
+                decision_output=callback_data,
             )
-            return {"status": "ok", "message": "Callback received (local backend handling not implemented)"}
+            return {"status": "ok", "message": "Callback received and queued for worker"}
+        else:
+            # For DBOS backend, the workflow polls for completion; nothing to do
+            logger.info(f"Callback received for DBOS execution {execution_id}, workflow will poll for completion")
+            return {"status": "ok", "message": "Callback received (DBOS workflow polls for completion)"}
 
     except HTTPException:
         raise
