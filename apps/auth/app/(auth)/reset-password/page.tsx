@@ -1,11 +1,9 @@
 "use client";
 
-import { AuthFluff, ElevaiteIcons } from "@repo/ui/components";
-import { useState, useEffect } from "react";
 import type { JSX } from "react";
+import { useState, useEffect } from "react";
+import { AuthFluff, ElevaiteIcons } from "@repo/ui/components";
 import { resetPassword } from "../../lib/actions";
-import { cookies } from "next/headers";
-import { useRouter } from "next/navigation";
 import "./page.scss";
 
 export default function ResetPassword(): JSX.Element {

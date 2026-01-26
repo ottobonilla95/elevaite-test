@@ -107,6 +107,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build packages
+        run: npm run build --workspace=@repo/ui
+
       - name: Run linter
         run: npm run lint
 
