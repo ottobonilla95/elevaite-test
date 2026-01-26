@@ -10,7 +10,6 @@ import asyncio
 import json
 import os
 import sys
-from pathlib import Path
 
 # Add current directory to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))

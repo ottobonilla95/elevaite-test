@@ -1,16 +1,5 @@
-import os
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-from fastapi import FastAPI
-from httpx import AsyncClient
-from dotenv import load_dotenv
-from rbac_api.app.routes.role import role_router
-from rbac_api.utils.deps import get_db
 from .. import models
-from elevaitelib.schemas import permission as permission_schemas
-import uuid
 
 db_data = {
     "organization": {

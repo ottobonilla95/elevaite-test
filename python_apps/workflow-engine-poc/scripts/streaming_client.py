@@ -164,7 +164,6 @@ class StreamingClient:
         assistant_printed = False
         seen_non_status_event = False
         had_delta = False  # track whether we streamed any deltas for the current assistant turn
-        current_step_id = None
 
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:
@@ -199,7 +198,6 @@ class StreamingClient:
                                     step_id = (event.get("data") or {}).get("step_id")
                                     if exec_id and step_id:
                                         self._last_step_id[exec_id] = step_id
-                                        current_step_id = step_id
                                 # Assistant response or delta
                                 a = self._extract_assistant_text(event)
                                 if a:

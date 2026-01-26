@@ -4,7 +4,6 @@ Standalone test for Mitie database functionality
 Imports the module directly to avoid circular import issues
 """
 
-import json
 import sys
 import os
 from dotenv import load_dotenv
@@ -201,7 +200,7 @@ def test_full_calculation_logic():
         print(f"✅ Final total: £{final_total:.2f}")
         
         # Summary
-        print(f"\n📋 CALCULATION SUMMARY:")
+        print("\n📋 CALCULATION SUMMARY:")
         print(f"   Base costs: £{sum(base_costs.values()):.2f}")
         print(f"   Regional uplift: £{regional_uplift['amount']:.2f}")
         print(f"   Markups: £{total_markup:.2f}")

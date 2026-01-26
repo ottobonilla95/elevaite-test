@@ -7,8 +7,6 @@ have corresponding models in the SDK.
 
 from typing import Any, Dict, List, Optional, Literal
 from pydantic import BaseModel, Field
-from datetime import datetime
-import uuid as uuid_module
 
 
 # ============================================================================

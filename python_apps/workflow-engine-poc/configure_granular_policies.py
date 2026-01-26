@@ -130,7 +130,7 @@ async def configure_workflow_engine_policies(token: str):
     print("=" * 60)
     print(f"\nService: {policy_data['service_name']}")
     print(f"Resource Type: {policy_data['resource_type']}")
-    print(f"\nRole Permissions:")
+    print("\nRole Permissions:")
     print(f"  Viewer: {len(viewer_actions)} actions")
     print(f"  Editor: {len(editor_actions)} actions")
     print(f"  Admin: {len(admin_actions)} actions")
@@ -155,7 +155,7 @@ async def configure_workflow_engine_policies(token: str):
                 rego_code = result.get('rego_code', '')
                 if rego_code:
                     lines = rego_code.split('\n')
-                    print(f"\n📄 Generated Policy Preview (first 20 lines):")
+                    print("\n📄 Generated Policy Preview (first 20 lines):")
                     print("-" * 60)
                     for line in lines[:20]:
                         print(line)
@@ -241,8 +241,8 @@ async def test_policy_decision():
                 result = response.json()
                 allowed = result.get("result", False)
                 
-                print(f"\nTest: Viewer trying to view_workflow")
-                print(f"Expected: True")
+                print("\nTest: Viewer trying to view_workflow")
+                print("Expected: True")
                 print(f"Actual: {allowed}")
                 
                 if allowed:

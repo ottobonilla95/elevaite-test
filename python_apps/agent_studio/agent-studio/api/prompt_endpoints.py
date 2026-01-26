@@ -5,8 +5,7 @@ Prompt template endpoints for Agent Studio.
 All endpoints use workflow-core-sdk PromptsService.
 """
 
-from typing import List, Optional
-from uuid import UUID
+from typing import List
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session

@@ -15,15 +15,13 @@ import tempfile
 import json
 import uuid
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from pathlib import Path
 
 from services.workflow_execution_context import (
     workflow_execution_context,
-    DeterministicStepType,
-    ExecutionPattern
+    DeterministicStepType
 )
-from services.analytics_service import analytics_service
 from steps.base_deterministic_step import (
     BaseDeterministicStep, DataInputStep, DataOutputStep,
     StepConfig, StepResult, StepStatus, StepValidationResult
@@ -446,7 +444,7 @@ def create_test_agent_requests() -> List[Dict[str, Any]]:
 async def test_hybrid_workflow():
     """Test the hybrid agent + logging workflow"""
     with tempfile.TemporaryDirectory() as temp_dir:
-        print(f"🤖 Testing Hybrid Agent + Logging Workflow")
+        print("🤖 Testing Hybrid Agent + Logging Workflow")
         print(f"📁 Output directory: {temp_dir}")
         
         # Register step implementations
@@ -478,7 +476,7 @@ async def test_hybrid_workflow():
                     # Execute all steps
                     results = await workflow_execution_context.execute_workflow(execution_id)
                     
-                    print(f"   ✅ Request processed successfully!")
+                    print("   ✅ Request processed successfully!")
                     
                     # Show key results
                     if "save_to_database" in results:
@@ -489,7 +487,7 @@ async def test_hybrid_workflow():
                 print(f"   ❌ Request failed: {e}")
         
         # Show output files
-        print(f"\n📄 Generated Files:")
+        print("\n📄 Generated Files:")
         for file_path in Path(temp_dir).glob("*"):
             print(f"   - {file_path.name} ({file_path.stat().st_size} bytes)")
             
@@ -512,7 +510,7 @@ async def main():
     
     await test_hybrid_workflow()
     
-    print(f"\n🎉 Hybrid workflow test completed!")
+    print("\n🎉 Hybrid workflow test completed!")
 
 
 if __name__ == "__main__":

@@ -973,7 +973,7 @@ def check_database_stats():
             """))
 
             sections = result.fetchall()
-            print(f"   Items by section:")
+            print("   Items by section:")
             for section, count in sections[:10]:  # Show first 10 sections
                 print(f"     Section {section}: {count} items")
 

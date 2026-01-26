@@ -8,7 +8,6 @@ import functools
 from typing import Any, Callable, Dict, List, Protocol, Union, cast, get_type_hints
 
 from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
-from openai.types.shared_params.function_definition import FunctionDefinition
 from agents.agent_base import Agent
 
 dotenv.load_dotenv(".env.local")

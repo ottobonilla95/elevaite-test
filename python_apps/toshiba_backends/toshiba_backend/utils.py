@@ -1,11 +1,10 @@
 import inspect
 from typing import Any, Dict, List, Union, get_type_hints
 import functools
-from typing import Any, Callable
+from typing import Callable
 import os
 import openai
 import dotenv
-import re
 import google.generativeai as genai
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):

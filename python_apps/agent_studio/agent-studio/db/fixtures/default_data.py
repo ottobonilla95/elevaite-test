@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Literal, Any
+from typing import Dict, List, Optional, Literal
 
 from db.schemas import AgentFunction, AgentFunctionInner
 

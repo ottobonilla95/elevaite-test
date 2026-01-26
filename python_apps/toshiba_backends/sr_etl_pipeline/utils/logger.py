@@ -3,7 +3,7 @@ import logging.handlers
 import json
 import os
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import threading
 
 class ProductionMetrics:

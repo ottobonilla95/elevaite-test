@@ -10,7 +10,6 @@ Prerequisites:
 - Local MCP server running on port 3000 (optional)
 """
 
-import asyncio
 import httpx
 import pytest
 from uuid import uuid4
@@ -18,7 +17,6 @@ from uuid import uuid4
 from workflow_core_sdk.db.models import MCPServer, Tool as DBTool
 from workflow_core_sdk.clients.mcp_client import MCPClient
 from workflow_core_sdk.steps.tool_steps import tool_execution_step
-from workflow_core_sdk.execution.context import ExecutionContext
 
 
 class TestMCPEndToEnd:

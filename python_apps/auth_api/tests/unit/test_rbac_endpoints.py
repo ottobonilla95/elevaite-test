@@ -599,7 +599,7 @@ class TestUpdateGroup:
 
         mock_session.refresh = mock_refresh
 
-        result = await update_group(
+        await update_group(
             group_id=mock_group.id,
             group_data=group_data,
             session=mock_session,
@@ -766,7 +766,7 @@ class TestUpdateGroupPermission:
 
         mock_session.refresh = mock_refresh
 
-        result = await update_group_permission(
+        await update_group_permission(
             group_id=mock_group.id,
             permission_id=permission_id,
             permission_data=permission_data,
@@ -1232,7 +1232,7 @@ class TestCheckAccessRoleResolution:
                 ),
             )
 
-            result = await check_access(request=request, session=mock_session)
+            await check_access(request=request, session=mock_session)
 
             # Verify OPA was called with correct role from role_ref.base_type
             call_args = mock_opa_instance.check_access.call_args
@@ -1294,7 +1294,7 @@ class TestCheckAccessRoleResolution:
                 ),
             )
 
-            result = await check_access(request=request, session=mock_session)
+            await check_access(request=request, session=mock_session)
 
             # Verify OPA was called with correct role from legacy string
             call_args = mock_opa_instance.check_access.call_args
@@ -1356,7 +1356,7 @@ class TestCheckAccessRoleResolution:
                 ),
             )
 
-            result = await check_access(request=request, session=mock_session)
+            await check_access(request=request, session=mock_session)
 
             # Verify OPA was called with null role (will be denied by OPA)
             call_args = mock_opa_instance.check_access.call_args

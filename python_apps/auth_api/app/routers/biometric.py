@@ -8,12 +8,10 @@ from app.db.tenant_db import get_tenant_session
 from app.schemas.user import (
     BiometricDeviceResponse,
     BiometricRegisterRequest,
-    BiometricToggleRequest,
 )
 from app.core.security import oauth2_scheme, verify_token
 from app.db.models import User, BiometricDevice
 from sqlalchemy.future import select
-from datetime import datetime, timezone
 from app.core.mfa_validator import ensure_at_least_one_mfa
 
 router = APIRouter(prefix="/biometric", tags=["biometric"])
@@ -34,7 +32,7 @@ async def get_biometric_devices(
     result = await session.execute(
         select(BiometricDevice)
         .where(BiometricDevice.user_id == user_id)
-        .where(BiometricDevice.is_active == True)
+        .where(BiometricDevice.is_active)
         .order_by(BiometricDevice.created_at.desc())
     )
     devices = result.scalars().all()
@@ -139,7 +137,7 @@ async def remove_biometric_device(
     result = await session.execute(
         select(BiometricDevice).where(
             BiometricDevice.user_id == user_id,
-            BiometricDevice.is_active == True
+            BiometricDevice.is_active
         )
     )
     remaining_devices = result.scalars().all()
@@ -186,7 +184,7 @@ async def toggle_biometric_setting(
     
     # Validate BEFORE making changes
     if not enabled:
-        print(f"🔍 User MFA status before disable:")
+        print("🔍 User MFA status before disable:")
         print(f"  - Email MFA: {user.email_mfa_enabled}")
         print(f"  - SMS MFA: {user.sms_mfa_enabled}")
         print(f"  - TOTP MFA: {user.mfa_enabled}")
@@ -260,7 +258,7 @@ async def disable_biometric_mfa(
         )
     
     # Validate at least one MFA remains
-    print(f"🔍 User MFA status before disable:")
+    print("🔍 User MFA status before disable:")
     print(f"  - Email MFA: {user.email_mfa_enabled}")
     print(f"  - SMS MFA: {user.sms_mfa_enabled}")
     print(f"  - TOTP MFA: {user.mfa_enabled}")

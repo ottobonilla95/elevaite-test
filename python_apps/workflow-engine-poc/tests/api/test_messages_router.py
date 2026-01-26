@@ -232,7 +232,7 @@ class TestCreateStepMessage:
             patch("workflow_core_sdk.services.workflows_service.WorkflowsService.list_agent_messages") as mock_list,
             patch(
                 "workflow_core_sdk.services.workflows_service.WorkflowsService.update_execution_status"
-            ) as mock_update_status,
+            ),
             patch("workflow_core_sdk.services.executions_service.ExecutionsService.get_execution") as mock_get_exec,
             patch("workflow_core_sdk.streaming.stream_manager") as mock_stream,
         ):

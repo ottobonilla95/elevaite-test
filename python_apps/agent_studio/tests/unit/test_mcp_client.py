@@ -8,9 +8,8 @@ including tool discovery, execution, and health checks.
 import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
 
-from services.mcp_client import MCPClient, MCPClientError, MCPServerUnavailableError, MCPToolExecutionError
+from services.mcp_client import MCPClient, MCPServerUnavailableError, MCPToolExecutionError
 from db import models
 
 

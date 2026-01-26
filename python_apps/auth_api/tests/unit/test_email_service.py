@@ -1,10 +1,8 @@
 """Tests for the email service module."""
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 from app.services.email_service import (
     send_email,

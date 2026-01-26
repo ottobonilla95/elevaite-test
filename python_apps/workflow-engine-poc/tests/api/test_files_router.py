@@ -7,7 +7,6 @@ Tests all file upload and processing endpoints:
 
 import pytest
 import io
-from pathlib import Path
 from unittest.mock import AsyncMock, patch, mock_open, MagicMock
 from fastapi.testclient import TestClient
 
@@ -62,7 +61,7 @@ class TestUploadFile:
             mock_upload_dir.mkdir = MagicMock()
             mock_upload_dir.__truediv__ = lambda self, other: tmp_path / other
 
-            with patch("builtins.open", mock_open()) as mock_file:
+            with patch("builtins.open", mock_open()):
                 response = authenticated_client.post(
                     "/files/upload",
                     files={"file": ("test.txt", sample_text_file, "text/plain")},

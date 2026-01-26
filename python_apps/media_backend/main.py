@@ -12,7 +12,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 import httpx
 import os
-import base64
 
 app = FastAPI()
 

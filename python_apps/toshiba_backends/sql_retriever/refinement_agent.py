@@ -1,6 +1,6 @@
 import os
 import asyncio
-from typing import List, Tuple, Any, Dict
+from typing import List, Tuple, Any
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.sql import text
 from rapidfuzz import process
@@ -64,7 +64,7 @@ async def sql_matching_values(
             # Step 2: Process each user input
             for table, column, value in user_inputs:
                 if (table, column) not in schema_pairs:
-                    results.append((table, column, (f"error: invalid (table, column)",)))
+                    results.append((table, column, ("error: invalid (table, column)",)))
                     continue
 
                 try:

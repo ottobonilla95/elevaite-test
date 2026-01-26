@@ -6,8 +6,6 @@ from rbac_sdk import (
     require_permission_async,
     resource_builders,
     principal_resolvers,
-    HDR_API_KEY,
-    HDR_USER_ID,
     HDR_ORG_ID,
     HDR_ACCOUNT_ID,
     HDR_PROJECT_ID,

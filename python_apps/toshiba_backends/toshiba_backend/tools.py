@@ -5,7 +5,6 @@ import os
 import requests
 import re
 from typing import List, Optional
-from abbreviation_dict import MACHINE_ABBREVIATIONS
 SEGMENT_NUM = 5
 TOP_GUN_SEGMENT_NUM = 2
 
@@ -184,7 +183,7 @@ def top_gun_query_retriever(query: str, collection_id: Optional[str] = None, mac
             sources = []
             segments = response.json()["selected_segments"][:TOP_GUN_SEGMENT_NUM]
             for i,segment in enumerate(segments):
-                res += "*"*5+f"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
+                res += "*"*5+"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
                 references = ""
                 for j,chunk in enumerate(segment["chunks"]):
                     res += f"\nChunk {j}: "+chunk["chunk_text"]+"\n"+"Datetime: "+chunk.get("email_sent_datetime", "")
@@ -326,7 +325,7 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
             sources = []
             segments = response.json()["selected_segments"][:SEGMENT_NUM]
             for i,segment in enumerate(segments):
-                res += "*"*5+f"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
+                res += "*"*5+"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
                 references = ""
                 for j,chunk in enumerate(segment["chunks"]):
                     res += f"Chunk {j}: "+chunk["chunk_text"]
@@ -824,7 +823,7 @@ def video_retriever(query: str, collection_id: str) -> list:
             sources = []
             segments = response.json()["selected_segments"][:SEGMENT_NUM]
             for i,segment in enumerate(segments):
-                res += "*"*5+f"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
+                res += "*"*5+"\n\nSegment Begins: "+"\n" #+"Contextual Header: "
                 references = ""
 
                 for j,chunk in enumerate(segment["chunks"]):

@@ -15,7 +15,6 @@ Usage:
 import asyncio
 import logging
 import sys
-import os
 from pathlib import Path
 
 # Add the project root to Python path
@@ -23,7 +22,6 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from workflow_core_sdk.dbos_impl.runtime import get_dbos_adapter, DBOS_AVAILABLE
-from workflow_engine_poc.step_registry import StepRegistry
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

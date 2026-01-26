@@ -6,13 +6,12 @@ import asyncio
 import json
 import logging
 import os
-import signal
 
 import aio_pika
 from aio_pika.abc import AbstractIncomingMessage
 
 from workflow_core_sdk.services.workflows_service import WorkflowsService
-from workflow_core_sdk.db.database import get_session, engine
+from workflow_core_sdk.db.database import get_session
 from workflow_core_sdk import WorkflowEngine, StepRegistry
 from workflow_core_sdk.execution.context_impl import ExecutionContext, UserContext
 from sqlalchemy import text

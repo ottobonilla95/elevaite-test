@@ -1,7 +1,6 @@
 import os
 import json
 import uuid
-import tempfile
 import pytest
 
 from fastapi.testclient import TestClient

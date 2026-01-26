@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock, AsyncMock, ANY
 from fastapi.testclient import TestClient
 
-from workflow_core_sdk.db.models import Workflow, WorkflowRead
+from workflow_core_sdk.db.models import Workflow
 from workflow_engine_poc.main import app
 
 client = TestClient(app)

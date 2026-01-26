@@ -5,7 +5,7 @@ This adapter provides high-level methods for workflow-related operations,
 combining request and response adapters.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from .request_adapter import RequestAdapter
 from .response_adapter import ResponseAdapter
 

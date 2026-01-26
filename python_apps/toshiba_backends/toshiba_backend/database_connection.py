@@ -1,9 +1,8 @@
 import datetime
 import os
 import uuid
-from typing import List, Dict
 
-from sqlalchemy import Column, String, DateTime, Integer, create_engine, func
+from sqlalchemy import Column, String, DateTime, Integer, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.exc import ResourceClosedError
 from sqlalchemy.ext.declarative import declarative_base

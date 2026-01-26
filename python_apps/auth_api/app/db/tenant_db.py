@@ -48,7 +48,6 @@ async def initialize_db():
     engine = db_info["engine"]
 
     # Create schemas for async connections
-    from sqlalchemy import text
     from db_core.utils import (
         async_tenant_schema_exists,
         async_create_tenant_schema,
@@ -111,7 +110,6 @@ async def create_tenant_schema_if_not_exists(tenant_id: str) -> bool:
         True if the schema was created or already exists, False otherwise
     """
     from sqlalchemy.ext.asyncio import create_async_engine
-    from sqlalchemy import text
     from db_core.utils import (
         async_tenant_schema_exists,
         async_create_tenant_schema,

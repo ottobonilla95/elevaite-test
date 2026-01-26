@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 from typing import Optional
 from database import get_db_connection
 import traceback

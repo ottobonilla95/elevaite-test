@@ -87,7 +87,7 @@ class TestCleanupTasks:
                 "app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"
             ) as mock_cleanup,
             patch("asyncio.sleep", side_effect=mock_sleep) as mock_sleep_patch,
-            patch("app.tasks.cleanup_tasks.logger") as mock_logger,
+            patch("app.tasks.cleanup_tasks.logger"),
         ):
 
             # Run the task until our sleep side-effect cancels internally
@@ -146,10 +146,10 @@ class TestCleanupTasks:
         with (
             patch(
                 "app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"
-            ) as mock_cleanup,
+            ),
             patch(
                 "asyncio.sleep", side_effect=asyncio.CancelledError()
-            ) as mock_sleep_patch,
+            ),
             patch("app.tasks.cleanup_tasks.logger") as mock_logger,
         ):
 
@@ -241,9 +241,6 @@ class TestCleanupTasks:
             cleanup_expired_mfa_verifications,
             start_cleanup_tasks,
         )
-        from app.core.logging import logger
-        from app.db.orm import get_async_session
-        from app.services.mfa_device_service import mfa_device_service
 
         # Verify functions are callable
         assert callable(cleanup_expired_mfa_verifications)
@@ -293,8 +290,8 @@ class TestCleanupTasks:
         with (
             patch(
                 "app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"
-            ) as mock_cleanup,
-            patch("asyncio.sleep", side_effect=asyncio.CancelledError()) as mock_sleep,
+            ),
+            patch("asyncio.sleep", side_effect=asyncio.CancelledError()),
             patch("app.tasks.cleanup_tasks.logger") as mock_logger,
         ):
 
@@ -320,7 +317,7 @@ class TestCleanupTasks:
         with (
             patch(
                 "app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"
-            ) as mock_cleanup,
+            ),
             patch("asyncio.sleep", side_effect=mock_sleep),
             patch("app.tasks.cleanup_tasks.logger") as mock_logger,
         ):

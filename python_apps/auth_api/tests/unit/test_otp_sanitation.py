@@ -1,8 +1,6 @@
 import pytest
 import re
 from unittest.mock import patch, MagicMock
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 from app.core.password_utils import generate_secure_password
 from app.services.email_service import (
@@ -170,7 +168,7 @@ class TestOTPEmailRendering:
             # Call the function
             email = "test@example.com"
             name = "Test User"
-            result = await send_password_reset_email_with_new_password(
+            await send_password_reset_email_with_new_password(
                 email, name, password
             )
 

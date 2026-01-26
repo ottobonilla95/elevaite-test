@@ -1,7 +1,6 @@
 """Biometric MFA service for WebAuthn authentication."""
 
 import json
-from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -26,7 +25,7 @@ class BiometricMFAService:
             result = await session.execute(
                 select(BiometricDevice).where(
                     BiometricDevice.user_id == user.id,
-                    BiometricDevice.is_active == True
+                    BiometricDevice.is_active
                 )
             )
             devices = result.scalars().all()

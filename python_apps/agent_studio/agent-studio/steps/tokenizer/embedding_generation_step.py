@@ -12,12 +12,11 @@ Highly configurable through API parameters.
 
 import os
 import asyncio
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List
 from datetime import datetime
 import time
 
 from steps.base_deterministic_step import (
-    BaseDeterministicStep,
     StepConfig,
     StepResult,
     StepStatus,
@@ -427,7 +426,6 @@ class EmbeddingGenerationStep(BatchProcessingStep):
             
             # Generate embeddings (run in thread pool to avoid blocking)
             import asyncio
-            import functools
             
             def generate_embeddings():
                 return self._local_model.encode(texts, normalize_embeddings=normalize)

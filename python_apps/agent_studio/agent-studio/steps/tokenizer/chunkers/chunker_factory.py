@@ -6,7 +6,7 @@ based on content type, configuration preferences, and chunker availability.
 """
 
 import logging
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, List, Tuple
 
 from .semantic_chunker import SemanticChunker
 from .mdstructure_chunker import MDStructureChunker

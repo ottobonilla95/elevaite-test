@@ -11,13 +11,8 @@ from app.routers import rbac
 from app.db.models import User, UserStatus
 from app.db.models_rbac import (
     Role,
-    RolePermission,
     Group,
-    GroupPermission,
-    UserGroupMembership,
-    Organization,
     UserRoleAssignment,
-    PermissionOverride,
 )
 from app.core.deps import get_current_user, get_current_superuser
 from app.db.orm import get_tenant_async_db

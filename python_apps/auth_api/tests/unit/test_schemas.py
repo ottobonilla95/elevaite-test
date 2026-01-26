@@ -6,7 +6,6 @@ from pydantic import ValidationError
 from app.schemas.user import (
     UserCreate,
     PasswordUpdate,
-    PasswordResetConfirm,
     LoginRequest,
     UserResponse,
     SessionInfo,

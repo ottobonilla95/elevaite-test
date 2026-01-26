@@ -13,7 +13,6 @@ Tests execution tracking, status monitoring, and results retrieval including:
 
 import pytest
 import uuid
-import time
 from fastapi.testclient import TestClient
 
 

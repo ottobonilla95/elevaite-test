@@ -14,11 +14,10 @@ import logging
 import os
 import uuid as uuid_module
 from contextlib import asynccontextmanager
-from typing import Dict, Any
+from typing import Dict
 
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi.responses import JSONResponse
-from sqlmodel import Session, select
+from sqlmodel import Session
 from dbos import DBOS, DBOSConfig
 
 # Configure logging

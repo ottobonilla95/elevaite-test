@@ -579,7 +579,7 @@ def get_customer_detailed_metrics(
 ):
     """Get comprehensive metrics for a specific customer with manager/FST and date filtering"""
     try:
-        print(f"🔍 DEBUG: Received parameters:")
+        print("🔍 DEBUG: Received parameters:")
         print(f"  - customer_account: '{customer_account}' (type: {type(customer_account)})")
         print(f"  - start_date: {start_date}")
         print(f"  - end_date: {end_date}")
@@ -632,7 +632,7 @@ def get_customer_detailed_metrics(
                 }
             }
         
-        print(f"✅ DEBUG: Found customer:")
+        print("✅ DEBUG: Found customer:")
         print(f"  - Name: {customer_check['customer_name']}")
         print(f"  - Account: {customer_check['customer_account_number']}")
         print(f"  - Records in customers table: {customer_check['records_count']}")
@@ -746,7 +746,7 @@ def get_customer_detailed_metrics(
         
         if not result:
             print(f"❌ ERROR: Main query returned no results for customer {customer_account}")
-            print(f"   This means customer exists but has no service requests matching the filters")
+            print("   This means customer exists but has no service requests matching the filters")
             
             # Return customer info with zero metrics instead of error
             return {

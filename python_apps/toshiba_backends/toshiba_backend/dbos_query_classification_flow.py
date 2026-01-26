@@ -1,16 +1,13 @@
 import os
 import time
 
-import uvicorn
 from dbos import DBOS, DBOSConfig, SetWorkflowID
 import dotenv
 from starlette.responses import JSONResponse
 from query_classification import QueryClassifier
-from data_classes import ChatRequest, QueryClassificationResult, QueryClassificationRequest
+from data_classes import QueryClassificationResult, QueryClassificationRequest
 import uuid
-from datetime import datetime
 from database_connection import DatabaseConnection
-import asyncio
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
     dotenv.load_dotenv(".env.local")

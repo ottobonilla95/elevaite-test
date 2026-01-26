@@ -1,6 +1,5 @@
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, ANY
-from .... import models
+from unittest.mock import patch, MagicMock, ANY
 from ....auth.idp.google import (
     get_user_email_response_with_error,
     get_user_email_response_with_success,
@@ -36,7 +35,7 @@ async def test_get_roles_with_valid_access_token_not_in_redis_cache_and_authenti
 
     response = await client.request(
         method="GET",
-        url=f"/roles/",
+        url="/roles/",
         headers=headers,
     )
 
@@ -119,7 +118,7 @@ async def test_get_roles_with_valid_access_token_not_in_redis_cache_and_authenti
 
     response = await client.request(
         method="GET",
-        url=f"/roles/",
+        url="/roles/",
         headers=headers,
     )
 
@@ -202,7 +201,7 @@ async def test_get_roles_with_valid_access_token_in_redis_cache_and_authenticati
 
     response = await client.request(
         method="GET",
-        url=f"/roles/",
+        url="/roles/",
         headers=headers,
     )
 
@@ -280,7 +279,7 @@ async def test_get_roles_with_valid_access_token_in_redis_cache_and_authenticati
 
     response = await client.request(
         method="GET",
-        url=f"/roles/",
+        url="/roles/",
         headers=headers,
     )
 
@@ -338,7 +337,7 @@ async def test_get_roles_with_no_access_token(client, setup_initial_data):
 
     response = await client.request(
         method="GET",
-        url=f"/roles/",
+        url="/roles/",
         headers=headers,
     )
 
@@ -379,7 +378,7 @@ async def test_get_roles_with_invalid_or_expired_access_token(
 
     response = await client.request(
         method="GET",
-        url=f"/roles/",
+        url="/roles/",
         headers=headers,
     )
 
@@ -423,7 +422,7 @@ async def test_get_roles_with_valid_access_token_and_authenticating_user_does_no
 
     response = await client.request(
         method="GET",
-        url=f"/roles/",
+        url="/roles/",
         headers=headers,
     )
 
@@ -454,7 +453,7 @@ async def test_get_roles_with_non_superadmin_and_non_account_admin_authenticatin
 
     response = await client.request(
         method="GET",
-        url=f"/roles/",
+        url="/roles/",
         headers=headers,
     )
 

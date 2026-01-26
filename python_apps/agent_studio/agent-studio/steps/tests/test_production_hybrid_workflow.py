@@ -42,7 +42,7 @@ async def test_production_hybrid_workflow():
         print("\n🔍 Validating workflow...")
         validation_errors = workflow_loader.validate_workflow(workflow_config)
         if validation_errors:
-            print(f"❌ Validation errors found:")
+            print("❌ Validation errors found:")
             for error in validation_errors:
                 print(f"   - {error}")
             return False
@@ -121,7 +121,7 @@ async def test_production_hybrid_workflow():
                     result = await workflow_loader.execute_workflow(execution_request)
                     
                     if result.status == "completed":
-                        print(f"   ✅ Workflow completed successfully!")
+                        print("   ✅ Workflow completed successfully!")
                         print(f"   📊 Execution ID: {result.execution_id}")
                         
                         # Show audit log if created
@@ -145,7 +145,7 @@ async def test_production_hybrid_workflow():
                 print(f"   💥 Exception during execution: {e}")
         
         # Show workflow statistics
-        print(f"\n📈 Workflow Statistics:")
+        print("\n📈 Workflow Statistics:")
         workflows = workflow_loader.list_available_workflows()
         for workflow in workflows:
             print(f"   - {workflow['workflow_name']}")
@@ -169,15 +169,15 @@ async def main():
     success = await test_production_hybrid_workflow()
     
     if success:
-        print(f"\n🎉 All tests passed!")
-        print(f"💡 The deterministic workflow framework is ready for:")
-        print(f"   ✅ External workflow configuration (JSON files)")
-        print(f"   ✅ Database-backed workflow storage")
-        print(f"   ✅ Production audit and compliance logging")
-        print(f"   ✅ Hybrid AI agent + deterministic step workflows")
-        print(f"   ✅ Real-world error handling and validation")
+        print("\n🎉 All tests passed!")
+        print("💡 The deterministic workflow framework is ready for:")
+        print("   ✅ External workflow configuration (JSON files)")
+        print("   ✅ Database-backed workflow storage")
+        print("   ✅ Production audit and compliance logging")
+        print("   ✅ Hybrid AI agent + deterministic step workflows")
+        print("   ✅ Real-world error handling and validation")
     else:
-        print(f"\n💥 Some tests failed!")
+        print("\n💥 Some tests failed!")
         sys.exit(1)
 
 

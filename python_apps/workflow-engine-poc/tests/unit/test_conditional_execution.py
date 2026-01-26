@@ -6,7 +6,6 @@ expression evaluation, and complex conditional logic.
 """
 
 import asyncio
-from typing import Dict, Any
 import pytest
 
 from workflow_core_sdk.condition_evaluator import (
@@ -187,7 +186,7 @@ async def test_conditional_workflow():
     print(f"   Skipped steps: {skipped_steps}")
 
     # Debug: Check step conditions and results
-    print(f"   Debug - Step results:")
+    print("   Debug - Step results:")
     for step_id, step_result in execution_context.step_results.items():
         print(f"     {step_id}: {step_result.status.value} - {step_result.error_message or 'No error'}")
 

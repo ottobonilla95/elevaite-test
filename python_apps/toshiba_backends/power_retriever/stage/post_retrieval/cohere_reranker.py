@@ -11,7 +11,7 @@ load_dotenv()
 base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(base_path)
 
-from retrieval_stage.retrieve_qdrant import retrieve_by_payload, extract_part_numbers, extract_keywords, extract_mtm_numbers
+from retrieval_stage.retrieve_qdrant import retrieve_by_payload, extract_part_numbers, extract_keywords
 
 
 cohere_client = cohere.Client(os.getenv("COHERE_API_KEY"))

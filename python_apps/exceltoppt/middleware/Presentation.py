@@ -16,7 +16,6 @@ import re
 import os
 import openai
 import openpyxl
-import asyncio
 
 
 load_dotenv()

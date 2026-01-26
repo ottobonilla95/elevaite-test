@@ -7,13 +7,11 @@ Uses async tests with httpx.AsyncClient for proper background task execution.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict
 
 import pytest
 from httpx import AsyncClient
 
 try:
-    import dbos  # type: ignore
 
     HAS_DBOS = True
 except Exception:

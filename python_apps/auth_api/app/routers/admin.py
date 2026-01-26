@@ -129,7 +129,7 @@ async def update_user_status(
     await log_user_activity(
         session,
         current_user.id,
-        f"admin_changed_user_status",
+        "admin_changed_user_status",
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         details={
@@ -145,7 +145,7 @@ async def update_user_status(
     await log_user_activity(
         session,
         user_id,
-        f"status_changed_by_admin",
+        "status_changed_by_admin",
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         details={

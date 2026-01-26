@@ -16,7 +16,6 @@ Note: Most analytics endpoints are currently stubs returning empty data.
 These tests verify the API contract and response structure.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 

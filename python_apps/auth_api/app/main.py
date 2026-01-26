@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request
 from fastapi.security import HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from db_core.middleware import add_tenant_middleware
@@ -8,9 +8,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from fastapi_logger import ElevaiteLogger
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
 
 from app.routers import auth
 from app.routers import user

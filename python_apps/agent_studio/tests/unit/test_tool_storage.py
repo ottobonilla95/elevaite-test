@@ -4,12 +4,10 @@ Unit tests for tool storage functionality.
 Tests the core tool storage models, CRUD operations, and schemas.
 """
 
-import pytest
-import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
 
-from db import crud, schemas, models
+from db import crud, schemas
 
 
 class TestToolCategoryModel:

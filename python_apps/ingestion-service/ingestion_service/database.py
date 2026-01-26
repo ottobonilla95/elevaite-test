@@ -28,7 +28,6 @@ def get_session() -> Generator[Session, None, None]:
 def init_db() -> None:
     """Initialize database tables"""
     from sqlmodel import SQLModel
-    from .models import IngestionJob
 
     SQLModel.metadata.create_all(engine)
 

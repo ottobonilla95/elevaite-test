@@ -130,7 +130,7 @@ async def setup_technician_filtering():
         manager_count = await connection.fetchval("SELECT COUNT(*) FROM manager_groups")
         assignment_count = await connection.fetchval("SELECT COUNT(*) FROM fst_manager_assignments")
         
-        logger.info(f"✅ Technician filtering setup complete:")
+        logger.info("✅ Technician filtering setup complete:")
         logger.info(f"   FSTs: {fst_count}")
         logger.info(f"   Managers: {manager_count}")
         logger.info(f"   Assignments: {assignment_count}")

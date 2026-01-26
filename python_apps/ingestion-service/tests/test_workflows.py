@@ -7,7 +7,6 @@ Tests the workflow execution and HTTP callback completion notifications.
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 import uuid
-from datetime import datetime, timezone
 
 from ingestion_service.workflows import execute_ingestion_pipeline, send_completion_event
 from ingestion_service.models import IngestionJob, JobStatus

@@ -2,7 +2,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, File, UploadFile, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
 import io 
@@ -12,12 +11,10 @@ from fastapi.responses import FileResponse
 from utils import upload_file
 from utils import generate_manifest
 from utils import generate_summary
-from utils import generate_cisco_presentation
 #from utils import generate_presentation
 from Presentation import generate_presentation
 from utils import Excel_to_dataframe
 from utils import Excel_to_Dataframe_auto
-from utils import ask_questions
 from utils import ask_your_doc
 from utils import generate_csv_for_excel
 from utils import ask_csv_agent

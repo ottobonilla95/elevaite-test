@@ -6,9 +6,8 @@ Tests the SeedDataLoader and seed data JSON files.
 
 import json
 import pytest
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from workflow_engine_poc.seeding.loader import SeedDataLoader, SEED_DATA_DIR
 

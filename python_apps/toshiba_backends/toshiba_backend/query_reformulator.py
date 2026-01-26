@@ -1,11 +1,9 @@
 import os
 import string
-import time
 from openai import OpenAI
 from trie_suggester import AbbreviationTrie
 from abbreviation_dict import abbreviations, MACHINE_ABBREVIATIONS
 from dotenv import load_dotenv
-from abbreviation_dict import ABBREVIATION_TABLE
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
     load_dotenv(".env.local")

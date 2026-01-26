@@ -1,13 +1,11 @@
 """Tests for HTML escaping of passwords in emails."""
 
 import pytest
-import re
 import html
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from app.core.password_utils import generate_secure_password
 from app.services.email_service import (
-    send_email,
     send_welcome_email_with_temp_password,
     send_password_reset_email_with_new_password
 )
@@ -73,7 +71,7 @@ class TestPasswordEmailHTMLEscaping:
         name = "Test User"
         
         # Call the function
-        result = await send_welcome_email_with_temp_password(
+        await send_welcome_email_with_temp_password(
             email, name, test_password
         )
         
@@ -83,16 +81,16 @@ class TestPasswordEmailHTMLEscaping:
         
         # Check that the password appears correctly in the text body (unescaped)
         text_body = call_args[2]
-        assert test_password in text_body, f"Password not found in text body"
+        assert test_password in text_body, "Password not found in text body"
         
         # Check that the password is properly escaped in the HTML body
         html_body = call_args[3]
         escaped_password = html.escape(test_password)
-        assert escaped_password in html_body, f"Escaped password not found in HTML body"
+        assert escaped_password in html_body, "Escaped password not found in HTML body"
         
         # The original password should not appear in the HTML body
         if '<' in test_password and '>' in test_password:
-            assert test_password not in html_body, f"Unescaped password found in HTML body"
+            assert test_password not in html_body, "Unescaped password found in HTML body"
 
     @patch("app.services.email_service.send_email")
     async def test_password_reset_email_html_escaping(self, mock_send_email):
@@ -106,7 +104,7 @@ class TestPasswordEmailHTMLEscaping:
         name = "Test User"
         
         # Call the function
-        result = await send_password_reset_email_with_new_password(
+        await send_password_reset_email_with_new_password(
             email, name, test_password
         )
         
@@ -116,16 +114,16 @@ class TestPasswordEmailHTMLEscaping:
         
         # Check that the password appears correctly in the text body (unescaped)
         text_body = call_args[2]
-        assert test_password in text_body, f"Password not found in text body"
+        assert test_password in text_body, "Password not found in text body"
         
         # Check that the password is properly escaped in the HTML body
         html_body = call_args[3]
         escaped_password = html.escape(test_password)
-        assert escaped_password in html_body, f"Escaped password not found in HTML body"
+        assert escaped_password in html_body, "Escaped password not found in HTML body"
         
         # The original password should not appear in the HTML body
         if '<' in test_password and '>' in test_password:
-            assert test_password not in html_body, f"Unescaped password found in HTML body"
+            assert test_password not in html_body, "Unescaped password found in HTML body"
 
 
 if __name__ == "__main__":

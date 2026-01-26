@@ -5,12 +5,7 @@ These tests verify the complete flow from job creation through completion.
 Uses conftest.py fixtures for proper database and DBOS mocking.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
-import uuid
-import asyncio
 
-from ingestion_service.models import JobStatus
 
 
 class TestEndToEndJobFlow:

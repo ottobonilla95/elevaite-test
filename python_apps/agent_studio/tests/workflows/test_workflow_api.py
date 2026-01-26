@@ -126,7 +126,7 @@ class WorkflowAPITester:
                     return await response.json()
                 else:
                     return None
-        except Exception as e:
+        except Exception:
             return None
 
     async def get_execution_steps(self, execution_id: str) -> Optional[Dict[str, Any]]:
@@ -141,7 +141,7 @@ class WorkflowAPITester:
                     return await response.json()
                 else:
                     return None
-        except Exception as e:
+        except Exception:
             return None
 
     async def get_execution_trace(self, execution_id: str) -> Optional[Dict[str, Any]]:
@@ -159,7 +159,7 @@ class WorkflowAPITester:
                     return None
                 else:
                     return None
-        except Exception as e:
+        except Exception:
             return None
 
     async def get_execution_result(self, execution_id: str) -> Optional[Dict[str, Any]]:
@@ -176,7 +176,7 @@ class WorkflowAPITester:
                     return {"status": "still_running"}
                 else:
                     return None
-        except Exception as e:
+        except Exception:
             return None
 
     async def monitor_execution(
@@ -311,7 +311,7 @@ class WorkflowAPITester:
         self, workflow_id: str, query: str
     ) -> Dict[str, Any]:
         """Complete test of workflow execution with monitoring"""
-        print(f"🚀 Testing Workflow Execution")
+        print("🚀 Testing Workflow Execution")
         print(f"Workflow ID: {workflow_id}")
         print(f"Query: {query}")
         print("=" * 60)
@@ -343,7 +343,7 @@ class WorkflowAPITester:
 
         final_trace = monitoring_result.get("final_trace")
         if final_trace:
-            print(f"\\n🔍 Complete Trace Analysis:")
+            print("\\n🔍 Complete Trace Analysis:")
             print(f"  Total Steps: {final_trace.get('total_steps', 0)}")
             print(f"  Steps Completed: {final_trace.get('current_step_index', 0)}")
             
@@ -354,7 +354,7 @@ class WorkflowAPITester:
             # Show detailed step breakdown
             steps = final_trace.get('steps', [])
             if steps:
-                print(f"\\n📋 Detailed Step Breakdown:")
+                print("\\n📋 Detailed Step Breakdown:")
                 total_duration = 0
                 for i, step in enumerate(steps, 1):
                     status_emoji = {"pending": "⏳", "running": "🔄", "completed": "✅", "failed": "❌", "skipped": "⏭️"}
@@ -380,7 +380,7 @@ class WorkflowAPITester:
 
             # Show branch decisions with timestamps
             if final_trace.get("branch_decisions"):
-                print(f"\\n🌳 Branch Decision Details:")
+                print("\\n🌳 Branch Decision Details:")
                 for decision, outcome_data in final_trace["branch_decisions"].items():
                     outcome = outcome_data.get('outcome', 'N/A')
                     timestamp = outcome_data.get('timestamp', '')
@@ -391,13 +391,13 @@ class WorkflowAPITester:
             # Show workflow metadata if available
             workflow_id = final_trace.get('workflow_id')
             if workflow_id:
-                print(f"\\n📋 Workflow Metadata:")
+                print("\\n📋 Workflow Metadata:")
                 print(f"    Workflow ID: {workflow_id}")
                 print(f"    Execution ID: {final_trace.get('execution_id', 'N/A')}")
 
         final_result = monitoring_result.get("final_result")
         if final_result and final_result != {"status": "still_running"}:
-            print(f"\\n📋 Final Result:")
+            print("\\n📋 Final Result:")
             if isinstance(final_result, dict):
                 if "response" in final_result:
                     response_preview = str(final_result["response"])[:200]
@@ -528,7 +528,7 @@ class WorkflowAPITester:
             
             await asyncio.sleep(POLL_INTERVAL)
         
-        print(f"\\n🎯 Trace monitoring completed")
+        print("\\n🎯 Trace monitoring completed")
 
 
 async def main():

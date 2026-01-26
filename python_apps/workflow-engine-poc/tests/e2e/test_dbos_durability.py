@@ -35,7 +35,6 @@ import signal
 import subprocess
 import sys
 import time
-import uuid
 from typing import Any, Dict, Optional
 
 import httpx
@@ -233,7 +232,7 @@ def test_workflow_resume_after_pause():
     try:
         resp = _http("GET", "/health")
         if resp.status_code != 200:
-            pytest.skip(f"Server not healthy")
+            pytest.skip("Server not healthy")
     except Exception as e:
         pytest.skip(f"Server not reachable: {e}")
 

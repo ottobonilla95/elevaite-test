@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Annotated
+from typing import Any, List, Optional, Annotated
 import uuid
 from pydantic import UUID4, Json
 from sqlalchemy import (
@@ -26,25 +26,16 @@ from elevaitelib.schemas.instance import (
 )
 from elevaitelib.schemas.pipeline import PipelineStepStatus
 from elevaitelib.schemas.application import ApplicationType
-from elevaitelib.schemas.permission import ProjectScopedRBACPermission
 from elevaitelib.schemas.apikey import ApikeyPermissionsType
 
 from sqlalchemy import (
-    Column,
-    DateTime,
-    String,
-    DateTime,
-    ForeignKey,
-    Boolean,
     UniqueConstraint,
 )
 
-from sqlalchemy import Uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
-import uuid
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.types import CHAR
 from sqlalchemy import TypeDecorator

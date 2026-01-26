@@ -1,21 +1,18 @@
-import asyncio
 import os
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from sqlalchemy import create_engine, text
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
 from utils import client
 
 from utils import agent_schema
 from data_classes import Agent
 from utils import function_schema
-from prompts import toshiba_agent_system_prompt, TABLE_SCHEMA_WITH_EXAMPLES
+from prompts import toshiba_agent_system_prompt
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from load_data_table import load_excel_to_postgres
 from refinement_agent import refinement_agent
 
 @function_schema

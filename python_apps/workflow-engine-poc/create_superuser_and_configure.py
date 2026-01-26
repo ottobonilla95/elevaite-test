@@ -65,9 +65,9 @@ async def create_superuser_in_db():
                     f'UPDATE "{AUTH_SCHEMA}".users SET is_superuser = true WHERE id = $1',
                     existing_user["id"],
                 )
-                print(f"   ✅ Updated user to be superuser")
+                print("   ✅ Updated user to be superuser")
             else:
-                print(f"   ✅ User is already a superuser")
+                print("   ✅ User is already a superuser")
 
             return existing_user["id"]
 
@@ -246,8 +246,8 @@ async def test_policy():
                 result = response.json()
                 allowed = result.get("result", False)
 
-                print(f"\n   Test: Viewer trying to view_workflow")
-                print(f"   Expected: True")
+                print("\n   Test: Viewer trying to view_workflow")
+                print("   Expected: True")
                 print(f"   Actual: {allowed}")
 
                 if allowed:
@@ -277,7 +277,7 @@ async def main():
     # Step 2: Create access token
     print(f"\n   Creating access token for user ID: {user_id}")
     token = create_access_token(user_id)
-    print(f"   ✅ Token created")
+    print("   ✅ Token created")
 
     # Step 3: Configure policies
     success = await configure_workflow_engine_policies(token)

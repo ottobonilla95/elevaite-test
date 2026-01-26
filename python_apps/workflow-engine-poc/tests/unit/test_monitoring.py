@@ -7,10 +7,9 @@ for production monitoring and debugging of workflow executions.
 
 import asyncio
 import time
-from typing import Dict, Any
 import pytest
 
-from workflow_core_sdk.monitoring import monitoring, MetricData, TraceData
+from workflow_core_sdk.monitoring import monitoring
 from workflow_core_sdk.execution_context import ExecutionContext, UserContext
 from workflow_core_sdk import WorkflowEngine, StepRegistry
 
@@ -24,14 +23,14 @@ async def test_monitoring_system():
 
     # Test monitoring initialization
     summary = monitoring.get_monitoring_summary()
-    print(f"📋 Monitoring Summary:")
+    print("📋 Monitoring Summary:")
     print(f"   Monitoring enabled: {summary['monitoring_enabled']}")
     print(f"   OpenTelemetry available: {summary['opentelemetry_available']}")
     print(f"   Prometheus available: {summary['prometheus_available']}")
     print(f"   Service name: {summary['service_name']}")
 
     # Test metric recording
-    print(f"\n📊 Testing Metrics:")
+    print("\n📊 Testing Metrics:")
 
     # Record some test metrics
     monitoring._record_metric("test_counter", 1, {"component": "test"})
@@ -45,12 +44,12 @@ async def test_monitoring_system():
     print(f"   Metrics output length: {len(metrics_output)} characters")
 
     # Test error recording
-    print(f"\n🚨 Testing Error Recording:")
+    print("\n🚨 Testing Error Recording:")
 
     monitoring.record_error("test_component", "test_error", "This is a test error")
     monitoring.record_error("workflow_engine", "validation_error", "Invalid configuration")
 
-    print(f"   Recorded errors in metrics")
+    print("   Recorded errors in metrics")
 
 
 @pytest.mark.unit
@@ -101,7 +100,7 @@ async def test_workflow_tracing():
     initial_trace_count = len(monitoring.traces)
     initial_metric_count = len(monitoring.metrics_data)
 
-    print(f"📋 Before execution:")
+    print("📋 Before execution:")
     print(f"   Traces: {initial_trace_count}")
     print(f"   Metrics: {initial_metric_count}")
 
@@ -112,13 +111,13 @@ async def test_workflow_tracing():
     final_trace_count = len(monitoring.traces)
     final_metric_count = len(monitoring.metrics_data)
 
-    print(f"\n📋 After execution:")
+    print("\n📋 After execution:")
     print(f"   Traces: {final_trace_count} (+{final_trace_count - initial_trace_count})")
     print(f"   Metrics: {final_metric_count} (+{final_metric_count - initial_metric_count})")
 
     # Analyze traces
     if monitoring.traces:
-        print(f"\n🔍 Trace Analysis:")
+        print("\n🔍 Trace Analysis:")
         for trace in monitoring.traces[-3:]:  # Show last 3 traces
             print(f"   {trace.operation_name}: {trace.duration_ms:.2f}ms ({trace.status})")
             if trace.tags:
@@ -126,7 +125,7 @@ async def test_workflow_tracing():
 
     # Check workflow execution result
     summary = execution_context.get_execution_summary()
-    print(f"\n📊 Workflow Result:")
+    print("\n📊 Workflow Result:")
     print(f"   Status: {summary['status']}")
     print(f"   Completed steps: {summary.get('completed_steps', 0)}")
 
@@ -322,7 +321,7 @@ async def test_performance_monitoring():
     final_metrics = len(monitoring.metrics_data)
     final_traces = len(monitoring.traces)
 
-    print(f"📊 Performance Results:")
+    print("📊 Performance Results:")
     print(f"   Total time: {total_time:.2f}s")
     print(f"   Successful workflows: {successful}")
     print(f"   Failed workflows: {failed}")
@@ -349,7 +348,7 @@ async def main():
 
         # Final summary
         summary = monitoring.get_monitoring_summary()
-        print(f"\n📊 Final Monitoring Summary:")
+        print("\n📊 Final Monitoring Summary:")
         print(f"   Total traces collected: {summary['traces_collected']}")
         print(f"   Total metrics collected: {summary['metrics_collected']}")
 

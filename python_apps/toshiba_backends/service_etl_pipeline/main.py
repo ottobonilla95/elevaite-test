@@ -335,7 +335,7 @@ def main():
                            categorized_files['modified_files'] + 
                            categorized_files['retry_failed'])
         
-        logger.info(f"File Analysis:")
+        logger.info("File Analysis:")
         logger.info(f"  New files: {len(categorized_files['new_files'])}")
         logger.info(f"  Modified files: {len(categorized_files['modified_files'])}")
         logger.info(f"  Retrying failed files: {len(categorized_files['retry_failed'])}")
@@ -445,14 +445,14 @@ def main():
         save_processing_report(report)
         
         # Show final results
-        logger.info(f"Processing Complete!")
+        logger.info("Processing Complete!")
         logger.info(f"  Successfully processed: {successfully_processed} files")
         logger.info(f"  Failed in this run: {len(current_run_failures)} files")
         logger.info(f"  Total historical failures: {len(all_failed_files)} files")
         
         # Show current run failures
         if current_run_failures:
-            logger.warning(f"Files that failed in this run:")
+            logger.warning("Files that failed in this run:")
             for failed_file in current_run_failures:
                 logger.warning(f"  - {failed_file['filename']}: {failed_file['error_type']}")
         

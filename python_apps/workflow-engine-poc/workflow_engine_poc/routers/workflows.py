@@ -3,7 +3,6 @@ Workflow management endpoints
 """
 
 import logging
-import os
 import uuid
 import asyncio
 from pathlib import Path
@@ -37,7 +36,6 @@ from workflow_core_sdk.db.database import get_db_session
 from workflow_core_sdk.db.models import WorkflowRead, WorkflowBase, WorkflowExecutionRead, ExecutionStatus
 from workflow_core_sdk.services.workflows_service import WorkflowsService
 from workflow_core_sdk import WorkflowEngine
-from workflow_core_sdk.db.service import DatabaseService
 from workflow_core_sdk.streaming import (
     stream_manager,
     create_sse_stream,

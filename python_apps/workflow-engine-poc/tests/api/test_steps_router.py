@@ -373,7 +373,7 @@ class TestListBuiltinVariables:
         data = response.json()
 
         for var in data["variables"]:
-            assert "name" in var, f"Variable missing 'name' field"
+            assert "name" in var, "Variable missing 'name' field"
             assert "description" in var, f"Variable {var.get('name')} missing 'description'"
             assert "category" in var, f"Variable {var.get('name')} missing 'category'"
             assert "source" in var, f"Variable {var.get('name')} missing 'source'"

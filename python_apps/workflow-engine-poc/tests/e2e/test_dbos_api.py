@@ -120,7 +120,6 @@ def test_dbos_api_end_to_end_tool_step_only():
     # Use SQLModel endpoint to fetch DB state (the in-memory engine context is not used for DBOS runs)
     # Poll for completion (DBOS workflows run durably in background)
     deadline = time.time() + 30
-    last_status = None
     exe = None
     while time.time() < deadline:
         r = _http("GET", f"/executions/{execution_id}")
@@ -130,7 +129,6 @@ def test_dbos_api_end_to_end_tool_step_only():
         assert status in ("enqueued", "pending", "running", "completed", "failed", "cancelled", "timeout"), exe
         if status in ("completed", "failed", "cancelled", "timeout"):
             break
-        last_status = status
         time.sleep(0.5)
 
     assert exe is not None

@@ -1,10 +1,9 @@
 import pandas as pd
 import sys
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine
 import os
 from dotenv import load_dotenv
-import asyncio
 
 
 async def load_excel_to_postgres(excel_file):

@@ -6,7 +6,7 @@ Create Date: 2024-01-01 00:00:00.000000
 
 """
 
-from typing import Sequence, Union
+from typing import Union
 
 from alembic import op
 import sqlalchemy as sa

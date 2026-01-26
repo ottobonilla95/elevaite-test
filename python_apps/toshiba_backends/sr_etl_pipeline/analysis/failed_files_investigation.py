@@ -1,9 +1,7 @@
 import json
-import pandas as pd
 import os
 from collections import defaultdict, Counter
 import sys
-import os
 # Add parent directory to path
 parent_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(parent_dir)
@@ -83,12 +81,12 @@ def analyze_failed_files():
     
     # 5. RETRY COUNT ANALYSIS
     retry_counts = Counter([f.get('retry_count', 1) for f in failed_files])
-    logger.info(f"\n🔄 RETRY ATTEMPTS:")
+    logger.info("\n🔄 RETRY ATTEMPTS:")
     for retry_count, count in sorted(retry_counts.items()):
         logger.info(f"   Attempt #{retry_count}: {count} files")
     
     # 6. FILENAME PATTERN ANALYSIS
-    logger.info(f"\n📂 FILENAME PATTERNS:")
+    logger.info("\n📂 FILENAME PATTERNS:")
     
     patterns = {
         'part-files': len([f for f in failed_files if f['filename'].startswith('part-')]),
@@ -100,7 +98,7 @@ def analyze_failed_files():
         logger.info(f"   {pattern}: {count} files")
     
     # 7. RECOMMENDATIONS
-    logger.info(f"\n💡 RECOMMENDATIONS:")
+    logger.info("\n💡 RECOMMENDATIONS:")
     
     csv_error_percentage = (error_types['CSV_FORMAT_ERROR'] / len(failed_files)) * 100
     schema_error_percentage = (error_types.get('SCHEMA_LENGTH_ERROR', 0) / len(failed_files)) * 100
@@ -139,7 +137,7 @@ def analyze_failed_files():
     with open('analysis/failed_files_analysis.json', 'w') as f:
         json.dump(analysis_output, f, indent=2)
     
-    logger.info(f"\n✅ Failed files analysis saved to analysis/failed_files_investigation/failed_files_analysis.json")
+    logger.info("\n✅ Failed files analysis saved to analysis/failed_files_investigation/failed_files_analysis.json")
     
     return analysis_output
 
@@ -184,7 +182,7 @@ def analyze_s3_vs_processed():
         estimated_total_s3_files = 509
         estimated_missing = estimated_total_s3_files - len(processed_files) - len(failed_filenames)
         
-        logger.info(f"\n📈 ESTIMATED COVERAGE:")
+        logger.info("\n📈 ESTIMATED COVERAGE:")
         logger.info(f"   Successfully processed: {len(processed_files)}/{estimated_total_s3_files} ({len(processed_files)/estimated_total_s3_files*100:.1f}%)")
         logger.info(f"   Failed: {len(failed_filenames)}/{estimated_total_s3_files} ({len(failed_filenames)/estimated_total_s3_files*100:.1f}%)")
         logger.info(f"   Potentially missing: {estimated_missing}/{estimated_total_s3_files} ({estimated_missing/estimated_total_s3_files*100:.1f}%)")

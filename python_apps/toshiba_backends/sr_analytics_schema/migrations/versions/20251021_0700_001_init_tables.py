@@ -9,7 +9,6 @@ Create Date: 2025-10-21
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # Revision identifiers, used by Alembic.
 revision = '001_init_schema'

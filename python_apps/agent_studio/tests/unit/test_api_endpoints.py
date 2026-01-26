@@ -1,9 +1,5 @@
-import pytest
-import uuid
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
 
-from db.fixtures import DEFAULT_PROMPTS
 
 
 class TestPromptEndpoints:

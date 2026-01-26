@@ -6,12 +6,10 @@ and tool usage. Useful for development and troubleshooting.
 """
 
 import asyncio
-import json
 import os
-from typing import Dict, Any
 
 from workflow_engine_poc.agent_steps import SimpleAgent
-from workflow_engine_poc.tools import BASIC_TOOL_STORE, get_all_tools
+from workflow_engine_poc.tools import BASIC_TOOL_STORE
 
 
 async def debug_agent_creation():

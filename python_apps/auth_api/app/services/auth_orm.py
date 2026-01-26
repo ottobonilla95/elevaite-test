@@ -242,7 +242,7 @@ async def authenticate_user(
                                     else:
                                         # If we can't get the data, force it to True
                                         print(
-                                            f"Could not get user data, forcing is_password_temporary=True"
+                                            "Could not get user data, forcing is_password_temporary=True"
                                         )
                                         updated_user.is_password_temporary = True
                                 except Exception as query_error:
@@ -251,7 +251,7 @@ async def authenticate_user(
                                     updated_user.is_password_temporary = True
                             else:
                                 print(
-                                    f"Session is None, forcing is_password_temporary=True"
+                                    "Session is None, forcing is_password_temporary=True"
                                 )
                                 updated_user.is_password_temporary = True
                         except Exception as refresh_error:

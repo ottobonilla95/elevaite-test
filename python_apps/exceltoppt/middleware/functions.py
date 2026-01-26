@@ -1,15 +1,9 @@
-import openpyxl
 import os
 import openai
-import json
 from openai import OpenAI
 
-from fastapi import UploadFile, File
 from dotenv import load_dotenv
-import aspose.slides as slides
 
-import openpyxl
-import pandas as pd
 
 
 

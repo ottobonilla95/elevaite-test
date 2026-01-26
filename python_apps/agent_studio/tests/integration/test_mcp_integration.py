@@ -7,11 +7,11 @@ tool discovery, and execution through the API.
 
 import pytest
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from main import app
-from db import models, schemas
+from db import models
 
 
 @pytest.fixture

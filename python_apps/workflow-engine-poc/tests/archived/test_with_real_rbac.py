@@ -108,7 +108,7 @@ async def create_test_user(email: str, role: str) -> int:
             )
             print(f"   ✅ Created {role} role assignment for project {TEST_PROJECT_ID}")
         else:
-            print(f"   Role assignment already exists")
+            print("   Role assignment already exists")
 
         return user_id
 

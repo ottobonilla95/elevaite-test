@@ -6,7 +6,7 @@ boundary detection and size optimization.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 import re
 import time
 

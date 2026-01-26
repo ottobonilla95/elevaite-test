@@ -8,10 +8,9 @@ to ensure backward compatibility and new functionality work correctly.
 import asyncio
 import tempfile
 import os
-from pathlib import Path
 
 from file_reader_step import FileReaderStep, FileReaderStepConfig
-from enhanced_config import ExecutionMode, ConfigDefaults
+from enhanced_config import ExecutionMode
 
 
 async def test_simple_mode():

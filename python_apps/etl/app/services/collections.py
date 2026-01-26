@@ -1,13 +1,12 @@
 import asyncio
-import uuid
-from typing import List, Tuple, Optional, Callable, Type
+from typing import List, Tuple, Optional
 from elevaitelib.orm.db import models
 from elevaitelib.util.func import to_kebab_case
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.conversions import common_types as types
-from qdrant_client.http.models import Distance, VectorParams
-from sqlalchemy.orm import Session, Query
-from elevaitelib.schemas.collection import Collection, CollectionCreate
+from qdrant_client.http.models import VectorParams
+from sqlalchemy.orm import Session
+from elevaitelib.schemas.collection import CollectionCreate
 from elevaitelib.orm.crud import collection as collection_crud
 from elevaitelib.util import func as util_func
 

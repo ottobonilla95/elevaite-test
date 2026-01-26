@@ -1,9 +1,9 @@
 from fastapi import HTTPException, status, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy import func, case, and_, select, exists
+from sqlalchemy import func, and_, select, exists
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from typing import List, Optional, cast
+from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 from pprint import pprint
@@ -482,7 +482,7 @@ def deassign_user_from_account(
         if user_to_deassign.is_superadmin:  # if user to deassign is superadmin
             try:
                 ROOT_SUPERADMIN_ID = UUID(os.getenv("ROOT_SUPERADMIN_ID", None))
-            except Exception as e:
+            except Exception:
                 raise Exception("ROOT_SUPERADMIN_ID is not a valid UUID")
             if (
                 ROOT_SUPERADMIN_ID != logged_in_user.id

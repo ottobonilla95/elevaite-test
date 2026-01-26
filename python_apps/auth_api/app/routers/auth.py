@@ -252,7 +252,7 @@ async def admin_delete_user(
     """Delete a user (admin only)."""
     from db_core.middleware import get_current_tenant_id
 
-    current_tenant_id = get_current_tenant_id()
+    get_current_tenant_id()
 
     # Prevent deleting yourself
     if current_user.id == user_id:
@@ -403,7 +403,7 @@ async def admin_update_user(
     try:
         await session.commit()
         logger.info(f"User {user_to_update.email} roles updated by admin {current_user.email}")
-        return {"message": f"User roles updated successfully"}
+        return {"message": "User roles updated successfully"}
     except Exception as e:
         await session.rollback()
         logger.error(f"Error updating user {user_id}: {str(e)}")

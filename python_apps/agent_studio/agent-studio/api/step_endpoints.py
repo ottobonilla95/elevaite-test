@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from db.database import get_db
 from workflow_core_sdk.services.steps_service import StepsService
-from workflow_core_sdk.db.models.step_registry import StepType, StepTypeCreate, StepTypeUpdate
+from workflow_core_sdk.db.models.step_registry import StepTypeCreate, StepTypeUpdate
 
 
 router = APIRouter(prefix="/api/steps", tags=["steps"])

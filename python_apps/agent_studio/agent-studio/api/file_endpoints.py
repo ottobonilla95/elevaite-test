@@ -77,7 +77,7 @@ else:
     ALLOWED_EXTENSIONS = set(DEFAULT_EXTENSIONS)
 
 # Log configuration on startup
-logger.info(f"File upload configuration loaded:")
+logger.info("File upload configuration loaded:")
 logger.info(f"  Upload directory: {UPLOAD_DIR}")
 logger.info(
     f"  Max file size: {MAX_FILE_SIZE} bytes ({MAX_FILE_SIZE / (1024 * 1024):.1f} MB)"

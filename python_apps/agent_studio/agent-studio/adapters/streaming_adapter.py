@@ -225,13 +225,13 @@ class StreamingAdapter:
                     try:
                         if isinstance(tool_result, str):
                             json.loads(tool_result)  # Validate JSON
-                            logger.info(f"=== TOOL RESULT IS VALID JSON STRING ===")
+                            logger.info("=== TOOL RESULT IS VALID JSON STRING ===")
                             return [
                                 {"type": "content", "message": "\n\n", "source": step_id},
                                 {"type": "content", "message": tool_result + "\n", "source": step_id},
                             ]
                         else:
-                            logger.info(f"=== TOOL RESULT IS NOT STRING, CONVERTING TO JSON ===")
+                            logger.info("=== TOOL RESULT IS NOT STRING, CONVERTING TO JSON ===")
                             return [
                                 {"type": "content", "message": "\n\n", "source": step_id},
                                 {"type": "content", "message": json.dumps(tool_result) + "\n", "source": step_id},

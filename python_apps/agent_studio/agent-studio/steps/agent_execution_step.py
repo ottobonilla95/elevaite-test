@@ -6,10 +6,8 @@ integration of AI agent capabilities with structured workflow processing.
 """
 
 import uuid
-import asyncio
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from datetime import datetime
-from sqlalchemy.orm import Session
 
 from steps.base_deterministic_step import (
     BaseDeterministicStep,
@@ -125,7 +123,7 @@ class AgentExecutionStep(BaseDeterministicStep):
                 processed_items=1, total_items=1, progress_percentage=100
             )
 
-            self.logger.info(f"Agent execution completed successfully")
+            self.logger.info("Agent execution completed successfully")
 
             return StepResult(status=StepStatus.COMPLETED, data=processed_result)
 

@@ -7,18 +7,12 @@ and graceful failure recovery for production reliability.
 
 import asyncio
 import time
-from typing import Dict, Any
 import pytest
 
 from workflow_core_sdk.error_handling import (
     error_handler,
     RetryConfig,
     RetryStrategy,
-    ErrorSeverity,
-    WorkflowError,
-    StepExecutionError,
-    RetryableError,
-    NonRetryableError,
     CircuitBreakerError,
 )
 
@@ -175,7 +169,7 @@ async def test_error_classification():
     # Get error statistics
     stats = error_handler.get_error_statistics()
 
-    print(f"📊 Error Statistics:")
+    print("📊 Error Statistics:")
     print(f"   Total errors: {stats.get('total_errors', 0)}")
     print(f"   Error types: {stats.get('error_types', {})}")
     print(f"   Severity counts: {stats.get('severity_counts', {})}")
@@ -213,9 +207,9 @@ async def test_retry_strategies():
             jitter=False,  # Disable jitter for predictable timing
         )
 
-        start_time = time.time()
+        time.time()
         try:
-            result = await error_handler.execute_with_retry(
+            await error_handler.execute_with_retry(
                 timing_function,
                 retry_config=retry_config,
                 context={"component": "test_strategy", "operation": "timing_function"},

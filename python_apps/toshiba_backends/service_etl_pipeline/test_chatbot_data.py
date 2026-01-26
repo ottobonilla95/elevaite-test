@@ -59,7 +59,7 @@ def test_chatbot_data():
         # Sample queries
         cur.execute("SELECT request, vote FROM chat_data_final LIMIT 3")
         samples = cur.fetchall()
-        print(f"\n🔍 Sample queries:")
+        print("\n🔍 Sample queries:")
         for i, sample in enumerate(samples, 1):
             vote_text = "👍" if sample['vote'] == 1 else "👎" if sample['vote'] == -1 else "➖"
             print(f"   {i}. {sample['request'][:50]}... [{vote_text}]")

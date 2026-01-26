@@ -12,7 +12,7 @@ import os
 import asyncio
 import pytest
 import uuid
-from typing import AsyncGenerator, Generator, Dict, Any
+from typing import Generator, Dict
 from unittest.mock import Mock, AsyncMock, patch
 
 from fastapi.testclient import TestClient

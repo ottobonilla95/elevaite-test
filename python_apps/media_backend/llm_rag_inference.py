@@ -3,14 +3,12 @@ from qdrant_client.http.models import Filter, FieldCondition, Range, MatchValue,
 from fastapi import HTTPException
 from typing import Dict, Any, List
 from openai import OpenAI
-from model import MessageData, AdCreative, SearchResult, InferencePayload, ConversationPayload, IntentOutput, MediaPlanOutput, AnalysisOfTrends,CreativeInsightsReport,PerformanceSummary ,AnalysisOfTrendsTwo,AnalysisOfTrendsOne,AnalysisOfTrendsThree# MediaPlanSearchResult, MediaPlanCreative, CampaignPerformanceReport
+from model import AdCreative, SearchResult, InferencePayload, ConversationPayload, IntentOutput, MediaPlanOutput, CreativeInsightsReport,AnalysisOfTrendsTwo,AnalysisOfTrendsOne,AnalysisOfTrendsThree# MediaPlanSearchResult, MediaPlanCreative, CampaignPerformanceReport
 import os
 import re
-import ast
 from dotenv import load_dotenv
-from io import BytesIO
 import json
-from typing import List, Type, Dict, Any, Optional, AsyncGenerator
+from typing import Type, Optional, AsyncGenerator
 from pydantic import BaseModel
 import time
 import requests
@@ -599,7 +597,7 @@ def generate_image_from_getimgai(prompt: str, image_data: Optional[str] = None, 
             # Now we can include the base64 string directly in the payload
             payload["image"] = image_data_cleaned  # Adding the base64 string to the payload
 
-        except Exception as e:
+        except Exception:
             raise HTTPException(status_code=400, detail="Error processing image data. Ensure it's a valid base64-encoded image.")
 
     # Make the API request (POST)
@@ -714,7 +712,7 @@ def formatter_for_creative_insight(data):
         markdown_output += f"\n### Brand: {brand}, Product: {product}\n\n"
         markdown_output += f"![{thumbnail}]({md5_hash} \"{product}\")\n\n"
         markdown_output += f"| **Creative Snapshot** | {snapshot} |\n"
-        markdown_output += f"|-----------------------|-----------------------------------------------------------------------------------------------------|\n"
+        markdown_output += "|-----------------------|-----------------------------------------------------------------------------------------------------|\n"
         markdown_output += f"| **Brand Elements**    | {elements['brand_elements']} |\n"
         markdown_output += f"| **Visual Elements**   | {elements['visual_elements']} |\n"
         markdown_output += f"| **Color Tone**        | {elements['color_tone']} |\n"
@@ -1196,7 +1194,7 @@ async def perform_inference(inference_payload: InferencePayload):
         cache_key = f"{user_id}:{session_id}"
         try:
             cache_control = CacheControl()
-        except Exception as e:
+        except Exception:
             yield{"response":"Error initializing cache control. Please try again later."}
             return
         media_plan_output = ""

@@ -6,9 +6,8 @@ file type, size, configuration preferences, and parser availability.
 """
 
 import logging
-from typing import Dict, Any, Optional, List, Tuple, Union
+from typing import Dict, Any, List, Tuple
 from pathlib import Path
-import asyncio
 
 from .docling_parser import DoclingParser
 from .markitdown_parser import MarkitdownParser

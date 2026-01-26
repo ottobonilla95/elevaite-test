@@ -1,6 +1,5 @@
 import os
 import time
-import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
 from dotenv import load_dotenv
@@ -9,8 +8,6 @@ from elevaite_ingestion.stage.post_retrieval.generate_answer_openai import gener
 from elevaite_ingestion.stage.post_retrieval.cohere_reranker import rerank_chunks, retrieve_chunks
 from elevaite_ingestion.stage.post_retrieval.rse import (
     get_best_segments_greedy,
-    plot_relevance_with_segments,
-    print_segments_with_metadata,
 )
 
 load_dotenv()

@@ -9,7 +9,6 @@ Tests all operations for tools including:
 - Error cases and validation
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 

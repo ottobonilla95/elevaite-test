@@ -4,7 +4,6 @@ Test script for the new RAG tools: document_search and document_metadata_search
 """
 
 import sys
-import os
 
 
 # Test that the tools are properly added to the tool store

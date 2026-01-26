@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
 from dbos import DBOS
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from .models import IngestionJob, JobStatus
 from .database import engine

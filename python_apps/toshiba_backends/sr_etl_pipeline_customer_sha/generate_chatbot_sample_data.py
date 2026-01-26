@@ -3,7 +3,6 @@ from psycopg2.extras import RealDictCursor
 import uuid
 import random
 from datetime import datetime, timedelta
-import os
 import json
 
 # Load config from settings.json
@@ -226,7 +225,7 @@ def generate_sample_data():
         print(f"   Estimated Thumbs Up: ~{int(total_queries * 0.2)}")
         print(f"   Estimated Thumbs Down: ~{int(total_queries * 0.1)}")
         print(f"   Estimated No Vote: ~{int(total_queries * 0.7)}")
-        print(f"   Each query has both original_request and request columns")
+        print("   Each query has both original_request and request columns")
         
     except Exception as e:
         print(f"❌ Error generating sample data: {e}")

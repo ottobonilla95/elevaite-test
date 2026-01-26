@@ -4,13 +4,10 @@ import os
 import openpyxl
 import yaml
 import uuid
-import re
 import json
 
-from openai import OpenAI
 
 import pandas as pd
-import streamlit as st
 import numpy as np
 from dotenv import load_dotenv
 from pptx import Presentation
@@ -18,24 +15,14 @@ from pptx.util import Inches
 from pptx.util import Pt
 from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
-from io import BytesIO
-import aspose.slides as slides
 
 from fastapi import UploadFile, File
-from langchain.document_loaders import CSVLoader
-from langchain.indexes import VectorstoreIndexCreator
-from langchain.chains import RetrievalQA
-from langchain.llms import OpenAI
-from langchain.embeddings.openai import OpenAIEmbeddings
 
 from langchain.agents.agent_types import AgentType
 from langchain.chat_models import ChatOpenAI
-from langchain.llms import OpenAI
 from langchain_experimental.agents.agent_toolkits import create_csv_agent
 
 from functions import api_openai
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 
 #Load Environment Variables
 load_dotenv()
@@ -731,7 +718,7 @@ def add_excel_contents (prs, metrics, rs, fiscal_months, sub_metrics, df):
             
             try:
                 val = formatNumber(val) if str(np.float64(val)).startswith("0.") else val
-            except Exception as e:
+            except Exception:
                                 val = ""
         
             sm_val_text = f"{sm.split('(')[0] if '(' in sm else sm} : {val}"
@@ -874,7 +861,7 @@ def generate_presentation(excel_file_path, manifest_file_path, summary, selected
             ppt_path = os.path.join("data/PowerPoints", folderName, ppt_name)
             prs.save(ppt_path)
             return ppt_path
-        except Exception as e:
+        except Exception:
             folderName = "Excel_Sheets"
             os.makedirs(os.path.join("data/PowerPoints", folderName), exist_ok=True)
             #saving presentation
@@ -1029,7 +1016,7 @@ def get_index(start_row, end_row, start_column, end_column, sheet):
                     header = re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
                 elif header != "" and cell_value is not None:
                     header+="_"+re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
-            except Exception as e:
+            except Exception:
                 #print("Error:", str(e))
                 print(".")
         
@@ -1044,7 +1031,7 @@ def get_index(start_row, end_row, start_column, end_column, sheet):
                     header = re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
                 elif header != "" and cell_value is not None:
                     header += "_"+re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
-            except Exception as e:
+            except Exception:
                 #print("Error:", str(e))
                 print(".")
         col_headers.append(header)

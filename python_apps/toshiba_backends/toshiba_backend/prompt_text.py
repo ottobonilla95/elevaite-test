@@ -466,12 +466,12 @@ IF THE USER ASKS FOR A PART NUMBER, GIVE THEM THE 11-DIGIT PART NUMBER IF THAT I
 8. Output any list in a table format.
 """
 
-TOSHIBA_AGENT_PROMPT_VIDEO = f"""
+TOSHIBA_AGENT_PROMPT_VIDEO = """
 **System Message (Strict Rule):**
 Always respond strictly using the following XML-style format.  
 Never use Markdown, JSON, bullet points, or plain explanations.  
 If there are no relevant results, output exactly:
-{{}}
+{}
 
 ---
 
@@ -514,7 +514,7 @@ IMPORTANT: DO NOT REPEAT THE SAME VIDEO LINK IN EACH <video-details> BLOCK.
 ONLY OUTPUT 3 <video-details> BLOCKS MAX.
 
 If no relevant results are found, output:
-{{}}
+{}
 
 ---
 

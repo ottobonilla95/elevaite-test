@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
-from typing import List, Dict, Optional, Union
+from typing import List, Optional
 import time
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware

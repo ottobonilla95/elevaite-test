@@ -12,7 +12,7 @@ Tests all endpoints for tools, categories, and MCP servers:
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,17 +20,8 @@ from fastapi.testclient import TestClient
 from workflow_engine_poc.main import app
 from workflow_core_sdk.db.models import (
     Tool,
-    ToolCreate,
-    ToolRead,
-    ToolUpdate,
     ToolCategory,
-    ToolCategoryCreate,
-    ToolCategoryRead,
-    ToolCategoryUpdate,
     MCPServer,
-    MCPServerCreate,
-    MCPServerRead,
-    MCPServerUpdate,
 )
 
 client = TestClient(app)

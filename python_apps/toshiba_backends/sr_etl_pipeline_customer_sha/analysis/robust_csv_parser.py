@@ -1,9 +1,7 @@
 import pandas as pd
 import os
 import sys
-import logging
-from typing import Dict, Any, Optional
-import numpy as np
+from typing import Dict
 
 # Add parent directory to path
 parent_dir = os.path.dirname(os.path.dirname(__file__))
@@ -32,7 +30,7 @@ def read_csv_with_flexible_parsing(file_path: str) -> pd.DataFrame:
     
     # Strategy 1: Try standard pandas with flexible column handling
     try:
-        logger.info(f"  Strategy 1: Standard pandas parsing...")
+        logger.info("  Strategy 1: Standard pandas parsing...")
         
         # First, peek at the file to understand its structure
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -66,7 +64,7 @@ def read_csv_with_flexible_parsing(file_path: str) -> pd.DataFrame:
     
     # Strategy 2: Read with no header, then assign column names
     try:
-        logger.info(f"  Strategy 2: No header parsing...")
+        logger.info("  Strategy 2: No header parsing...")
         
         # Read without headers to avoid field count issues
         df = pd.read_csv(
@@ -100,7 +98,7 @@ def read_csv_with_flexible_parsing(file_path: str) -> pd.DataFrame:
     
     # Strategy 3: Line-by-line parsing with error recovery
     try:
-        logger.info(f"  Strategy 3: Line-by-line parsing...")
+        logger.info("  Strategy 3: Line-by-line parsing...")
         
         rows = []
         headers = None

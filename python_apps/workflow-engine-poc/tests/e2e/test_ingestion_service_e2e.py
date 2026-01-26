@@ -32,7 +32,6 @@ Usage:
 
 import os
 import uuid
-import time
 import asyncio
 import pytest
 import httpx
@@ -130,7 +129,7 @@ async def test_ingestion_service_workflow_e2e():
     """
     # Use real HTTP client to connect to running services
     workflow_api_url = os.getenv("WORKFLOW_API_URL", "http://localhost:8006")
-    ingestion_api_url = os.getenv("INGESTION_API_URL", "http://localhost:8001")
+    os.getenv("INGESTION_API_URL", "http://localhost:8001")
 
     # Define workflow with trigger and ingestion step
     # Workflow-engine-poc expects steps at top level (not nested in configuration)

@@ -1,9 +1,8 @@
 import os
 import sys
 import re
-import time
 from typing import List, Dict, Optional
-from qdrant_client import QdrantClient, AsyncQdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models
 import nltk
 
@@ -11,7 +10,6 @@ path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.append(path)
 
 import os
-from typing import List
 from dotenv import load_dotenv
 import openai
 
@@ -145,7 +143,7 @@ async def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: 
             with_vectors=False
         )
         return [process_match(m) | {"search_type": "payload_filter"} for m in response[0]]
-    except Exception as e:
+    except Exception:
         # logger.error(f"Payload (exact match) retrieval failed: {str(e)}")
         return []
     finally:
@@ -154,7 +152,6 @@ async def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: 
 
 # enhanced_hybrid_search("what is loader", top_k=30, machine_types=["6800"])
 part_numbers = ["80Y1564","80Y1565","80Y1566","80Y1567","80Y1563"]*10
-import asyncio
 
 # async def main():
 #     start = time.time()

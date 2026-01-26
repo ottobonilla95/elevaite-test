@@ -11,13 +11,13 @@ Tests all CRUD endpoints for prompts with various scenarios:
 
 import uuid
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from workflow_engine_poc.main import app
-from workflow_core_sdk.db.models import Prompt, PromptCreate, PromptUpdate
+from workflow_core_sdk.db.models import Prompt
 from workflow_core_sdk.services.prompts_service import PromptsQuery
 
 client = TestClient(app)

@@ -123,20 +123,20 @@ def test_workflow_tracing():
     # Get final execution status
     final_execution = execution_manager.get_execution(execution_id)
     if final_execution:
-        print(f"\n📊 Final Execution Status:")
+        print("\n📊 Final Execution Status:")
         print(f"  Status: {final_execution.status}")
         print(f"  Progress: {(final_execution.progress or 0) * 100:.1f}%")
         print(f"  Current Step: {final_execution.current_step}")
         
         if final_execution.workflow_trace:
             trace = final_execution.workflow_trace
-            print(f"\n🔍 Workflow Trace Details:")
+            print("\n🔍 Workflow Trace Details:")
             print(f"  Execution Path: {' → '.join(trace.execution_path)}")
             print(f"  Total Steps: {trace.total_steps}")
             print(f"  Current Step Index: {trace.current_step_index}")
             print(f"  Branch Decisions: {len(trace.branch_decisions)}")
             
-            print(f"\n📋 Step Details:")
+            print("\n📋 Step Details:")
             for i, step in enumerate(trace.steps):
                 status_emoji = {"pending": "⏳", "running": "🔄", "completed": "✅", "failed": "❌", "skipped": "⏭️"}
                 print(f"  {i+1}. {status_emoji.get(step.status, '❓')} {step.step_type} - {step.agent_name or 'System'}")
@@ -145,13 +145,13 @@ def test_workflow_tracing():
                 if step.error:
                     print(f"     Error: {step.error}")
     
-    print(f"\n📈 Execution Manager Stats:")
+    print("\n📈 Execution Manager Stats:")
     stats = execution_manager.get_stats()
     for key, value in stats.items():
         if key not in ['oldest_execution', 'newest_execution']:
             print(f"  {key}: {value}")
     
-    print(f"\n🎉 Test completed successfully!")
+    print("\n🎉 Test completed successfully!")
     return True
 
 if __name__ == "__main__":

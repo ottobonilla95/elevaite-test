@@ -1,12 +1,10 @@
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, ANY
-from .... import models
+from unittest.mock import patch, MagicMock, ANY
 from ....auth.idp.google import (
     get_user_email_response_with_error,
     get_user_email_response_with_success,
 )
 from ....fixtures.setup_initial_data import db_data
-from elevaitelib.schemas import permission as permission_schemas
 from .utils import mock_getenv_org_id
 
 
@@ -257,6 +255,6 @@ async def test_get_organization_with_non_existent_organization_and_valid_access_
     assert response.status_code == 404
     actual_response_payload = response.json()
 
-    expected_response_payload = {"detail": f"Organization not found"}
+    expected_response_payload = {"detail": "Organization not found"}
 
     assert actual_response_payload == expected_response_payload

@@ -11,7 +11,6 @@ import pytest
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, AsyncMock
-from fastapi.testclient import TestClient
 
 from rbac_sdk import HDR_USER_ID, HDR_ORG_ID
 

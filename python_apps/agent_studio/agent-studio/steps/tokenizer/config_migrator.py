@@ -7,7 +7,7 @@ This module provides utilities to convert between different configuration format
 - Auto-detection of configuration format
 """
 
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any
 import logging
 from .enhanced_config import (
     EnhancedTokenizerConfig,

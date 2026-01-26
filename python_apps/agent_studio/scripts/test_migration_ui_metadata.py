@@ -7,7 +7,6 @@ to the new schema with UI metadata (positions and connections).
 """
 
 import json
-from typing import Dict, List
 
 
 def test_migration_logic():
@@ -200,7 +199,7 @@ def test_migration_logic():
                 print(f"   Got: {step['dependencies']}")
     
     if deps_match:
-        print(f"✅ Dependencies correctly derived from connections")
+        print("✅ Dependencies correctly derived from connections")
     
     # Check handles preserved
     handles_preserved = any(

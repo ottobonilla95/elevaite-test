@@ -10,7 +10,6 @@ Tests all operations for file management including:
 - Error cases
 """
 
-import pytest
 import io
 from fastapi.testclient import TestClient
 

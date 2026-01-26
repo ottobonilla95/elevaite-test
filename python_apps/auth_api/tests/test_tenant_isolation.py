@@ -22,7 +22,6 @@ async def test_tenant_isolation_db(test_db_setup):
     """Test that users are isolated between tenants at the database level."""
     # Use direct database access instead of the ORM to avoid session issues
     from app.db.orm import get_async_session
-    from app.core.config import settings
     from db_core import init_db
     from app.db.models import Base
 
@@ -343,7 +342,6 @@ async def test_cross_tenant_token_invalid(test_client: AsyncClient, test_session
     from app.db.models import Base
 
     # Ensure default tenant schema and users table exist using SQLAlchemy metadata
-    from app.db.models import Base
 
     def _ensure_schema_and_tables(sync_session):
         from app.db.models import User

@@ -180,7 +180,7 @@ def test_user_analytics_connection():
         
         return {
             "status": "success",
-            "message": f"Connected to user analytics database",
+            "message": "Connected to user analytics database",
             "total_users": result['total_users'],
             "total_queries": result['total_queries'],
             "total_sessions": result['total_sessions'],
@@ -264,7 +264,7 @@ def get_user_metrics(
                 prev_end = (end_dt - timedelta(days=period_length)).strftime('%Y-%m-%d')
                 
                 # Build previous period query with FST filtering and email exclusion
-                prev_date_filter = f"cdf.request_timestamp::date BETWEEN %s::date AND %s::date"
+                prev_date_filter = "cdf.request_timestamp::date BETWEEN %s::date AND %s::date"
                 prev_date_params = [prev_start, prev_end] + fst_params + exclusion_params
                 prev_where_clause = build_combined_where_clause(prev_date_filter, fst_filter, exclusion_filter)
                 

@@ -2,14 +2,13 @@ from fastapi import status, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from typing import List, cast
+from typing import List
 from uuid import UUID
 from datetime import datetime
 from pprint import pprint
 
 from elevaitelib.schemas import (
     role as role_schemas,
-    permission as permission_schemas,
 )
 from elevaitelib.orm.db import models
 
@@ -30,7 +29,7 @@ def create_role(
             existing_role
         ):  # Application-side uniqueness check : Check if a user with the same email already exists in the specified account
             pprint(
-                f"in POST /roles - A role with the same name already exists in roles table"
+                "in POST /roles - A role with the same name already exists in roles table"
             )
             raise ApiError.conflict(
                 f"A role with name - '{role_creation_dto.name}' - already exists"

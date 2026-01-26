@@ -1,10 +1,7 @@
 """Tests for tenant-aware API endpoints."""
 
 import pytest
-import pytest_asyncio
-from httpx import AsyncClient
 
-from db_core.middleware import set_current_tenant_id
 from db_core.utils import get_schema_name
 
 from app.core.multitenancy import multitenancy_settings
@@ -24,13 +21,10 @@ async def test_tenant_isolation(test_client, test_user):
     # Activate the user in tenant1
     # We need to do this directly in the database since we don't have an API endpoint for it
     from sqlalchemy import text
-    from sqlalchemy.ext.asyncio import AsyncSession
     from app.db.orm import get_async_session
 
     async for session in get_async_session():
         # Set the tenant context
-        from db_core.utils import get_schema_name
-        from app.core.multitenancy import multitenancy_settings
 
         schema_name = get_schema_name("tenant1", multitenancy_settings)
         await session.execute(text(f'SET search_path TO "{schema_name}", public'))
@@ -97,13 +91,10 @@ async def test_cross_tenant_access(test_client, test_user):
     # Activate the user in tenant1
     # We need to do this directly in the database since we don't have an API endpoint for it
     from sqlalchemy import text
-    from sqlalchemy.ext.asyncio import AsyncSession
     from app.db.orm import get_async_session
 
     async for session in get_async_session():
         # Set the tenant context
-        from db_core.utils import get_schema_name
-        from app.core.multitenancy import multitenancy_settings
 
         schema_name = get_schema_name("tenant1", multitenancy_settings)
         await session.execute(text(f'SET search_path TO "{schema_name}", public'))

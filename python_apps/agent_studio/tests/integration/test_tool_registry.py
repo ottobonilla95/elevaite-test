@@ -5,10 +5,9 @@ Tests the tool registry singleton, caching, and tool execution.
 """
 
 import pytest
-from unittest.mock import Mock, patch
 from sqlalchemy.orm import Session
 
-from services.tool_registry import tool_registry, ToolRegistry
+from services.tool_registry import ToolRegistry
 from db import crud, schemas
 
 

@@ -1,14 +1,12 @@
 """Authorization (authz) endpoints using OPA for policy evaluation."""
 
 import logging
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_current_user
 from app.db.models import User
 from app.db.models_rbac import UserRoleAssignment, PermissionOverride, UserGroupMembership, Group
 from app.db.tenant_db import get_tenant_async_db

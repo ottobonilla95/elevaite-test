@@ -286,11 +286,11 @@ async def process_fst_email_updates():
         
         logger.info("=" * 50)
         logger.info("🎯 EMAIL UPDATE PROCESSING COMPLETE!")
-        logger.info(f"   📊 SUMMARY:")
+        logger.info("   📊 SUMMARY:")
         logger.info(f"      Deleted: {deleted_count} technicians")
         logger.info(f"      Added: {added_count} new technicians")
         logger.info(f"      Updated: {updated_count} existing technicians")
-        logger.info(f"   📈 FINAL DATABASE STATE:")
+        logger.info("   📈 FINAL DATABASE STATE:")
         logger.info(f"      Total FSTs: {final_stats['total_fsts']}")
         logger.info(f"      Active FSTs: {final_stats['active_fsts']}")
         logger.info(f"      Managers: {final_stats['managers']}")

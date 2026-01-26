@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 
 from workflow_engine_poc.main import app
-from workflow_core_sdk.db.models import Agent, AgentRead, AgentToolBinding, Prompt
+from workflow_core_sdk.db.models import Agent, AgentToolBinding, Prompt
 
 client = TestClient(app)
 

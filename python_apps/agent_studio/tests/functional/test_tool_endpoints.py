@@ -4,8 +4,6 @@ Functional tests for tool management API endpoints.
 Tests the complete API functionality for tools, categories, and MCP servers.
 """
 
-import pytest
-import uuid
 from fastapi.testclient import TestClient
 
 

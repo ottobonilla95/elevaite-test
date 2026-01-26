@@ -8,10 +8,9 @@ Phase 2: Full MCP integration with remote tool execution
 """
 
 import asyncio
-import json
 import uuid
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Union
+from datetime import datetime
+from typing import Dict, List, Optional, Any
 from urllib.parse import urljoin
 import httpx
 from sqlalchemy.orm import Session

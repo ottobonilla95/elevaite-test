@@ -11,7 +11,7 @@ Tests all approval endpoints:
 import pytest
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 
 from workflow_core_sdk.db.models import ApprovalStatus

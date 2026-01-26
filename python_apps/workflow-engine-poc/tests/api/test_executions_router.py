@@ -7,7 +7,7 @@ Tests all execution status, results, and analytics endpoints.
 import pytest
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock, AsyncMock, ANY, Mock
+from unittest.mock import patch, AsyncMock, Mock
 from fastapi.testclient import TestClient
 
 from workflow_engine_poc.main import app
@@ -108,7 +108,7 @@ class TestGetExecutionStatus:
         """Test getting execution status from database when not in memory"""
         from workflow_core_sdk.services.workflows_service import WorkflowsService
 
-        execution_id = str(uuid.uuid4())
+        str(uuid.uuid4())
         workflow_id = str(uuid.uuid4())
 
         # Create execution in DB
@@ -185,7 +185,7 @@ class TestGetExecutionResults:
         """Test getting execution results from database when not in memory"""
         from workflow_core_sdk.services.workflows_service import WorkflowsService
 
-        execution_id = str(uuid.uuid4())
+        str(uuid.uuid4())
         workflow_id = str(uuid.uuid4())
 
         # Create execution in DB
@@ -280,7 +280,7 @@ class TestGetExecutionAnalytics:
                 "session_id": "test-session",
             },
         )
-        exec2_id = WorkflowsService.create_execution(
+        WorkflowsService.create_execution(
             session,
             {
                 "workflow_id": workflow_id,

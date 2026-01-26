@@ -2,8 +2,7 @@ import asyncio
 import asyncpg
 import pandas as pd
 import numpy as np
-import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from urllib.parse import urlparse
 from datetime import datetime
 from dateutil import parser as date_parser
@@ -348,7 +347,7 @@ async def append_to_postgres(cleaned_data, conn_string):
     INCREMENTAL: Append data to existing tables (preserves existing data)
     This is the new default behavior
     """
-    logger.info(f"Connecting to database for incremental loading...")
+    logger.info("Connecting to database for incremental loading...")
     
     # Parse connection string
     db_config = parse_connection_string(conn_string)

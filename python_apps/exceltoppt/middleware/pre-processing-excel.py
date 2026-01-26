@@ -96,7 +96,7 @@ def get_index(start_row, end_row, start_column, end_column, sheet):
                     header = re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
                 elif header != "" and cell_value is not None:
                     header+="_"+re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
-            except Exception as e:
+            except Exception:
                 #print("Error:", str(e))
                 print(".")
         
@@ -111,7 +111,7 @@ def get_index(start_row, end_row, start_column, end_column, sheet):
                     header = re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
                 elif header != "" and cell_value is not None:
                     header += "_"+re.sub(r'[^a-zA-Z0-9]', '', str(cell_value))
-            except Exception as e:
+            except Exception:
                 #print("Error:", str(e))
                 print(".")
         col_headers.append(header)

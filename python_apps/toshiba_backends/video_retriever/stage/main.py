@@ -1,11 +1,10 @@
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
-from typing import List, Dict, Optional, Union
+from typing import List, Optional
 import time
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 
-from retrieval_stage.retrieve_qdrant import multi_strategy_search as enhanced_hybrid_search
 from post_retrieval.cohere_reranker import rerank_separately_then_merge
 from post_retrieval.rse import get_best_segments
 

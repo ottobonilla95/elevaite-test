@@ -7,7 +7,7 @@
 import json
 import time
 import uuid
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 import requests
 

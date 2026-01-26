@@ -9,7 +9,6 @@ from sqlalchemy import pool
 from alembic import context
 
 # Import models for autogenerate
-from ingestion_service.models import IngestionJob
 from sqlmodel import SQLModel
 
 # this is the Alembic Config object, which provides

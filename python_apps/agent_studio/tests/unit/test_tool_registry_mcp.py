@@ -7,7 +7,6 @@ Tests the enhanced tool registry with MCP tool execution capabilities.
 import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
 
 from services.tool_registry import ToolRegistry
 from db import models, schemas
