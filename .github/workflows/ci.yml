@@ -171,9 +171,22 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth_test
       FRONTEND_URL: http://localhost:3005
+      REDIS_ENABLED: "true"
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
 
     steps:
       - uses: actions/checkout@v4
