@@ -25,11 +25,11 @@ function UserHeader(): JSX.Element {
     <header
       className="welcomeAndSearch"
       style={{
-        background: colors.primary as string,
-        borderColor: colors.borderColor as string,
+        background: colors.primary,
+        borderColor: colors.borderColor,
       }}
     >
-      <span className="welcome" style={{ color: colors.text as string }}>
+      <span className="welcome" style={{ color: colors.text }}>
         Welcome to elevAIte<span style={{ fontWeight: 700 }}> Mary </span>!
       </span>
       <Searchbar

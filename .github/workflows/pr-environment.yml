@@ -102,7 +102,10 @@ jobs:
         run: |
           cd terraform/environments/dev/${{ env.CLOUD_PROVIDER }}
           terraform init
-          echo "db_host=$(terraform output -raw database_host)" >> $GITHUB_OUTPUT
+          DB_HOST_RAW=$(terraform output -raw database_host)
+          # Strip port if present in hostname
+          DB_HOST_CLEAN=$(echo "$DB_HOST_RAW" | cut -d: -f1)
+          echo "db_host=$DB_HOST_CLEAN" >> $GITHUB_OUTPUT
           echo "rabbitmq_host=$(terraform output -raw rabbitmq_host)" >> $GITHUB_OUTPUT
           echo "storage_bucket=$(terraform output -raw storage_bucket)" >> $GITHUB_OUTPUT
 
@@ -117,17 +120,16 @@ jobs:
           # Install psql
           sudo apt-get update && sudo apt-get install -y postgresql-client
 
-          # Create database for this PR
+          # Create database for this PR (DB_HOST already cleaned by Terraform step)
           PGPASSWORD="$DB_PASSWORD" psql \
             -h "$DB_HOST" \
+            -p 5432 \
             -U "$DB_USER" \
             -d "$DB_ADMIN_DATABASE" \
             -c "CREATE DATABASE pr_${{ env.PR_NUMBER }};" || echo "Database may already exist"
 
           # Run migrations
-          # Strip any port from DB_HOST if present to avoid double-port issues
-          DB_HOST_CLEAN=$(echo "$DB_HOST" | cut -d: -f1)
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST_CLEAN}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
           cd python_apps/workflow-engine-poc
           uv sync
           uv run alembic upgrade head
@@ -279,7 +281,10 @@ jobs:
         run: |
           cd terraform/environments/dev/${{ env.CLOUD_PROVIDER }}
           terraform init
-          echo "db_host=$(terraform output -raw database_host)" >> $GITHUB_OUTPUT
+          DB_HOST_RAW=$(terraform output -raw database_host)
+          # Strip port if present in hostname
+          DB_HOST_CLEAN=$(echo "$DB_HOST_RAW" | cut -d: -f1)
+          echo "db_host=$DB_HOST_CLEAN" >> $GITHUB_OUTPUT
 
       - name: Setup Helm
         uses: azure/setup-helm@v4
@@ -300,17 +305,19 @@ jobs:
           DB_ADMIN_DATABASE: elevaite_dev
         run: |
           sudo apt-get update && sudo apt-get install -y postgresql-client
-          
-          # Terminate connections
+
+          # Terminate connections (DB_HOST already cleaned by Terraform step)
           PGPASSWORD="$DB_PASSWORD" psql \
             -h "$DB_HOST" \
+            -p 5432 \
             -U "$DB_USER" \
             -d "$DB_ADMIN_DATABASE" \
             -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'pr_${{ env.PR_NUMBER }}';" || true
-          
+
           # Drop database
           PGPASSWORD="$DB_PASSWORD" psql \
             -h "$DB_HOST" \
+            -p 5432 \
             -U "$DB_USER" \
             -d "$DB_ADMIN_DATABASE" \
             -c "DROP DATABASE IF EXISTS pr_${{ env.PR_NUMBER }};"
