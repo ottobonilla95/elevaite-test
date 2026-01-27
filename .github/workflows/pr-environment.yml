@@ -237,7 +237,15 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
+      - name: Clean up failed migration jobs
+        run: |
+          # Delete any existing failed migration job to ensure clean state
+          kubectl delete job elevaite-pr-${{ env.PR_NUMBER }}-migrations -n ${{ env.NAMESPACE }} --ignore-not-found
+          echo "Cleaned up any previous migration jobs"
+
       - name: Deploy with Helm
+        id: helm_deploy
+        continue-on-error: true
         run: |
           helm upgrade --install elevaite-pr-${{ env.PR_NUMBER }} ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
@@ -255,6 +263,58 @@ jobs:
             --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
             --wait \
             --timeout 10m
+
+      - name: Debug migration job on failure
+        if: steps.helm_deploy.outcome == 'failure'
+        run: |
+          echo "=========================================="
+          echo "Migration Job Debug Information"
+          echo "=========================================="
+
+          # Check if job exists
+          if kubectl get job elevaite-pr-${{ env.PR_NUMBER }}-migrations -n ${{ env.NAMESPACE }} 2>/dev/null; then
+            echo ""
+            echo "Job Status:"
+            kubectl get job elevaite-pr-${{ env.PR_NUMBER }}-migrations -n ${{ env.NAMESPACE }}
+
+            echo ""
+            echo "Job Description:"
+            kubectl describe job elevaite-pr-${{ env.PR_NUMBER }}-migrations -n ${{ env.NAMESPACE }}
+
+            echo ""
+            echo "Pod Status:"
+            kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations
+
+            echo ""
+            echo "Pod Logs (last 100 lines):"
+            POD_NAME=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+            if [ -n "$POD_NAME" ]; then
+              echo "=== Init Container Logs (wait-for-postgres) ==="
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c wait-for-postgres --tail=50 || echo "No init container logs"
+
+              echo ""
+              echo "=== Auth API Migration Logs ==="
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c auth-api-migrations --tail=50 || echo "Container not started yet"
+
+              echo ""
+              echo "=== Workflow Engine Migration Logs ==="
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c workflow-engine-migrations --tail=50 || echo "Container not started yet"
+
+              echo ""
+              echo "=== Ingestion Migration Logs ==="
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c ingestion-service-migrations --tail=50 || echo "Container not started yet"
+            else
+              echo "No migration pods found"
+            fi
+          else
+            echo "Migration job does not exist"
+          fi
+
+          exit 1
+
+      - name: Check deployment succeeded
+        if: steps.helm_deploy.outcome == 'failure'
+        run: exit 1
 
       - name: Post deployment URL
         uses: actions/github-script@v7
