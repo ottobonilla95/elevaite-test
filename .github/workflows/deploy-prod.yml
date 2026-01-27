@@ -170,7 +170,7 @@ jobs:
 
       # --- AWS Authentication ---
       - name: Configure AWS credentials
-        if: env.CLOUD_PROVIDER == 'aws'
+        if: ${{ env.CLOUD_PROVIDER == 'aws' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -178,31 +178,31 @@ jobs:
           aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
 
       - name: Configure kubectl for AWS EKS
-        if: env.CLOUD_PROVIDER == 'aws'
+        if: ${{ env.CLOUD_PROVIDER == 'aws' }}
         run: |
           aws eks update-kubeconfig --name elevaite-production --region ${{ vars.AWS_REGION || 'us-west-1' }}
 
       # --- Azure Authentication ---
       - name: Configure Azure credentials
-        if: env.CLOUD_PROVIDER == 'azure'
+        if: ${{ env.CLOUD_PROVIDER == 'azure' }}
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Configure kubectl for Azure AKS
-        if: env.CLOUD_PROVIDER == 'azure'
+        if: ${{ env.CLOUD_PROVIDER == 'azure' }}
         run: |
           az aks get-credentials --resource-group elevaite-production --name elevaite-production
 
       # --- GCP Authentication ---
       - name: Configure GCP credentials
-        if: env.CLOUD_PROVIDER == 'gcp'
+        if: ${{ env.CLOUD_PROVIDER == 'gcp' }}
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: Configure kubectl for GCP GKE
-        if: env.CLOUD_PROVIDER == 'gcp'
+        if: ${{ env.CLOUD_PROVIDER == 'gcp' }}
         uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: elevaite-production

@@ -16,7 +16,7 @@
     "dev:down": "docker-compose -f docker-compose.dev.yaml down",
     "dev:clean": "docker-compose -f docker-compose.dev.yaml down -v",
     "dev:logs": "docker-compose -f docker-compose.dev.yaml logs -f",
-    "dev:death": "docker-compose -f docker-compose.dev.yaml down -v --remove-orphans; docker rm -f $(docker ps -aq) 2>/dev/null; docker network prune -f; echo '💀 Everything is dead'",
+    "dev:death": "docker-compose -f docker-compose.dev.yaml down -v --remove-orphans; docker rm -f $(docker ps -aq --filter 'name=elevaite') 2>/dev/null; echo '💀 Elevaite containers removed'",
     "lint": "turbo lint --filter=auth --filter=elevaite",
     "lint:frontend": "turbo lint --filter=auth --filter=elevaite",
     "lint:frontend:all": "turbo lint",

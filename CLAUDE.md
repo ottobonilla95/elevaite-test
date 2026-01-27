@@ -28,10 +28,12 @@ elevaite/
 │   ├── workflow-engine-poc/        # Workflow execution engine (port 8006)
 │   └── ingestion-service/          # Document processing/RAG (port 8001)
 ├── python_packages/                # Shared Python libraries
-│   ├── workflow-core-sdk/          # Workflow SDK
+│   ├── db-core/                    # Database utilities (multi-tenancy)
+│   ├── fastapi-logger/             # Logging utilities (elevaite-logger)
+│   ├── llm-gateway/                # LLM provider abstraction
 │   ├── rbac-sdk/                   # Authorization SDK
-│   ├── elevaite_ingestion/         # Ingestion utilities
-│   └── db-core/                    # Database utilities
+│   ├── workflow-core-sdk/          # Workflow execution SDK
+│   └── elevaite_ingestion/         # Document ingestion utilities
 ├── terraform/                      # Infrastructure as code (multi-cloud)
 │   ├── modules/                    # Reusable modules
 │   ├── environments/               # Per-environment configs
@@ -61,7 +63,7 @@ elevaite/
 ### Backend Services (Python/FastAPI)
 - **auth-api** (8004) - Authentication, authorization, user/tenant management
 - **workflow-engine** (8006) - Agent execution, chat handling, tool orchestration
-- **ingestion** (8001) - Document processing, embeddings, vector storage
+- **ingestion** (8000) - Document processing, embeddings, vector storage
 
 ### Frontend (Next.js)
 - **auth** (3005) - Login/signup UI, OAuth flows
@@ -101,7 +103,7 @@ npm run dev:frontend     # Start frontend apps
 # Stop everything
 npm run dev:down
 
-# Nuclear reset (wipes all data)
+# Nuclear reset (removes elevaite containers and volumes)
 npm run dev:death
 ```
 
@@ -307,12 +309,13 @@ uv run ruff check .
 ### Helm
 - **Location:** `helm/elevaite/`
 - **Charts:** Deploy all services to Kubernetes
-- **Values:** Per-environment overrides (staging, production)
+- **Values:** Per-environment overrides (pr, staging, production)
 
 ## CI/CD Pipeline
 
 **Active workflows:**
 - `ci.yml` - Lint, test, type-check on PR
+- `pr-environment.yml` - Create ephemeral PR preview environments
 - `deploy-staging.yml` - Auto-deploy on merge to `develop`
 - `deploy-prod.yml` - Manual deploy on merge to `main`
 
@@ -434,6 +437,13 @@ For staging/production deployments, these variables are set in GitHub repo setti
 | `PROD_QDRANT_API_KEY` | Vector DB auth (production, optional) |
 | `AWS_ACCESS_KEY_ID` | AWS deployment credentials |
 | `AWS_SECRET_ACCESS_KEY` | AWS deployment credentials |
+| `DEV_DB_PASSWORD` | Dev database password (PR environments) |
+| `DEV_RABBITMQ_PASSWORD` | Dev RabbitMQ password |
+| `DEV_STORAGE_ACCESS_KEY` | Dev S3/MinIO access (PR environments) |
+| `DEV_STORAGE_SECRET_KEY` | Dev S3/MinIO secret (PR environments) |
+| `DEV_QDRANT_API_KEY` | Dev vector DB auth (optional) |
+| `AZURE_CREDENTIALS` | Azure service principal (Azure deployments) |
+| `GCP_CREDENTIALS` | GCP service account JSON (GCP deployments) |
 
 #### GitHub Variables (non-sensitive URLs - use "Variables" tab)
 
@@ -441,6 +451,7 @@ For staging/production deployments, these variables are set in GitHub repo setti
 |----------|---------|---------|
 | `CLOUD_PROVIDER` | Target cloud (aws/azure/gcp) | `aws` |
 | `AWS_REGION` | AWS region | `us-west-1` |
+| `GCP_REGION` | GCP region | `us-central1` |
 | `STAGING_BACKEND_URL` | Workflow engine URL (staging) | `https://api-staging.example.com` |
 | `STAGING_AUTH_API_URL` | Auth API URL (staging) | `https://auth-staging.example.com` |
 | `STAGING_AUTH_URL` | Auth frontend URL (staging) | `https://login-staging.example.com` |
