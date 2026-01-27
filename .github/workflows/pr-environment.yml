@@ -49,6 +49,16 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       # --- Cloud Authentication (based on CLOUD_PROVIDER) ---
+      - name: Debug environment
+        run: |
+          echo "CLOUD_PROVIDER: ${{ env.CLOUD_PROVIDER }}"
+          echo "Checking condition: env.CLOUD_PROVIDER == 'aws'"
+          if [ "${{ env.CLOUD_PROVIDER }}" == "aws" ]; then
+            echo "✓ Condition matches - AWS steps should run"
+          else
+            echo "✗ Condition does not match - AWS steps will be skipped"
+          fi
+
       - name: Configure AWS credentials
         if: ${{ env.CLOUD_PROVIDER == 'aws' }}
         uses: aws-actions/configure-aws-credentials@v4
@@ -83,6 +93,13 @@ jobs:
         with:
           cluster_name: elevaite-dev
           location: ${{ vars.GCP_REGION || 'us-central1' }}
+
+      - name: Verify kubectl configuration
+        run: |
+          echo "Checking kubectl configuration..."
+          kubectl config current-context || echo "No kubectl context configured"
+          kubectl cluster-info || echo "Cannot connect to cluster"
+          kubectl version --client
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
