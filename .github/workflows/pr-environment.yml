@@ -140,12 +140,12 @@ jobs:
       - name: Build and Push Docker Images
         run: |
           docker build -t ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }} \
-            -f python_apps/Dockerfile.rbac python_apps/
+            -f python_apps/auth_api/Dockerfile .
           docker build -t ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }} \
-            -f python_apps/workflow-engine-poc/Dockerfile python_apps/
+            -f python_apps/workflow-engine-poc/Dockerfile .
           docker build -t ghcr.io/${{ github.repository }}/ingestion:pr-${{ env.PR_NUMBER }} \
-            -f python_apps/ingestion-service/Dockerfile python_apps/
-          
+            -f python_apps/ingestion-service/Dockerfile .
+
           docker push ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }}
           docker push ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }}
           docker push ghcr.io/${{ github.repository }}/ingestion:pr-${{ env.PR_NUMBER }}
