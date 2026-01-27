@@ -210,6 +210,14 @@ jobs:
 
       - name: Create/Update Kubernetes secrets
         run: |
+          # Create Docker registry secret for pulling images from GHCR
+          kubectl create secret docker-registry ghcr-pull-secret \
+            --namespace ${{ env.NAMESPACE }} \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
           # Database credentials
           kubectl create secret generic elevaite-db-credentials \
             --namespace ${{ env.NAMESPACE }} \
@@ -302,6 +310,7 @@ jobs:
             --values ./helm/elevaite/values-staging.yaml \
             --set global.imageRegistry=ghcr.io/${{ github.repository }} \
             --set global.environment=staging \
+            --set global.imagePullSecrets[0].name=ghcr-pull-secret \
             --set authApi.image.tag=${{ needs.build.outputs.image_tag }} \
             --set workflowEngine.image.tag=${{ needs.build.outputs.image_tag }} \
             --set ingestion.image.tag=${{ needs.build.outputs.image_tag }} \
