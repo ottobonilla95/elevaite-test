@@ -61,7 +61,9 @@ async def test_tenant_isolation():
 
         # Create tables in each schema
         async with engine.begin() as conn:
-            await conn.execute(sqlalchemy.text(f'SET search_path TO "{schema_name}", public'))
+            await conn.execute(
+                sqlalchemy.text(f'SET search_path TO "{schema_name}", public')
+            )
             await conn.run_sync(Base.metadata.create_all)
 
     # Create session factory

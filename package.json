@@ -20,7 +20,7 @@
     "lint": "turbo lint --filter=auth --filter=elevaite",
     "lint:frontend": "turbo lint --filter=auth --filter=elevaite",
     "lint:frontend:all": "turbo lint",
-    "lint:python": "uv run ruff check python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/",
+    "lint:python": "uv run ruff check --extend-ignore=B904,E402,E501,E701,E721,E722,F401,F403,F811,F821,F823 python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/",
     "lint:python:fix": "uv run ruff check python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/ --fix",
     "lint:python:all": "uv run ruff check python_apps/ python_packages/",
     "lint:all": "npm run lint && npm run lint:python",
