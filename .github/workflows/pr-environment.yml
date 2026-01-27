@@ -296,22 +296,32 @@ jobs:
 
             echo ""
             echo "Pod Logs (last 100 lines):"
-            POD_NAME=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+            # Get the LATEST pod (sorted by creation time)
+            POD_NAME=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || echo "")
             if [ -n "$POD_NAME" ]; then
+              echo "Using latest pod: $POD_NAME"
+              echo ""
+              echo "=== Pod Status Details ==="
+              kubectl get pod $POD_NAME -n ${{ env.NAMESPACE }} -o jsonpath='{range .status.containerStatuses[*]}{.name}{"\t"}{.state}{"\n"}{end}'
+              echo ""
               echo "=== Init Container Logs (wait-for-postgres) ==="
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c wait-for-postgres --tail=50 || echo "No init container logs"
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c wait-for-postgres --tail=100 2>&1 || echo "No init container logs available"
 
               echo ""
               echo "=== Auth API Migration Logs ==="
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c auth-api-migrations --tail=50 || echo "Container not started yet"
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c auth-api-migrations --tail=100 2>&1 || echo "Container not started or no logs"
 
               echo ""
               echo "=== Workflow Engine Migration Logs ==="
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c workflow-engine-migrations --tail=50 || echo "Container not started yet"
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c workflow-engine-migrations --tail=100 2>&1 || echo "Container not started or no logs"
 
               echo ""
               echo "=== Ingestion Migration Logs ==="
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c ingestion-service-migrations --tail=50 || echo "Container not started yet"
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c ingestion-service-migrations --tail=100 2>&1 || echo "Container not started or no logs"
+
+              echo ""
+              echo "=== All Container Logs (Previous Run if Failed) ==="
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} --all-containers --previous --tail=200 2>&1 || echo "No previous logs available"
             else
               echo "No migration pods found"
             fi
