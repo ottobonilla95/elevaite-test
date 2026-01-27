@@ -91,8 +91,8 @@ jobs:
           file: python_apps/auth_api/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/auth-api:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/auth-api:latest
+            ghcr.io/${{ github.repository }}/elevaite-auth-api:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/elevaite-auth-api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -103,8 +103,8 @@ jobs:
           file: python_apps/workflow-engine-poc/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/workflow-engine:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/workflow-engine:latest
+            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -115,8 +115,8 @@ jobs:
           file: python_apps/ingestion-service/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/ingestion:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/ingestion:latest
+            ghcr.io/${{ github.repository }}/elevaite-ingestion:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/elevaite-ingestion:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -132,8 +132,8 @@ jobs:
             NEXTAUTH_URL_INTERNAL=${{ vars.PROD_AUTH_URL }}
             RBAC_BACKEND_URL=${{ vars.PROD_AUTH_API_URL }}
           tags: |
-            ghcr.io/${{ github.repository }}/auth-app:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/auth-app:latest
+            ghcr.io/${{ github.repository }}/elevaite-auth-app:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository }}/elevaite-auth-app:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
