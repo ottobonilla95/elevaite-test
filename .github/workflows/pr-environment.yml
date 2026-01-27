@@ -214,11 +214,24 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
           fi
           
-          # Application secrets (API keys, JWT, etc.)
+          # Application secrets (API keys, JWT, database, etc.)
           kubectl create secret generic elevaite-secrets \
             --namespace ${{ env.NAMESPACE }} \
             --from-literal=JWT_SECRET=${{ secrets.JWT_SECRET }} \
             --from-literal=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            --from-literal=db_host=${{ steps.terraform.outputs.db_host }} \
+            --from-literal=db_port=5432 \
+            --from-literal=db_user=elevaite \
+            --from-literal=db_password=${{ secrets.DEV_DB_PASSWORD }} \
+            --from-literal=db_name=pr_${{ env.PR_NUMBER }} \
+            --from-literal=POSTGRES_USER=elevaite \
+            --from-literal=POSTGRES_PASSWORD=${{ secrets.DEV_DB_PASSWORD }} \
+            --from-literal=DATABASE_URL=postgresql://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require \
+            --from-literal=RABBITMQ_USER=elevaite \
+            --from-literal=RABBITMQ_PASSWORD=${{ secrets.DEV_RABBITMQ_PASSWORD }} \
+            --from-literal=RABBITMQ_HOST=${{ steps.terraform.outputs.rabbitmq_host }} \
+            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.DEV_STORAGE_ACCESS_KEY }} \
+            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_STORAGE_SECRET_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Setup Helm
