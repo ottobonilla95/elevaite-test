@@ -63,6 +63,11 @@
     "packages/*"
   ],
   "dependencies": {},
+  "overrides": {
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "next-auth": "5.0.0-beta.25"
+  },
   "resolutions": {
     "@repo/sass-config": "file:packages/config-sass",
     "@repo/typescript-config": "file:packages/config-typescript",

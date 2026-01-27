@@ -97,6 +97,12 @@ variable "tags" {
   default     = {}
 }
 
+variable "publicly_accessible" {
+  description = "Make database publicly accessible (needed for CI/CD in dev)"
+  type        = bool
+  default     = false
+}
+
 # =============================================================================
 # RESOURCES
 # =============================================================================
@@ -130,10 +136,12 @@ resource "aws_db_instance" "postgres" {
   multi_az               = var.multi_az
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = var.security_group_ids
+  publicly_accessible    = var.publicly_accessible
 
   backup_retention_period = var.backup_retention_days
   backup_window           = "03:00-04:00"
   maintenance_window      = "Mon:04:00-Mon:05:00"
+  apply_immediately       = var.environment == "dev" ? true : false # Apply changes immediately in dev
 
   storage_encrypted = true
   storage_type      = "gp3"

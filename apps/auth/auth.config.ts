@@ -1,6 +1,7 @@
 import type { NextAuthConfig, User, Account } from "next-auth";
 import { stockConfig } from "@repo/lib";
-import type { AdapterUser, Profile } from "next-auth/adapters";
+import type { AdapterUser } from "next-auth/adapters";
+import type { Profile } from "@auth/core/types";
 // Commented out unused imports - will be used when registration is re-enabled
 // import { IDP, registerToBackend } from "./app/lib/rbacActions";
 

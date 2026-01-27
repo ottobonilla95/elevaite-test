@@ -85,7 +85,7 @@ class TestSchemaBasedMultitenancy:
         for tenant_id in ["tenant1", "tenant2"]:
             schema_name = get_schema_name(tenant_id, multitenancy_settings)
             with db_engine.connect() as conn:
-                conn.execute(text(f'SET search_path TO "{schema_name}"'))
+                conn.execute(text(f'SET search_path TO "{schema_name}", public'))
                 TestItem.__table__.create(db_engine, checkfirst=True)
 
         # Add items for tenant1
@@ -161,7 +161,7 @@ class TestPerformance(TestSchemaBasedMultitenancy):
         tenant_id = "tenant1"
         schema_name = get_schema_name(tenant_id, multitenancy_settings)
         with db_engine.connect() as conn:
-            conn.execute(text(f'SET search_path TO "{schema_name}"'))
+            conn.execute(text(f'SET search_path TO "{schema_name}", public'))
             TestItem.__table__.create(db_engine, checkfirst=True)
 
         # Add items for tenant

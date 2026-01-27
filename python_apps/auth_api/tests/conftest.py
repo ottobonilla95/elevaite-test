@@ -98,7 +98,7 @@ async def test_db_setup(test_engine):
         async with test_engine.begin() as conn:
             # Enable uuid-ossp extension for each schema
             await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
-            await conn.execute(text(f'SET search_path TO "{schema_name}"'))
+            await conn.execute(text(f'SET search_path TO "{schema_name}", public'))
             await conn.run_sync(Base.metadata.create_all)
 
     yield

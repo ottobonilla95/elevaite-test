@@ -11,6 +11,12 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to deploy'
+        required: true
+        type: number
 
 concurrency:
   group: pr-${{ github.event.pull_request.number }}
