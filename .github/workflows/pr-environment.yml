@@ -266,6 +266,8 @@ jobs:
             --set rabbitmq.vhost=/pr_${{ env.PR_NUMBER }} \
             --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
             --set migrations.enabled=false \
+            --set frontend.auth.enabled=false \
+            --set frontend.elevaite.enabled=false \
             --wait \
             --timeout 10m
 
