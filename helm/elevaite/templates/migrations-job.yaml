@@ -10,7 +10,8 @@ metadata:
     # Run migrations before deployment upgrades and installs
     helm.sh/hook: pre-upgrade,pre-install
     helm.sh/hook-weight: "-5"
-    helm.sh/hook-delete-policy: before-hook-creation
+    # TEMPORARY: Keep failed pods for debugging
+    helm.sh/hook-delete-policy: hook-succeeded
 spec:
   backoffLimit: {{ .Values.migrations.backoffLimit }}
   ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished }}
