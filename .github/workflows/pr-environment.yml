@@ -134,21 +134,36 @@ jobs:
           uv sync
           uv run alembic upgrade head
 
+      - name: Free up disk space
+        run: |
+          # Remove unnecessary files to free up space for Docker builds
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo docker system prune -af --volumes
+          df -h
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and Push Docker Images
+      - name: Build and push Auth API
         run: |
           docker build -t ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }} \
             -f python_apps/auth_api/Dockerfile .
+          docker push ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }}
+          docker image rm ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }}
+
+      - name: Build and push Workflow Engine
+        run: |
           docker build -t ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }} \
             -f python_apps/workflow-engine-poc/Dockerfile .
+          docker push ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }}
+          docker image rm ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }}
+
+      - name: Build and push Ingestion Service
+        run: |
           docker build -t ghcr.io/${{ github.repository }}/ingestion:pr-${{ env.PR_NUMBER }} \
             -f python_apps/ingestion-service/Dockerfile .
-
-          docker push ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }}
-          docker push ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }}
           docker push ghcr.io/${{ github.repository }}/ingestion:pr-${{ env.PR_NUMBER }}
+          docker image rm ghcr.io/${{ github.repository }}/ingestion:pr-${{ env.PR_NUMBER }}
 
       - name: Create Kubernetes namespace
         run: |
