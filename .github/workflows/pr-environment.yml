@@ -168,19 +168,20 @@ jobs:
           docker push ghcr.io/${{ github.repository }}/elevaite-auth-api:pr-${{ env.PR_NUMBER }}
           docker image rm ghcr.io/${{ github.repository }}/elevaite-auth-api:pr-${{ env.PR_NUMBER }}
 
-      - name: Build and push Workflow Engine
-        run: |
-          docker build -t ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }} \
-            -f python_apps/workflow-engine-poc/Dockerfile .
-          docker push ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }}
-          docker image rm ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }}
+      # TEMPORARY: Skip building these for faster testing
+      # - name: Build and push Workflow Engine
+      #   run: |
+      #     docker build -t ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }} \
+      #       -f python_apps/workflow-engine-poc/Dockerfile .
+      #     docker push ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }}
+      #     docker image rm ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }}
 
-      - name: Build and push Ingestion Service
-        run: |
-          docker build -t ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }} \
-            -f python_apps/ingestion-service/Dockerfile .
-          docker push ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
-          docker image rm ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
+      # - name: Build and push Ingestion Service
+      #   run: |
+      #     docker build -t ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }} \
+      #       -f python_apps/ingestion-service/Dockerfile .
+      #     docker push ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
+      #     docker image rm ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
 
       - name: Create Kubernetes namespace
         run: |
