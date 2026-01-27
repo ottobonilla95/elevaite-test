@@ -23,7 +23,6 @@ COPY pyproject.toml uv.lock ./
 
 # Copy workspace package dependencies used by workflow-engine-poc
 COPY python_packages/db-core ./python_packages/db-core
-COPY python_packages/elevaite_ingestion ./python_packages/elevaite_ingestion
 COPY python_packages/fastapi-logger ./python_packages/fastapi-logger
 COPY python_packages/llm-gateway ./python_packages/llm-gateway
 COPY python_packages/rbac-sdk ./python_packages/rbac-sdk
