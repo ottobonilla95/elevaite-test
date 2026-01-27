@@ -95,6 +95,12 @@ async def file_reader_step(
             content = await _read_text_file(file_path)
             parsed_data = {"content": content, "filename": file_path.name}
         elif file_extension in [".pdf", ".docx", ".doc", ".xlsx", ".xls"]:
+            if not INGESTION_AVAILABLE or ingestion_parse_file is None:
+                return {
+                    "file_path": str(file_path),
+                    "error": "Document parsing not available. Use the ingestion service HTTP API via ingestion_step instead.",
+                    "success": False,
+                }
             # Delegate to elevaite_ingestion parse pipeline; it reads package config for tool selection
             md_path, structured = ingestion_parse_file(
                 str(file_path), tempfile.gettempdir(), file_path.name
@@ -168,6 +174,11 @@ async def text_chunking_step(
         if strategy == "sliding_window":
             chunks = _simple_chunk_text(content, chunk_size, overlap)
         elif strategy == "semantic_chunking":
+            if not INGESTION_AVAILABLE:
+                return {
+                    "error": "Semantic chunking not available. Use the ingestion service HTTP API via ingestion_step instead.",
+                    "success": False,
+                }
             # Use elevaite_ingestion semantic chunker (async)
             module_name = (
                 "elevaite_ingestion.chunk_strategy.custom_chunking.semantic_chunk_v1"
