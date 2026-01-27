@@ -247,6 +247,18 @@ jobs:
             --from-literal=NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET || secrets.JWT_SECRET }} \
             --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
             --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+            --from-literal=db_host=${{ steps.terraform.outputs.db_host }} \
+            --from-literal=db_port=5432 \
+            --from-literal=db_user=${{ secrets.STAGING_DB_USER }} \
+            --from-literal=db_password=${{ secrets.STAGING_DB_PASSWORD }} \
+            --from-literal=db_name=elevaite_staging \
+            --from-literal=POSTGRES_USER=${{ secrets.STAGING_DB_USER }} \
+            --from-literal=POSTGRES_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
+            --from-literal=DATABASE_URL=postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_staging?sslmode=require \
+            --from-literal=RABBITMQ_USER=elevaite \
+            --from-literal=RABBITMQ_PASSWORD=${{ secrets.STAGING_RABBITMQ_PASSWORD }} \
+            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.STAGING_STORAGE_ACCESS_KEY }} \
+            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.STAGING_STORAGE_SECRET_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Setup Helm
