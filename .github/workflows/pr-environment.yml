@@ -245,12 +245,6 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
-      - name: Clean up failed migration jobs
-        run: |
-          # Delete any existing failed migration job to ensure clean state
-          kubectl delete job elevaite-pr-${{ env.PR_NUMBER }}-migrations -n ${{ env.NAMESPACE }} --ignore-not-found
-          echo "Cleaned up any previous migration jobs"
-
       - name: Deploy with Helm
         id: helm_deploy
         continue-on-error: true
@@ -280,53 +274,51 @@ jobs:
           echo "Migration Job Debug Information"
           echo "=========================================="
 
-          # Check if job exists
-          if kubectl get job elevaite-pr-${{ env.PR_NUMBER }}-migrations -n ${{ env.NAMESPACE }} 2>/dev/null; then
-            echo ""
-            echo "Job Status:"
-            kubectl get job elevaite-pr-${{ env.PR_NUMBER }}-migrations -n ${{ env.NAMESPACE }}
+          # Get ALL migration pods (may be deleted by hook policy)
+          echo "All migration pods in namespace:"
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations --sort-by=.metadata.creationTimestamp 2>&1 || echo "No pods found"
 
-            echo ""
-            echo "Job Description:"
-            kubectl describe job elevaite-pr-${{ env.PR_NUMBER }}-migrations -n ${{ env.NAMESPACE }}
+          echo ""
+          echo "All jobs in namespace:"
+          kubectl get jobs -n ${{ env.NAMESPACE }} 2>&1
 
-            echo ""
-            echo "Pod Status:"
-            kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations
+          # Try to get logs from ANY migration pod that exists or existed recently
+          POD_NAMES=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
 
-            echo ""
-            echo "Pod Logs (last 100 lines):"
-            # Get the LATEST pod (sorted by creation time)
-            POD_NAME=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || echo "")
-            if [ -n "$POD_NAME" ]; then
-              echo "Using latest pod: $POD_NAME"
+          if [ -n "$POD_NAMES" ]; then
+            for POD_NAME in $POD_NAMES; do
               echo ""
-              echo "=== Pod Status Details ==="
-              kubectl get pod $POD_NAME -n ${{ env.NAMESPACE }} -o jsonpath='{range .status.containerStatuses[*]}{.name}{"\t"}{.state}{"\n"}{end}'
-              echo ""
-              echo "=== Init Container Logs (wait-for-postgres) ==="
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c wait-for-postgres --tail=100 2>&1 || echo "No init container logs available"
+              echo "=========================================="
+              echo "Pod: $POD_NAME"
+              echo "=========================================="
+
+              kubectl get pod $POD_NAME -n ${{ env.NAMESPACE }} 2>&1 || echo "Pod not found"
 
               echo ""
-              echo "=== Auth API Migration Logs ==="
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c auth-api-migrations --tail=100 2>&1 || echo "Container not started or no logs"
+              echo "--- Auth API Migration Logs ---"
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c auth-api-migrations --tail=200 2>&1 || \
+                kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c auth-api-migrations --previous --tail=200 2>&1 || \
+                echo "No auth-api logs"
 
               echo ""
-              echo "=== Workflow Engine Migration Logs ==="
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c workflow-engine-migrations --tail=100 2>&1 || echo "Container not started or no logs"
+              echo "--- Workflow Engine Migration Logs ---"
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c workflow-engine-migrations --tail=200 2>&1 || \
+                kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c workflow-engine-migrations --previous --tail=200 2>&1 || \
+                echo "No workflow-engine logs"
 
               echo ""
-              echo "=== Ingestion Migration Logs ==="
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c ingestion-service-migrations --tail=100 2>&1 || echo "Container not started or no logs"
-
-              echo ""
-              echo "=== All Container Logs (Previous Run if Failed) ==="
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} --all-containers --previous --tail=200 2>&1 || echo "No previous logs available"
-            else
-              echo "No migration pods found"
-            fi
+              echo "--- Ingestion Migration Logs ---"
+              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c ingestion-service-migrations --tail=200 2>&1 || \
+                kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c ingestion-service-migrations --previous --tail=200 2>&1 || \
+                echo "No ingestion logs"
+            done
           else
-            echo "Migration job does not exist"
+            echo "No migration pods found in namespace ${{ env.NAMESPACE }}"
+
+            # Check recent events
+            echo ""
+            echo "Recent events in namespace:"
+            kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp' | tail -50
           fi
 
           exit 1
