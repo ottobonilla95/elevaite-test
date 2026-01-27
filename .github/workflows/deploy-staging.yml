@@ -74,7 +74,7 @@ jobs:
       - name: Build and push Workflow Engine
         uses: docker/build-push-action@v5
         with:
-          context: python_apps/
+          context: .
           file: python_apps/workflow-engine-poc/Dockerfile
           push: true
           tags: |
@@ -86,7 +86,7 @@ jobs:
       - name: Build and push Ingestion Service
         uses: docker/build-push-action@v5
         with:
-          context: python_apps/
+          context: .
           file: python_apps/ingestion-service/Dockerfile
           push: true
           tags: |
