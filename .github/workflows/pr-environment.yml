@@ -163,24 +163,24 @@ jobs:
 
       - name: Build and push Auth API
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }} \
+          docker build -t ghcr.io/${{ github.repository }}/elevaite-auth-api:pr-${{ env.PR_NUMBER }} \
             -f python_apps/auth_api/Dockerfile .
-          docker push ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }}
-          docker image rm ghcr.io/${{ github.repository }}/auth-api:pr-${{ env.PR_NUMBER }}
+          docker push ghcr.io/${{ github.repository }}/elevaite-auth-api:pr-${{ env.PR_NUMBER }}
+          docker image rm ghcr.io/${{ github.repository }}/elevaite-auth-api:pr-${{ env.PR_NUMBER }}
 
       - name: Build and push Workflow Engine
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }} \
+          docker build -t ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }} \
             -f python_apps/workflow-engine-poc/Dockerfile .
-          docker push ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }}
-          docker image rm ghcr.io/${{ github.repository }}/workflow-engine:pr-${{ env.PR_NUMBER }}
+          docker push ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }}
+          docker image rm ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }}
 
       - name: Build and push Ingestion Service
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/ingestion:pr-${{ env.PR_NUMBER }} \
+          docker build -t ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }} \
             -f python_apps/ingestion-service/Dockerfile .
-          docker push ghcr.io/${{ github.repository }}/ingestion:pr-${{ env.PR_NUMBER }}
-          docker image rm ghcr.io/${{ github.repository }}/ingestion:pr-${{ env.PR_NUMBER }}
+          docker push ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
+          docker image rm ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
 
       - name: Create Kubernetes namespace
         run: |
