@@ -7,11 +7,10 @@ metadata:
     {{- include "elevaite.labels" . | nindent 4 }}
     app.kubernetes.io/component: migrations
   annotations:
-    # Run migrations before deployment upgrades and installs
-    helm.sh/hook: pre-upgrade,pre-install
-    helm.sh/hook-weight: "-5"
-    # TEMPORARY: Keep failed pods for debugging
-    helm.sh/hook-delete-policy: hook-succeeded
+    # TEMPORARY: Disabled hooks for debugging - run as regular job
+    # helm.sh/hook: pre-upgrade,pre-install
+    # helm.sh/hook-weight: "-5"
+    # helm.sh/hook-delete-policy: hook-succeeded
 spec:
   backoffLimit: {{ .Values.migrations.backoffLimit }}
   ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished }}
