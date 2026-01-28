@@ -6,7 +6,7 @@
 # GLOBAL
 # =============================================================================
 global:
-  imageRegistry: "ghcr.io/your-org"  # Update with your registry
+  imageRegistry: "ghcr.io/iopexses/elevaite"
   environment: "pr"
 
 # =============================================================================
