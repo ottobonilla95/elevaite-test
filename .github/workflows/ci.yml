@@ -1,5 +1,5 @@
 # Elevaite Platform - Continuous Integration Pipeline
-# Runs on every PR and push to develop
+# Runs on every PR and push to develop/main
 # Validates code quality before merge
 
 name: CI
