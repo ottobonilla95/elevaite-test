@@ -34,9 +34,33 @@ permissions:
 
 jobs:
   # ===========================================================================
-  # Create/Update PR Environment
+  # Wait for CI to pass before deploying
+  # ===========================================================================
+  wait-for-ci:
+    if: github.event_name == 'workflow_dispatch' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI checks to pass
+        uses: fountainhead/action-wait-for-check@v1.1.0
+        id: wait-for-ci
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: ci-status
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          timeoutSeconds: 900
+          intervalSeconds: 30
+
+      - name: Fail if CI did not pass
+        if: steps.wait-for-ci.outputs.conclusion != 'success'
+        run: |
+          echo "CI checks did not pass. Conclusion: ${{ steps.wait-for-ci.outputs.conclusion }}"
+          exit 1
+
+  # ===========================================================================
+  # Create/Update PR Environment (only after CI passes)
   # ===========================================================================
   deploy:
+    needs: wait-for-ci
     if: github.event_name == 'workflow_dispatch' || github.event.action != 'closed'
     runs-on: ubuntu-latest
     environment: development
