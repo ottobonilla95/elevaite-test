@@ -456,6 +456,7 @@ jobs:
             --build-arg NEXT_PUBLIC_MODELS_API_URL=http://placeholder.local \
             --build-arg NEXT_PUBLIC_CONTRACTS_API_URL=http://placeholder.local \
             --build-arg NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=http://placeholder.local \
+            --build-arg NEXTAUTH_URL_INTERNAL=http://placeholder.local \
             -f apps/elevaite/Dockerfile \
             --target installer \
             -t elevaite-app-validate:ci \
