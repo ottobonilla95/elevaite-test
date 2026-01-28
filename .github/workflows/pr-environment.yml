@@ -35,6 +35,9 @@ jobs:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     environment: development
+    permissions:
+      contents: read
+      packages: write
     
     steps:
       - name: Checkout code
