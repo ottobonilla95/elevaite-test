@@ -118,6 +118,13 @@ jobs:
 
       - name: Build apps
         run: npm run build
+        env:
+          # Required for Next.js build (NextAuth routes)
+          NEXTAUTH_URL_INTERNAL: http://localhost:3005
+          NEXTAUTH_SECRET: ci-build-secret
+          ELEVAITE_HOMEPAGE: http://localhost:3001
+          AUTH_API_URL: http://localhost:8004
+          BACKEND_URL: http://localhost:8006
 
       - name: Run frontend tests
         run: npm run test:frontend
