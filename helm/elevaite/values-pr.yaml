@@ -18,11 +18,11 @@ authApi:
     tag: "pr"  # Set dynamically: pr-${PR_NUMBER}
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 250m
+      cpu: 200m
       memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
 
