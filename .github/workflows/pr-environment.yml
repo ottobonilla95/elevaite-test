@@ -203,6 +203,79 @@ jobs:
       #     cache-from: type=gha
       #     cache-to: type=gha,mode=max
 
+      - name: Get Load Balancer IP
+        id: lb
+        run: |
+          # Get the ingress-nginx load balancer hostname or IP
+          LB_HOSTNAME=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+          LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+
+          echo "LB Hostname: $LB_HOSTNAME"
+          echo "LB IP: $LB_IP"
+
+          # If we got a hostname (AWS NLB/ELB), resolve it to IP
+          if [[ -n "$LB_HOSTNAME" && -z "$LB_IP" ]]; then
+            echo "Resolving hostname to IP..."
+            LB_IP=$(dig +short "$LB_HOSTNAME" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1) || \
+            LB_IP=$(nslookup "$LB_HOSTNAME" 2>/dev/null | grep -A1 'Name:' | grep 'Address:' | awk '{print $2}' | head -1) || \
+            LB_IP=$(getent hosts "$LB_HOSTNAME" 2>/dev/null | awk '{print $1}' | head -1) || \
+            LB_IP=""
+          fi
+
+          if [[ -z "$LB_IP" ]]; then
+            echo "ERROR: Could not resolve load balancer IP"
+            exit 1
+          fi
+
+          # Validate IP format
+          if ! [[ "$LB_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Invalid IP format: $LB_IP"
+            exit 1
+          fi
+
+          # Convert dots to dashes for nip.io
+          LB_IP_DASHED=$(echo "$LB_IP" | tr '.' '-')
+
+          echo "lb_ip=$LB_IP" >> $GITHUB_OUTPUT
+          echo "lb_ip_dashed=$LB_IP_DASHED" >> $GITHUB_OUTPUT
+          echo "Resolved Load Balancer IP: $LB_IP"
+          echo "nip.io hostnames:"
+          echo "  App: pr-${{ env.PR_NUMBER }}.$LB_IP_DASHED.nip.io"
+          echo "  Auth: auth-pr-${{ env.PR_NUMBER }}.$LB_IP_DASHED.nip.io"
+          echo "  API: api-pr-${{ env.PR_NUMBER }}.$LB_IP_DASHED.nip.io"
+
+      - name: Build and push Auth Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/auth/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/elevaite-auth-app:pr-${{ env.PR_NUMBER }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            AUTH_URL=https://auth-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
+            AUTH_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io/api/auth
+            NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005
+            RBAC_BACKEND_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
+
+      - name: Build and push Elevaite Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/elevaite/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/elevaite-app:pr-${{ env.PR_NUMBER }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_BACKEND_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_AUTH_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io/api/auth
+            NEXT_PUBLIC_NATIVEAUTH_URL=https://auth-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_MODELS_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_CONTRACTS_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
+
       - name: Create Kubernetes namespace
         run: |
           kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
@@ -269,49 +342,17 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
-      - name: Get Load Balancer IP
-        id: lb
-        run: |
-          # Get the ingress-nginx load balancer hostname or IP
-          LB_HOSTNAME=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-          LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-
-          echo "LB Hostname: $LB_HOSTNAME"
-          echo "LB IP: $LB_IP"
-
-          # If we got a hostname (AWS NLB/ELB), resolve it to IP
-          if [[ -n "$LB_HOSTNAME" && -z "$LB_IP" ]]; then
-            echo "Resolving hostname to IP..."
-            # Try dig first, fall back to nslookup, then getent
-            LB_IP=$(dig +short "$LB_HOSTNAME" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1) || \
-            LB_IP=$(nslookup "$LB_HOSTNAME" 2>/dev/null | grep -A1 'Name:' | grep 'Address:' | awk '{print $2}' | head -1) || \
-            LB_IP=$(getent hosts "$LB_HOSTNAME" 2>/dev/null | awk '{print $1}' | head -1) || \
-            LB_IP=""
-          fi
-
-          if [[ -z "$LB_IP" ]]; then
-            echo "ERROR: Could not resolve load balancer IP"
-            exit 1
-          fi
-
-          # Validate IP format
-          if ! [[ "$LB_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "ERROR: Invalid IP format: $LB_IP"
-            exit 1
-          fi
-
-          # Convert dots to dashes for nip.io
-          LB_IP_DASHED=$(echo "$LB_IP" | tr '.' '-')
-
-          echo "lb_ip=$LB_IP" >> $GITHUB_OUTPUT
-          echo "lb_ip_dashed=$LB_IP_DASHED" >> $GITHUB_OUTPUT
-          echo "Resolved Load Balancer IP: $LB_IP"
-          echo "nip.io hostname will be: pr-${{ env.PR_NUMBER }}.$LB_IP_DASHED.nip.io"
-
       - name: Deploy with Helm
         run: |
-          # Use nip.io for DNS (no custom domain needed)
-          NIP_HOST="pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io"
+          # Set up nip.io hosts for different services
+          API_HOST="api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io"
+          AUTH_HOST="auth-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io"
+          APP_HOST="pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io"
+
+          echo "Deploying with hosts:"
+          echo "  App: $APP_HOST"
+          echo "  Auth: $AUTH_HOST"
+          echo "  API: $API_HOST"
 
           helm upgrade --install elevaite-pr-${{ env.PR_NUMBER }} ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
@@ -329,18 +370,30 @@ jobs:
             --set rabbitmq.vhost=/ \
             --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
             --set migrations.enabled=false \
-            --set frontend.auth.enabled=false \
-            --set frontend.elevaite.enabled=false \
+            --set frontend.auth.enabled=true \
+            --set frontend.auth.image.tag=pr-${{ env.PR_NUMBER }} \
+            --set frontend.elevaite.enabled=true \
+            --set frontend.elevaite.image.tag=pr-${{ env.PR_NUMBER }} \
             --set ingress.enabled=true \
-            --set ingress.hosts[0].host=$NIP_HOST \
-            --set ingress.hosts[0].paths[0].path=/ \
-            --set ingress.hosts[0].paths[0].pathType=Prefix \
-            --set ingress.hosts[0].paths[0].service=workflow-engine \
+            --set ingress.api.host=$API_HOST \
+            --set ingress.authApp.enabled=true \
+            --set ingress.authApp.host=$AUTH_HOST \
+            --set ingress.mainApp.enabled=true \
+            --set ingress.mainApp.host=$APP_HOST \
             --set ingress.tls[0].secretName=elevaite-pr-${{ env.PR_NUMBER }}-tls \
-            --set ingress.tls[0].hosts[0]=$NIP_HOST \
+            --set ingress.tls[0].hosts[0]=$API_HOST \
+            --set ingress.tls[0].hosts[1]=$AUTH_HOST \
+            --set ingress.tls[0].hosts[2]=$APP_HOST \
             --set "ingress.annotations.cert-manager\\.io/cluster-issuer=letsencrypt-staging" \
+            --set frontend.auth.env.NEXTAUTH_URL=https://$AUTH_HOST \
+            --set frontend.auth.env.NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005 \
+            --set frontend.auth.env.ELEVAITE_HOMEPAGE=https://$APP_HOST \
+            --set frontend.auth.env.AUTH_API_URL=https://$API_HOST/api/auth \
+            --set frontend.elevaite.env.NEXTAUTH_URL=https://$AUTH_HOST \
+            --set frontend.elevaite.env.NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005 \
+            --set frontend.elevaite.env.BACKEND_URL=https://$API_HOST \
             --wait \
-            --timeout 10m
+            --timeout 15m
 
       - name: Show deployment status
         if: always()
@@ -361,12 +414,14 @@ jobs:
           script: |
             const lbIpDashed = '${{ steps.lb.outputs.lb_ip_dashed }}';
             const prNumber = '${{ env.PR_NUMBER }}';
-            const nipHost = `pr-${prNumber}.${lbIpDashed}.nip.io`;
+            const appHost = `pr-${prNumber}.${lbIpDashed}.nip.io`;
+            const authHost = `auth-pr-${prNumber}.${lbIpDashed}.nip.io`;
+            const apiHost = `api-pr-${prNumber}.${lbIpDashed}.nip.io`;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 🚀 PR Environment Deployed\n\n**🔗 URL:** https://${nipHost}\n\n**Cloud:** ${{ env.CLOUD_PROVIDER }}\n**Database:** \`pr_${prNumber}\`\n**Namespace:** \`${{ env.NAMESPACE }}\`\n\n---\n*This environment will be automatically destroyed when the PR is closed.*`
+              body: `## 🚀 PR Environment Deployed\n\n**🔗 App:** https://${appHost}\n**🔐 Auth:** https://${authHost}\n**⚙️ API:** https://${apiHost}\n\n**Cloud:** ${{ env.CLOUD_PROVIDER }}\n**Database:** \`pr_${prNumber}\`\n**Namespace:** \`${{ env.NAMESPACE }}\`\n\n---\n*This environment will be automatically destroyed when the PR is closed.*`
             })
 
   # ===========================================================================
