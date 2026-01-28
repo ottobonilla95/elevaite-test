@@ -276,6 +276,7 @@ jobs:
             NEXT_PUBLIC_MODELS_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
             NEXT_PUBLIC_CONTRACTS_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
             NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
+            NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005
 
       - name: Create Kubernetes namespace
         run: |

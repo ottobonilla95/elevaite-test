@@ -29,6 +29,8 @@ ARG NEXT_PUBLIC_NATIVEAUTH_URL
 ARG NEXT_PUBLIC_MODELS_API_URL
 ARG NEXT_PUBLIC_CONTRACTS_API_URL
 ARG NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL
+# Server-side vars needed during build (page data collection)
+ARG NEXTAUTH_URL_INTERNAL
 
 # Build the project
 COPY --from=builder /app/out/full/ .
