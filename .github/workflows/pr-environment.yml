@@ -140,11 +140,19 @@ jobs:
             -d "$DB_ADMIN_DATABASE" \
             -c "CREATE DATABASE pr_${{ env.PR_NUMBER }};" || echo "Database may already exist"
 
-          # Run migrations
+          # Run migrations for workflow-engine
           export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
+          export SQLALCHEMY_DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?ssl=require"
+          export ALEMBIC_SQLALCHEMY_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
+
           cd python_apps/workflow-engine-poc
           uv sync
           uv run alembic upgrade head
+
+          # Run migrations for auth-api (schema-per-tenant)
+          cd ../auth_api
+          uv sync
+          ALEMBIC_SCHEMA=auth_default uv run alembic upgrade head
 
       - name: Free up disk space
         run: |
