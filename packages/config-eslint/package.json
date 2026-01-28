@@ -4,7 +4,7 @@
   "private": true,
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.15.0",
-    "@vercel/style-guide": "^6.0.0",
+    "@vercel/style-guide": "^5.2.0",
     "eslint-config-prettier": "^9.1.2",
     "eslint-config-turbo": "^2.1.0"
   }
