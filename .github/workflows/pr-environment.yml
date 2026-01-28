@@ -175,12 +175,13 @@ jobs:
           docker push ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }}
           docker image rm ghcr.io/${{ github.repository }}/elevaite-workflow-engine:pr-${{ env.PR_NUMBER }}
 
-      - name: Build and push Ingestion Service
-        run: |
-          docker build -t ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }} \
-            -f python_apps/ingestion-service/Dockerfile .
-          docker push ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
-          docker image rm ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
+      # TODO: Re-enable ingestion service when ready
+      # - name: Build and push Ingestion Service
+      #   run: |
+      #     docker build -t ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }} \
+      #       -f python_apps/ingestion-service/Dockerfile .
+      #     docker push ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
+      #     docker image rm ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
 
       - name: Create Kubernetes namespace
         run: |
@@ -261,7 +262,7 @@ jobs:
             --set global.imagePullSecrets[0].name=ghcr-pull-secret \
             --set authApi.image.tag=pr-${{ env.PR_NUMBER }} \
             --set workflowEngine.image.tag=pr-${{ env.PR_NUMBER }} \
-            --set ingestion.image.tag=pr-${{ env.PR_NUMBER }} \
+            --set ingestion.enabled=false \
             --set worker.image.tag=pr-${{ env.PR_NUMBER }} \
             --set postgresql.host=${{ steps.terraform.outputs.db_host }} \
             --set postgresql.database=pr_${{ env.PR_NUMBER }} \
