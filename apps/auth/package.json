@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "docker": "cd ..\\.. && docker build --pull --rm -f \"apps\\auth\\Dockerfile\" -t auth:latest \".\""
