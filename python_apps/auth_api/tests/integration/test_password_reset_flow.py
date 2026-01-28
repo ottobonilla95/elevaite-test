@@ -152,10 +152,10 @@ class TestPasswordResetFlow:
                     text(
                         """
                     INSERT INTO users (email, hashed_password, full_name, status, is_verified,
-                                      is_superuser, mfa_enabled, failed_login_attempts,
-                                      is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, created_at, updated_at)
+                                      is_superuser, is_manager, mfa_enabled, failed_login_attempts,
+                                      is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, biometric_mfa_enabled, created_at, updated_at)
                     VALUES (:email, :password, 'Test User', 'active', TRUE,
-                           FALSE, FALSE, 0, TRUE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
+                           FALSE, FALSE, FALSE, 0, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
                     """
                     ),
                     {
