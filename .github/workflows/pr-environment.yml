@@ -140,6 +140,14 @@ jobs:
             -d "$DB_ADMIN_DATABASE" \
             -c "CREATE DATABASE pr_${{ env.PR_NUMBER }};" || echo "Database may already exist"
 
+          # Create auth_default schema for auth-api (multi-tenant)
+          PGPASSWORD="$DB_PASSWORD" psql \
+            -h "$DB_HOST" \
+            -p 5432 \
+            -U "$DB_USER" \
+            -d "pr_${{ env.PR_NUMBER }}" \
+            -c "CREATE SCHEMA IF NOT EXISTS auth_default;"
+
           # Run migrations for workflow-engine
           export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
           export SQLALCHEMY_DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?ssl=require"
