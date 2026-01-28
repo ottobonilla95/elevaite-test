@@ -30,6 +30,9 @@ async def initialize_db():
 
     try:
         # Initialize the database with tenant schemas
+        logger.info(
+            f"About to call init_db with URL: {multitenancy_settings.db_url[:80]}..."
+        )
         db_info = init_db(
             settings=multitenancy_settings,
             db_url=multitenancy_settings.db_url,
@@ -38,6 +41,8 @@ async def initialize_db():
             tenant_ids=DEFAULT_TENANTS,
             is_async=True,
         )
+        engine = db_info["engine"]
+        logger.info(f"Engine created, URL from engine: {str(engine.url)[:80]}...")
         logger.info("Database initialization completed successfully")
     except Exception as e:
         logger.error(
@@ -58,6 +63,9 @@ async def initialize_db():
         schema_name = get_schema_name(tenant_id, multitenancy_settings)
 
         # Check if schema exists
+        logger.info(
+            f"Checking schema {schema_name} with engine URL: {str(engine.url)[:80]}..."
+        )
         schema_exists = await async_tenant_schema_exists(engine, schema_name)
 
         if not schema_exists:
