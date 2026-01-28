@@ -1,6 +1,5 @@
 """Test fixtures for the authentication API."""
 
-import asyncio
 import uuid
 from datetime import datetime, timezone
 from typing import AsyncGenerator, Dict
@@ -44,17 +43,6 @@ except ValueError:
     # If DATABASE_URI is not set (e.g., in CI), use test default
     base_db_url = "postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth"
 TEST_DATABASE_URL = _derive_test_db_url(base_db_url)
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for each test case.
-
-    This is a session-scoped fixture to match our test_engine fixture.
-    """
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest_asyncio.fixture(scope="session")

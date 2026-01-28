@@ -283,8 +283,8 @@ async def test_default_tenant(test_client):
         await session.execute(
             text(
                 """
-            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, created_at, updated_at)
-            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
+            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, is_manager, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, biometric_mfa_enabled, created_at, updated_at)
+            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
             """
             ),
             {
