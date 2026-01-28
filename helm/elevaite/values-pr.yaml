@@ -26,6 +26,8 @@ authApi:
       memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
+  envFromSecrets:
+    - elevaite-secrets
 
 workflowEngine:
   replicaCount: 1
