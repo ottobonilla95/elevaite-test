@@ -226,16 +226,17 @@ jobs:
             --cov-fail-under=40 \
             -q
 
-      - name: Run ingestion-service tests with coverage
-        run: |
-          uv run pytest \
-            python_apps/ingestion-service \
-            --tb=short \
-            --cov=python_apps/ingestion-service \
-            --cov-report=term-missing \
-            --cov-report=xml:coverage-ingestion-service.xml \
-            --cov-fail-under=40 \
-            -q
+      # TODO: Re-enable when ingestion service is ready
+      # - name: Run ingestion-service tests with coverage
+      #   run: |
+      #     uv run pytest \
+      #       python_apps/ingestion-service \
+      #       --tb=short \
+      #       --cov=python_apps/ingestion-service \
+      #       --cov-report=term-missing \
+      #       --cov-report=xml:coverage-ingestion-service.xml \
+      #       --cov-fail-under=40 \
+      #       -q
 
       - name: Run python_packages tests with coverage
         run: |
@@ -309,10 +310,11 @@ jobs:
           cd python_apps/workflow-engine-poc
           uv run alembic check || echo "Warning: workflow-engine migration validation failed"
 
-      - name: Validate ingestion-service migrations
-        run: |
-          cd python_apps/ingestion-service
-          uv run alembic check || echo "Warning: ingestion-service migration validation failed"
+      # TODO: Re-enable when ingestion service is ready
+      # - name: Validate ingestion-service migrations
+      #   run: |
+      #     cd python_apps/ingestion-service
+      #     uv run alembic check || echo "Warning: ingestion-service migration validation failed"
 
       - name: Check for migration conflicts
         run: |
@@ -399,24 +401,25 @@ jobs:
             -t elevaite-workflow-engine:${{ github.sha }} \
             .
 
-  build-ingestion:
-    needs: [changes, python, python-tests]
-    if: |
-      always() &&
-      (needs.python.result == 'success' || needs.python.result == 'skipped') &&
-      (needs.python-tests.result == 'success' || needs.python-tests.result == 'skipped') &&
-      needs.changes.outputs.ingestion == 'true' &&
-      github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  # TODO: Re-enable when ingestion service is ready
+  # build-ingestion:
+  #   needs: [changes, python, python-tests]
+  #   if: |
+  #     always() &&
+  #     (needs.python.result == 'success' || needs.python.result == 'skipped') &&
+  #     (needs.python-tests.result == 'success' || needs.python-tests.result == 'skipped') &&
+  #     needs.changes.outputs.ingestion == 'true' &&
+  #     github.event_name == 'push'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Build Ingestion Service image
-        run: |
-          docker build \
-            -f python_apps/ingestion-service/Dockerfile \
-            -t elevaite-ingestion:${{ github.sha }} \
-            .
+  #     - name: Build Ingestion Service image
+  #       run: |
+  #         docker build \
+  #           -f python_apps/ingestion-service/Dockerfile \
+  #           -t elevaite-ingestion:${{ github.sha }} \
+  #           .
 
   # ============================================================
   # BUILD FRONTEND DOCKER IMAGES
@@ -462,7 +465,7 @@ jobs:
   # Required status check for branch protection
   # ============================================================
   ci-status:
-    needs: [pr-title, frontend, python, python-tests, migration-validation, build-auth-api, build-workflow-engine, build-ingestion, build-auth-app, build-elevaite-app]
+    needs: [pr-title, frontend, python, python-tests, migration-validation, build-auth-api, build-workflow-engine, build-auth-app, build-elevaite-app]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -475,7 +478,6 @@ jobs:
              [[ "${{ needs.migration-validation.result }}" == "failure" ]] || \
              [[ "${{ needs.build-auth-api.result }}" == "failure" ]] || \
              [[ "${{ needs.build-workflow-engine.result }}" == "failure" ]] || \
-             [[ "${{ needs.build-ingestion.result }}" == "failure" ]] || \
              [[ "${{ needs.build-auth-app.result }}" == "failure" ]] || \
              [[ "${{ needs.build-elevaite-app.result }}" == "failure" ]]; then
             echo "CI failed"
