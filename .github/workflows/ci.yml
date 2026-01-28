@@ -403,8 +403,7 @@ jobs:
           echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "Image tag: ${SHORT_SHA}"
 
-      # Always build and push images - Docker layer caching makes unchanged builds fast
-      # This ensures every commit has deployable images for PR/staging/prod environments
+      # Backend images: Build and push - these work with runtime env vars
       - name: Build and push Auth API
         uses: docker/build-push-action@v5
         with:
@@ -429,29 +428,38 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Auth App (Frontend)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/auth/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-auth-app:${{ steps.meta.outputs.image_tag }}
-            ghcr.io/${{ github.repository }}/elevaite-auth-app:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # Frontend images: NOT pushed from CI
+      # Next.js bakes NEXT_PUBLIC_* vars at build time, so each environment
+      # (staging/prod/PR) must build its own frontend images with correct URLs
+      # CI just validates the build works with placeholder values
+      - name: Validate Auth App build (Frontend)
+        run: |
+          echo "Frontend images are built per-environment (staging/prod/PR)"
+          echo "CI only validates the Dockerfile syntax and base layers"
+          docker build \
+            --build-arg AUTH_URL=http://placeholder.local \
+            --build-arg AUTH_API_URL=http://placeholder.local \
+            --build-arg NEXTAUTH_URL_INTERNAL=http://placeholder.local \
+            --build-arg RBAC_BACKEND_URL=http://placeholder.local \
+            --build-arg ELEVAITE_HOMEPAGE=http://placeholder.local \
+            -f apps/auth/Dockerfile \
+            --target installer \
+            -t auth-app-validate:ci \
+            .
 
-      - name: Build and push Elevaite App (Frontend)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/elevaite/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-app:${{ steps.meta.outputs.image_tag }}
-            ghcr.io/${{ github.repository }}/elevaite-app:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Validate Elevaite App build (Frontend)
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_BACKEND_URL=http://placeholder.local \
+            --build-arg NEXT_PUBLIC_AUTH_API_URL=http://placeholder.local \
+            --build-arg NEXT_PUBLIC_NATIVEAUTH_URL=http://placeholder.local \
+            --build-arg NEXT_PUBLIC_MODELS_API_URL=http://placeholder.local \
+            --build-arg NEXT_PUBLIC_CONTRACTS_API_URL=http://placeholder.local \
+            --build-arg NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=http://placeholder.local \
+            -f apps/elevaite/Dockerfile \
+            --target installer \
+            -t elevaite-app-validate:ci \
+            .
 
   # ============================================================
   # CI STATUS CHECK
