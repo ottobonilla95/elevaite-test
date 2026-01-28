@@ -11,6 +11,14 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
+import importlib
+import inspect
+import tempfile
+
+from workflow_core_sdk.execution_context import ExecutionContext
+
+# Initialize logger first (before any code that might use it)
+logger = logging.getLogger(__name__)
 
 # Try to import elevaite_ingestion components (optional)
 try:
@@ -25,16 +33,6 @@ except ImportError as e:
     INGESTION_AVAILABLE = False
     ingestion_parse_file = None
     CHUNKER_CONFIG = {}
-
-import importlib
-import inspect
-import tempfile
-
-
-from workflow_core_sdk.execution_context import ExecutionContext
-
-# Initialize logger
-logger = logging.getLogger(__name__)
 
 QDRANT_AVAILABLE = True
 

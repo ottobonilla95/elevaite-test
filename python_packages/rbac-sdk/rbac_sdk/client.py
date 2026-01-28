@@ -1,9 +1,12 @@
 import os
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 import requests
 
 # Updated to point to Auth API's authz endpoint
 DEFAULT_AUTHZ_SERVICE_URL = os.getenv("AUTHZ_SERVICE_URL", "http://localhost:8004")
+
+# Tenant header name
+HDR_TENANT_ID = "X-Tenant-ID"
 
 
 class RBACClientError(Exception):
@@ -19,6 +22,7 @@ def check_access(
     *,
     base_url: str | None = None,
     timeout: float = 5.0,
+    tenant_id: Optional[str] = None,
 ) -> bool:
     """
     Synchronous client for the unified Auth API authorization service.
@@ -34,6 +38,7 @@ def check_access(
         resource: Dict with keys: type, id, organization_id, account_id (optional).
         base_url: Override base URL (default uses AUTHZ_SERVICE_URL env or http://localhost:8004).
         timeout: Request timeout seconds.
+        tenant_id: Tenant ID to pass in X-Tenant-ID header (required for multi-tenant auth-api).
 
     Returns:
         True if allowed, False otherwise.
@@ -58,6 +63,12 @@ def check_access(
     url = (base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip(
         "/"
     ) + "/api/authz/check_access"
+
+    # Build headers with tenant ID if provided
+    headers: Dict[str, str] = {}
+    if tenant_id:
+        headers[HDR_TENANT_ID] = tenant_id
+
     try:
         resp = requests.post(
             url,
@@ -66,6 +77,7 @@ def check_access(
                 "action": action,
                 "resource": resource,
             },
+            headers=headers if headers else None,
             timeout=timeout,
         )
         resp.raise_for_status()

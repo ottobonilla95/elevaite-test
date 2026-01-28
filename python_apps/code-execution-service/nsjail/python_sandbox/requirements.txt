@@ -1,0 +1,15 @@
+# Allowed libraries for the sandbox Python environment
+# These are pre-installed in /opt/sandbox and available to user code
+
+# Data processing
+pandas==2.1.4
+numpy==1.26.3
+
+# Date/time utilities
+python-dateutil==2.8.2
+
+# Note: Standard library modules are also available:
+# - json, math, datetime, collections, itertools, functools
+# - re, decimal, fractions, statistics, random
+# - string, textwrap, unicodedata
+

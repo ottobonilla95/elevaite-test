@@ -14,7 +14,7 @@ from app.db.models_rbac import (
     UserGroupMembership,
     Group,
 )
-from app.db.tenant_db import get_tenant_async_db
+from app.db.orm import get_async_session
 from app.schemas.rbac import AccessCheckRequest, AccessCheckResponse
 from app.services.opa_service import get_opa_service
 
@@ -26,7 +26,7 @@ router = APIRouter()
 @router.post("/check_access", response_model=AccessCheckResponse)
 async def check_access(
     request: AccessCheckRequest,
-    session: AsyncSession = Depends(get_tenant_async_db),
+    session: AsyncSession = Depends(get_async_session),
 ) -> AccessCheckResponse:
     """
     Check if a user has access to perform an action on a resource.

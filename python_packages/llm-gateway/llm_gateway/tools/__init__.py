@@ -6,5 +6,6 @@ by all providers (e.g., web search for Bedrock and On-Prem).
 """
 
 from .web_search import web_search, WebSearchResult
+from .code_execution import execute_python, EXECUTE_PYTHON_SCHEMA
 
-__all__ = ["web_search", "WebSearchResult"]
+__all__ = ["web_search", "WebSearchResult", "execute_python", "EXECUTE_PYTHON_SCHEMA"]

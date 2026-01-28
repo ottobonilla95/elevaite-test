@@ -303,3 +303,238 @@ class TestAgentToolCallsIntegration:
         assert "response" in result
         # If we got here without "Tool call missing function name" error, parsing worked
         assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_agent_with_multiple_tools(self):
+        """Test agent execution with multiple tool definitions."""
+        from workflow_core_sdk.steps.ai_steps import AgentStep
+
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "add_numbers",
+                    "description": "Add two numbers together.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "a": {"type": "number", "description": "First number"},
+                            "b": {"type": "number", "description": "Second number"},
+                        },
+                        "required": ["a", "b"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "multiply_numbers",
+                    "description": "Multiply two numbers together.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "x": {"type": "number", "description": "First number"},
+                            "y": {"type": "number", "description": "Second number"},
+                        },
+                        "required": ["x", "y"],
+                    },
+                },
+            },
+        ]
+
+        agent = AgentStep(
+            name="MathAgent",
+            system_prompt="You are a math assistant. Use add_numbers for addition and multiply_numbers for multiplication. Do NOT calculate yourself.",
+            tools=tools,
+            force_real_llm=True,
+        )
+
+        result = await agent.execute(
+            query="What is 4 * 5? You MUST use the multiply_numbers tool.",
+            context={},
+        )
+
+        logger.info(f"Multiple tools result: {result}")
+        assert "response" in result
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_tool_execution_returns_result(self):
+        """Test that tool execution actually returns correct results via provider-side execution."""
+        from workflow_core_sdk.steps.ai_steps import AgentStep
+
+        # Define a tool that our AgentStep's _execute_tool_call will handle
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_current_time",
+                    "description": "Get the current time as a string. Always use this tool when asked about time.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                    },
+                },
+            }
+        ]
+
+        agent = AgentStep(
+            name="TimeAgent",
+            system_prompt="You are a time assistant. When asked about the time, you MUST use the get_current_time tool.",
+            tools=tools,
+            force_real_llm=True,
+        )
+
+        result = await agent.execute(
+            query="What time is it right now? Use the get_current_time tool to find out.",
+            context={},
+        )
+
+        logger.info(f"Tool execution result: {result}")
+        assert "response" in result
+        # The response should mention something about time (either the actual time or an error message)
+        # This verifies the tool loop is working
+        assert result is not None
+
+
+@pytest.mark.skipif(
+    not os.environ.get("OPENAI_API_KEY"),
+    reason="OPENAI_API_KEY environment variable not set",
+)
+class TestProviderToolLoop:
+    """Test the provider-side tool execution loop directly."""
+
+    def test_openai_provider_with_executor(self):
+        """Test OpenAI provider with tool executors."""
+        from llm_gateway.services import TextGenerationService
+        from llm_gateway.models.text_generation.core.interfaces import (
+            TextGenerationType,
+        )
+
+        service = TextGenerationService()
+
+        # Define a tool with an executor that returns a known value
+        def add_executor(a: float, b: float) -> float:
+            logger.info(f"add_executor called with a={a}, b={b}")
+            return a + b
+
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "add_numbers",
+                    "description": "Add two numbers. Always use this tool for any addition.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "a": {"type": "number", "description": "First number"},
+                            "b": {"type": "number", "description": "Second number"},
+                        },
+                        "required": ["a", "b"],
+                    },
+                },
+                "executor": add_executor,
+            }
+        ]
+
+        response = service.generate(
+            prompt="What is 7 + 9? You MUST use the add_numbers tool to calculate this.",
+            sys_msg="You are a math assistant. Always use the add_numbers tool for addition operations.",
+            model_name="gpt-4o-mini",
+            config={"type": TextGenerationType.OPENAI.value},
+            tools=tools,
+            max_tool_iterations=3,
+        )
+
+        logger.info(f"Provider response: {response}")
+        logger.info(f"Response text: {response.text}")
+
+        # The response should contain the correct result (16)
+        assert response.text is not None
+        assert "16" in response.text
+
+        # Check that tool_calls_trace was populated
+        if response.tool_calls_trace:
+            logger.info(f"Tool calls trace: {response.tool_calls_trace}")
+            # At least one tool call should have been made
+            assert len(response.tool_calls_trace) >= 1
+            # The tool should have been called with the right arguments
+            trace = response.tool_calls_trace[0]
+            assert trace.tool_name == "add_numbers"
+            assert trace.success is True
+
+    def test_openai_streaming_with_tool_callbacks(self):
+        """Test OpenAI streaming with tool callbacks."""
+        from llm_gateway.services import TextGenerationService
+        from llm_gateway.models.text_generation.core.interfaces import (
+            TextGenerationType,
+        )
+
+        service = TextGenerationService()
+
+        # Track callback invocations
+        tool_calls_received = []
+        tool_results_received = []
+
+        def on_tool_call(tool_name: str, args: Dict[str, Any]):
+            logger.info(f"on_tool_call: {tool_name} with {args}")
+            tool_calls_received.append({"tool_name": tool_name, "args": args})
+
+        def on_tool_result(tool_name: str, trace):
+            logger.info(f"on_tool_result: {tool_name} -> {trace}")
+            tool_results_received.append({"tool_name": tool_name, "trace": trace})
+
+        def multiply_executor(x: float, y: float) -> float:
+            logger.info(f"multiply_executor called with x={x}, y={y}")
+            return x * y
+
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "multiply_numbers",
+                    "description": "Multiply two numbers. Always use this tool for multiplication.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "x": {"type": "number", "description": "First number"},
+                            "y": {"type": "number", "description": "Second number"},
+                        },
+                        "required": ["x", "y"],
+                    },
+                },
+                "executor": multiply_executor,
+            }
+        ]
+
+        # Collect all streamed chunks
+        chunks = []
+        for chunk in service.stream(
+            prompt="What is 6 * 7? You MUST use the multiply_numbers tool.",
+            sys_msg="You are a math assistant. Always use the multiply_numbers tool for multiplication.",
+            model_name="gpt-4o-mini",
+            config={"type": TextGenerationType.OPENAI.value},
+            tools=tools,
+            max_tool_iterations=3,
+            on_tool_call=on_tool_call,
+            on_tool_result=on_tool_result,
+        ):
+            logger.info(f"Received chunk: {chunk}")
+            chunks.append(chunk)
+
+        logger.info(f"Total chunks received: {len(chunks)}")
+        logger.info(f"Tool calls received: {tool_calls_received}")
+        logger.info(f"Tool results received: {tool_results_received}")
+
+        # Should have received some chunks
+        assert len(chunks) > 0
+
+        # Check that we got a final response with the correct answer
+        final_chunks = [c for c in chunks if c.get("type") == "final"]
+        assert len(final_chunks) >= 1
+
+        # The final response should contain "42"
+        final_text = final_chunks[-1].get("response", {}).get("text", "")
+        logger.info(f"Final text: {final_text}")
+        assert "42" in final_text

@@ -14,7 +14,7 @@ from workflow_core_sdk.services.workflows_service import WorkflowsService
 from workflow_core_sdk.db.database import get_session
 from workflow_core_sdk import WorkflowEngine, StepRegistry
 from workflow_core_sdk.execution.context_impl import ExecutionContext, UserContext
-from sqlalchemy import text
+from db_core.middleware import set_current_tenant_id
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,7 @@ async def process_message(
 ):
     """Process a single workflow execution job."""
     async with message.process(requeue=True):  # Requeue on failure for retry
+        tenant_id = None
         try:
             payload = json.loads(message.body.decode())
             execution_id = payload["execution_id"]
@@ -39,15 +40,18 @@ async def process_message(
 
             logger.info(f"Processing workflow {workflow_id}, execution {execution_id}")
 
-            # Get workflow config from database
-            async for session in get_session():
-                # Set tenant schema if multitenancy is enabled
-                tenant_id = user_context_data.get("tenant_id")
-                if tenant_id:
-                    # Set the search_path for this session to isolate tenant data
-                    session.exec(text(f'SET search_path TO "{tenant_id}", public'))
-                    logger.debug(f"Set tenant schema to {tenant_id}")
+            # Set tenant context for ALL subsequent SDK operations
+            # This ensures all internal sessions get the correct search_path
+            tenant_id = user_context_data.get("tenant_id")
+            if tenant_id:
+                set_current_tenant_id(tenant_id)
+                logger.info(f"Set tenant context to {tenant_id}")
 
+            # Get workflow config from database using sync session
+            # get_session() now automatically applies tenant schema from context
+            session_gen = get_session()
+            session = next(session_gen)
+            try:
                 workflow_config = WorkflowsService.get_workflow_config(
                     session, workflow_id
                 )
@@ -81,11 +85,21 @@ async def process_message(
                 await workflow_engine.execute_workflow(execution_context)
 
                 logger.info(f"Completed execution {execution_id}")
-                break
+            finally:
+                # Clean up the session generator
+                try:
+                    session_gen.close()
+                except StopIteration:
+                    pass
 
         except Exception as e:
             logger.error(f"Failed to process message: {e}", exc_info=True)
             raise  # Will be requeued or sent to DLQ
+        finally:
+            # Clear tenant context after processing
+            if tenant_id:
+                set_current_tenant_id(None)
+                logger.debug("Cleared tenant context")
 
 
 async def process_resume_message(

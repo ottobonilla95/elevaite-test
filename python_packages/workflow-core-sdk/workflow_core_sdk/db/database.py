@@ -8,9 +8,13 @@ Supports schema-based multitenancy when enabled via db-core middleware.
 """
 
 import os
+import logging
 from typing import Generator
 from sqlmodel import SQLModel, create_engine, Session
+from sqlalchemy import text, event
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+
+logger = logging.getLogger(__name__)
 
 # Database configuration
 # Priority order:
@@ -53,22 +57,78 @@ engine = create_engine(
 SQLAlchemyInstrumentor().instrument(engine=engine)  # OTEL
 
 
+def _apply_tenant_schema_on_checkout(
+    dbapi_connection, connection_record, connection_proxy
+):
+    """
+    Event listener that applies tenant schema on connection checkout.
+
+    This is called every time a connection is checked out from the pool,
+    ensuring ALL sessions automatically get the correct search_path based
+    on the current tenant context, regardless of how they're created.
+    """
+    try:
+        from db_core.middleware import get_current_tenant_id
+        from workflow_core_sdk.multitenancy import multitenancy_settings
+
+        tenant_id = get_current_tenant_id()
+        if tenant_id:
+            schema_name = f"{multitenancy_settings.schema_prefix}{tenant_id}"
+            cursor = dbapi_connection.cursor()
+            cursor.execute(f'SET search_path TO "{schema_name}", public')
+            cursor.close()
+            logger.info(f"Applied tenant schema on checkout: {schema_name}")
+    except ImportError:
+        # db_core not available, skip tenant isolation
+        pass
+    except Exception as e:
+        logger.warning(f"Failed to apply tenant schema on checkout: {e}")
+
+
+# Register the checkout event listener
+event.listen(engine, "checkout", _apply_tenant_schema_on_checkout)
+
+
 def create_db_and_tables():
     """Create database tables"""
     SQLModel.metadata.create_all(engine)
+
+
+def _apply_tenant_schema(session: Session) -> None:
+    """
+    Apply tenant schema to session if tenant context is set.
+
+    Checks db_core's context variable for current tenant ID and sets
+    the PostgreSQL search_path accordingly.
+    """
+    try:
+        from db_core.middleware import get_current_tenant_id
+        from workflow_core_sdk.multitenancy import multitenancy_settings
+
+        tenant_id = get_current_tenant_id()
+        if tenant_id:
+            schema_name = f"{multitenancy_settings.schema_prefix}{tenant_id}"
+            session.execute(text(f'SET search_path TO "{schema_name}", public'))
+            logger.debug(f"Applied tenant schema: {schema_name}")
+    except ImportError:
+        # db_core not available, skip tenant isolation
+        pass
+    except Exception as e:
+        logger.warning(f"Failed to apply tenant schema: {e}")
 
 
 def get_session() -> Generator[Session, None, None]:
     """
     Get database session with automatic tenant schema isolation.
 
-    When multitenancy is enabled via initialize_tenant_db(), the db-core
-    event listener automatically sets the PostgreSQL search_path to the
-    tenant's schema based on the X-Tenant-ID request header.
+    When a tenant context is set (via db_core's set_current_tenant_id or
+    TenantMiddleware), the session automatically has its search_path set
+    to the tenant's schema.
 
     This provides transparent data isolation without manual intervention.
     """
     with Session(engine) as session:
+        _apply_tenant_schema(session)
         yield session
 
 
@@ -77,14 +137,16 @@ def get_db_session() -> Session:
     """
     FastAPI dependency for database session.
 
-    Automatically applies tenant schema isolation when multitenancy is enabled.
+    Automatically applies tenant schema isolation when tenant context is set.
 
     Usage:
         @router.get("/items")
         def list_items(session: Session = Depends(get_db_session)):
             ...
     """
-    return next(get_session())
+    session = Session(engine)
+    _apply_tenant_schema(session)
+    return session
 
 
 # For backwards compatibility with existing code

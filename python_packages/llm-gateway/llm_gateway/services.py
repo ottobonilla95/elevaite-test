@@ -1,9 +1,10 @@
 from enum import Enum
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 from .config.thinking import apply_thinking_defaults
+from .models.text_generation.core.interfaces import ToolCallTrace
 from .models.provider import ModelProviderFactory
 from .models.embeddings.core.base import BaseEmbeddingProvider
 from .models.vision.core.base import BaseVisionProvider
@@ -56,6 +57,7 @@ class TextGenerationService:
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
         files: Optional[List[str]] = None,
+        max_tool_iterations: int = 4,
     ) -> TextGenerationResponse:
         # Apply thinking defaults based on provider type
         processed_config = apply_thinking_defaults(config)
@@ -77,6 +79,7 @@ class TextGenerationService:
                 messages=messages,
                 response_format=response_format,
                 files=files,
+                max_tool_iterations=max_tool_iterations,
             )
         except Exception as e:
             error_msg = (
@@ -99,6 +102,9 @@ class TextGenerationService:
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
         files: Optional[List[str]] = None,
+        max_tool_iterations: int = 4,
+        on_tool_call: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        on_tool_result: Optional[Callable[[str, ToolCallTrace], None]] = None,
     ):
         """Yield streaming events from the provider. Events are dicts like:
         {"type": "delta", "text": "..."} and a final {"type": "final", "response": {...}}.
@@ -122,6 +128,9 @@ class TextGenerationService:
                 messages=messages,
                 response_format=response_format,
                 files=files,
+                max_tool_iterations=max_tool_iterations,
+                on_tool_call=on_tool_call,
+                on_tool_result=on_tool_result,
             )
         except Exception as e:
             error_msg = f"Error in text generation streaming for provider {config['type']}: {str(e)}"

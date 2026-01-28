@@ -1,10 +1,10 @@
 import logging
 import time
 import json
-from typing import Dict, Any, Optional, List, Iterable
+from typing import Dict, Any, Optional, List, Iterable, Callable
 
 from .core.base import BaseTextGenerationProvider
-from .core.interfaces import TextGenerationResponse, ToolCall
+from .core.interfaces import TextGenerationResponse, ToolCall, ToolCallTrace
 
 from google import genai
 from google.genai import types
@@ -28,6 +28,7 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
         files: Optional[List[str]] = None,
+        max_tool_iterations: int = 4,
     ) -> TextGenerationResponse:
         if files:
             raise NotImplementedError(
@@ -42,10 +43,14 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         retries = retries or 5
         config = config or {}
 
+        # Extract executors from tools (if any have executor functions attached)
+        executors, clean_tools = self._extract_executors(tools)
+        has_executors = bool(executors)
+
         # Convert OpenAI-style tools to Gemini format
         gemini_tools = None
-        if tools:
-            gemini_tools = self._convert_tools_to_gemini_format(tools)
+        if clean_tools:
+            gemini_tools = self._convert_tools_to_gemini_format(clean_tools)
 
         # Extract system instruction from messages or sys_msg
         system_instruction = None
@@ -82,130 +87,174 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         if gemini_tools:
             generation_config.tools = gemini_tools
 
-        # Create content with messages (excluding system messages, which go in system_instruction)
-        contents = []
+        # Create initial content with messages (excluding system messages, which go in system_instruction)
+        contents: List[types.Content] = []
         if messages and isinstance(messages, list) and len(messages) > 0:
-            # Map generic {role, content} messages to Gemini's Content/Part
-            role_map = {"user": "user", "assistant": "model", "tool": "user"}
-            for m in messages:
-                msg_role = str(m.get("role", "user")).lower()
-                # Skip system messages - they're handled via system_instruction
-                if msg_role == "system":
-                    continue
-                role = role_map.get(msg_role, "user")
-                text = m.get("content")
-                if text is None:
-                    continue
-                contents.append(
-                    types.Content(role=role, parts=[types.Part(text=str(text))])
-                )
+            contents = self._convert_messages_to_gemini_contents(messages)
         else:
-            if sys_msg:
-                # sys_msg already set as system_instruction, just add the user prompt
-                contents.append(
-                    types.Content(role="user", parts=[types.Part(text=prompt)])
-                )
-            else:
-                contents.append(
-                    types.Content(role="user", parts=[types.Part(text=prompt)])
-                )
+            contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
 
-        for attempt in range(retries):
-            try:
-                start_time = time.time()
+        # Tool loop state
+        tool_calls_trace: List[ToolCallTrace] = []
+        tokens_in_total = 0
+        tokens_out_total = 0
+        overall_start_time = time.time()
 
-                # Make the API call
-                response = self.client.models.generate_content(
-                    model=model_name,
-                    contents=contents,
-                    config=generation_config,
-                )
+        for iteration in range(max_tool_iterations):
+            for attempt in range(retries):
+                try:
+                    # Make the API call
+                    response = self.client.models.generate_content(
+                        model=model_name,
+                        contents=contents,
+                        config=generation_config,
+                    )
 
-                latency = time.time() - start_time
+                    # Handle response with potential function calls
+                    text_content = ""
+                    thinking_content = ""
+                    tool_calls: List[ToolCall] = []
+                    finish_reason = "stop"
 
-                # Handle response with potential function calls
-                text_content = ""
-                thinking_content = ""
-                tool_calls = []
-                finish_reason = "stop"
+                    # Check for function calls in the modern API
+                    if hasattr(response, "function_calls") and response.function_calls:
+                        for func_call in response.function_calls:
+                            tool_calls.append(
+                                ToolCall(
+                                    id=f"call_{len(tool_calls)}",
+                                    name=func_call.name or "unknown_function",
+                                    arguments=func_call.args or {},
+                                )
+                            )
+                            finish_reason = "tool_calls"
 
-                # Check for function calls in the modern API
-                if hasattr(response, "function_calls") and response.function_calls:
-                    for func_call in response.function_calls:
-                        tool_calls.append(
-                            ToolCall(
-                                id=f"call_{len(tool_calls)}",
-                                name=func_call.name or "unknown_function",
-                                arguments=func_call.args or {},
+                    # Extract text and thinking content from candidates/parts
+                    if hasattr(response, "candidates") and response.candidates:
+                        for candidate in response.candidates:
+                            if hasattr(candidate, "content") and candidate.content:
+                                if (
+                                    hasattr(candidate.content, "parts")
+                                    and candidate.content.parts
+                                ):
+                                    for part in candidate.content.parts:
+                                        if hasattr(part, "thought") and part.thought:
+                                            if hasattr(part, "text") and part.text:
+                                                thinking_content += part.text
+                                        elif hasattr(part, "text") and part.text:
+                                            text_content += part.text
+
+                    # Fallback: get text content from response.text
+                    if not text_content and hasattr(response, "text") and response.text:
+                        text_content = response.text
+
+                    # Get token counts from usage_metadata
+                    tokens_in = len(prompt.split())  # fallback
+                    tokens_out = (
+                        len(text_content.split()) if text_content else 0
+                    )  # fallback
+                    if hasattr(response, "usage_metadata") and response.usage_metadata:
+                        usage = response.usage_metadata
+                        if (
+                            hasattr(usage, "prompt_token_count")
+                            and usage.prompt_token_count
+                        ):
+                            tokens_in = usage.prompt_token_count
+                        if (
+                            hasattr(usage, "candidates_token_count")
+                            and usage.candidates_token_count
+                        ):
+                            tokens_out = usage.candidates_token_count
+                    tokens_in_total += tokens_in
+                    tokens_out_total += tokens_out
+
+                    # If no tool calls or no executors, return final response
+                    if not tool_calls or not has_executors:
+                        total_latency = time.time() - overall_start_time
+                        return TextGenerationResponse(
+                            text=text_content.strip(),
+                            tokens_in=tokens_in_total,
+                            tokens_out=tokens_out_total,
+                            latency=total_latency,
+                            tool_calls=tool_calls if tool_calls else None,
+                            tool_calls_trace=tool_calls_trace
+                            if tool_calls_trace
+                            else None,
+                            finish_reason=finish_reason,
+                            thinking_content=thinking_content.strip()
+                            if thinking_content
+                            else None,
+                        )
+
+                    # Execute tool calls and add results to contents
+                    # Add model response with function calls to contents
+                    model_parts = []
+                    for tc in tool_calls:
+                        model_parts.append(
+                            types.Part.from_function_call(
+                                name=tc.name, args=tc.arguments
                             )
                         )
-                        finish_reason = "tool_calls"
+                    contents.append(types.Content(role="model", parts=model_parts))
 
-                # Extract text and thinking content from candidates/parts
-                # Gemini 2.5+ returns thinking in parts where part.thought=True
-                if hasattr(response, "candidates") and response.candidates:
-                    for candidate in response.candidates:
-                        if hasattr(candidate, "content") and candidate.content:
-                            if (
-                                hasattr(candidate.content, "parts")
-                                and candidate.content.parts
-                            ):
-                                for part in candidate.content.parts:
-                                    # Check if this is a thinking part
-                                    if hasattr(part, "thought") and part.thought:
-                                        if hasattr(part, "text") and part.text:
-                                            thinking_content += part.text
-                                    # Regular text part
-                                    elif hasattr(part, "text") and part.text:
-                                        text_content += part.text
+                    # Execute each tool and add results
+                    tool_result_parts = []
+                    for tc in tool_calls:
+                        trace = self._execute_tool(tc, executors)
+                        tool_calls_trace.append(trace)
 
-                # Fallback: get text content from response.text if not extracted from parts
-                if not text_content and hasattr(response, "text") and response.text:
-                    text_content = response.text
+                        # Convert result to Gemini function response
+                        result_value = (
+                            trace.result if trace.success else {"error": trace.error}
+                        )
+                        tool_result_parts.append(
+                            types.Part.from_function_response(
+                                name=tc.name, response=result_value
+                            )
+                        )
 
-                # Get token counts from usage_metadata (Gemini's response structure)
-                tokens_in = len(prompt.split())  # fallback
-                tokens_out = (
-                    len(text_content.split()) if text_content else 0
-                )  # fallback
-                if hasattr(response, "usage_metadata") and response.usage_metadata:
-                    usage = response.usage_metadata
-                    if (
-                        hasattr(usage, "prompt_token_count")
-                        and usage.prompt_token_count
-                    ):
-                        tokens_in = usage.prompt_token_count
-                    if (
-                        hasattr(usage, "candidates_token_count")
-                        and usage.candidates_token_count
-                    ):
-                        tokens_out = usage.candidates_token_count
+                    contents.append(types.Content(role="user", parts=tool_result_parts))
+                    break  # Success, continue to next iteration
 
-                return TextGenerationResponse(
-                    text=text_content.strip(),
-                    tokens_in=tokens_in,
-                    tokens_out=tokens_out,
-                    latency=latency,
-                    tool_calls=tool_calls if tool_calls else None,
-                    finish_reason=finish_reason,
-                    thinking_content=thinking_content.strip()
-                    if thinking_content
-                    else None,
-                )
-
-            except Exception as e:
-                logging.warning(
-                    f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
-                )
-                if attempt == retries - 1:
-                    raise RuntimeError(
-                        f"Text generation failed after {retries} attempts: {e}"
+                except Exception as e:
+                    logging.warning(
+                        f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
                     )
-                time.sleep((2**attempt) * 0.5)
+                    if attempt == retries - 1:
+                        raise RuntimeError(
+                            f"Text generation failed after {retries} attempts: {e}"
+                        )
+                    time.sleep((2**attempt) * 0.5)
 
-        # This should never be reached due to the exception handling above,
-        # but adding for type safety
-        raise RuntimeError("Text generation failed: unexpected code path")
+        # Max iterations reached
+        total_latency = time.time() - overall_start_time
+        return TextGenerationResponse(
+            text="Reached tool iteration limit; see tool_calls_trace for details.",
+            tokens_in=tokens_in_total,
+            tokens_out=tokens_out_total,
+            latency=total_latency,
+            tool_calls_trace=tool_calls_trace if tool_calls_trace else None,
+            finish_reason="max_iterations",
+        )
+
+    def _convert_messages_to_gemini_contents(
+        self, messages: List[Dict[str, Any]]
+    ) -> List[types.Content]:
+        """Convert OpenAI-style messages to Gemini Content objects."""
+        contents: List[types.Content] = []
+        role_map = {"user": "user", "assistant": "model", "tool": "user"}
+        for m in messages:
+            msg_role = str(m.get("role", "user")).lower()
+            # Skip system messages - they're handled via system_instruction
+            if msg_role == "system":
+                continue
+            role = role_map.get(msg_role, "user")
+            text = m.get("content")
+            if text is None:
+                continue
+            contents.append(
+                types.Content(role=role, parts=[types.Part(text=str(text))])
+            )
+        return contents
 
     def _convert_tools_to_gemini_format(
         self, openai_tools: List[Dict[str, Any]]
@@ -243,11 +292,31 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     logging.debug("Added Google Search built-in tool for Gemini")
 
                 # Handle built-in code execution tool
+                # NOTE: We use our own secure Nsjail sandbox instead of Google's code execution
+                # This ensures consistent security controls across all providers
                 elif tool_type == "code_execution":
-                    gemini_tools.append(
-                        types.Tool(code_execution=types.ToolCodeExecution())
+                    code_exec_func = types.FunctionDeclaration(
+                        name="execute_python",
+                        description="Execute Python code in a secure sandbox. Returns stdout, stderr, and exit code.",
+                        parameters=types.Schema(
+                            type=types.Type.OBJECT,
+                            properties={
+                                "code": types.Schema(
+                                    type=types.Type.STRING,
+                                    description="The Python code to execute",
+                                ),
+                                "timeout": types.Schema(
+                                    type=types.Type.INTEGER,
+                                    description="Maximum execution time in seconds (default: 30, max: 60)",
+                                ),
+                            },
+                            required=["code"],
+                        ),
                     )
-                    logging.debug("Added Code Execution built-in tool for Gemini")
+                    gemini_functions.append(code_exec_func)
+                    logging.debug(
+                        "Added ElevAIte Code Execution function tool for Gemini (overriding native)"
+                    )
 
                 # Handle function tools
                 elif tool_type == "function":
@@ -287,8 +356,11 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
         files: Optional[List[str]] = None,
+        max_tool_iterations: int = 4,
+        on_tool_call: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        on_tool_result: Optional[Callable[[str, ToolCallTrace], None]] = None,
     ) -> Iterable[Dict[str, Any]]:
-        """Stream text generation using Gemini's streaming API."""
+        """Stream text generation using Gemini's streaming API with tool loop support."""
         if files:
             raise NotImplementedError(
                 "File search is only supported by the OpenAI provider"
@@ -301,10 +373,14 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         retries = retries or 5
         config = config or {}
 
+        # Extract executors from tools
+        executors, clean_tools = self._extract_executors(tools)
+        has_executors = bool(executors)
+
         # Convert OpenAI-style tools to Gemini format
         gemini_tools = None
-        if tools:
-            gemini_tools = self._convert_tools_to_gemini_format(tools)
+        if clean_tools:
+            gemini_tools = self._convert_tools_to_gemini_format(clean_tools)
 
         # Create generation config
         generation_config = types.GenerateContentConfig(
@@ -316,23 +392,9 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
             generation_config.tools = gemini_tools
 
         # Create content with system instruction or use provided messages
-        contents = []
+        contents: List[Any] = []
         if messages and isinstance(messages, list) and len(messages) > 0:
-            # Map generic {role, content} messages to Gemini's Content/Part
-            role_map = {
-                "system": "user",
-                "user": "user",
-                "assistant": "model",
-                "tool": "user",
-            }
-            for m in messages:
-                role = role_map.get(str(m.get("role", "user")).lower(), "user")
-                text = m.get("content")
-                if text is None:
-                    continue
-                contents.append(
-                    types.Content(role=role, parts=[types.Part(text=str(text))])
-                )
+            contents = list(self._convert_messages_to_gemini_contents(messages))
         else:
             if sys_msg:
                 contents.append(
@@ -346,143 +408,233 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     types.Content(role="user", parts=[types.Part(text=prompt)])
                 )
 
-        for attempt in range(retries):
-            try:
-                start_time = time.time()
-                full_text = ""
-                tool_calls_collected: List[Dict[str, Any]] = []
-                finish_reason: Optional[str] = None
-                tokens_in: int = -1
-                tokens_out: int = -1
+        # Tool loop state
+        tool_calls_trace: List[ToolCallTrace] = []
+        tokens_in_total = 0
+        tokens_out_total = 0
+        overall_start_time = time.time()
 
-                # Use streaming API
-                for chunk in self.client.models.generate_content_stream(
-                    model=model_name,
-                    contents=contents,
-                    config=generation_config,
-                ):
-                    # Handle parts from candidates (proper structure for thinking models)
-                    if hasattr(chunk, "candidates") and chunk.candidates:
-                        for candidate in chunk.candidates:
-                            if hasattr(candidate, "content") and candidate.content:
-                                if (
-                                    hasattr(candidate.content, "parts")
-                                    and candidate.content.parts
-                                ):
-                                    for part in candidate.content.parts:
-                                        # Skip thought parts - only stream actual text response
-                                        if hasattr(part, "thought") and part.thought:
-                                            continue
-                                        # Handle text parts
-                                        if hasattr(part, "text") and part.text:
-                                            delta_text = part.text
-                                            full_text += delta_text
-                                            yield {"type": "delta", "text": delta_text}
-                                        # Handle function call parts
-                                        if (
-                                            hasattr(part, "function_call")
-                                            and part.function_call
-                                        ):
-                                            func_call = part.function_call
-                                            tool_call = {
-                                                "id": f"call_{len(tool_calls_collected)}",
-                                                "type": "function",
-                                                "function": {
-                                                    "name": getattr(
-                                                        func_call, "name", None
-                                                    )
-                                                    or "unknown_function",
-                                                    "arguments": json.dumps(
-                                                        getattr(func_call, "args", {})
-                                                        or {}
-                                                    ),
-                                                },
-                                            }
-                                            tool_calls_collected.append(tool_call)
-                                            finish_reason = "tool_calls"
+        for iteration in range(max_tool_iterations):
+            for attempt in range(retries):
+                try:
+                    full_text = ""
+                    tool_calls_collected: List[Dict[str, Any]] = []
+                    finish_reason: Optional[str] = None
+                    tokens_in: int = -1
+                    tokens_out: int = -1
 
-                    # Fallback: try chunk.text for non-thinking models
-                    elif hasattr(chunk, "text") and chunk.text:
-                        delta_text = chunk.text
-                        full_text += delta_text
-                        yield {"type": "delta", "text": delta_text}
+                    # Use streaming API
+                    for chunk in self.client.models.generate_content_stream(
+                        model=model_name,
+                        contents=contents,
+                        config=generation_config,
+                    ):
+                        # Handle parts from candidates (proper structure for thinking models)
+                        if hasattr(chunk, "candidates") and chunk.candidates:
+                            for candidate in chunk.candidates:
+                                if hasattr(candidate, "content") and candidate.content:
+                                    if (
+                                        hasattr(candidate.content, "parts")
+                                        and candidate.content.parts
+                                    ):
+                                        for part in candidate.content.parts:
+                                            # Skip thought parts - only stream actual text response
+                                            if (
+                                                hasattr(part, "thought")
+                                                and part.thought
+                                            ):
+                                                continue
+                                            # Handle text parts
+                                            if hasattr(part, "text") and part.text:
+                                                delta_text = part.text
+                                                full_text += delta_text
+                                                yield {
+                                                    "type": "delta",
+                                                    "text": delta_text,
+                                                }
+                                            # Handle function call parts
+                                            if (
+                                                hasattr(part, "function_call")
+                                                and part.function_call
+                                            ):
+                                                func_call = part.function_call
+                                                tool_call = {
+                                                    "id": f"call_{len(tool_calls_collected)}",
+                                                    "type": "function",
+                                                    "function": {
+                                                        "name": getattr(
+                                                            func_call, "name", None
+                                                        )
+                                                        or "unknown_function",
+                                                        "arguments": json.dumps(
+                                                            getattr(
+                                                                func_call, "args", {}
+                                                            )
+                                                            or {}
+                                                        ),
+                                                    },
+                                                }
+                                                tool_calls_collected.append(tool_call)
+                                                finish_reason = "tool_calls"
 
-                    # Handle function calls at chunk level (alternative API structure)
-                    if hasattr(chunk, "function_calls") and chunk.function_calls:
-                        for func_call in chunk.function_calls:
-                            tool_call = {
-                                "id": f"call_{len(tool_calls_collected)}",
-                                "type": "function",
-                                "function": {
-                                    "name": func_call.name or "unknown_function",
-                                    "arguments": json.dumps(func_call.args or {}),
-                                },
-                            }
-                            tool_calls_collected.append(tool_call)
-                        finish_reason = "tool_calls"
+                        # Fallback: try chunk.text for non-thinking models
+                        elif hasattr(chunk, "text") and chunk.text:
+                            delta_text = chunk.text
+                            full_text += delta_text
+                            yield {"type": "delta", "text": delta_text}
 
-                    # Try to get usage metadata from chunk (usually only in final chunk)
-                    if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
-                        usage = chunk.usage_metadata
-                        logging.debug(f"Gemini usage_metadata: {usage}")
-                        if (
-                            hasattr(usage, "prompt_token_count")
-                            and usage.prompt_token_count is not None
-                        ):
-                            tokens_in = usage.prompt_token_count
-                            logging.debug(f"Gemini tokens_in from usage: {tokens_in}")
-                        if (
-                            hasattr(usage, "candidates_token_count")
-                            and usage.candidates_token_count is not None
-                        ):
-                            tokens_out = usage.candidates_token_count
-                            logging.debug(f"Gemini tokens_out from usage: {tokens_out}")
+                        # Handle function calls at chunk level (alternative API structure)
+                        if hasattr(chunk, "function_calls") and chunk.function_calls:
+                            for func_call in chunk.function_calls:
+                                tool_call = {
+                                    "id": f"call_{len(tool_calls_collected)}",
+                                    "type": "function",
+                                    "function": {
+                                        "name": func_call.name or "unknown_function",
+                                        "arguments": json.dumps(func_call.args or {}),
+                                    },
+                                }
+                                tool_calls_collected.append(tool_call)
+                            finish_reason = "tool_calls"
 
-                latency = time.time() - start_time
+                        # Try to get usage metadata from chunk (usually only in final chunk)
+                        if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
+                            usage = chunk.usage_metadata
+                            if (
+                                hasattr(usage, "prompt_token_count")
+                                and usage.prompt_token_count is not None
+                            ):
+                                tokens_in = usage.prompt_token_count
+                            if (
+                                hasattr(usage, "candidates_token_count")
+                                and usage.candidates_token_count is not None
+                            ):
+                                tokens_out = usage.candidates_token_count
 
-                if not finish_reason:
-                    finish_reason = "stop"
-
-                # Build final response
-                response = TextGenerationResponse(
-                    text=full_text.strip(),
-                    tokens_in=tokens_in if tokens_in > 0 else len(prompt.split()),
-                    tokens_out=tokens_out if tokens_out > 0 else len(full_text.split()),
-                    latency=latency,
-                    tool_calls=[
-                        ToolCall(
-                            id=tc["id"],
-                            name=tc["function"]["name"],
-                            arguments=json.loads(tc["function"]["arguments"]),
-                        )
-                        for tc in tool_calls_collected
-                    ]
-                    if tool_calls_collected
-                    else None,
-                    finish_reason=finish_reason,
-                )
-
-                final_data: Dict[str, Any] = {
-                    "type": "final",
-                    "response": response.model_dump(),
-                }
-                if tool_calls_collected:
-                    final_data["tool_calls"] = tool_calls_collected
-                if finish_reason:
-                    final_data["finish_reason"] = finish_reason
-
-                yield final_data
-                return
-
-            except Exception as e:
-                logging.warning(
-                    f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
-                )
-                if attempt == retries - 1:
-                    raise RuntimeError(
-                        f"Streaming failed after {retries} attempts: {e}"
+                    # Accumulate tokens
+                    tokens_in_total += (
+                        tokens_in if tokens_in > 0 else len(prompt.split())
                     )
-                time.sleep((2**attempt) * 0.5)
+                    tokens_out_total += (
+                        tokens_out if tokens_out > 0 else len(full_text.split())
+                    )
+
+                    if not finish_reason:
+                        finish_reason = "stop"
+
+                    # Convert collected tool calls to ToolCall objects
+                    tool_calls = (
+                        [
+                            ToolCall(
+                                id=tc["id"],
+                                name=tc["function"]["name"],
+                                arguments=json.loads(tc["function"]["arguments"]),
+                            )
+                            for tc in tool_calls_collected
+                        ]
+                        if tool_calls_collected
+                        else []
+                    )
+
+                    # If no tool calls or no executors, return final response
+                    if not tool_calls or not has_executors:
+                        total_latency = time.time() - overall_start_time
+                        response = TextGenerationResponse(
+                            text=full_text.strip(),
+                            tokens_in=tokens_in_total,
+                            tokens_out=tokens_out_total,
+                            latency=total_latency,
+                            tool_calls=tool_calls if tool_calls else None,
+                            tool_calls_trace=tool_calls_trace
+                            if tool_calls_trace
+                            else None,
+                            finish_reason=finish_reason,
+                        )
+                        final_data: Dict[str, Any] = {
+                            "type": "final",
+                            "response": response.model_dump(),
+                        }
+                        if tool_calls_collected:
+                            final_data["tool_calls"] = tool_calls_collected
+                        if finish_reason:
+                            final_data["finish_reason"] = finish_reason
+                        yield final_data
+                        return
+
+                    # Execute tool calls and add to conversation
+                    # Yield tool_call events
+                    for tc in tool_calls:
+                        yield {
+                            "type": "tool_call",
+                            "tool_name": tc.name,
+                            "arguments": tc.arguments,
+                        }
+                        if on_tool_call:
+                            on_tool_call(tc.name, tc.arguments)
+
+                    # Add model response with function calls to contents
+                    model_parts = []
+                    for tc in tool_calls:
+                        model_parts.append(
+                            types.Part.from_function_call(
+                                name=tc.name, args=tc.arguments
+                            )
+                        )
+                    contents.append(types.Content(role="model", parts=model_parts))
+
+                    # Execute each tool and add results
+                    tool_result_parts = []
+                    for tc in tool_calls:
+                        trace = self._execute_tool(tc, executors)
+                        tool_calls_trace.append(trace)
+
+                        # Yield tool_result event and invoke callback
+                        yield {
+                            "type": "tool_result",
+                            "tool_name": tc.name,
+                            "trace": trace.model_dump(),
+                        }
+                        if on_tool_result:
+                            on_tool_result(tc.name, trace)
+
+                        # Convert result to Gemini function response
+                        result_value = (
+                            trace.result if trace.success else {"error": trace.error}
+                        )
+                        tool_result_parts.append(
+                            types.Part.from_function_response(
+                                name=tc.name, response=result_value
+                            )
+                        )
+
+                    contents.append(types.Content(role="user", parts=tool_result_parts))
+                    break  # Success, continue to next iteration
+
+                except Exception as e:
+                    logging.warning(
+                        f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
+                    )
+                    if attempt == retries - 1:
+                        raise RuntimeError(
+                            f"Streaming failed after {retries} attempts: {e}"
+                        )
+                    time.sleep((2**attempt) * 0.5)
+
+        # Max iterations reached
+        total_latency = time.time() - overall_start_time
+        response = TextGenerationResponse(
+            text="Reached tool iteration limit; see tool_calls_trace for details.",
+            tokens_in=tokens_in_total,
+            tokens_out=tokens_out_total,
+            latency=total_latency,
+            tool_calls_trace=tool_calls_trace if tool_calls_trace else None,
+            finish_reason="max_iterations",
+        )
+        yield {
+            "type": "final",
+            "response": response.model_dump(),
+            "finish_reason": "max_iterations",
+        }
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:

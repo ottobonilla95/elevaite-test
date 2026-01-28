@@ -23,6 +23,6 @@ DEFAULT_TENANTS: List[str] = [
 multitenancy_settings = MultitenancySettings(
     tenant_id_header="X-Tenant-ID",
     default_tenant_id=os.getenv("DEFAULT_TENANT_ID", "default"),
-    schema_prefix="wf_",  # Workflow schema prefix (e.g., wf_default, wf_iopex)
+    schema_prefix="workflow_",  # Workflow schema prefix (e.g., workflow_default, workflow_iopex)
     db_url=DATABASE_URL,
 )

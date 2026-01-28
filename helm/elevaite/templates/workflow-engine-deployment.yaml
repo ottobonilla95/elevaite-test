@@ -124,8 +124,8 @@ spec:
             - name: INGESTION_SERVICE_URL
               value: http://{{ include "elevaite.fullname" . }}-ingestion:8000
             {{- if .Values.codeExecution.enabled }}
-            - name: CODE_EXECUTION_URL
-              value: http://{{ include "elevaite.fullname" . }}-code-execution:8007
+            - name: CODE_EXECUTION_SERVICE_URL
+              value: http://{{ include "elevaite.fullname" . }}-code-execution:{{ .Values.codeExecution.service.port }}
             {{- end }}
             
             # Environment

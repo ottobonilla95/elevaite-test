@@ -1,13 +1,13 @@
 import json
 import logging
 import time
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Iterable, Callable
 import boto3
 from botocore.exceptions import ClientError
 
 
 from .core.base import BaseTextGenerationProvider
-from .core.interfaces import TextGenerationResponse, ToolCall
+from .core.interfaces import TextGenerationResponse, ToolCall, ToolCallTrace
 from ...tools.web_search import web_search, format_search_results
 
 
@@ -36,6 +36,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
         files: Optional[List[str]] = None,
+        max_tool_iterations: int = 4,
     ) -> TextGenerationResponse:
         if files:
             raise NotImplementedError(
@@ -72,6 +73,7 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
                 tool_choice,
                 messages,
                 config,
+                max_tool_iterations,
             )
         else:
             return self._generate_with_legacy_api(
@@ -175,11 +177,16 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
         tool_choice: Optional[str],
         messages: Optional[List[Dict[str, Any]]],
         config: Optional[Dict[str, Any]] = None,
+        max_tool_iterations: int = 4,
     ) -> TextGenerationResponse:
-        """Generate text using Bedrock Converse API with tool support"""
+        """Generate text using Bedrock Converse API with tool loop support"""
+
+        # Extract executors from tools
+        executors, clean_tools = self._extract_executors(tools)
+        has_executors = bool(executors)
 
         # Prepare messages; prefer explicit messages if provided
-        messages = (
+        conversation_messages: List[Dict[str, Any]] = list(
             messages
             if isinstance(messages, list) and len(messages) > 0
             else [{"role": "user", "content": [{"text": prompt}]}]
@@ -198,97 +205,148 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
 
         # Convert tools to Bedrock format
         tool_config = None
-        if tools:
-            tool_config = self._convert_tools_to_bedrock_format(tools)
+        if clean_tools:
+            tool_config = self._convert_tools_to_bedrock_format(clean_tools)
 
-        for attempt in range(retries):
-            try:
-                start_time = time.time()
+        # Tool loop state
+        tool_calls_trace: List[ToolCallTrace] = []
+        tokens_in_total = 0
+        tokens_out_total = 0
+        overall_start_time = time.time()
 
-                # Prepare converse parameters
-                converse_params = {
-                    "modelId": model_name,
-                    "messages": messages,
-                    "inferenceConfig": inference_config,
-                }
-
-                if system_messages:
-                    converse_params["system"] = system_messages
-
-                if tool_config:
-                    converse_params["toolConfig"] = tool_config
-
-                # Enable extended thinking if requested via config
-                # Config options: enable_thinking (bool), thinking_budget_tokens (int, default 1024)
-                # This is for Claude 3.5+ models with extended thinking capability
-                if config and config.get("enable_thinking"):
-                    budget_tokens = config.get("thinking_budget_tokens", 1024)
-                    converse_params["additionalModelRequestFields"] = {
-                        "thinking": {
-                            "type": "enabled",
-                            "budget_tokens": budget_tokens,
-                        }
+        for iteration in range(max_tool_iterations):
+            for attempt in range(retries):
+                try:
+                    # Prepare converse parameters
+                    converse_params: Dict[str, Any] = {
+                        "modelId": model_name,
+                        "messages": conversation_messages,
+                        "inferenceConfig": inference_config,
                     }
 
-                response = self.client.converse(**converse_params)
-                latency = time.time() - start_time
+                    if system_messages:
+                        converse_params["system"] = system_messages
 
-                # Extract response content
-                output = response.get("output", {})
-                message = output.get("message", {})
-                content = message.get("content", [])
+                    if tool_config:
+                        converse_params["toolConfig"] = tool_config
 
-                text_content = ""
-                thinking_content = ""
-                tool_calls = []
-                finish_reason = response.get("stopReason", "stop")
+                    # Enable extended thinking if requested via config
+                    if config and config.get("enable_thinking"):
+                        budget_tokens = config.get("thinking_budget_tokens", 1024)
+                        converse_params["additionalModelRequestFields"] = {
+                            "thinking": {
+                                "type": "enabled",
+                                "budget_tokens": budget_tokens,
+                            }
+                        }
 
-                for content_block in content:
-                    # Claude extended thinking returns "thinking" content blocks
-                    if content_block.get("type") == "thinking":
-                        thinking_content += content_block.get("thinking", "")
-                    elif "text" in content_block:
-                        text_content += content_block["text"]
-                    elif "toolUse" in content_block:
-                        tool_use = content_block["toolUse"]
-                        tool_calls.append(
-                            ToolCall(
-                                id=tool_use.get("toolUseId", f"call_{len(tool_calls)}"),
-                                name=tool_use.get("name", "unknown_function"),
-                                arguments=tool_use.get("input", {}),
+                    response = self.client.converse(**converse_params)
+
+                    # Extract response content
+                    output = response.get("output", {})
+                    message = output.get("message", {})
+                    content = message.get("content", [])
+
+                    text_content = ""
+                    thinking_content = ""
+                    tool_calls: List[ToolCall] = []
+                    finish_reason = response.get("stopReason", "stop")
+
+                    for content_block in content:
+                        if content_block.get("type") == "thinking":
+                            thinking_content += content_block.get("thinking", "")
+                        elif "text" in content_block:
+                            text_content += content_block["text"]
+                        elif "toolUse" in content_block:
+                            tool_use = content_block["toolUse"]
+                            tool_calls.append(
+                                ToolCall(
+                                    id=tool_use.get(
+                                        "toolUseId", f"call_{len(tool_calls)}"
+                                    ),
+                                    name=tool_use.get("name", "unknown_function"),
+                                    arguments=tool_use.get("input", {}),
+                                )
                             )
+
+                    # Get token usage
+                    usage = response.get("usage", {})
+                    tokens_in = usage.get("inputTokens", len(prompt.split()))
+                    tokens_out = usage.get(
+                        "outputTokens", len(text_content.split()) if text_content else 0
+                    )
+                    tokens_in_total += tokens_in
+                    tokens_out_total += tokens_out
+
+                    # If no tool calls or no executors, return final response
+                    if not tool_calls or not has_executors:
+                        total_latency = time.time() - overall_start_time
+                        return TextGenerationResponse(
+                            text=text_content.strip(),
+                            tokens_in=tokens_in_total,
+                            tokens_out=tokens_out_total,
+                            latency=total_latency,
+                            tool_calls=tool_calls if tool_calls else None,
+                            tool_calls_trace=tool_calls_trace
+                            if tool_calls_trace
+                            else None,
+                            finish_reason=finish_reason,
+                            thinking_content=thinking_content.strip()
+                            if thinking_content
+                            else None,
                         )
 
-                # Get token usage
-                usage = response.get("usage", {})
-                tokens_in = usage.get("inputTokens", len(prompt.split()))
-                tokens_out = usage.get(
-                    "outputTokens", len(text_content.split()) if text_content else 0
-                )
-
-                return TextGenerationResponse(
-                    text=text_content.strip(),
-                    tokens_in=tokens_in,
-                    tokens_out=tokens_out,
-                    latency=latency,
-                    tool_calls=tool_calls if tool_calls else None,
-                    finish_reason=finish_reason,
-                    thinking_content=thinking_content.strip()
-                    if thinking_content
-                    else None,
-                )
-
-            except ClientError as e:
-                logging.warning(
-                    f"Attempt {attempt + 1}/{retries} failed due to ClientError: {e}. Retrying..."
-                )
-                if attempt == retries - 1:
-                    raise RuntimeError(
-                        f"Text generation failed after {retries} attempts: {e}"
+                    # Add assistant message with tool calls to conversation
+                    conversation_messages.append(
+                        {"role": "assistant", "content": content}
                     )
-                time.sleep((2**attempt) * 0.5)
 
-        raise RuntimeError(f"Text generation failed after {retries} attempts")
+                    # Execute each tool and add results
+                    tool_result_content = []
+                    for tc in tool_calls:
+                        trace = self._execute_tool(tc, executors)
+                        tool_calls_trace.append(trace)
+
+                        # Format result for Bedrock
+                        result_value = (
+                            trace.result if trace.success else {"error": trace.error}
+                        )
+                        tool_result_content.append(
+                            {
+                                "toolResult": {
+                                    "toolUseId": tc.id,
+                                    "content": [{"json": result_value}]
+                                    if isinstance(result_value, dict)
+                                    else [{"text": str(result_value)}],
+                                }
+                            }
+                        )
+
+                    conversation_messages.append(
+                        {"role": "user", "content": tool_result_content}
+                    )
+                    break  # Success, continue to next iteration
+
+                except ClientError as e:
+                    logging.warning(
+                        f"Attempt {attempt + 1}/{retries} failed due to ClientError: {e}. Retrying..."
+                    )
+                    if attempt == retries - 1:
+                        raise RuntimeError(
+                            f"Text generation failed after {retries} attempts: {e}"
+                        )
+                    time.sleep((2**attempt) * 0.5)
+
+        # Max iterations reached
+        total_latency = time.time() - overall_start_time
+        return TextGenerationResponse(
+            text="Reached tool iteration limit; see tool_calls_trace for details.",
+            tokens_in=tokens_in_total,
+            tokens_out=tokens_out_total,
+            latency=total_latency,
+            tool_calls_trace=tool_calls_trace if tool_calls_trace else None,
+            finish_reason="max_iterations",
+        )
 
     def _convert_tools_to_bedrock_format(
         self, openai_tools: List[Dict[str, Any]]
@@ -379,6 +437,269 @@ class BedrockTextGenerationProvider(BaseTextGenerationProvider):
 
         # Default behavior if no special case is found
         return model_name
+
+    def stream_text(
+        self,
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
+        response_format: Optional[Dict[str, Any]] = None,
+        files: Optional[List[str]] = None,
+        max_tool_iterations: int = 4,
+        on_tool_call: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        on_tool_result: Optional[Callable[[str, ToolCallTrace], None]] = None,
+    ) -> Iterable[Dict[str, Any]]:
+        """Stream text generation using Bedrock Converse Stream API with tool loop support."""
+        if files:
+            raise NotImplementedError(
+                "File search is only supported by the OpenAI provider"
+            )
+
+        model_name = model_name or "anthropic.claude-instant-v1"
+        temperature = temperature if temperature is not None else 0.5
+        max_tokens = max_tokens if max_tokens is not None else 100
+        sys_msg = sys_msg or ""
+        prompt = prompt or ""
+        retries = retries if retries is not None else 5
+        config = config or {}
+
+        # Check if model supports function calling
+        supports_tools = self._model_supports_tools(model_name)
+
+        if tools and not supports_tools:
+            logging.warning(
+                f"Model {model_name} does not support function calling. Ignoring tools parameter."
+            )
+            tools = None
+
+        # Extract executors from tools
+        executors, clean_tools = self._extract_executors(tools)
+        has_executors = bool(executors)
+
+        # Prepare messages
+        conversation_messages: List[Dict[str, Any]] = list(
+            messages
+            if isinstance(messages, list) and len(messages) > 0
+            else [{"role": "user", "content": [{"text": prompt}]}]
+        )
+
+        # Prepare inference config
+        inference_config = {"temperature": temperature, "maxTokens": max_tokens}
+
+        # Prepare system messages
+        system_messages = []
+        if sys_msg:
+            system_messages.append({"text": sys_msg})
+
+        # Convert tools to Bedrock format
+        tool_config = None
+        if clean_tools:
+            tool_config = self._convert_tools_to_bedrock_format(clean_tools)
+
+        # Tool loop state
+        tool_calls_trace: List[ToolCallTrace] = []
+        tokens_in_total = 0
+        tokens_out_total = 0
+        overall_start_time = time.time()
+
+        for iteration in range(max_tool_iterations):
+            for attempt in range(retries):
+                try:
+                    full_text = ""
+                    tool_uses: List[Dict[str, Any]] = []
+                    current_tool_use: Optional[Dict[str, Any]] = None
+                    tokens_in: int = 0
+                    tokens_out: int = 0
+
+                    # Prepare converse parameters
+                    converse_params: Dict[str, Any] = {
+                        "modelId": model_name,
+                        "messages": conversation_messages,
+                        "inferenceConfig": inference_config,
+                    }
+
+                    if system_messages:
+                        converse_params["system"] = system_messages
+                    if tool_config:
+                        converse_params["toolConfig"] = tool_config
+                    if config and config.get("enable_thinking"):
+                        budget_tokens = config.get("thinking_budget_tokens", 1024)
+                        converse_params["additionalModelRequestFields"] = {
+                            "thinking": {
+                                "type": "enabled",
+                                "budget_tokens": budget_tokens,
+                            }
+                        }
+
+                    # Use streaming API
+                    response = self.client.converse_stream(**converse_params)
+
+                    for event in response.get("stream", []):
+                        # Handle content block delta (text)
+                        if "contentBlockDelta" in event:
+                            delta = event["contentBlockDelta"].get("delta", {})
+                            if "text" in delta:
+                                text = delta["text"]
+                                full_text += text
+                                yield {"type": "delta", "text": text}
+                            # Handle tool input JSON delta
+                            if "toolUse" in delta and current_tool_use:
+                                input_delta = delta["toolUse"].get("input", "")
+                                current_tool_use["input_json"] += input_delta
+
+                        # Handle content block start
+                        if "contentBlockStart" in event:
+                            start = event["contentBlockStart"].get("start", {})
+                            if "toolUse" in start:
+                                current_tool_use = {
+                                    "toolUseId": start["toolUse"].get("toolUseId"),
+                                    "name": start["toolUse"].get("name"),
+                                    "input_json": "",
+                                }
+
+                        # Handle content block stop
+                        if "contentBlockStop" in event:
+                            if current_tool_use:
+                                try:
+                                    input_args = (
+                                        json.loads(current_tool_use["input_json"])
+                                        if current_tool_use["input_json"]
+                                        else {}
+                                    )
+                                except json.JSONDecodeError:
+                                    input_args = {}
+                                tool_uses.append(
+                                    {
+                                        "toolUseId": current_tool_use["toolUseId"],
+                                        "name": current_tool_use["name"],
+                                        "input": input_args,
+                                    }
+                                )
+                                current_tool_use = None
+
+                        # Handle metadata (token counts)
+                        if "metadata" in event:
+                            usage = event["metadata"].get("usage", {})
+                            tokens_in = usage.get("inputTokens", 0)
+                            tokens_out = usage.get("outputTokens", 0)
+
+                    tokens_in_total += (
+                        tokens_in if tokens_in > 0 else len(prompt.split())
+                    )
+                    tokens_out_total += (
+                        tokens_out if tokens_out > 0 else len(full_text.split())
+                    )
+
+                    # Convert tool_uses to ToolCall objects
+                    tool_calls = [
+                        ToolCall(
+                            id=tu["toolUseId"], name=tu["name"], arguments=tu["input"]
+                        )
+                        for tu in tool_uses
+                    ]
+
+                    # If no tool calls or no executors, return final response
+                    if not tool_calls or not has_executors:
+                        total_latency = time.time() - overall_start_time
+                        response_obj = TextGenerationResponse(
+                            text=full_text.strip(),
+                            tokens_in=tokens_in_total,
+                            tokens_out=tokens_out_total,
+                            latency=total_latency,
+                            tool_calls=tool_calls if tool_calls else None,
+                            tool_calls_trace=tool_calls_trace
+                            if tool_calls_trace
+                            else None,
+                            finish_reason="tool_calls" if tool_calls else "stop",
+                        )
+                        yield {"type": "final", "response": response_obj.model_dump()}
+                        return
+
+                    # Yield tool_call events
+                    for tc in tool_calls:
+                        yield {
+                            "type": "tool_call",
+                            "tool_name": tc.name,
+                            "arguments": tc.arguments,
+                        }
+                        if on_tool_call:
+                            on_tool_call(tc.name, tc.arguments)
+
+                    # Add assistant message with tool calls
+                    assistant_content = []
+                    if full_text:
+                        assistant_content.append({"text": full_text})
+                    for tu in tool_uses:
+                        assistant_content.append({"toolUse": tu})
+                    conversation_messages.append(
+                        {"role": "assistant", "content": assistant_content}
+                    )
+
+                    # Execute each tool and add results
+                    tool_result_content = []
+                    for tc in tool_calls:
+                        trace = self._execute_tool(tc, executors)
+                        tool_calls_trace.append(trace)
+
+                        yield {
+                            "type": "tool_result",
+                            "tool_name": tc.name,
+                            "trace": trace.model_dump(),
+                        }
+                        if on_tool_result:
+                            on_tool_result(tc.name, trace)
+
+                        result_value = (
+                            trace.result if trace.success else {"error": trace.error}
+                        )
+                        tool_result_content.append(
+                            {
+                                "toolResult": {
+                                    "toolUseId": tc.id,
+                                    "content": [{"json": result_value}]
+                                    if isinstance(result_value, dict)
+                                    else [{"text": str(result_value)}],
+                                }
+                            }
+                        )
+
+                    conversation_messages.append(
+                        {"role": "user", "content": tool_result_content}
+                    )
+                    break  # Success, continue to next iteration
+
+                except ClientError as e:
+                    logging.warning(
+                        f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
+                    )
+                    if attempt == retries - 1:
+                        raise RuntimeError(
+                            f"Streaming failed after {retries} attempts: {e}"
+                        )
+                    time.sleep((2**attempt) * 0.5)
+
+        # Max iterations reached
+        total_latency = time.time() - overall_start_time
+        response_obj = TextGenerationResponse(
+            text="Reached tool iteration limit; see tool_calls_trace for details.",
+            tokens_in=tokens_in_total,
+            tokens_out=tokens_out_total,
+            latency=total_latency,
+            tool_calls_trace=tool_calls_trace if tool_calls_trace else None,
+            finish_reason="max_iterations",
+        )
+        yield {
+            "type": "final",
+            "response": response_obj.model_dump(),
+            "finish_reason": "max_iterations",
+        }
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:

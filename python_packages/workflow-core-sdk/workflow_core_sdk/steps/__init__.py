@@ -15,6 +15,7 @@ This package contains all step implementations organized by domain:
 - tool_steps: Tool execution
 - human_steps: Human approval/interaction
 - ingestion_steps: Ingestion service integration
+- code_execution_step: Execute Python code in secure Nsjail sandbox
 
 Each module contains related step functions that can be registered
 with the step registry for workflow execution.
@@ -53,4 +54,6 @@ __all__ = [
     "human_approval_step",
     # Ingestion steps
     "ingestion_step",
+    # Code execution steps
+    "code_execution_step",
 ]

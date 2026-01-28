@@ -53,12 +53,27 @@ class ToolCall(BaseModel):
         return ToolCallFunction(name=self.name, arguments=args_str)
 
 
+class ToolCallTrace(BaseModel):
+    """Record of a single tool execution within the tool loop."""
+
+    tool_name: str
+    arguments: Dict[str, Any]
+    result: Any = None
+    success: bool = True
+    error: Optional[str] = None
+    duration_ms: Optional[int] = None
+    tool_call_id: Optional[str] = None
+
+
 class TextGenerationResponse(BaseModel):
     latency: float
     text: str
     tokens_in: int
     tokens_out: int
     tool_calls: Optional[List[ToolCall]] = None
+    tool_calls_trace: Optional[List[ToolCallTrace]] = (
+        None  # History of tool executions in the tool loop
+    )
     finish_reason: Optional[str] = None
     thinking_content: Optional[str] = (
         None  # Reasoning/thinking data from models that support it

@@ -13,6 +13,7 @@ HDR_ORG_ID = "X-elevAIte-OrganizationId"
 HDR_ACCOUNT_ID = "X-elevAIte-AccountId"
 HDR_PROJECT_ID = "X-elevAIte-ProjectId"
 HDR_API_KEY = "X-elevAIte-apikey"
+HDR_TENANT_ID = "X-Tenant-ID"
 
 
 def _default_principal_resolver(request: Request) -> str:
@@ -287,8 +288,14 @@ def require_permission_async(
             )
         user_id = principal_resolver(request)
         resource = resource_builder(request)
+        # Extract tenant ID from request headers to pass to auth-api
+        tenant_id = request.headers.get(HDR_TENANT_ID)
         allowed = await check_access_async(
-            user_id=user_id, action=action, resource=resource, base_url=base_url
+            user_id=user_id,
+            action=action,
+            resource=resource,
+            base_url=base_url,
+            tenant_id=tenant_id,
         )
         if not allowed:
             raise HTTPException(status_code=403, detail="Forbidden")
@@ -315,8 +322,14 @@ def require_permission(
     def dependency(request: Request) -> None:
         user_id = principal_resolver(request)
         resource = resource_builder(request)
+        # Extract tenant ID from request headers to pass to auth-api
+        tenant_id = request.headers.get(HDR_TENANT_ID)
         allowed = check_access(
-            user_id=user_id, action=action, resource=resource, base_url=base_url
+            user_id=user_id,
+            action=action,
+            resource=resource,
+            base_url=base_url,
+            tenant_id=tenant_id,
         )
         if not allowed:
             raise HTTPException(status_code=403, detail="Forbidden")

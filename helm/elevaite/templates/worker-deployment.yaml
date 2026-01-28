@@ -123,8 +123,8 @@ spec:
             
             # Code Execution Service
             {{- if .Values.codeExecution.enabled }}
-            - name: CODE_EXECUTION_URL
-              value: http://{{ include "elevaite.fullname" . }}-code-execution:8007
+            - name: CODE_EXECUTION_SERVICE_URL
+              value: http://{{ include "elevaite.fullname" . }}-code-execution:{{ .Values.codeExecution.service.port }}
             {{- end }}
             
             # Environment

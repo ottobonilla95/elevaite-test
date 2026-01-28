@@ -812,4 +812,40 @@ class StepRegistry:
             }
         )
 
+        # Register code execution step (secure sandbox via Nsjail)
+        await self.register_step(
+            {
+                "step_type": "code_execution",
+                "name": "Code Execution",
+                "description": "Execute Python code in a secure Nsjail sandbox with configurable resource limits",
+                "function_reference": "workflow_core_sdk.steps.code_execution_step.code_execution_step",
+                "execution_type": "local",
+                "parameters_schema": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": "Python code to execute",
+                        },
+                        "timeout": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 60,
+                            "default": 30,
+                            "description": "Execution timeout in seconds",
+                        },
+                        "memory_mb": {
+                            "type": "integer",
+                            "minimum": 64,
+                            "maximum": 512,
+                            "default": 256,
+                            "description": "Memory limit in MB",
+                        },
+                    },
+                    "required": ["code"],
+                },
+            },
+            skip_on_error=True,  # Service may not be available in all environments
+        )
+
         logger.info("Built-in steps registered successfully")

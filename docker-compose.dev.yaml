@@ -101,6 +101,10 @@ services:
       DEBUG: "1"
       LOG_LEVEL: DEBUG
       CORS_ORIGINS: "http://localhost:3005,http://localhost:3001"
+      # OPA disabled for local dev - all authorization checks will pass
+      OPA_ENABLED: "false"
+      # Allow requests from Docker service names (workflow-engine, worker call auth-api internally)
+      ALLOWED_HOSTS: "localhost,127.0.0.1,auth-api"
     depends_on:
       postgres:
         condition: service_healthy
@@ -121,8 +125,11 @@ services:
     env_file:
       - .env
     environment:
-      SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/workflow_engine
+      # Use psycopg2 (sync) driver - workflow-engine uses sync SQLAlchemy sessions
+      SQLALCHEMY_DATABASE_URL: postgresql+psycopg2://elevaite:elevaite@postgres:5432/workflow_engine
       INGESTION_SERVICE_URL: http://ingestion:8000
+      CODE_EXECUTION_SERVICE_URL: http://code-execution:8007
+      AUTHZ_SERVICE_URL: http://auth-api:8004
       LOG_LEVEL: DEBUG
       SCHEDULER_POLL_SECONDS: "2"
       # RabbitMQ for async task queues
@@ -145,6 +152,8 @@ services:
         condition: service_started
       ingestion:
         condition: service_healthy
+      code-execution:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
       interval: 5s
@@ -157,15 +166,18 @@ services:
       context: .
       dockerfile: python_apps/workflow-engine-poc/Dockerfile
     container_name: elevaite-worker
-    command: ["python", "-m", "workflow_engine_poc.worker"]
+    command: ["-m", "workflow_engine_poc.worker"]
     env_file:
       - .env
     environment:
-      SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@postgres:5432/workflow_engine
+      # Use psycopg2 (sync) driver - worker uses sync SQLAlchemy sessions
+      SQLALCHEMY_DATABASE_URL: postgresql+psycopg2://elevaite:elevaite@postgres:5432/workflow_engine
       RABBITMQ_URL: amqp://elevaite:elevaite@rabbitmq:5672/
       QDRANT_HOST: qdrant
       QDRANT_PORT: "6333"
       INGESTION_SERVICE_URL: http://ingestion:8000
+      CODE_EXECUTION_SERVICE_URL: http://code-execution:8007
+      AUTHZ_SERVICE_URL: http://auth-api:8004
       LOG_LEVEL: DEBUG
       # MinIO for S3-compatible object storage
       MINIO_ENDPOINT: minio:9000
@@ -182,6 +194,8 @@ services:
       rabbitmq:
         condition: service_healthy
       qdrant:
+        condition: service_started
+      code-execution:
         condition: service_healthy
     restart: unless-stopped
 
@@ -225,3 +239,30 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  code-execution:
+    build:
+      context: .
+      dockerfile: python_apps/code-execution-service/Dockerfile
+    container_name: elevaite-code-execution
+    ports:
+      - "8007:8007"
+    environment:
+      SERVICE_PORT: "8007"
+      LOG_LEVEL: DEBUG
+      DEFAULT_TIMEOUT_SECONDS: "30"
+      MAX_MEMORY_MB: "256"
+      NSJAIL_CONFIG_PATH: /app/nsjail/nsjail.cfg
+    # Nsjail requires these capabilities for namespace isolation
+    cap_add:
+      - SYS_ADMIN
+      - SYS_PTRACE
+      - NET_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s

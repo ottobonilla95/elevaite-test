@@ -12,6 +12,7 @@ from .fastapi_helpers import (
     HDR_ACCOUNT_ID,
     HDR_PROJECT_ID,
     HDR_API_KEY,
+    HDR_TENANT_ID,
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "HDR_ACCOUNT_ID",
     "HDR_PROJECT_ID",
     "HDR_API_KEY",
+    "HDR_TENANT_ID",
 ]

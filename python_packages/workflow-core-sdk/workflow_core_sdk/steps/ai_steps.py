@@ -207,44 +207,6 @@ def _get_provider_config(
     return {"type": "openai_textgen"}, TextGenerationModelName.OPENAI_gpt_4o.value  # type: ignore
 
 
-def _persist_message(
-    context: Optional[Dict[str, Any]],
-    role: str,
-    content: str,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> None:
-    """Persist a message to the database if context has required IDs."""
-    if not context or not isinstance(context, dict):
-        return
-    execution_id = context.get("_execution_id")
-    step_id = context.get("_step_id")
-    if not execution_id or not step_id:
-        return
-    try:
-        from ..db.service import DatabaseService
-        from ..db.database import get_db_session
-
-        session = get_db_session()
-        try:
-            DatabaseService().create_agent_message(
-                session,
-                execution_id=execution_id,
-                step_id=step_id,
-                role=role,
-                content=content,
-                metadata=metadata or {},
-                user_id=context.get("_user_id"),
-                session_id=context.get("_session_id"),
-            )
-        finally:
-            try:
-                session.close()
-            except Exception:
-                pass
-    except Exception as e:
-        logger.debug(f"Could not persist {role} message: {e}")
-
-
 async def _emit_tool_event(
     context: Optional[Dict[str, Any]],
     event_type: str,
@@ -576,10 +538,67 @@ class AgentStep:
                 "mode": "error",
             }
 
+    def _build_tools_with_executors(
+        self,
+        tools: Optional[List[Dict[str, Any]]],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Optional[List[Dict[str, Any]]]:
+        """Attach executor functions to tool schemas for provider-side tool execution.
+
+        Each tool schema gets an 'executor' key with a sync callable that wraps
+        the async _execute_tool_call method. The provider calls these executors
+        during its internal tool loop.
+        """
+        if not tools:
+            return None
+
+        tools_with_executors: List[Dict[str, Any]] = []
+        for tool in tools:
+            tool_copy = dict(tool)
+            func_info = tool.get("function", {})
+            tool_name = func_info.get("name") if isinstance(func_info, dict) else None
+
+            if tool_name:
+                # Create a sync executor that wraps the async _execute_tool_call
+                # This runs inside the provider's thread (via asyncio.to_thread)
+                def make_executor(name: str, ctx: Optional[Dict[str, Any]]):
+                    def executor(**kwargs) -> Any:
+                        # Create a mock tool call object for _execute_tool_call
+                        class MockToolCall:
+                            def __init__(self, n: str, args: Dict[str, Any]):
+                                self.id = str(uuid.uuid4())
+                                self.name = n
+                                self.arguments = args
+
+                        tc = MockToolCall(name, kwargs)
+                        # Run the async method in a new event loop (we're in a thread)
+                        result = asyncio.run(self._execute_tool_call(tc, context=ctx))
+                        # Return just the result value for the provider
+                        if isinstance(result, dict):
+                            if result.get("success", False):
+                                return result.get("result")
+                            else:
+                                raise RuntimeError(
+                                    result.get("error", "Tool execution failed")
+                                )
+                        return result
+
+                    return executor
+
+                tool_copy["executor"] = make_executor(tool_name, context)
+
+            tools_with_executors.append(tool_copy)
+
+        return tools_with_executors
+
     async def _execute_with_llm(
         self, query: str, context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Execute query using real LLM through llm-gateway"""
+        """Execute query using real LLM through llm-gateway.
+
+        The provider handles the complete tool loop internally. Tools are passed
+        with executor functions attached, so the provider can execute them.
+        """
         if self.llm_service is None:
             raise Exception("No LLM Service configured.")
         try:
@@ -599,6 +618,9 @@ class AgentStep:
                 f"🔧 Tools: explicit={len(self.tools or [])}, dynamic={len(dynamic_tools)}"
             )
 
+            # Attach executors to tools for provider-side execution
+            tools_with_executors = self._build_tools_with_executors(llm_tools, context)
+
             # Provider config
             config, model_name = _get_provider_config(context)
             provider_type = str(config.get("type", "unknown"))
@@ -611,7 +633,6 @@ class AgentStep:
                 else {}
             )
             _max_tokens_val = _llm.get("max_tokens")
-            # Handle both int and float for max_tokens
             try:
                 _max_tokens = (
                     int(_max_tokens_val)
@@ -633,123 +654,47 @@ class AgentStep:
             if isinstance(attachment, dict) and attachment.get("path"):
                 files_for_search = [attachment["path"]]
 
-            # Multi-turn tool loop
+            # Single call to provider - it handles the tool loop internally
+            response = await asyncio.to_thread(
+                self.llm_service.generate,
+                query,
+                config,
+                _max_tokens,
+                model_name,
+                sys_msg,
+                None,  # retries
+                _temperature,
+                tools_with_executors,
+                "auto" if tools_with_executors else None,
+                messages,
+                _response_format,
+                files_for_search,
+                4,  # max_tool_iterations
+            )
+
+            # Extract token usage and tool trace from response
+            tokens_in = int(getattr(response, "tokens_in", 0) or 0)
+            tokens_out = int(getattr(response, "tokens_out", 0) or 0)
+
+            # Get tool_calls_trace from response if provider populated it
             tool_calls_trace: List[Dict[str, Any]] = []
-            tokens_in_total, tokens_out_total, llm_calls = 0, 0, 0
+            if hasattr(response, "tool_calls_trace") and response.tool_calls_trace:
+                for trace in response.tool_calls_trace:
+                    if hasattr(trace, "model_dump"):
+                        tool_calls_trace.append(trace.model_dump())
+                    elif isinstance(trace, dict):
+                        tool_calls_trace.append(trace)
 
-            for iteration_num in range(4):  # max iterations
-                files_arg = files_for_search if iteration_num == 0 else None
-                response = await asyncio.to_thread(
-                    self.llm_service.generate,
-                    query,
-                    config,
-                    _max_tokens,
-                    model_name,
-                    sys_msg,
-                    None,
-                    _temperature,
-                    llm_tools,
-                    "auto" if llm_tools else None,
-                    messages,
-                    _response_format,
-                    files_arg,
-                )
-
-                # Accumulate token usage
-                tokens_in_total += int(getattr(response, "tokens_in", 0) or 0)
-                tokens_out_total += int(getattr(response, "tokens_out", 0) or 0)
-                llm_calls += 1
-
-                # Final answer if no tool calls
-                if not getattr(response, "tool_calls", None):
-                    return {
-                        "response": getattr(response, "text", str(response)) or "",
-                        "tool_calls": tool_calls_trace,
-                        "mode": "llm",
-                        "model": {"provider": provider_type, "name": model_label},
-                        "usage": {
-                            "tokens_in": tokens_in_total,
-                            "tokens_out": tokens_out_total,
-                            "total_tokens": tokens_in_total + tokens_out_total,
-                            "llm_calls": llm_calls,
-                        },
-                    }
-
-                # Build assistant message with tool_calls
-                assistant_message: Dict[str, Any] = {
-                    "role": "assistant",
-                    "tool_calls": [],
-                }
-                for tc in response.tool_calls or []:
-                    tc_id, fn_name, fn_args = _extract_tool_call_info(tc)
-                    args_str = (
-                        json.dumps(fn_args)
-                        if isinstance(fn_args, dict)
-                        else str(fn_args)
-                    )
-                    assistant_message["tool_calls"].append(
-                        {
-                            "id": tc_id,
-                            "type": "function",
-                            "function": {"name": fn_name, "arguments": args_str},
-                        }
-                    )
-                messages.append(assistant_message)
-
-                # Execute tool calls and add proper tool response messages
-                for tc in response.tool_calls or []:
-                    tc_id, fn_name, _ = _extract_tool_call_info(tc)
-                    try:
-                        tool_result = await self._execute_tool_call(tc, context=context)
-                        tool_calls_trace.append(tool_result)
-                        res_val = tool_result.get("result")
-                        if tool_result.get("success"):
-                            content = (
-                                res_val.get("response")
-                                if isinstance(res_val, dict) and res_val.get("response")
-                                else (
-                                    res_val
-                                    if isinstance(res_val, str)
-                                    else json.dumps(res_val)
-                                    if res_val
-                                    else ""
-                                )
-                            )
-                        else:
-                            content = (
-                                f"Error: {tool_result.get('error', 'Unknown error')}"
-                            )
-                    except Exception as e:
-                        tool_calls_trace.append(
-                            {
-                                "tool_name": fn_name,
-                                "success": False,
-                                "error": str(e)[:400],
-                            }
-                        )
-                        content = f"Error: {e}"
-
-                    messages.append(
-                        {"role": "tool", "tool_call_id": tc_id, "content": content}
-                    )
-                    _persist_message(
-                        context,
-                        "tool",
-                        str(content),
-                        {"tool_call_id": tc_id, "tool_name": fn_name},
-                    )
-
-            # Max iterations reached
             return {
-                "response": "Reached tool iteration limit; see tool_calls for details.",
+                "response": getattr(response, "text", str(response)) or "",
                 "tool_calls": tool_calls_trace,
                 "mode": "llm",
                 "model": {"provider": provider_type, "name": model_label},
                 "usage": {
-                    "tokens_in": tokens_in_total,
-                    "tokens_out": tokens_out_total,
-                    "total_tokens": tokens_in_total + tokens_out_total,
-                    "llm_calls": llm_calls,
+                    "tokens_in": tokens_in,
+                    "tokens_out": tokens_out,
+                    "total_tokens": tokens_in + tokens_out,
+                    "llm_calls": 1,  # Provider handles iterations internally
                 },
             }
 
@@ -1372,8 +1317,16 @@ async def agent_execution_step(
             preserve_unresolved=False,
         )
 
-    # Create agent; remove step-config tool support and rely on DB-bound tools only
+    # Build tools list: DB-bound tools + config tools (e.g., code_execution)
     connected_agents = config.get("connected_agents", [])
+
+    # Start with DB-bound tools
+    tools_list = load_agent_db_tool_schemas(agent_name=agent_name)
+
+    # Add any tools from config (supports built-in tool types like code_execution)
+    config_tools = config.get("tools", [])
+    if config_tools:
+        tools_list = tools_list + config_tools
 
     # Extract agent tools from functions array (those with agent_id)
     functions = config.get("functions", [])
@@ -1387,7 +1340,7 @@ async def agent_execution_step(
     agent = AgentStep(
         name=agent_name,
         system_prompt=system_prompt,
-        tools=load_agent_db_tool_schemas(agent_name=agent_name),
+        tools=tools_list,
         force_real_llm=force_real_llm,
         connected_agents=connected_agents,
     )
@@ -1542,231 +1495,139 @@ async def agent_execution_step(
             if isinstance(attachment, dict) and attachment.get("path"):
                 files_for_search = [attachment["path"]]
 
-            if llm_tools:
-                # Multi-turn conversation loop with tools
-                conversation_turns = 0
-                max_conversation_turns = 4
-                tool_calls_trace: List[Dict[str, Any]] = []
-                tokens_in_total = 0
-                tokens_out_total = 0
+            # Attach executors to tools for provider-side execution
+            tools_with_executors = agent._build_tools_with_executors(
+                llm_tools, input_data
+            )
 
-                while conversation_turns < max_conversation_turns:
-                    conversation_turns += 1
+            # Track tool calls for streaming events
+            tool_calls_trace: List[Dict[str, Any]] = []
 
-                    # Make streaming LLM call with tool support
-                    svc = TextGenerationService()  # type: ignore
+            # Streaming with provider-side tool execution
+            svc = TextGenerationService()  # type: ignore
+            accumulated = ""
 
-                    # Create a sync generator and wrap it to run in executor
-                    # This allows the blocking I/O from OpenAI to not block the event loop
-                    # Note: files_for_search only passed on first turn (files are uploaded once to vector store)
-                    files_arg = files_for_search if conversation_turns == 1 else None
+            def create_stream():
+                return svc.stream(
+                    prompt="",  # prompt not used when messages provided
+                    config=provider_config,
+                    max_tokens=_max_tokens,
+                    model_name=model_name,
+                    sys_msg="",  # sys_msg already in messages
+                    retries=None,
+                    temperature=_temperature,
+                    tools=tools_with_executors,
+                    tool_choice="auto" if tools_with_executors else None,
+                    messages=messages,
+                    response_format=_response_format,
+                    files=files_for_search,
+                    max_tool_iterations=4,
+                )
 
-                    def create_stream(files_to_pass=files_arg):
-                        return svc.stream(
-                            "",  # prompt not used when messages provided
-                            provider_config,
-                            _max_tokens,
-                            model_name,
-                            "",  # sys_msg already in messages
-                            None,  # retries
-                            _temperature,
-                            llm_tools,
-                            "auto" if llm_tools else None,
-                            messages,
-                            _response_format,
-                            files_to_pass,
-                        )
+            stream_generator = create_stream()
 
-                    # Get the generator
-                    stream_generator = create_stream()
+            import functools
 
-                    # Process streaming response
-                    collected_content = ""
-                    tool_calls_from_stream = []
-
-                    # Iterate through the sync generator, running each next() call in executor
-                    import functools
-
-                    while True:
-                        try:
-                            # Run the blocking next() call in a thread pool to avoid blocking event loop
-                            event = await asyncio.get_event_loop().run_in_executor(
-                                None, functools.partial(next, stream_generator)
-                            )
-                        except StopIteration:
-                            break
-                        event_type = event.get("type")
-
-                        if event_type == "delta":
-                            # Stream content token-by-token
-                            delta_text = event.get("text", "")
-                            collected_content += delta_text
-
-                            # Emit streaming delta event
-                            if sid:
-                                evt = create_step_event(
-                                    execution_id=execution_context.execution_id,
-                                    step_id=sid,
-                                    step_status="running",
-                                    workflow_id=execution_context.workflow_id,
-                                    output_data={
-                                        "delta": delta_text,
-                                        "accumulated_len": len(collected_content),
-                                        "visible_to_user": visible_to_user,
-                                    },
-                                )
-                                await stream_manager.emit_execution_event(evt)
-                                if execution_context.workflow_id:
-                                    await stream_manager.emit_workflow_event(evt)
-
-                        elif event_type == "final":
-                            # Final event contains tool calls if present
-                            tool_calls_from_stream = event.get("tool_calls", [])
-                            # Extract token usage from final response
-                            final_response = event.get("response", {})
-                            if isinstance(final_response, dict):
-                                tokens_in_total += (
-                                    final_response.get("tokens_in", 0) or 0
-                                )
-                                tokens_out_total += (
-                                    final_response.get("tokens_out", 0) or 0
-                                )
-                            break
-
-                    if tool_calls_from_stream:
-                        # Tool calls detected - add assistant message with tool calls to conversation
-                        # Use generic Chat Completions format - providers will convert as needed
-                        assistant_message: Dict[str, Any] = {
-                            "role": "assistant",
-                            "tool_calls": [],
-                        }
-                        for tc in tool_calls_from_stream:
-                            # Tool calls from stream are already in dict format
-                            tool_call_id = tc.get("id") or str(uuid.uuid4())
-                            func_name = tc.get("function", {}).get("name")
-                            func_args = tc.get("function", {}).get("arguments", "{}")
-
-                            # Ensure arguments is a JSON string (OpenAI API requirement)
-                            if isinstance(func_args, dict):
-                                func_args = json.dumps(func_args)
-                            elif not func_args:
-                                func_args = "{}"
-
-                            assistant_message["tool_calls"].append(
-                                {
-                                    "id": tool_call_id,
-                                    "type": "function",
-                                    "function": {
-                                        "name": func_name,
-                                        "arguments": func_args,
-                                    },
-                                }
-                            )
-                        messages.append(assistant_message)
-
-                        # Execute tool calls
-                        for tool_call_dict in tool_calls_from_stream:
-                            try:
-                                func_name = tool_call_dict.get("function", {}).get(
-                                    "name"
-                                )
-                                func_args = tool_call_dict.get("function", {}).get(
-                                    "arguments", "{}"
-                                )
-                                tool_call_id = tool_call_dict.get("id") or str(
-                                    uuid.uuid4()
-                                )
-
-                                # Convert dict to object-like structure for _execute_tool_call
-                                class ToolCallObj:
-                                    def __init__(self, tc_dict):
-                                        self.id = tc_dict.get("id")
-                                        self.tool_call_id = tc_dict.get("id")
-                                        self.name = tc_dict.get("function", {}).get(
-                                            "name"
-                                        )
-                                        self.arguments = tc_dict.get(
-                                            "function", {}
-                                        ).get("arguments")
-
-                                        class FunctionObj:
-                                            def __init__(self, name, arguments):
-                                                self.name = name
-                                                self.arguments = arguments
-
-                                        self.function = FunctionObj(
-                                            self.name, self.arguments
-                                        )
-
-                                tool_call_obj = ToolCallObj(tool_call_dict)
-                                tool_result = await agent._execute_tool_call(
-                                    tool_call_obj, context=input_data
-                                )
-                                tool_calls_trace.append(tool_result)
-
-                                # Build result string
-                                result_content = tool_result.get("result", {})
-                                if isinstance(result_content, dict):
-                                    result_str = result_content.get(
-                                        "response"
-                                    ) or json.dumps(result_content)
-                                else:
-                                    result_str = str(result_content)
-
-                                # Add tool response in generic format - providers convert as needed
-                                messages.append(
-                                    {
-                                        "role": "tool",
-                                        "tool_call_id": tool_call_id,
-                                        "content": result_str,
-                                    }
-                                )
-
-                            except Exception as e:
-                                logger.error(f"Tool execution failed: {e}")
-                                tool_call_id = tool_call_dict.get("id") or str(
-                                    uuid.uuid4()
-                                )
-                                messages.append(
-                                    {
-                                        "role": "tool",
-                                        "tool_call_id": tool_call_id,
-                                        "content": f"Error: {str(e)}",
-                                    }
-                                )
-
-                        # Continue loop to get final response
-                        continue
-
-                    else:
-                        # No tool calls - this is the final response
-                        # Content was already streamed token-by-token during the streaming loop above
-
-                        # Build result
-                        result = {
-                            "response": collected_content,
-                            "tool_calls": tool_calls_trace,
-                            "mode": "llm",
-                            "model": {
-                                "provider": provider_config["type"],
-                                "name": str(model_name),
-                            },
-                            "usage": {
-                                "tokens_in": tokens_in_total,
-                                "tokens_out": tokens_out_total,
-                                "total_tokens": tokens_in_total + tokens_out_total,
-                                "llm_calls": conversation_turns,
-                            },
-                        }
-                        break
-
-                # If we hit max turns without a final response
-                if conversation_turns >= max_conversation_turns:
-                    logger.warning(
-                        f"Reached max conversation turns ({max_conversation_turns}), ending loop"
+            while True:
+                try:
+                    ev = await asyncio.get_event_loop().run_in_executor(
+                        None, functools.partial(next, stream_generator)
                     )
+                except StopIteration:
+                    break
+
+                et = (ev.get("type") or "").lower()
+
+                if et == "delta":
+                    delta = ev.get("text") or ""
+                    if delta:
+                        accumulated += delta
+                        if sid:
+                            evt = create_step_event(
+                                execution_id=execution_context.execution_id,
+                                step_id=sid,
+                                step_status="running",
+                                workflow_id=execution_context.workflow_id,
+                                output_data={
+                                    "delta": delta,
+                                    "accumulated_len": len(accumulated),
+                                    "visible_to_user": visible_to_user,
+                                },
+                            )
+                            await stream_manager.emit_execution_event(evt)
+                            if execution_context.workflow_id:
+                                await stream_manager.emit_workflow_event(evt)
+
+                elif et == "tool_call":
+                    # Provider is about to execute a tool - emit event for visibility
+                    tool_name = ev.get("tool_name", "unknown")
+                    tool_args = ev.get("arguments", {})
+                    if sid:
+                        evt = create_step_event(
+                            execution_id=execution_context.execution_id,
+                            step_id=sid,
+                            step_status="running",
+                            workflow_id=execution_context.workflow_id,
+                            output_data={
+                                "tool_call": {
+                                    "name": tool_name,
+                                    "arguments": tool_args,
+                                },
+                                "visible_to_user": visible_to_user,
+                            },
+                        )
+                        await stream_manager.emit_execution_event(evt)
+                        if execution_context.workflow_id:
+                            await stream_manager.emit_workflow_event(evt)
+
+                elif et == "tool_result":
+                    # Provider executed a tool - capture trace and emit event
+                    trace_data = ev.get("trace", {})
+                    if trace_data:
+                        if hasattr(trace_data, "model_dump"):
+                            tool_calls_trace.append(trace_data.model_dump())
+                        elif isinstance(trace_data, dict):
+                            tool_calls_trace.append(trace_data)
+                    if sid:
+                        evt = create_step_event(
+                            execution_id=execution_context.execution_id,
+                            step_id=sid,
+                            step_status="running",
+                            workflow_id=execution_context.workflow_id,
+                            output_data={
+                                "tool_result": trace_data,
+                                "visible_to_user": visible_to_user,
+                            },
+                        )
+                        await stream_manager.emit_execution_event(evt)
+                        if execution_context.workflow_id:
+                            await stream_manager.emit_workflow_event(evt)
+
+                elif et == "final":
+                    final_resp = ev.get("response") or {}
+                    text = accumulated or ""
+                    if isinstance(final_resp, dict):
+                        text = final_resp.get("text") or text
+                        # Extract tool_calls_trace from dict response
+                        resp_traces = final_resp.get("tool_calls_trace", [])
+                        for trace in resp_traces:
+                            if isinstance(trace, dict):
+                                tool_calls_trace.append(trace)
+                    else:
+                        # Extract tool_calls_trace from object response (e.g., TextGenerationResponse)
+                        resp_traces = (
+                            getattr(final_resp, "tool_calls_trace", None) or []
+                        )
+                        for trace in resp_traces:
+                            if hasattr(trace, "model_dump"):
+                                tool_calls_trace.append(trace.model_dump())
+                            elif isinstance(trace, dict):
+                                tool_calls_trace.append(trace)
+
                     result = {
-                        "response": "Reached conversation turn limit",
+                        "response": text.strip()
+                        if isinstance(text, str)
+                        else str(text),
                         "tool_calls": tool_calls_trace,
                         "mode": "llm",
                         "model": {
@@ -1774,102 +1635,39 @@ async def agent_execution_step(
                             "name": str(model_name),
                         },
                         "usage": {
-                            "tokens_in": tokens_in_total,
-                            "tokens_out": tokens_out_total,
-                            "total_tokens": tokens_in_total + tokens_out_total,
-                            "llm_calls": conversation_turns,
+                            "tokens_in": int(final_resp.get("tokens_in", -1) or -1)
+                            if isinstance(final_resp, dict)
+                            else -1,
+                            "tokens_out": int(final_resp.get("tokens_out", -1) or -1)
+                            if isinstance(final_resp, dict)
+                            else -1,
+                            "total_tokens": (
+                                int(final_resp.get("tokens_in", -1) or -1)
+                                + int(final_resp.get("tokens_out", -1) or -1)
+                            )
+                            if isinstance(final_resp, dict)
+                            else -1,
+                            "llm_calls": 1,  # Provider handles iterations internally
                         },
                     }
+                    break
             else:
-                # No tools - simple streaming without tool loop
-                svc = TextGenerationService()  # type: ignore
-                accumulated = ""
-
-                stream_generator = svc.stream(
-                    prompt="",
-                    config=provider_config,
-                    max_tokens=_max_tokens,
-                    model_name=model_name,
-                    sys_msg="",
-                    retries=None,
-                    temperature=_temperature,
-                    tools=None,
-                    tool_choice=None,
-                    messages=messages,
-                    response_format=_response_format,
-                    files=files_for_search,
-                )
-
-                import functools
-
-                while True:
-                    try:
-                        ev = await asyncio.get_event_loop().run_in_executor(
-                            None, functools.partial(next, stream_generator)
-                        )
-                    except StopIteration:
-                        break
-
-                    et = (ev.get("type") or "").lower()
-                    if et == "delta":
-                        delta = ev.get("text") or ""
-                        if delta:
-                            accumulated += delta
-                            if sid:
-                                evt = create_step_event(
-                                    execution_id=execution_context.execution_id,
-                                    step_id=sid,
-                                    step_status="running",
-                                    workflow_id=execution_context.workflow_id,
-                                    output_data={
-                                        "delta": delta,
-                                        "accumulated_len": len(accumulated),
-                                        "visible_to_user": visible_to_user,
-                                    },
-                                )
-                                await stream_manager.emit_execution_event(evt)
-                                if execution_context.workflow_id:
-                                    await stream_manager.emit_workflow_event(evt)
-                    elif et == "final":
-                        final_resp = ev.get("response") or {}
-                        text = (final_resp.get("text") or accumulated or "").strip()
-                        result = {
-                            "response": text,
-                            "tool_calls": [],
-                            "mode": "llm",
-                            "model": {
-                                "provider": provider_config["type"],
-                                "name": str(model_name),
-                            },
-                            "usage": {
-                                "tokens_in": int(final_resp.get("tokens_in", -1) or -1),
-                                "tokens_out": int(
-                                    final_resp.get("tokens_out", -1) or -1
-                                ),
-                                "total_tokens": int(
-                                    final_resp.get("tokens_in", -1) or -1
-                                )
-                                + int(final_resp.get("tokens_out", -1) or -1),
-                                "llm_calls": 1,
-                            },
-                        }
-                        break
-                else:
-                    result = {
-                        "response": accumulated,
-                        "tool_calls": [],
-                        "mode": "llm",
-                        "model": {
-                            "provider": provider_config["type"],
-                            "name": str(model_name),
-                        },
-                        "usage": {
-                            "tokens_in": -1,
-                            "tokens_out": -1,
-                            "total_tokens": -1,
-                            "llm_calls": 1,
-                        },
-                    }
+                # Loop completed without 'final' event
+                result = {
+                    "response": accumulated,
+                    "tool_calls": tool_calls_trace,
+                    "mode": "llm",
+                    "model": {
+                        "provider": provider_config["type"],
+                        "name": str(model_name),
+                    },
+                    "usage": {
+                        "tokens_in": -1,
+                        "tokens_out": -1,
+                        "total_tokens": -1,
+                        "llm_calls": 1,
+                    },
+                }
         except Exception as _se:
             logger.debug(f"Streaming failed, falling back to non-streaming: {_se}")
             result = await agent.execute(query, context=input_data)

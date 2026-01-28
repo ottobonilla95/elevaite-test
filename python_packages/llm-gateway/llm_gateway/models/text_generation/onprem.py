@@ -3,13 +3,13 @@ import base64
 import logging
 import requests
 import textwrap
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Iterable, Callable
 
 
 from ...utilities.onprem import get_model_endpoint
 from ...utilities.tokens import count_tokens
 from .core.base import BaseTextGenerationProvider
-from .core.interfaces import TextGenerationResponse
+from .core.interfaces import TextGenerationResponse, ToolCallTrace
 from ...tools.web_search import web_search, format_search_results
 
 
@@ -37,6 +37,7 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
         messages: Optional[List[Dict[str, Any]]] = None,
         response_format: Optional[Dict[str, Any]] = None,
         files: Optional[List[str]] = None,
+        max_tool_iterations: int = 4,
     ) -> TextGenerationResponse:
         if files:
             raise NotImplementedError(
@@ -200,6 +201,53 @@ class OnPremTextGenerationProvider(BaseTextGenerationProvider):
                 time.sleep((2**attempt) * 0.5)
 
         raise Exception
+
+    def stream_text(
+        self,
+        model_name: Optional[str],
+        temperature: Optional[float],
+        max_tokens: Optional[int],
+        sys_msg: Optional[str],
+        prompt: Optional[str],
+        retries: Optional[int],
+        config: Optional[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
+        response_format: Optional[Dict[str, Any]] = None,
+        files: Optional[List[str]] = None,
+        max_tool_iterations: int = 4,
+        on_tool_call: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        on_tool_result: Optional[Callable[[str, ToolCallTrace], None]] = None,
+    ) -> Iterable[Dict[str, Any]]:
+        """Stream text generation for OnPrem provider.
+
+        Note: OnPrem provider does not support true streaming or tool calling.
+        This method wraps generate_text() and yields the result as a single chunk.
+        """
+        # OnPrem doesn't support streaming, so we call generate_text and yield the result
+        response = self.generate_text(
+            model_name=model_name,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            sys_msg=sys_msg,
+            prompt=prompt,
+            retries=retries,
+            config=config,
+            tools=tools,
+            tool_choice=tool_choice,
+            messages=messages,
+            response_format=response_format,
+            files=files,
+            max_tool_iterations=max_tool_iterations,
+        )
+
+        # Yield the full text as a single delta
+        if response.text:
+            yield {"type": "delta", "text": response.text}
+
+        # Yield the final response
+        yield {"type": "final", "response": response.model_dump()}
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:

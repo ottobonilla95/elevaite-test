@@ -6,6 +6,9 @@ import httpx
 # Updated to point to Auth API's authz endpoint
 DEFAULT_AUTHZ_SERVICE_URL = os.getenv("AUTHZ_SERVICE_URL", "http://localhost:8004")
 
+# Tenant header name
+HDR_TENANT_ID = "X-Tenant-ID"
+
 
 async def check_access_async(
     *,
@@ -14,6 +17,7 @@ async def check_access_async(
     resource: Dict[str, Any],
     base_url: Optional[str] = None,
     timeout: float = 2.0,
+    tenant_id: Optional[str] = None,
 ) -> bool:
     """
     Async variant of check_access that calls the unified Auth API authorization service.
@@ -29,6 +33,7 @@ async def check_access_async(
         resource: Dict with keys: type, id, organization_id, account_id (optional).
         base_url: Override base URL (default uses AUTHZ_SERVICE_URL env).
         timeout: Request timeout seconds.
+        tenant_id: Tenant ID to pass in X-Tenant-ID header (required for multi-tenant auth-api).
 
     Returns:
         True if allowed, False otherwise.
@@ -53,9 +58,16 @@ async def check_access_async(
     )
     payload = {"user_id": user_id_int, "action": action, "resource": resource}
 
+    # Build headers with tenant ID if provided
+    headers: Dict[str, str] = {}
+    if tenant_id:
+        headers[HDR_TENANT_ID] = tenant_id
+
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.post(url, json=payload)
+            resp = await client.post(
+                url, json=payload, headers=headers if headers else None
+            )
             if resp.status_code != 200:
                 return False
             data = resp.json()

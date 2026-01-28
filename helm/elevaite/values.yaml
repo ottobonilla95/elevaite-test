@@ -189,11 +189,15 @@ codeExecution:
       cpu: 1000m
       memory: 1Gi
   
-  # Security context for Nsjail (requires privileged or specific capabilities)
+  # Security context for Nsjail (requires specific capabilities)
+  # These capabilities are required for Nsjail to create namespaces and sandbox processes
   securityContext:
-    privileged: false  # Set to true if using Nsjail
+    privileged: false
     capabilities:
-      add: []
+      add:
+        - SYS_ADMIN    # Required for clone(CLONE_NEWUSER) and mount operations
+        - SYS_PTRACE   # Required for ptrace-based process monitoring
+        - NET_ADMIN    # Required for network namespace configuration
   
   env:
     LOG_LEVEL: INFO

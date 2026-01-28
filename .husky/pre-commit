@@ -1,3 +1,6 @@
+# Add common paths where uv might be installed
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
 # Check if uv is available
 if ! command -v uv &> /dev/null; then
   echo ""
