@@ -19,11 +19,11 @@ authApi:
     pullPolicy: Always  # Always pull latest image for PR environments
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
+      cpu: 100m
+      memory: 512Mi
     limits:
-      cpu: 250m
-      memory: 256Mi
+      cpu: 500m
+      memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
     ALLOWED_HOSTS: "*"
@@ -40,7 +40,7 @@ workflowEngine:
       memory: 128Mi
     limits:
       cpu: 250m
-      memory: 256Mi
+      memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
     SCHEDULER_POLL_SECONDS: "10"
@@ -58,7 +58,7 @@ ingestion:
       memory: 128Mi
     limits:
       cpu: 250m
-      memory: 256Mi
+      memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
     ALLOWED_HOSTS: "*"
@@ -75,7 +75,7 @@ worker:
       memory: 128Mi
     limits:
       cpu: 250m
-      memory: 256Mi
+      memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
   envFromSecrets:
@@ -135,7 +135,7 @@ rabbitmq:
         memory: 128Mi
       limits:
         cpu: 250m
-        memory: 256Mi
+        memory: 512Mi
   port: 5672
   vhost: "/"
   existingSecret: "elevaite-rabbitmq-credentials"
