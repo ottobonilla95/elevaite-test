@@ -55,14 +55,17 @@ async def test_engine():
     async with engine.begin() as conn:
         # Enable uuid-ossp extension for UUID generation
         await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
-        await conn.run_sync(Base.metadata.drop_all)
+        # Drop all tables with CASCADE to handle foreign key constraints
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(text(f'DROP TABLE IF EXISTS "{table.name}" CASCADE'))
         await conn.run_sync(Base.metadata.create_all)
 
     yield engine
 
-    # Clean up
+    # Clean up - drop all tables with CASCADE
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(text(f'DROP TABLE IF EXISTS "{table.name}" CASCADE'))
 
 
 @pytest_asyncio.fixture(scope="session")
