@@ -73,15 +73,35 @@ spec:
             - bash
             - -c
             - |
-              set -e
+              set -ex  # Exit on error, print commands
               cd /elevaite/python_apps/auth_api
 
+              echo "=========================================="
+              echo "Auth API Migration Debug"
+              echo "=========================================="
+              echo "Current directory: $(pwd)"
+              echo "Files in directory:"
+              ls -la
+              echo ""
+              echo "Database connection test:"
+              echo "DB_HOST: ${db_host}"
+              echo "DB_PORT: ${db_port}"
+              echo "DB_USER: ${db_user}"
+              echo "DB_NAME: ${db_name}"
+              echo ""
+              echo "Checking alembic.ini:"
+              cat alembic.ini
+              echo ""
               echo "Running auth-api migrations for tenants: {{ join " " .Values.migrations.tenants }}"
+              echo ""
 
               {{- range .Values.migrations.tenants }}
+              echo "=========================================="
               echo "Migrating schema: auth_{{ . }}"
+              echo "=========================================="
               ALEMBIC_SCHEMA=auth_{{ . }} uv run alembic upgrade head
               echo "✅ auth_{{ . }} migration completed"
+              echo ""
               {{- end }}
 
               echo "✅ All auth-api migrations completed"

@@ -124,6 +124,15 @@ qdrant:
   enabled: false
 
 # =============================================================================
+# MIGRATIONS (Single tenant for PR envs)
+# =============================================================================
+migrations:
+  enabled: true
+  backoffLimit: 2  # Lower retry limit for faster failure feedback
+  tenants:
+    - default  # Only migrate default tenant for PRs
+
+# =============================================================================
 # SERVICE ACCOUNT
 # =============================================================================
 serviceAccount:
