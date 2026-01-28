@@ -19,15 +19,16 @@ authApi:
     pullPolicy: Always  # Always pull latest image for PR environments
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 100m
+      memory: 512Mi
     limits:
       cpu: 500m
       memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
     ALLOWED_HOSTS: "*"
-  envFromSecrets: []
+  envFromSecrets:
+    - elevaite-secrets
 
 workflowEngine:
   replicaCount: 1
@@ -35,16 +36,17 @@ workflowEngine:
     tag: "pr"
   resources:
     requests:
-      cpu: 250m
-      memory: 256Mi
+      cpu: 50m
+      memory: 128Mi
     limits:
-      cpu: 500m
+      cpu: 250m
       memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
     SCHEDULER_POLL_SECONDS: "10"
     ALLOWED_HOSTS: "*"
-  envFromSecrets: []
+  envFromSecrets:
+    - elevaite-secrets
 
 ingestion:
   replicaCount: 1
@@ -52,15 +54,16 @@ ingestion:
     tag: "pr"
   resources:
     requests:
-      cpu: 100m
+      cpu: 50m
       memory: 128Mi
     limits:
       cpu: 250m
-      memory: 256Mi
+      memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
     ALLOWED_HOSTS: "*"
-  envFromSecrets: []
+  envFromSecrets:
+    - elevaite-secrets
 
 worker:
   replicaCount: 1  # Single worker for PR envs
@@ -68,14 +71,15 @@ worker:
     tag: "pr"
   resources:
     requests:
-      cpu: 250m
-      memory: 256Mi
+      cpu: 50m
+      memory: 128Mi
     limits:
-      cpu: 500m
+      cpu: 250m
       memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
-  envFromSecrets: []
+  envFromSecrets:
+    - elevaite-secrets
   autoscaling:
     enabled: false
 
@@ -127,11 +131,11 @@ rabbitmq:
       size: 1Gi
     resources:
       requests:
-        cpu: 100m
+        cpu: 50m
         memory: 128Mi
       limits:
         cpu: 250m
-        memory: 256Mi
+        memory: 512Mi
   port: 5672
   vhost: "/"
   existingSecret: "elevaite-rabbitmq-credentials"

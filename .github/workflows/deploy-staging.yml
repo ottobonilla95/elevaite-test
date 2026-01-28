@@ -89,17 +89,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Ingestion Service
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: python_apps/ingestion-service/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-ingestion:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/elevaite-ingestion:staging
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # TODO: Re-enable ingestion service when ready
+      # - name: Build and push Ingestion Service
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: .
+      #     file: python_apps/ingestion-service/Dockerfile
+      #     push: true
+      #     tags: |
+      #       ghcr.io/${{ github.repository }}/elevaite-ingestion:${{ steps.meta.outputs.version }}
+      #       ghcr.io/${{ github.repository }}/elevaite-ingestion:staging
+      #     cache-from: type=gha
+      #     cache-to: type=gha,mode=max
 
       - name: Build and push Auth App (Frontend)
         uses: docker/build-push-action@v5
@@ -315,7 +316,7 @@ jobs:
             --set global.imagePullSecrets[0].name=ghcr-pull-secret \
             --set authApi.image.tag=${{ needs.build.outputs.image_tag }} \
             --set workflowEngine.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set ingestion.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set ingestion.enabled=false \
             --set worker.image.tag=${{ needs.build.outputs.image_tag }} \
             --set frontend.auth.image.tag=${{ needs.build.outputs.image_tag }} \
             --set frontend.elevaite.image.tag=${{ needs.build.outputs.image_tag }} \
@@ -328,7 +329,8 @@ jobs:
         run: |
           kubectl rollout status deployment/elevaite-auth-api -n ${{ env.NAMESPACE }} --timeout=5m
           kubectl rollout status deployment/elevaite-workflow-engine -n ${{ env.NAMESPACE }} --timeout=5m
-          kubectl rollout status deployment/elevaite-ingestion -n ${{ env.NAMESPACE }} --timeout=5m
+          # TODO: Re-enable when ingestion service is ready
+          # kubectl rollout status deployment/elevaite-ingestion -n ${{ env.NAMESPACE }} --timeout=5m
           kubectl rollout status deployment/elevaite-auth-app -n ${{ env.NAMESPACE }} --timeout=5m
           kubectl rollout status deployment/elevaite-elevaite-app -n ${{ env.NAMESPACE }} --timeout=5m
 
