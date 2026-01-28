@@ -269,8 +269,31 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
+      - name: Get Load Balancer IP
+        id: lb
+        run: |
+          # Get the ingress-nginx load balancer IP
+          LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || \
+                  kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+
+          # If we got a hostname (AWS ELB), resolve it to IP
+          if [[ "$LB_IP" == *"elb.amazonaws.com"* ]]; then
+            LB_IP=$(dig +short $LB_IP | head -1)
+          fi
+
+          # Convert dots to dashes for nip.io
+          LB_IP_DASHED=$(echo "$LB_IP" | tr '.' '-')
+
+          echo "lb_ip=$LB_IP" >> $GITHUB_OUTPUT
+          echo "lb_ip_dashed=$LB_IP_DASHED" >> $GITHUB_OUTPUT
+          echo "Load Balancer IP: $LB_IP"
+          echo "nip.io hostname will be: pr-${{ env.PR_NUMBER }}.$LB_IP_DASHED.nip.io"
+
       - name: Deploy with Helm
         run: |
+          # Use nip.io for DNS (no custom domain needed)
+          NIP_HOST="pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io"
+
           helm upgrade --install elevaite-pr-${{ env.PR_NUMBER }} ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
             --values ./helm/elevaite/values-pr.yaml \
@@ -290,12 +313,12 @@ jobs:
             --set frontend.auth.enabled=false \
             --set frontend.elevaite.enabled=false \
             --set ingress.enabled=true \
-            --set ingress.hosts[0].host=pr-${{ env.PR_NUMBER }}.dev.elevaite.ai \
+            --set ingress.hosts[0].host=$NIP_HOST \
             --set ingress.hosts[0].paths[0].path=/ \
             --set ingress.hosts[0].paths[0].pathType=Prefix \
             --set ingress.hosts[0].paths[0].service=workflow-engine \
             --set ingress.tls[0].secretName=elevaite-pr-${{ env.PR_NUMBER }}-tls \
-            --set ingress.tls[0].hosts[0]=pr-${{ env.PR_NUMBER }}.dev.elevaite.ai \
+            --set ingress.tls[0].hosts[0]=$NIP_HOST \
             --set "ingress.annotations.cert-manager\\.io/cluster-issuer=letsencrypt-staging" \
             --wait \
             --timeout 10m
@@ -317,11 +340,14 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const lbIpDashed = '${{ steps.lb.outputs.lb_ip_dashed }}';
+            const prNumber = '${{ env.PR_NUMBER }}';
+            const nipHost = `pr-${prNumber}.${lbIpDashed}.nip.io`;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 🚀 PR Environment Deployed\n\n**🔗 URL:** https://pr-${{ env.PR_NUMBER }}.dev.elevaite.ai\n\n**Cloud:** ${{ env.CLOUD_PROVIDER }}\n**Database:** \`pr_${{ env.PR_NUMBER }}\`\n**Namespace:** \`${{ env.NAMESPACE }}\`\n\n---\n*This environment will be automatically destroyed when the PR is closed.*`
+              body: `## 🚀 PR Environment Deployed\n\n**🔗 URL:** https://${nipHost}\n\n**Cloud:** ${{ env.CLOUD_PROVIDER }}\n**Database:** \`pr_${prNumber}\`\n**Namespace:** \`${{ env.NAMESPACE }}\`\n\n---\n*This environment will be automatically destroyed when the PR is closed.*`
             })
 
   # ===========================================================================

@@ -216,18 +216,20 @@ module "kubernetes" {
 }
 
 # =============================================================================
-# DNS (dev.elevaite.ai for PR environments)
+# DNS - DISABLED
+# Not using custom domain for PR environments (using nip.io instead)
 # =============================================================================
 
-module "dns" {
-  source = "../../../modules/aws/dns"
-
-  environment = "dev"
-  domain_name = var.domain_name
-}
+# module "dns" {
+#   source = "../../../modules/aws/dns"
+#
+#   environment = "dev"
+#   domain_name = var.domain_name
+# }
 
 # =============================================================================
-# CLUSTER ADD-ONS (Ingress, cert-manager, external-dns)
+# CLUSTER ADD-ONS (Ingress, cert-manager)
+# Note: external-dns is disabled since we use nip.io for PR environments
 # =============================================================================
 
 provider "kubernetes" {
@@ -266,15 +268,14 @@ provider "kubectl" {
 module "cluster_addons" {
   source = "../../../modules/aws/cluster-addons"
 
-  environment            = "dev"
-  domain_name            = var.domain_name
-  dns_zone_id            = module.dns.dev_zone_id # Use dev subdomain zone
-  letsencrypt_email      = var.letsencrypt_email
-  aws_region             = var.aws_region
-  oidc_provider          = module.kubernetes.oidc_provider
-  rabbitmq_password      = var.rabbitmq_password
+  environment          = "dev"
+  external_dns_enabled = false # Using nip.io for PR environments, no custom domain
+  letsencrypt_email    = var.letsencrypt_email
+  aws_region           = var.aws_region
+  oidc_provider        = module.kubernetes.oidc_provider
+  rabbitmq_password    = var.rabbitmq_password
   rabbitmq_erlang_cookie = var.rabbitmq_erlang_cookie != "" ? var.rabbitmq_erlang_cookie : random_password.rabbitmq_cookie.result
-  qdrant_api_key         = var.qdrant_api_key
+  qdrant_api_key       = var.qdrant_api_key
 
   depends_on = [module.kubernetes]
 }
@@ -313,10 +314,11 @@ output "kubeconfig_command" {
   value = module.kubernetes.kubeconfig_command
 }
 
-output "dev_dns_name_servers" {
-  description = "Name servers for dev.elevaite.ai - add NS record in main zone"
-  value       = module.dns.dev_name_servers
-}
+# DNS outputs removed - using nip.io for PR environments
+# output "dev_dns_name_servers" {
+#   description = "Name servers for dev.elevaite.ai - add NS record in main zone"
+#   value       = module.dns.dev_name_servers
+# }
 
 # Helm values output (for CI/CD to use)
 output "helm_values" {
