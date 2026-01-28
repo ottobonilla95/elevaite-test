@@ -342,7 +342,9 @@ resource "helm_release" "external_dns" {
         zoneType = "public"
       }
 
-      domainFilters = [var.domain_name]
+      # For dev environment, manage dev.domain.com subdomain for PR environments
+      # For staging/prod, manage the main domain
+      domainFilters = var.environment == "dev" ? ["dev.${var.domain_name}"] : [var.domain_name]
 
       policy = "sync" # sync = create and delete records
 
