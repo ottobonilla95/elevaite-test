@@ -263,7 +263,7 @@ jobs:
             --from-literal=POSTGRES_USER=${{ secrets.STAGING_DB_USER }} \
             --from-literal=POSTGRES_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
             --from-literal=DATABASE_URL=postgresql+asyncpg://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_staging?ssl=true \
-            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_staging?ssl=true \
+            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_staging?sslmode=require \
             --from-literal=RABBITMQ_USER=elevaite \
             --from-literal=RABBITMQ_PASSWORD=${{ secrets.STAGING_RABBITMQ_PASSWORD }} \
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.STAGING_STORAGE_ACCESS_KEY }} \
