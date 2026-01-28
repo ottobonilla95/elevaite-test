@@ -27,7 +27,8 @@ authApi:
   env:
     LOG_LEVEL: DEBUG
     ALLOWED_HOSTS: "*"
-  envFromSecrets: []
+  envFromSecrets:
+    - elevaite-secrets
 
 workflowEngine:
   replicaCount: 1
@@ -44,7 +45,8 @@ workflowEngine:
     LOG_LEVEL: DEBUG
     SCHEDULER_POLL_SECONDS: "10"
     ALLOWED_HOSTS: "*"
-  envFromSecrets: []
+  envFromSecrets:
+    - elevaite-secrets
 
 ingestion:
   replicaCount: 1
@@ -60,7 +62,8 @@ ingestion:
   env:
     LOG_LEVEL: DEBUG
     ALLOWED_HOSTS: "*"
-  envFromSecrets: []
+  envFromSecrets:
+    - elevaite-secrets
 
 worker:
   replicaCount: 1  # Single worker for PR envs
@@ -75,7 +78,8 @@ worker:
       memory: 256Mi
   env:
     LOG_LEVEL: DEBUG
-  envFromSecrets: []
+  envFromSecrets:
+    - elevaite-secrets
   autoscaling:
     enabled: false
 
