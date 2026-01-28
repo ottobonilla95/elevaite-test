@@ -426,7 +426,7 @@ jobs:
             --set frontend.elevaite.env.BACKEND_URL=https://$API_HOST \
             --wait \
             --timeout 15m \
-            --atomic
+            --rollback-on-failure
 
       - name: Show deployment status
         if: always()

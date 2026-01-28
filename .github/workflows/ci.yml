@@ -403,8 +403,9 @@ jobs:
           echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "Image tag: ${SHORT_SHA}"
 
+      # Always build and push images - Docker layer caching makes unchanged builds fast
+      # This ensures every commit has deployable images for PR/staging/prod environments
       - name: Build and push Auth API
-        if: needs.changes.outputs.auth-api == 'true' || needs.changes.outputs.python == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -417,7 +418,6 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push Workflow Engine
-        if: needs.changes.outputs.workflow-engine == 'true' || needs.changes.outputs.python == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -430,7 +430,6 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push Auth App (Frontend)
-        if: needs.changes.outputs.frontend == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -443,7 +442,6 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push Elevaite App (Frontend)
-        if: needs.changes.outputs.frontend == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
