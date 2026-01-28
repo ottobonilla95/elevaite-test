@@ -78,6 +78,18 @@ resource "google_dns_managed_zone" "dev" {
   )
 }
 
+# NS delegation from main zone to dev zone
+# This allows dev.elevaite.ai to be resolved via the dev zone's nameservers
+resource "google_dns_record_set" "dev_ns_delegation" {
+  count        = var.environment == "dev" ? 1 : 0
+  name         = "dev.${var.domain_name}."
+  type         = "NS"
+  ttl          = 300
+  managed_zone = google_dns_managed_zone.main.name
+  project      = var.project_id
+  rrdatas      = google_dns_managed_zone.dev[0].name_servers
+}
+
 # =============================================================================
 # OUTPUTS
 # =============================================================================
