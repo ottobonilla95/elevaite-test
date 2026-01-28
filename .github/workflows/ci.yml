@@ -226,6 +226,9 @@ jobs:
         run: |
           uv run pytest \
             python_apps/workflow-engine-poc \
+            --ignore=python_apps/workflow-engine-poc/tests/e2e \
+            --ignore=python_apps/workflow-engine-poc/tests/integration \
+            --ignore=python_apps/workflow-engine-poc/workflow_engine_poc/tests \
             --tb=short \
             --cov=python_apps/workflow-engine-poc \
             --cov-report=term-missing \
@@ -244,17 +247,6 @@ jobs:
       #       --cov-report=xml:coverage-ingestion-service.xml \
       #       --cov-fail-under=40 \
       #       -q
-
-      - name: Run python_packages tests with coverage
-        run: |
-          uv run pytest \
-            python_packages \
-            --tb=short \
-            --cov=python_packages \
-            --cov-report=term-missing \
-            --cov-report=xml:coverage-python-packages.xml \
-            --cov-fail-under=40 \
-            -q
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4

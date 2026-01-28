@@ -1,0 +1,60 @@
+{
+  "name": "E2E Ad Copy Transformer",
+  "description": "Demo workflow: Input → Prompt → Agent → Output. Transforms product specs into social media ad copy.",
+  "steps": [
+    {
+      "step_id": "input-node",
+      "step_type": "data_input",
+      "dependencies": [],
+      "config": {
+        "input_type": "static",
+        "data": {
+          "raw_copy": "Arlo Pro 5 camera 2K video color night vision weather resistant"
+        }
+      }
+    },
+    {
+      "step_id": "prompt-node",
+      "step_type": "prompt",
+      "dependencies": [
+        "input-node"
+      ],
+      "parameters": {
+        "system_prompt": "You are an expert advertising copywriter specializing in home security products. Create compelling, concise ad copy.\n\nTransform the user's product spec list into a compelling ad copy that emphasizes peace of mind and home security. Keep it under 100 characters for social media ads.",
+        "provider": "openai_textgen",
+        "model_name": "gpt-5.2",
+        "temperature": 0.7,
+        "max_tokens": 150
+      }
+    },
+    {
+      "step_id": "agent-node",
+      "step_type": "agent_execution",
+      "dependencies": [
+        "input-node",
+        "prompt-node"
+      ],
+      "input_mapping": {
+        "query": "input-node.data.raw_copy"
+      },
+      "config": {
+        "agent_name": "AdCopyWriter",
+        "provider": "should_be_overridden",
+        "model_name": "should_be_overridden",
+        "interactive": false,
+        "force_real_llm": true
+      }
+    },
+    {
+      "step_id": "output-node",
+      "step_type": "output",
+      "dependencies": [
+        "agent-node"
+      ],
+      "parameters": {
+        "label": "Ad Copy Result",
+        "format": "text"
+      }
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "name": "E2E Tool Success",
+  "description": "Trigger -> tool_execution(add_numbers) -> data_input",
+  "steps": [
+    {
+      "step_id": "trigger",
+      "step_type": "trigger",
+      "parameters": {
+        "kind": "chat"
+      }
+    },
+    {
+      "step_id": "tool",
+      "step_type": "tool_execution",
+      "dependencies": [
+        "trigger"
+      ],
+      "config": {
+        "tool_name": "add_numbers",
+        "param_mapping": {},
+        "static_params": {
+          "a": 2,
+          "b": 3
+        }
+      }
+    },
+    {
+      "step_id": "after",
+      "step_type": "data_input",
+      "dependencies": [
+        "tool"
+      ],
+      "config": {
+        "input_type": "static",
+        "data": {
+          "ok": true
+        }
+      }
+    }
+  ]
+}
