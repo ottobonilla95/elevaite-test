@@ -347,6 +347,18 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
+      - name: Clean up stuck Helm release
+        run: |
+          # Check if there's a stuck release operation
+          RELEASE_NAME="elevaite-pr-${{ env.PR_NUMBER }}"
+          RELEASE_STATUS=$(helm status $RELEASE_NAME -n ${{ env.NAMESPACE }} 2>/dev/null | grep STATUS || echo "not found")
+          echo "Release status: $RELEASE_STATUS"
+
+          if echo "$RELEASE_STATUS" | grep -qE "(pending-install|pending-upgrade|pending-rollback)"; then
+            echo "Found stuck release, rolling back..."
+            helm rollback $RELEASE_NAME -n ${{ env.NAMESPACE }} || true
+          fi
+
       - name: Deploy with Helm
         run: |
           # Set up nip.io hosts for different services
@@ -400,7 +412,8 @@ jobs:
             --set frontend.elevaite.env.NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005 \
             --set frontend.elevaite.env.BACKEND_URL=https://$API_HOST \
             --wait \
-            --timeout 15m
+            --timeout 15m \
+            --atomic
 
       - name: Show deployment status
         if: always()
