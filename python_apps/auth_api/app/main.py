@@ -170,6 +170,7 @@ def test_logs():
 
 @app.get("/")
 def root():
+    # Force rebuild
     return {"status": "ok"}
 
 
