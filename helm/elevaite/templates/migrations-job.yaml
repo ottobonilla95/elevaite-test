@@ -35,33 +35,35 @@ spec:
             - -c
             - |
               echo "Waiting for PostgreSQL to be ready..."
-              until pg_isready -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER}; do
+              until pg_isready -h ${db_host} -p ${db_port} -U ${db_user}; do
                 echo "PostgreSQL is unavailable - sleeping"
                 sleep 2
               done
               echo "PostgreSQL is ready!"
-          env:
-            - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: elevaite-secrets
-                  key: db_host
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: elevaite-secrets
-                  key: db_port
-                  optional: true
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: elevaite-secrets
-                  key: db_user
-            - name: PGPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: elevaite-secrets
-                  key: db_password
+          envFrom:
+            - secretRef:
+                name: elevaite-secrets
+
+        - name: create-schemas
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "Creating tenant schemas..."
+              {{- range .Values.migrations.tenants }}
+              echo "Creating schema: auth_{{ . }}"
+              PGPASSWORD="${db_password}" psql -h "${db_host}" -p "${db_port}" -U "${db_user}" -d "${db_name}" \
+                -c "CREATE SCHEMA IF NOT EXISTS auth_{{ . }};" || {
+                echo "Failed to create schema auth_{{ . }}"
+                exit 1
+              }
+              echo "✅ Schema auth_{{ . }} created"
+              {{- end }}
+              echo "All schemas ready!"
+          envFrom:
+            - secretRef:
+                name: elevaite-secrets
 
       containers:
         # TEMPORARY: Only testing auth-api migrations for faster feedback
