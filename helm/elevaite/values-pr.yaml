@@ -26,6 +26,7 @@ authApi:
       memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
+    ALLOWED_HOSTS: "*"
   envFromSecrets: []
 
 workflowEngine:
