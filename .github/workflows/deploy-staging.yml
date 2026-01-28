@@ -1,6 +1,7 @@
 # =============================================================================
 # Staging Deployment Workflow
 # Deploys to staging AFTER CI passes on develop branch
+# Uses images already built and pushed by CI workflow (build once, deploy everywhere)
 # Cloud-agnostic: Works with AWS/Azure/GCP (configured via secrets)
 # =============================================================================
 
@@ -19,6 +20,10 @@ on:
         description: 'Cloud provider (aws/azure/gcp)'
         required: false
         default: ''
+      image_tag:
+        description: 'Image tag to deploy (defaults to latest commit SHA)'
+        required: false
+        default: ''
 
 concurrency:
   group: staging-deploy
@@ -32,126 +37,41 @@ env:
 
 jobs:
   # ===========================================================================
-  # Build and Push Docker Images (Cloud-Agnostic - uses GHCR)
-  # Only runs if CI passed (or manual trigger)
+  # Get Image Tag (from CI build or manual input)
   # ===========================================================================
-  build:
+  prepare:
     # Skip if triggered by workflow_run and CI failed
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    
     outputs:
-      image_tag: ${{ steps.meta.outputs.version }}
-    
+      image_tag: ${{ steps.get-tag.outputs.image_tag }}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Free up disk space
+      - name: Get image tag
+        id: get-tag
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-          sudo docker system prune -af --volumes
-          df -h
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate image metadata
-        id: meta
-        run: |
-          echo "version=staging-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-
-      - name: Build and push Auth API
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: python_apps/auth_api/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-auth-api:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/elevaite-auth-api:staging
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Workflow Engine
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: python_apps/workflow-engine-poc/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:staging
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # TODO: Re-enable ingestion service when ready
-      # - name: Build and push Ingestion Service
-      #   uses: docker/build-push-action@v5
-      #   with:
-      #     context: .
-      #     file: python_apps/ingestion-service/Dockerfile
-      #     push: true
-      #     tags: |
-      #       ghcr.io/${{ github.repository }}/elevaite-ingestion:${{ steps.meta.outputs.version }}
-      #       ghcr.io/${{ github.repository }}/elevaite-ingestion:staging
-      #     cache-from: type=gha
-      #     cache-to: type=gha,mode=max
-
-      - name: Build and push Auth App (Frontend)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/auth/Dockerfile
-          push: true
-          build-args: |
-            AUTH_URL=${{ vars.STAGING_AUTH_URL }}
-            AUTH_API_URL=${{ vars.STAGING_AUTH_API_URL }}
-            NEXTAUTH_URL_INTERNAL=${{ vars.STAGING_AUTH_URL }}
-            RBAC_BACKEND_URL=${{ vars.STAGING_AUTH_API_URL }}
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-auth-app:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/elevaite-auth-app:staging
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Elevaite App (Frontend)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/elevaite/Dockerfile
-          push: true
-          build-args: |
-            NEXT_PUBLIC_BACKEND_URL=${{ vars.STAGING_BACKEND_URL }}
-            NEXT_PUBLIC_AUTH_API_URL=${{ vars.STAGING_AUTH_API_URL }}
-            NEXT_PUBLIC_NATIVEAUTH_URL=${{ vars.STAGING_AUTH_API_URL }}
-            NEXT_PUBLIC_MODELS_API_URL=${{ vars.STAGING_BACKEND_URL }}
-            NEXT_PUBLIC_CONTRACTS_API_URL=${{ vars.STAGING_BACKEND_URL }}
-            NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=${{ vars.STAGING_BACKEND_URL }}
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-app:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/elevaite-app:staging
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            # Manual trigger with specific tag
+            echo "image_tag=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "workflow_run" ]; then
+            # Get SHA from the CI workflow that triggered this
+            SHORT_SHA=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
+            echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          else
+            # Manual trigger without tag - use current HEAD
+            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          fi
+          echo "Using image tag: $(cat $GITHUB_OUTPUT | grep image_tag)"
 
   # ===========================================================================
   # Deploy to Kubernetes (Cloud-Agnostic)
+  # Uses images already built and pushed by CI workflow
   # ===========================================================================
   deploy:
-    needs: build
+    needs: prepare
     runs-on: ubuntu-latest
     environment: staging
     
@@ -304,7 +224,7 @@ jobs:
           echo ""
           echo "To manually run migrations (if needed):"
           echo "  kubectl run migrations-manual --rm -it --restart=Never \\"
-          echo "    --image=ghcr.io/${{ github.repository }}/auth-api:${{ needs.build.outputs.image_tag }} \\"
+          echo "    --image=ghcr.io/${{ github.repository }}/auth-api:${{ needs.prepare.outputs.image_tag }} \\"
           echo "    --namespace ${{ env.NAMESPACE }} \\"
           echo "    --env='DATABASE_URI=<db-url>' \\"
           echo "    -- bash -c 'cd /elevaite/python_apps/auth_api && ALEMBIC_SCHEMA=auth_default uv run alembic upgrade head'"
@@ -317,18 +237,19 @@ jobs:
 
       - name: Deploy with Helm
         run: |
+          echo "Deploying with image tag: ${{ needs.prepare.outputs.image_tag }}"
           helm upgrade --install elevaite ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
             --values ./helm/elevaite/values-staging.yaml \
             --set global.imageRegistry=ghcr.io/${{ github.repository }} \
             --set global.environment=staging \
             --set global.imagePullSecrets[0].name=ghcr-pull-secret \
-            --set authApi.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set workflowEngine.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set authApi.image.tag=${{ needs.prepare.outputs.image_tag }} \
+            --set workflowEngine.image.tag=${{ needs.prepare.outputs.image_tag }} \
             --set ingestion.enabled=false \
-            --set worker.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set frontend.auth.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set frontend.elevaite.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set worker.image.tag=${{ needs.prepare.outputs.image_tag }} \
+            --set frontend.auth.image.tag=${{ needs.prepare.outputs.image_tag }} \
+            --set frontend.elevaite.image.tag=${{ needs.prepare.outputs.image_tag }} \
             --set postgresql.host=${{ steps.terraform.outputs.db_host }} \
             --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
             --wait \
@@ -356,7 +277,7 @@ jobs:
   # Notify
   # ===========================================================================
   notify:
-    needs: [build, deploy]
+    needs: [prepare, deploy]
     runs-on: ubuntu-latest
     if: always()
     

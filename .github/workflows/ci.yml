@@ -358,113 +358,109 @@ jobs:
           echo "✓ No duplicate migration revisions found"
 
   # ============================================================
-  # BUILD DOCKER IMAGES
-  # Validates that Docker images build successfully
-  # Only runs on push to develop (not on PRs to save time)
+  # BUILD AND PUSH DOCKER IMAGES
+  # Single source of truth - all environments use these images
+  # Runs on PRs and pushes so all deployments can use them
   # ============================================================
-  build-auth-api:
-    needs: [changes, python, python-tests]
+  build-and-push:
+    needs: [changes, python, python-tests, frontend]
     if: |
       always() &&
       (needs.python.result == 'success' || needs.python.result == 'skipped') &&
       (needs.python-tests.result == 'success' || needs.python-tests.result == 'skipped') &&
-      needs.changes.outputs.auth-api == 'true' &&
-      github.event_name == 'push'
+      (needs.frontend.result == 'success' || needs.frontend.result == 'skipped')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Auth API image
+      - name: Free up disk space
         run: |
-          docker build \
-            -f python_apps/auth_api/Dockerfile \
-            -t elevaite-auth-api:${{ github.sha }} \
-            .
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo docker system prune -af --volumes
+          df -h
 
-  build-workflow-engine:
-    needs: [changes, python, python-tests]
-    if: |
-      always() &&
-      (needs.python.result == 'success' || needs.python.result == 'skipped') &&
-      (needs.python-tests.result == 'success' || needs.python-tests.result == 'skipped') &&
-      needs.changes.outputs.workflow-engine == 'true' &&
-      github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build Workflow Engine image
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
         run: |
-          docker build \
-            -f python_apps/workflow-engine-poc/Dockerfile \
-            -t elevaite-workflow-engine:${{ github.sha }} \
-            .
+          # Use short SHA for image tag
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "Image tag: ${SHORT_SHA}"
 
-  # TODO: Re-enable when ingestion service is ready
-  # build-ingestion:
-  #   needs: [changes, python, python-tests]
-  #   if: |
-  #     always() &&
-  #     (needs.python.result == 'success' || needs.python.result == 'skipped') &&
-  #     (needs.python-tests.result == 'success' || needs.python-tests.result == 'skipped') &&
-  #     needs.changes.outputs.ingestion == 'true' &&
-  #     github.event_name == 'push'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
+      - name: Build and push Auth API
+        if: needs.changes.outputs.auth-api == 'true' || needs.changes.outputs.python == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: python_apps/auth_api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/elevaite-auth-api:${{ steps.meta.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-auth-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  #     - name: Build Ingestion Service image
-  #       run: |
-  #         docker build \
-  #           -f python_apps/ingestion-service/Dockerfile \
-  #           -t elevaite-ingestion:${{ github.sha }} \
-  #           .
+      - name: Build and push Workflow Engine
+        if: needs.changes.outputs.workflow-engine == 'true' || needs.changes.outputs.python == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: python_apps/workflow-engine-poc/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:${{ steps.meta.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  # ============================================================
-  # BUILD FRONTEND DOCKER IMAGES
-  # ============================================================
-  build-auth-app:
-    needs: [changes, frontend]
-    if: |
-      always() &&
-      (needs.frontend.result == 'success' || needs.frontend.result == 'skipped') &&
-      needs.changes.outputs.frontend == 'true' &&
-      github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Build and push Auth App (Frontend)
+        if: needs.changes.outputs.frontend == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/auth/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/elevaite-auth-app:${{ steps.meta.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-auth-app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build Auth App (Frontend) image
-        run: |
-          docker build \
-            -f apps/auth/Dockerfile \
-            -t elevaite-auth-app:${{ github.sha }} \
-            .
-
-  build-elevaite-app:
-    needs: [changes, frontend]
-    if: |
-      always() &&
-      (needs.frontend.result == 'success' || needs.frontend.result == 'skipped') &&
-      needs.changes.outputs.frontend == 'true' &&
-      github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build Elevaite App (Frontend) image
-        run: |
-          docker build \
-            -f apps/elevaite/Dockerfile \
-            -t elevaite-app:${{ github.sha }} \
-            .
+      - name: Build and push Elevaite App (Frontend)
+        if: needs.changes.outputs.frontend == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/elevaite/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/elevaite-app:${{ steps.meta.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-app:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # ============================================================
   # CI STATUS CHECK
   # Required status check for branch protection
   # ============================================================
   ci-status:
-    needs: [pr-title, frontend, python, python-tests, migration-validation, build-auth-api, build-workflow-engine, build-auth-app, build-elevaite-app]
+    needs: [pr-title, frontend, python, python-tests, migration-validation, build-and-push]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -475,10 +471,7 @@ jobs:
              [[ "${{ needs.python.result }}" == "failure" ]] || \
              [[ "${{ needs.python-tests.result }}" == "failure" ]] || \
              [[ "${{ needs.migration-validation.result }}" == "failure" ]] || \
-             [[ "${{ needs.build-auth-api.result }}" == "failure" ]] || \
-             [[ "${{ needs.build-workflow-engine.result }}" == "failure" ]] || \
-             [[ "${{ needs.build-auth-app.result }}" == "failure" ]] || \
-             [[ "${{ needs.build-elevaite-app.result }}" == "failure" ]]; then
+             [[ "${{ needs.build-and-push.result }}" == "failure" ]]; then
             echo "CI failed"
             exit 1
           fi
