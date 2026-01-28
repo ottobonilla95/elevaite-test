@@ -258,6 +258,7 @@ jobs:
             AUTH_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io/api/auth
             NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005
             RBAC_BACKEND_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
+            ELEVAITE_HOMEPAGE=https://pr-${{ env.PR_NUMBER }}.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io
 
       - name: Build and push Elevaite Frontend
         uses: docker/build-push-action@v5
