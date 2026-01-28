@@ -44,23 +44,47 @@ spec:
             - secretRef:
                 name: elevaite-secrets
 
+        - name: create-database
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "=========================================="
+              echo "Creating database: ${db_name}"
+              echo "=========================================="
+              echo "Connecting to: ${db_host}:${db_port} as ${db_user}"
+
+              # Connect to postgres database (always exists) and create our database
+              PGPASSWORD="${db_password}" psql -h "${db_host}" -p "${db_port}" -U "${db_user}" -d postgres \
+                -c "SELECT 1 FROM pg_database WHERE datname = '${db_name}';" | grep -q 1 || \
+                PGPASSWORD="${db_password}" psql -h "${db_host}" -p "${db_port}" -U "${db_user}" -d postgres \
+                -c "CREATE DATABASE ${db_name};"
+
+              echo "✅ Database ${db_name} ready"
+          envFrom:
+            - secretRef:
+                name: elevaite-secrets
+
         - name: create-schemas
           image: postgres:15-alpine
           command:
             - sh
             - -c
             - |
-              echo "Creating tenant schemas..."
+              echo "=========================================="
+              echo "Creating tenant schemas in database: ${db_name}"
+              echo "=========================================="
               {{- range .Values.migrations.tenants }}
               echo "Creating schema: auth_{{ . }}"
               PGPASSWORD="${db_password}" psql -h "${db_host}" -p "${db_port}" -U "${db_user}" -d "${db_name}" \
                 -c "CREATE SCHEMA IF NOT EXISTS auth_{{ . }};" || {
-                echo "Failed to create schema auth_{{ . }}"
+                echo "❌ Failed to create schema auth_{{ . }}"
                 exit 1
               }
               echo "✅ Schema auth_{{ . }} created"
               {{- end }}
-              echo "All schemas ready!"
+              echo "✅ All schemas ready!"
           envFrom:
             - secretRef:
                 name: elevaite-secrets
