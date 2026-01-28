@@ -1,14 +1,18 @@
 # =============================================================================
 # Staging Deployment Workflow
-# Deploys to staging on push to develop branch
+# Deploys to staging AFTER CI passes on develop branch
 # Cloud-agnostic: Works with AWS/Azure/GCP (configured via secrets)
 # =============================================================================
 
 name: Deploy to Staging
 
 on:
-  push:
+  # Trigger after CI workflow completes successfully on develop
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [develop]
+  # Allow manual trigger for emergency deploys
   workflow_dispatch:
     inputs:
       cloud_provider:
@@ -29,8 +33,13 @@ env:
 jobs:
   # ===========================================================================
   # Build and Push Docker Images (Cloud-Agnostic - uses GHCR)
+  # Only runs if CI passed (or manual trigger)
   # ===========================================================================
   build:
+    # Skip if triggered by workflow_run and CI failed
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: read

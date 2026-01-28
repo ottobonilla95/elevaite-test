@@ -1,14 +1,18 @@
 # =============================================================================
 # Production Deployment Workflow
-# Deploys to production on push to main branch
+# Deploys to production AFTER CI passes on main branch
 # Cloud-agnostic: Works with AWS/Azure/GCP (configured via secrets)
 # =============================================================================
 
 name: Deploy to Production
 
 on:
-  push:
+  # Trigger after CI workflow completes successfully on main
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
+  # Allow manual trigger for emergency deploys
   workflow_dispatch:
     inputs:
       confirm:
@@ -31,9 +35,13 @@ env:
 
 jobs:
   # ===========================================================================
-  # Validate (Manual trigger requires confirmation)
+  # Validate (Manual trigger requires confirmation, CI must pass)
   # ===========================================================================
   validate:
+    # Skip if triggered by workflow_run and CI failed
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Validate deployment confirmation
