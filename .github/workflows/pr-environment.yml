@@ -291,6 +291,9 @@ jobs:
           echo "=== Deployment Status ==="
           kubectl get pods -n ${{ env.NAMESPACE }} -o wide
           echo ""
+          echo "=== Auth-API Logs ==="
+          kubectl logs -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=auth-api --tail=50 || echo "No auth-api logs"
+          echo ""
           echo "=== Recent Events ==="
           kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp' | tail -15
 
