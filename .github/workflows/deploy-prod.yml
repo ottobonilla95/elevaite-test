@@ -279,8 +279,8 @@ jobs:
             --from-literal=db_name=elevaite_production \
             --from-literal=POSTGRES_USER=${{ secrets.PROD_DB_USER }} \
             --from-literal=POSTGRES_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} \
-            --from-literal=DATABASE_URL=postgresql://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?sslmode=require \
-            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?sslmode=require \
+            --from-literal=DATABASE_URL=postgresql+asyncpg://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?sslmode=require \
+            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?sslmode=require \
             --from-literal=RABBITMQ_USER=elevaite \
             --from-literal=RABBITMQ_PASSWORD=${{ secrets.PROD_RABBITMQ_PASSWORD }} \
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.PROD_STORAGE_ACCESS_KEY }} \
