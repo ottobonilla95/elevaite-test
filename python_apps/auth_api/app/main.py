@@ -47,6 +47,7 @@ async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
     try:
         # Initialize tenant schemas and tables
         logger.info("Initializing database and tenant schemas")
+        logger.info(f"Using database URL: {settings.DATABASE_URI[:50]}...")
         await initialize_db()
         logger.info("Database initialization completed successfully")
 
