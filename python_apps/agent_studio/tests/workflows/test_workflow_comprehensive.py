@@ -6,17 +6,15 @@ Supports both mock testing and real workflow integration testing.
 
 import sys
 import os
-import asyncio
 import time
 import uuid
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Any
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from services.execution_manager import execution_manager, WorkflowStep
 from db.database import get_db
-from db import crud, schemas
-from datetime import datetime, timedelta
+from db import crud
 
 class WorkflowTester:
     """Comprehensive workflow testing class"""
@@ -178,7 +176,7 @@ class WorkflowTester:
     
     def test_real_workflow_execution(self, workflow_id: str, query: str = "Test query"):
         """Test real workflow execution with tracing"""
-        print(f"🔥 Testing Real Workflow Execution")
+        print("🔥 Testing Real Workflow Execution")
         print(f"Workflow ID: {workflow_id}")
         print(f"Query: {query}")
         print("=" * 60)
@@ -225,7 +223,7 @@ class WorkflowTester:
         print("⚠️  Use the API endpoints for full execution testing")
         
         # Show the API call that would execute this workflow
-        print(f"\\n🔗 To execute this workflow via API:")
+        print("\\n🔗 To execute this workflow via API:")
         print(f"POST /api/workflows/{workflow_id}/execute/async")
         print(f"Body: {{\"query\": \"{query}\", \"user_id\": \"test_user\"}}")
         print(f"Then poll: GET /api/executions/{execution_id}/progress")
@@ -284,7 +282,7 @@ class WorkflowTester:
         
         if execution.workflow_trace:
             trace = execution.workflow_trace
-            print(f"\\n🔍 Workflow Trace Details:")
+            print("\\n🔍 Workflow Trace Details:")
             print(f"  Execution Path: {' → '.join(trace.execution_path) if trace.execution_path else 'None'}")
             print(f"  Total Steps: {trace.total_steps}")
             print(f"  Current Step Index: {trace.current_step_index}")
@@ -295,7 +293,7 @@ class WorkflowTester:
                 for decision, outcome in trace.branch_decisions.items():
                     print(f"  • {decision}: {outcome.get('outcome', 'N/A')}")
             
-            print(f"\\n📋 Step Details:")
+            print("\\n📋 Step Details:")
             for i, step in enumerate(trace.steps):
                 status_emoji = {"pending": "⏳", "running": "🔄", "completed": "✅", "failed": "❌", "skipped": "⏭️"}
                 emoji = status_emoji.get(step.status, '❓')

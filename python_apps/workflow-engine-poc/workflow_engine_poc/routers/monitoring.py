@@ -61,11 +61,18 @@ async def get_monitoring_summary():
 
 
 @router.get("/analytics/executions")
-async def get_execution_analytics(limit: int = 100, offset: int = 0, status: Optional[str] = None, request: Request = None):
+async def get_execution_analytics(
+    limit: int = 100,
+    offset: int = 0,
+    status: Optional[str] = None,
+    request: Request = None,
+):
     """Get execution analytics and history"""
     try:
         workflow_engine = request.app.state.workflow_engine
-        executions = await workflow_engine.get_execution_history(limit=limit, offset=offset, status=status)
+        executions = await workflow_engine.get_execution_history(
+            limit=limit, offset=offset, status=status
+        )
 
         # Convert to serializable format
         execution_list = []
@@ -93,7 +100,9 @@ async def get_error_analytics(component: Optional[str] = None):
 
         # Filter by component if specified
         if component:
-            component_errors = error_stats.get("errors_by_component", {}).get(component, [])
+            component_errors = error_stats.get("errors_by_component", {}).get(
+                component, []
+            )
             return {
                 "component": component,
                 "errors": component_errors,

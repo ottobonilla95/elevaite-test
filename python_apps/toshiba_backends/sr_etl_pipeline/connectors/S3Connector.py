@@ -1,6 +1,5 @@
 import boto3
 from datetime import datetime
-from dateutil import parser
 import os
 import logging
 import urllib3

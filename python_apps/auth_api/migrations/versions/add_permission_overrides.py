@@ -40,23 +40,44 @@ def upgrade() -> None:
     # Allows fine-grained permission control beyond role-based permissions
     op.create_table(
         "permission_overrides",
-        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id",
+            sa.Integer(),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("resource_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("resource_type", sa.String(), nullable=False),
         sa.Column("allow_actions", postgresql.JSONB(), nullable=True),
         sa.Column("deny_actions", postgresql.JSONB(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("NOW()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("NOW()"),
+        ),
         sa.PrimaryKeyConstraint("user_id", "resource_id"),
         sa.CheckConstraint(
-            "resource_type IN ('organization', 'account', 'project')", 
-            name="ck_permission_overrides_resource_type"
+            "resource_type IN ('organization', 'account', 'project')",
+            name="ck_permission_overrides_resource_type",
         ),
     )
-    
+
     # Create indexes for efficient querying
-    op.create_index("idx_permission_overrides_user_id", "permission_overrides", ["user_id"])
-    op.create_index("idx_permission_overrides_resource", "permission_overrides", ["resource_type", "resource_id"])
+    op.create_index(
+        "idx_permission_overrides_user_id", "permission_overrides", ["user_id"]
+    )
+    op.create_index(
+        "idx_permission_overrides_resource",
+        "permission_overrides",
+        ["resource_type", "resource_id"],
+    )
 
     # Add trigger to auto-update updated_at timestamp
     op.execute("""
@@ -71,7 +92,7 @@ def upgrade() -> None:
         "COMMENT ON TABLE permission_overrides IS 'Fine-grained permission overrides for users on specific resources. Allows granting or denying specific actions beyond role-based permissions.'"
     )
     op.execute(
-        "COMMENT ON COLUMN permission_overrides.allow_actions IS 'JSONB array of actions explicitly allowed for this user on this resource (e.g., [\"edit_project\", \"delete_workflow\"])'"
+        'COMMENT ON COLUMN permission_overrides.allow_actions IS \'JSONB array of actions explicitly allowed for this user on this resource (e.g., ["edit_project", "delete_workflow"])\''
     )
     op.execute(
         "COMMENT ON COLUMN permission_overrides.deny_actions IS 'JSONB array of actions explicitly denied for this user on this resource. Deny takes precedence over allow.'"
@@ -88,8 +109,9 @@ def downgrade() -> None:
     """Remove permission_overrides table."""
 
     # Drop trigger first
-    op.execute("DROP TRIGGER IF EXISTS update_permission_overrides_updated_at ON permission_overrides")
+    op.execute(
+        "DROP TRIGGER IF EXISTS update_permission_overrides_updated_at ON permission_overrides"
+    )
 
     # Drop table
     op.drop_table("permission_overrides")
-

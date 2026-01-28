@@ -1,6 +1,5 @@
 import pytest
 import uuid
-import json
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 

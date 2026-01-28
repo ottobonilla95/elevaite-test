@@ -15,9 +15,7 @@ import asyncio
 import aiohttp
 import json
 import os
-import sys
 import uuid
-from pathlib import Path
 
 # Configuration
 API_BASE_URL = "http://localhost:8005"
@@ -199,7 +197,7 @@ async def test_tokenizer_workflow_api():
             )
             
             if execution_response:
-                print(f"✅ Workflow execution started")
+                print("✅ Workflow execution started")
                 print(f"   Status: {execution_response.get('status')}")
                 print(f"   Workflow ID: {execution_response.get('workflow_id')}")
                 
@@ -278,7 +276,7 @@ async def test_tokenizer_workflow_api():
             workflow_details = await make_api_request(session, "GET", f"/api/workflows/{workflow_id}")
             
             if workflow_details:
-                print(f"✅ Workflow details retrieved")
+                print("✅ Workflow details retrieved")
                 print(f"   Configuration steps: {len(workflow_details['configuration'].get('steps', []))}")
                 print(f"   Workflow agents: {len(workflow_details.get('workflow_agents', []))}")
                 print(f"   Workflow connections: {len(workflow_details.get('workflow_connections', []))}")
@@ -289,10 +287,10 @@ async def test_tokenizer_workflow_api():
             print("🎉 All API tests completed successfully!")
             print("\nTest Summary:")
             print(f"- Created workflow: {workflow_id}")
-            print(f"- Tested sync execution: ✅")
-            print(f"- Tested async execution: ✅")
-            print(f"- Tested workflow listing: ✅")
-            print(f"- Tested workflow details: ✅")
+            print("- Tested sync execution: ✅")
+            print("- Tested async execution: ✅")
+            print("- Tested workflow listing: ✅")
+            print("- Tested workflow details: ✅")
             
             print("\nTo test with real services:")
             print("1. Set OPENAI_API_KEY environment variable")

@@ -163,7 +163,9 @@ class TestBedrockTextGenerationProvider:
             region_name="us-west-1",
         )
 
-        with pytest.raises(RuntimeError, match="Text generation failed after 1 attempts"):
+        with pytest.raises(
+            RuntimeError, match="Text generation failed after 1 attempts"
+        ):
             provider.generate_text(
                 model_name="anthropic.claude-instant-v1",
                 temperature=0.7,
@@ -183,7 +185,9 @@ class TestBedrockEmbeddingProvider:
         """Test successful document embedding"""
         # Mock InvokeModel response - Bedrock expects "completion" key
         # The text_to_embedding method converts text to embedding
-        mock_response = {"body": Mock(read=lambda: json.dumps({"completion": "test"}).encode())}
+        mock_response = {
+            "body": Mock(read=lambda: json.dumps({"completion": "test"}).encode())
+        }
         mock_make_api_call.return_value = mock_response
 
         provider = BedrockEmbeddingProvider(
@@ -192,7 +196,9 @@ class TestBedrockEmbeddingProvider:
             region_name="us-west-1",
         )
 
-        info = EmbeddingInfo(type=EmbeddingType.BEDROCK, name="amazon.titan-embed-text-v1")
+        info = EmbeddingInfo(
+            type=EmbeddingType.BEDROCK, name="amazon.titan-embed-text-v1"
+        )
         result = provider.embed_documents(texts=["Hello world"], info=info)
 
         assert len(result.embeddings) == 1
@@ -205,8 +211,12 @@ class TestBedrockEmbeddingProvider:
     def test_embed_documents_multiple(self, mock_make_api_call):
         """Test embedding multiple documents"""
         # Mock InvokeModel responses
-        mock_response1 = {"body": Mock(read=lambda: json.dumps({"completion": "abc"}).encode())}
-        mock_response2 = {"body": Mock(read=lambda: json.dumps({"completion": "def"}).encode())}
+        mock_response1 = {
+            "body": Mock(read=lambda: json.dumps({"completion": "abc"}).encode())
+        }
+        mock_response2 = {
+            "body": Mock(read=lambda: json.dumps({"completion": "def"}).encode())
+        }
         mock_make_api_call.side_effect = [mock_response1, mock_response2]
 
         provider = BedrockEmbeddingProvider(
@@ -215,7 +225,9 @@ class TestBedrockEmbeddingProvider:
             region_name="us-west-1",
         )
 
-        info = EmbeddingInfo(type=EmbeddingType.BEDROCK, name="amazon.titan-embed-text-v1")
+        info = EmbeddingInfo(
+            type=EmbeddingType.BEDROCK, name="amazon.titan-embed-text-v1"
+        )
         result = provider.embed_documents(texts=["First doc", "Second doc"], info=info)
 
         assert len(result.embeddings) == 2
@@ -238,9 +250,13 @@ class TestBedrockEmbeddingProvider:
             region_name="us-west-1",
         )
 
-        info = EmbeddingInfo(type=EmbeddingType.BEDROCK, name="amazon.titan-embed-text-v1")
+        info = EmbeddingInfo(
+            type=EmbeddingType.BEDROCK, name="amazon.titan-embed-text-v1"
+        )
 
-        with pytest.raises(RuntimeError, match="Embedding generation failed due to unexpected error"):
+        with pytest.raises(
+            RuntimeError, match="Embedding generation failed due to unexpected error"
+        ):
             provider.embed_documents(texts=["Hello world"], info=info)
 
 

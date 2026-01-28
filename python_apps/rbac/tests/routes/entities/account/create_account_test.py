@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, ANY
+from unittest.mock import patch, MagicMock, ANY
 from .... import models
 from ....auth.idp.google import (
     get_user_email_response_with_error,
@@ -41,7 +41,7 @@ async def test_create_account_with_valid_access_token_not_in_redis_cache_and_aut
     }
 
     response = await client.request(
-        method="POST", url=f"/accounts/", headers=headers, json=create_account_payload
+        method="POST", url="/accounts/", headers=headers, json=create_account_payload
     )
 
     token = headers["Authorization"].split(" ")[1]
@@ -107,7 +107,7 @@ async def test_create_account_with_valid_access_token_in_redis_cache_and_authent
     }
 
     response = await client.request(
-        method="POST", url=f"/accounts/", headers=headers, json=create_account_payload
+        method="POST", url="/accounts/", headers=headers, json=create_account_payload
     )
 
     token = headers["Authorization"].split(" ")[1]
@@ -160,7 +160,7 @@ async def test_create_account_with_conflicting_name_and_valid_access_token_and_a
     }
 
     response = await client.request(
-        method="POST", url=f"/accounts/", headers=headers, json=create_account_payload
+        method="POST", url="/accounts/", headers=headers, json=create_account_payload
     )
 
     assert response.status_code == 409
@@ -197,7 +197,7 @@ async def test_create_account_with_valid_access_token_and_authenticating_user_is
     }
 
     response = await client.request(
-        method="POST", url=f"/accounts/", headers=headers, json=create_account_payload
+        method="POST", url="/accounts/", headers=headers, json=create_account_payload
     )
 
     assert response.status_code == 403
@@ -234,7 +234,7 @@ async def test_create_account_with_non_existent_organization_id_in_payload_and_v
     }
 
     response = await client.request(
-        method="POST", url=f"/accounts/", headers=headers, json=create_account_payload
+        method="POST", url="/accounts/", headers=headers, json=create_account_payload
     )
 
     assert response.status_code == 404
@@ -259,7 +259,7 @@ async def test_create_account_with_no_access_token(client, setup_initial_data):
     }
 
     response = await client.request(
-        method="POST", url=f"/accounts/", headers=headers, json=create_account_payload
+        method="POST", url="/accounts/", headers=headers, json=create_account_payload
     )
 
     assert response.status_code == 401
@@ -302,7 +302,7 @@ async def test_create_account_with_invalid_or_expired_access_token(
     }
 
     response = await client.request(
-        method="POST", url=f"/accounts/", headers=headers, json=create_account_payload
+        method="POST", url="/accounts/", headers=headers, json=create_account_payload
     )
 
     token = headers["Authorization"].split(" ")[1]
@@ -350,7 +350,7 @@ async def test_create_account_with_valid_access_token_and_authenticating_user_do
     }
 
     response = await client.request(
-        method="POST", url=f"/accounts/", headers=headers, json=create_account_payload
+        method="POST", url="/accounts/", headers=headers, json=create_account_payload
     )
 
     assert response.status_code == 401

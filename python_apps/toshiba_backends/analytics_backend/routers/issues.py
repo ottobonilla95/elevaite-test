@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query
-from typing import Optional, List, Dict, Any
+from fastapi import APIRouter, Query
+from typing import Optional
 from database import get_db_connection, log_query
 import traceback
 

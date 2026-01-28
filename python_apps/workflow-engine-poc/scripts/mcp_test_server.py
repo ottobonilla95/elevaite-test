@@ -8,7 +8,6 @@ Run with: python scripts/mcp_test_server.py
 The server will start on http://localhost:8765 by default.
 """
 
-import asyncio
 import json
 from datetime import datetime
 from typing import Any, Dict
@@ -163,8 +162,6 @@ def to_uppercase(text: str) -> str:
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     print("🚀 Starting FastMCP Test Server...")
     print("📍 Server will be available at: http://localhost:8765")
     print("🔧 Available tools:")

@@ -37,19 +37,29 @@ class StepCategory(str, Enum):
 class StepTypeBase(SQLModel):
     """Base step type model with common fields"""
 
-    step_type: str = Field(max_length=100, unique=True, description="Unique identifier for the step type")
-    name: str = Field(max_length=255, description="Human-readable name for the step type")
+    step_type: str = Field(
+        max_length=100, unique=True, description="Unique identifier for the step type"
+    )
+    name: str = Field(
+        max_length=255, description="Human-readable name for the step type"
+    )
     description: Optional[str] = Field(
         default=None,
         sa_column=Column(Text),
         description="Detailed description of what this step does",
     )
 
-    category: StepCategory = Field(default=StepCategory.UTILITY, description="Category this step belongs to")
+    category: StepCategory = Field(
+        default=StepCategory.UTILITY, description="Category this step belongs to"
+    )
 
-    execution_type: ExecutionType = Field(default=ExecutionType.LOCAL, description="How this step is executed")
+    execution_type: ExecutionType = Field(
+        default=ExecutionType.LOCAL, description="How this step is executed"
+    )
 
-    function_reference: str = Field(max_length=500, description="Python function path or endpoint reference")
+    function_reference: str = Field(
+        max_length=500, description="Python function path or endpoint reference"
+    )
 
     parameters_schema: Dict[str, Any] = Field(
         default_factory=dict,
@@ -75,13 +85,21 @@ class StepTypeBase(SQLModel):
         description="Tags for categorizing and searching steps",
     )
 
-    is_active: bool = Field(default=True, description="Whether this step type is active and available")
+    is_active: bool = Field(
+        default=True, description="Whether this step type is active and available"
+    )
 
-    version: str = Field(default="1.0.0", max_length=50, description="Version of the step implementation")
+    version: str = Field(
+        default="1.0.0", max_length=50, description="Version of the step implementation"
+    )
 
-    author: Optional[str] = Field(default=None, max_length=255, description="Author or creator of the step type")
+    author: Optional[str] = Field(
+        default=None, max_length=255, description="Author or creator of the step type"
+    )
 
-    documentation_url: Optional[str] = Field(default=None, max_length=500, description="URL to detailed documentation")
+    documentation_url: Optional[str] = Field(
+        default=None, max_length=500, description="URL to detailed documentation"
+    )
 
     example_config: Dict[str, Any] = Field(
         default_factory=dict,
@@ -90,9 +108,15 @@ class StepTypeBase(SQLModel):
     )
 
     # Performance and reliability metrics
-    average_execution_time: Optional[float] = Field(default=None, description="Average execution time in seconds")
-    success_rate: Optional[float] = Field(default=None, description="Success rate as a percentage (0-100)")
-    total_executions: int = Field(default=0, description="Total number of times this step has been executed")
+    average_execution_time: Optional[float] = Field(
+        default=None, description="Average execution time in seconds"
+    )
+    success_rate: Optional[float] = Field(
+        default=None, description="Success rate as a percentage (0-100)"
+    )
+    total_executions: int = Field(
+        default=0, description="Total number of times this step has been executed"
+    )
 
 
 # Database table model
@@ -102,9 +126,13 @@ class StepType(StepTypeBase, BaseModel, table=True):
     # No additional external IDs; BaseModel.id is the canonical identifier
 
     # Registration metadata
-    registered_by: Optional[str] = Field(default=None, max_length=255, description="User who registered this step type")
+    registered_by: Optional[str] = Field(
+        default=None, max_length=255, description="User who registered this step type"
+    )
 
-    last_used: Optional[str] = Field(default=None, description="When this step type was last used")
+    last_used: Optional[str] = Field(
+        default=None, description="When this step type was last used"
+    )
 
 
 # API schemas

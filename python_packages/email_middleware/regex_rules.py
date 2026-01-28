@@ -1,4 +1,3 @@
-
 class RegexRules:
     def __init__(self):
         self.dict_regex_account_numbers = {
@@ -46,7 +45,7 @@ class RegexRules:
             # "GLOSSI_CMP": r"NETADV",
             # "ARBOR": r"",
             # "EPICOR": r""
-            "CNSP": r"CNSP-?\w{0,}"
+            "CNSP": r"CNSP-?\w{0,}",
             # "DIRECTORIES": r"",
         }
 
@@ -56,7 +55,7 @@ class RegexRules:
             "year": r"(^|\s)\b([12]\d{3})\b",
             "date": r"\b(\d{1,2}\/\d{1,2}\/\d{2,4})\b",
             "connectors": r"\b(at|on)\b",
-            "time": r"\b(\d{1,2}:\d{2}(:\d{2})?(\s?[a|p]m)?)\b"
+            "time": r"\b(\d{1,2}:\d{2}(:\d{2})?(\s?[a|p]m)?)\b",
         }
 
         self.regex_special_characters = r"(^|\s)\W{1}($|\s)"
@@ -67,7 +66,14 @@ class RegexRules:
 
         self.regex_email = r""
 
-        self.list_email_separator_first_words = ["From", "Sent", "To", "Cc", "BCc", "Subject"]
+        self.list_email_separator_first_words = [
+            "From",
+            "Sent",
+            "To",
+            "Cc",
+            "BCc",
+            "Subject",
+        ]
 
         self.email_conversation_header_regex = "^(?:From:|To:|Cc:|Subject:|Sent:)"
 
@@ -77,10 +83,15 @@ class RegexRules:
 
         self.regex_order_number = r"(?:(?<=num|no.|id.|ref))[ ]*[1-9]\d{4,}|(?:(?<=number))[ ]*[1-9]\d{4,}|(?:(?<=num.|ref.))[ ]*[1-9]\d{4,}"
 
-        self.bank_account_number = r"(?<=[\s^])(\d{2})-?(\d{2})-?(\d{2})-?(\d{2})(?=\s|$)"
+        self.bank_account_number = (
+            r"(?<=[\s^])(\d{2})-?(\d{2})-?(\d{2})-?(\d{2})(?=\s|$)"
+        )
 
         self.email_address = r"\w+\@\w+\.\w+"
 
-        self.email_message_id = "^<[A-Za-z0-9-_\.@!#$%&'*\+\/=\?\^_`\{\|\}\~;:\(\),\\\[\]]*>"
+        self.email_message_id = (
+            "^<[A-Za-z0-9-_\.@!#$%&'*\+\/=\?\^_`\{\|\}\~;:\(\),\\\[\]]*>"
+        )
+
 
 # print(account_numbers['ONEBILL'])

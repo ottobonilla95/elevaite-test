@@ -5,11 +5,14 @@ Tests human approval workflow step with local and DBOS backends.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
-from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 from workflow_core_sdk.steps.human_steps import human_approval_step
-from workflow_core_sdk.execution_context import ExecutionContext, StepStatus, ExecutionStatus
+from workflow_core_sdk.execution_context import (
+    ExecutionContext,
+    StepStatus,
+    ExecutionStatus,
+)
 
 
 @pytest.fixture
@@ -51,7 +54,9 @@ class TestLocalBackendApproval:
         assert execution_context.status == ExecutionStatus.WAITING
 
     @pytest.mark.asyncio
-    async def test_local_approval_approved_via_injection(self, step_config, execution_context):
+    async def test_local_approval_approved_via_injection(
+        self, step_config, execution_context
+    ):
         """Test that local backend completes immediately when decision is injected"""
         # Inject approval decision
         execution_context.step_io_data["approval-step-1"] = {
@@ -68,7 +73,9 @@ class TestLocalBackendApproval:
         assert result.output_data["comment"] == "Looks good!"
 
     @pytest.mark.asyncio
-    async def test_local_approval_denied_via_injection(self, step_config, execution_context):
+    async def test_local_approval_denied_via_injection(
+        self, step_config, execution_context
+    ):
         """Test that local backend completes with denied decision"""
         # Inject denial decision
         execution_context.step_io_data["approval-step-1"] = {

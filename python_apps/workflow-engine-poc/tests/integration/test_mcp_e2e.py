@@ -10,7 +10,6 @@ Prerequisites:
 - Local MCP server running on port 3000 (optional)
 """
 
-import asyncio
 import httpx
 import pytest
 from uuid import uuid4
@@ -18,7 +17,6 @@ from uuid import uuid4
 from workflow_core_sdk.db.models import MCPServer, Tool as DBTool
 from workflow_core_sdk.clients.mcp_client import MCPClient
 from workflow_core_sdk.steps.tool_steps import tool_execution_step
-from workflow_core_sdk.execution.context import ExecutionContext
 
 
 class TestMCPEndToEnd:
@@ -41,7 +39,9 @@ class TestMCPEndToEnd:
                 return True
         except Exception:
             pass
-        pytest.skip("FastMCP test server not running on port 8765. Start with: python scripts/mcp_test_server.py")
+        pytest.skip(
+            "FastMCP test server not running on port 8765. Start with: python scripts/mcp_test_server.py"
+        )
 
     @pytest.fixture
     async def check_local_mcp_server(self):
@@ -51,8 +51,13 @@ class TestMCPEndToEnd:
                 # Try common health check endpoints
                 for endpoint in ["/health", "/tools", "/"]:
                     try:
-                        response = await client.get(f"http://localhost:3000{endpoint}", timeout=2.0)
-                        if response.status_code in [200, 404]:  # 404 is ok, means server is up
+                        response = await client.get(
+                            f"http://localhost:3000{endpoint}", timeout=2.0
+                        )
+                        if response.status_code in [
+                            200,
+                            404,
+                        ]:  # 404 is ok, means server is up
                             return True
                     except Exception:
                         continue
@@ -85,13 +90,17 @@ class TestMCPEndToEnd:
         }
 
     @pytest.mark.asyncio
-    async def test_fastmcp_health_check(self, check_fastmcp_server, fastmcp_server_config, mcp_client):
+    async def test_fastmcp_health_check(
+        self, check_fastmcp_server, fastmcp_server_config, mcp_client
+    ):
         """Test health check for FastMCP test server."""
         result = await mcp_client.health_check(fastmcp_server_config)
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_fastmcp_discover_tools(self, check_fastmcp_server, fastmcp_server_config, mcp_client):
+    async def test_fastmcp_discover_tools(
+        self, check_fastmcp_server, fastmcp_server_config, mcp_client
+    ):
         """Test tool discovery from FastMCP test server."""
         tools = await mcp_client.discover_tools(fastmcp_server_config)
 
@@ -114,7 +123,9 @@ class TestMCPEndToEnd:
         assert "b" in add_tool["inputSchema"]["properties"]
 
     @pytest.mark.asyncio
-    async def test_fastmcp_execute_add_tool(self, check_fastmcp_server, fastmcp_server_config, mcp_client):
+    async def test_fastmcp_execute_add_tool(
+        self, check_fastmcp_server, fastmcp_server_config, mcp_client
+    ):
         """Test executing the 'add' tool on FastMCP test server."""
         result = await mcp_client.execute_tool(
             server_config=fastmcp_server_config,
@@ -134,7 +145,9 @@ class TestMCPEndToEnd:
         assert structured.get("result") == 8
 
     @pytest.mark.asyncio
-    async def test_fastmcp_execute_echo_tool(self, check_fastmcp_server, fastmcp_server_config, mcp_client):
+    async def test_fastmcp_execute_echo_tool(
+        self, check_fastmcp_server, fastmcp_server_config, mcp_client
+    ):
         """Test executing the 'echo' tool on FastMCP test server."""
         test_message = "Hello from MCP test!"
         result = await mcp_client.execute_tool(
@@ -153,7 +166,9 @@ class TestMCPEndToEnd:
         assert structured.get("result") == test_message
 
     @pytest.mark.asyncio
-    async def test_fastmcp_execute_greet_tool(self, check_fastmcp_server, fastmcp_server_config, mcp_client):
+    async def test_fastmcp_execute_greet_tool(
+        self, check_fastmcp_server, fastmcp_server_config, mcp_client
+    ):
         """Test executing the 'greet' tool with default and custom greeting."""
         # Test with default greeting
         result = await mcp_client.execute_tool(
@@ -187,13 +202,17 @@ class TestMCPEndToEnd:
         assert "Alice" in str(greeting)
 
     @pytest.mark.asyncio
-    async def test_local_mcp_health_check(self, mcp_client, check_local_mcp_server, local_mcp_server_config):
+    async def test_local_mcp_health_check(
+        self, mcp_client, check_local_mcp_server, local_mcp_server_config
+    ):
         """Test health check for local MCP server on port 3000."""
         result = await mcp_client.health_check(local_mcp_server_config)
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_local_mcp_discover_tools(self, mcp_client, check_local_mcp_server, local_mcp_server_config):
+    async def test_local_mcp_discover_tools(
+        self, mcp_client, check_local_mcp_server, local_mcp_server_config
+    ):
         """Test tool discovery from local MCP server on port 3000."""
         tools = await mcp_client.discover_tools(local_mcp_server_config)
 
@@ -202,7 +221,9 @@ class TestMCPEndToEnd:
         # since we don't know what's on the local server
         print(f"\n📋 Discovered {len(tools)} tools from local MCP server:")
         for tool in tools:
-            print(f"   - {tool.get('name')}: {tool.get('description', 'No description')}")
+            print(
+                f"   - {tool.get('name')}: {tool.get('description', 'No description')}"
+            )
 
     @pytest.mark.skip(reason="Requires database fixtures - to be implemented")
     @pytest.mark.asyncio

@@ -46,7 +46,7 @@ async def run_complete_analysis():
         total_db_rows = sum([info['row_count'] for info in db_analysis['table_info'].values()])
         duplicate_rows = db_analysis['sr_duplicates']['total_duplicate_rows']
         
-        logger.info(f"📊 DATABASE STATE:")
+        logger.info("📊 DATABASE STATE:")
         logger.info(f"   Total rows across all tables: {total_db_rows:,}")
         logger.info(f"   Service requests: {db_analysis['table_info']['service_requests']['row_count']:,}")
         logger.info(f"   Duplicate SR rows: {duplicate_rows:,}")
@@ -55,13 +55,13 @@ async def run_complete_analysis():
             duplicate_percentage = (duplicate_rows / db_analysis['table_info']['service_requests']['row_count']) * 100
             logger.warning(f"   Duplication rate: {duplicate_percentage:.1f}%")
         
-        logger.info(f"\n📊 FILE PROCESSING STATE:")
+        logger.info("\n📊 FILE PROCESSING STATE:")
         if gap_analysis:
             logger.info(f"   Successfully processed: {gap_analysis['processed_count']} files")
             logger.info(f"   Failed files: {gap_analysis['failed_count']} files")
             logger.info(f"   Estimated missing: {gap_analysis['estimated_missing']} files")
         
-        logger.info(f"\n🎯 PRIORITY ACTION ITEMS:")
+        logger.info("\n🎯 PRIORITY ACTION ITEMS:")
         
         priority_actions = []
         
@@ -83,11 +83,11 @@ async def run_complete_analysis():
         for i, action in enumerate(priority_actions, 1):
             logger.info(f"   {i}. {action}")
         
-        logger.info(f"\n📁 ANALYSIS FILES GENERATED:")
-        logger.info(f"   - analysis/analysis_results.json")
-        logger.info(f"   - analysis/failed_files_analysis.json")
+        logger.info("\n📁 ANALYSIS FILES GENERATED:")
+        logger.info("   - analysis/analysis_results.json")
+        logger.info("   - analysis/failed_files_analysis.json")
         
-        logger.info(f"\n✅ Analysis complete! Ready to proceed with fixes.")
+        logger.info("\n✅ Analysis complete! Ready to proceed with fixes.")
         
         return {
             'database_analysis': db_analysis,

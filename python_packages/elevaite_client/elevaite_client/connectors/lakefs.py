@@ -120,6 +120,6 @@ def get_lakefs_ref(
     ref = lakefs.Reference(repo.id, commit_id, client=clt)
     if ref is None:
         raise Exception(
-            f"LakeFS Reference does not exist. Make sure the commit is valid."
+            "LakeFS Reference does not exist. Make sure the commit is valid."
         )
     return ref

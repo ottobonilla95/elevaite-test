@@ -8,7 +8,6 @@ Run:
 """
 
 import time
-import sys
 import json
 import httpx
 
@@ -31,7 +30,11 @@ def create_workflow(client: httpx.Client, config: dict) -> str:
 
 
 def execute_workflow(client: httpx.Client, workflow_id: str, body: dict) -> str:
-    resp = client.post(f"{API_BASE_URL}/workflows/{workflow_id}/execute/local", json=body, follow_redirects=True)
+    resp = client.post(
+        f"{API_BASE_URL}/workflows/{workflow_id}/execute/local",
+        json=body,
+        follow_redirects=True,
+    )
     resp.raise_for_status()
     return resp.json()["id"]
 
@@ -81,7 +84,12 @@ def wait_for_step_state(
 
 
 def post_message(
-    client: httpx.Client, execution_id: str, step_id: str, role: str, content: str, metadata: dict | None = None
+    client: httpx.Client,
+    execution_id: str,
+    step_id: str,
+    role: str,
+    content: str,
+    metadata: dict | None = None,
 ) -> dict:
     resp = client.post(
         f"{API_BASE_URL}/executions/{execution_id}/steps/{step_id}/messages",
@@ -92,7 +100,10 @@ def post_message(
 
 
 def list_messages(client: httpx.Client, execution_id: str, step_id: str) -> list[dict]:
-    resp = client.get(f"{API_BASE_URL}/executions/{execution_id}/steps/{step_id}/messages", follow_redirects=True)
+    resp = client.get(
+        f"{API_BASE_URL}/executions/{execution_id}/steps/{step_id}/messages",
+        follow_redirects=True,
+    )
     resp.raise_for_status()
     return resp.json()
 
@@ -101,14 +112,18 @@ def print_step_outputs(results: dict) -> None:
     step_results = results.get("step_results") or {}
     print("\n=== Step Outputs ===")
     for step_id, res in step_results.items():
-        print(f"- {step_id}: status={res.get('status')} time={res.get('execution_time_ms')}ms")
+        print(
+            f"- {step_id}: status={res.get('status')} time={res.get('execution_time_ms')}ms"
+        )
         out = res.get("output_data")
         if isinstance(out, dict):
             # Prefer agent_response (from WAITING multi-turn) then response (from final)
             agent_response = out.get("agent_response")
             if isinstance(agent_response, dict):
                 # Some steps return nested response
-                nested_resp = agent_response.get("response") or agent_response.get("output")
+                nested_resp = agent_response.get("response") or agent_response.get(
+                    "output"
+                )
                 if nested_resp is not None:
                     print("  agent response:")
                     print(str(nested_resp))
@@ -202,15 +217,26 @@ def main() -> int:
 
         # Send messages to agent_1
         print("\nSending messages to agent_1...")
-        post_message(client, execution_id, "agent_1", "user", "Research AI trends in healthcare")
+        post_message(
+            client, execution_id, "agent_1", "user", "Research AI trends in healthcare"
+        )
         time.sleep(0.3)
         # Wait until agent_1 first emits an agent_response (WAITING state)
         res = wait_for_step_state(client, execution_id, "agent_1", ("waiting",))
         print_step_outputs(res)
 
-        post_message(client, execution_id, "agent_1", "user", "That's enough, proceed.", {"final_turn": True})
+        post_message(
+            client,
+            execution_id,
+            "agent_1",
+            "user",
+            "That's enough, proceed.",
+            {"final_turn": True},
+        )
         # Wait until agent_1 completes
-        res = wait_for_step_state(client, execution_id, "agent_1", ("completed", "failed"))
+        res = wait_for_step_state(
+            client, execution_id, "agent_1", ("completed", "failed")
+        )
         print_step_outputs(res)
 
         # Now agent_2 will wait as well
@@ -220,8 +246,12 @@ def main() -> int:
         res = wait_for_step_state(client, execution_id, "agent_2", ("waiting",))
         print_step_outputs(res)
 
-        post_message(client, execution_id, "agent_2", "user", "Finalize.", {"final_turn": True})
-        res = wait_for_step_state(client, execution_id, "agent_2", ("completed", "failed"))
+        post_message(
+            client, execution_id, "agent_2", "user", "Finalize.", {"final_turn": True}
+        )
+        res = wait_for_step_state(
+            client, execution_id, "agent_2", ("completed", "failed")
+        )
         print_step_outputs(res)
 
         # Wait for completion, printing status changes

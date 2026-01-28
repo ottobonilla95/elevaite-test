@@ -31,7 +31,10 @@ EXAMPLE_SIMPLE_WORKFLOW = {
             "step_order": 2,
             "dependencies": ["step1"],
             "input_mapping": {"input_data": "step1.data"},
-            "config": {"processing_type": "transform", "options": {"transformation": "uppercase"}},
+            "config": {
+                "processing_type": "transform",
+                "options": {"transformation": "uppercase"},
+            },
         },
     ],
 }
@@ -47,8 +50,8 @@ EXAMPLE_AGENT_WORKFLOW = {
             "step_type": "data_input",
             "step_order": 1,
             "config": {
-                "input_type": "static", 
-                "data": {"content": "This is a sample text for analysis."}
+                "input_type": "static",
+                "data": {"content": "This is a sample text for analysis."},
             },
         },
         {

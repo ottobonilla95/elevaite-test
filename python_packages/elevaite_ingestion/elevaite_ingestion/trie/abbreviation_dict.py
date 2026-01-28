@@ -22,8 +22,5 @@ abbreviations = {
     "ANSI": "American National Standards Institute SQR",
     "AOI": "Automated Optical Inspections PQA",
     "APAC": "Asia Pacific and China",
-    "sco": "self-checkout"
+    "sco": "self-checkout",
 }
-
-
-

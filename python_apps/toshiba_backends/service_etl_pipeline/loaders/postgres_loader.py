@@ -2,8 +2,7 @@ import asyncio
 import asyncpg
 import pandas as pd
 import numpy as np
-import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from urllib.parse import urlparse
 from datetime import datetime
 from dateutil import parser as date_parser
@@ -453,7 +452,7 @@ async def append_to_postgres(cleaned_data, conn_string):
     Append data to existing tables (no dropping/recreating)
     Used for combining multiple files
     """
-    logger.info(f"🔗 Appending data to existing tables...")
+    logger.info("🔗 Appending data to existing tables...")
     
     # Parse connection string
     db_config = parse_connection_string(conn_string)

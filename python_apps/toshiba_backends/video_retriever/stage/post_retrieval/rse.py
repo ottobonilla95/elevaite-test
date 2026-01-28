@@ -163,7 +163,6 @@
 ##############################################################  VERSION 2 #############################################################
 from typing import List, Tuple, Dict
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 def get_best_segments_greedy(relevance_values: List[float], max_length: int, overall_max_length: int, minimum_value: float) -> Tuple[List[Tuple[int, int]], List[float]]:

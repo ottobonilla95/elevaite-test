@@ -17,15 +17,26 @@ def get_collections(
     # if filter_function is not None:  # uncomment this when using validator
     #     query = filter_function(query)
 
-    return query.filter(models.Collection.projectId == projectId).offset(skip).limit(limit).all()
+    return (
+        query.filter(models.Collection.projectId == projectId)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 def get_collection_by_id(db: Session, collectionId: str) -> models.Collection:
-    return db.query(models.Collection).filter(models.Collection.id == collectionId).first()
+    return (
+        db.query(models.Collection).filter(models.Collection.id == collectionId).first()
+    )
 
 
-def create_collection(db: Session, projectId: str, cc: CollectionCreate) -> models.Collection:
-    _collection = models.Collection(name=cc.name, projectId=projectId, distance=cc.distance, size=cc.size)
+def create_collection(
+    db: Session, projectId: str, cc: CollectionCreate
+) -> models.Collection:
+    _collection = models.Collection(
+        name=cc.name, projectId=projectId, distance=cc.distance, size=cc.size
+    )
 
     db.add(_collection)
     db.commit()

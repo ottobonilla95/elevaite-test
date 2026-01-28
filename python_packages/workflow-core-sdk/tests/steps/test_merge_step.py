@@ -42,7 +42,9 @@ class TestMergeStepFirstAvailable:
     """Tests for first_available mode (OR logic)"""
 
     @pytest.mark.asyncio
-    async def test_first_available_single_completed(self, merge_step_config, execution_context):
+    async def test_first_available_single_completed(
+        self, merge_step_config, execution_context
+    ):
         """Test first_available with one dependency completed"""
         execution_context.completed_steps = {"input-1"}
         execution_context.step_results = {
@@ -62,7 +64,9 @@ class TestMergeStepFirstAvailable:
         assert result["total_dependencies"] == 2
 
     @pytest.mark.asyncio
-    async def test_first_available_both_completed(self, merge_step_config, execution_context):
+    async def test_first_available_both_completed(
+        self, merge_step_config, execution_context
+    ):
         """Test first_available with both dependencies completed (uses first in order)"""
         execution_context.completed_steps = {"input-1", "input-2"}
         execution_context.step_results = {

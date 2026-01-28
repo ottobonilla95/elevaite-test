@@ -67,7 +67,7 @@ declare module "next-auth/jwt" {
 declare module "next-auth" {
   interface Session {
     error?: "RefreshAccessTokenError";
-    user?: {
+    user: {
       accountMemberships?: UserAccountMembershipObject[];
       rbacId?: string;
       rbac?: UserRbac;
@@ -79,6 +79,7 @@ declare module "next-auth" {
     refreshToken?: string;
     givenName?: string;
     familyName?: string;
+    passwordChangeRequired?: boolean;
   }
 }
 

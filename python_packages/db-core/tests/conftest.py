@@ -27,8 +27,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Sync and async database URLs for testing
-SYNC_TEST_DB_URL = os.environ.get("TEST_DB_URL", "postgresql://postgres:postgres@localhost:5433/db_core_test")
-ASYNC_TEST_DB_URL = os.environ.get("TEST_ASYNC_DB_URL", "postgresql+asyncpg://postgres:postgres@localhost:5433/db_core_test")
+SYNC_TEST_DB_URL = os.environ.get(
+    "TEST_DB_URL", "postgresql://postgres:postgres@localhost:5433/db_core_test"
+)
+ASYNC_TEST_DB_URL = os.environ.get(
+    "TEST_ASYNC_DB_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5433/db_core_test",
+)
 
 # Log the database URLs being used
 logger.info(f"Using sync database URL: {SYNC_TEST_DB_URL}")
@@ -133,7 +138,7 @@ def setup_db(db_engine, multitenancy_settings):
 
         # Create tables in tenant schema
         with db_engine.connect() as conn:
-            conn.execute(text(f'SET search_path TO "{schema_name}"'))
+            conn.execute(text(f'SET search_path TO "{schema_name}", public'))
             Base.metadata.create_all(conn)
 
     yield
@@ -162,7 +167,7 @@ async def setup_async_db(async_db_engine, multitenancy_settings):
 
         # Create tables in tenant schema (need to use sync engine for this)
         with sync_engine.connect() as conn:
-            conn.execute(text(f'SET search_path TO "{schema_name}"'))
+            conn.execute(text(f'SET search_path TO "{schema_name}", public'))
             Base.metadata.create_all(conn)
 
     yield

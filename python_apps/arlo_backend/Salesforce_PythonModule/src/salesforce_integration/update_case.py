@@ -2,7 +2,6 @@
 # This script handles updating cases in Salesforce when new
 #  information or alerts come from Arlo chatbot
 
-from simple_salesforce import Salesforce
 
 from ..salesforce_integration.connect import connect_to_salesforce
 

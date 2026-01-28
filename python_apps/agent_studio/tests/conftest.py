@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session
 from fastapi.testclient import TestClient
 

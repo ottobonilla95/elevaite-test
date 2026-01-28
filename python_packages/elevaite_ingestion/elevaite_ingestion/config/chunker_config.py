@@ -11,7 +11,10 @@ CHUNKER_CONFIG = {
         "semantic_chunking": {
             "import_path": "elevaite_ingestion.chunk_strategy.custom_chunking.semantic_chunk_v1",
             "function_name": "chunk_text",
-            "settings": {"breakpoint_threshold_type": "percentile", "breakpoint_threshold_amount": 90},
+            "settings": {
+                "breakpoint_threshold_type": "percentile",
+                "breakpoint_threshold_amount": 90,
+            },
         },
         "mdstructure": {
             "import_path": "elevaite_ingestion.chunk_strategy.custom_chunking.mdstructure",

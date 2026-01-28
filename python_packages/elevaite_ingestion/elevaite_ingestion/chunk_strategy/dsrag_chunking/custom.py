@@ -2,11 +2,20 @@ import os
 import pdfplumber
 from PIL import Image
 import pytesseract
-import camelot
 import pandas as pd
 
+
 class DocumentLine:
-    def __init__(self, text, page_no, line_start_no, line_end_no, source="text", cropped_table_path=None, cropped_image_path=None):
+    def __init__(
+        self,
+        text,
+        page_no,
+        line_start_no,
+        line_end_no,
+        source="text",
+        cropped_table_path=None,
+        cropped_image_path=None,
+    ):
         self.text = text.strip()  # Remove leading/trailing whitespace
         self.page_no = page_no
         self.line_start_no = line_start_no
@@ -26,11 +35,12 @@ class DocumentLine:
             "line_end_no": self.line_end_no,
             "source": self.source,
             "cropped_table_path": self.cropped_table_path,
-            "cropped_image_path": self.cropped_image_path
+            "cropped_image_path": self.cropped_image_path,
         }
 
     def __repr__(self):
         return f"Page {self.page_no}, Line {self.line_start_no}-{self.line_end_no} ({self.source}): {self.text}"
+
 
 def sanitize_bbox(bbox, page_bbox):
     """
@@ -47,6 +57,7 @@ def sanitize_bbox(bbox, page_bbox):
 
     return (x0, top, x1, bottom)
 
+
 def extract_text_from_image(image_path):
     """
     Use OCR to extract text from an image.
@@ -57,6 +68,7 @@ def extract_text_from_image(image_path):
         print(f"Error during OCR for image {image_path}: {e}")
         return ""
 
+
 def parse_pdf_to_lines(pdf_path, output_dir="output/", max_line_length=100):
     """
     Parse a single PDF file into a list of DocumentLine objects.
@@ -64,7 +76,9 @@ def parse_pdf_to_lines(pdf_path, output_dir="output/", max_line_length=100):
     Saves cropped tables and images to the specified output directory.
     """
     document_lines = []
-    os.makedirs(output_dir, exist_ok=True)  # Create output directory if it doesn't exist
+    os.makedirs(
+        output_dir, exist_ok=True
+    )  # Create output directory if it doesn't exist
 
     with pdfplumber.open(pdf_path) as pdf:
         for page_no, page in enumerate(pdf.pages, start=1):
@@ -73,7 +87,7 @@ def parse_pdf_to_lines(pdf_path, output_dir="output/", max_line_length=100):
             # Extract text
             text = page.extract_text()
             if text:
-                lines = text.split('\n')
+                lines = text.split("\n")
                 for line_no, line in enumerate(lines, start=1):
                     if line.strip():  # Ignore empty lines
                         doc_line = DocumentLine(
@@ -81,7 +95,7 @@ def parse_pdf_to_lines(pdf_path, output_dir="output/", max_line_length=100):
                             page_no=page_no,
                             line_start_no=line_no,
                             line_end_no=line_no,
-                            source="text"
+                            source="text",
                         )
                         document_lines.append(doc_line)
 
@@ -92,7 +106,9 @@ def parse_pdf_to_lines(pdf_path, output_dir="output/", max_line_length=100):
                 sanitized_bbox = sanitize_bbox(table.bbox, page_bbox)
                 try:
                     # Save cropped table as an image
-                    cropped_table_path = os.path.join(output_dir, f"page_{page_no}_table_{table_idx}.png")
+                    cropped_table_path = os.path.join(
+                        output_dir, f"page_{page_no}_table_{table_idx}.png"
+                    )
                     table_image = page.within_bbox(sanitized_bbox).to_image().original
                     table_image.save(cropped_table_path)
 
@@ -107,7 +123,7 @@ def parse_pdf_to_lines(pdf_path, output_dir="output/", max_line_length=100):
                         line_start_no=len(document_lines) + 1,
                         line_end_no=len(document_lines) + len(table_data),
                         source="table",
-                        cropped_table_path=cropped_table_path
+                        cropped_table_path=cropped_table_path,
                     )
                     document_lines.append(doc_line)
                 except Exception as e:
@@ -117,10 +133,14 @@ def parse_pdf_to_lines(pdf_path, output_dir="output/", max_line_length=100):
             images = page.images
             for img_idx, img in enumerate(images):
                 # Sanitize image bounding box
-                sanitized_bbox = sanitize_bbox((img['x0'], img['top'], img['x1'], img['bottom']), page_bbox)
+                sanitized_bbox = sanitize_bbox(
+                    (img["x0"], img["top"], img["x1"], img["bottom"]), page_bbox
+                )
                 try:
                     # Save cropped image
-                    cropped_image_path = os.path.join(output_dir, f"page_{page_no}_image_{img_idx}.png")
+                    cropped_image_path = os.path.join(
+                        output_dir, f"page_{page_no}_image_{img_idx}.png"
+                    )
                     cropped_image = page.within_bbox(sanitized_bbox).to_image().original
                     cropped_image.save(cropped_image_path)
 
@@ -133,13 +153,14 @@ def parse_pdf_to_lines(pdf_path, output_dir="output/", max_line_length=100):
                         line_start_no=len(document_lines) + 1,
                         line_end_no=len(document_lines) + 1,
                         source="image",
-                        cropped_image_path=cropped_image_path
+                        cropped_image_path=cropped_image_path,
                     )
                     document_lines.append(doc_line)
                 except Exception as e:
                     print(f"Error processing image on page {page_no}: {e}")
 
     return document_lines
+
 
 def parse_directory_to_lines(directory_path, output_dir="output/", max_line_length=100):
     """
@@ -154,13 +175,16 @@ def parse_directory_to_lines(directory_path, output_dir="output/", max_line_leng
             all_document_lines.extend(document_lines)
     return all_document_lines
 
+
 def save_to_json(document_lines, output_file):
     """
     Save the parsed document lines to a JSON file.
     """
     import json
+
     with open(output_file, "w") as f:
         json.dump([line.to_dict() for line in document_lines], f, indent=4)
+
 
 if __name__ == "__main__":
     directory_path = "check_dir"

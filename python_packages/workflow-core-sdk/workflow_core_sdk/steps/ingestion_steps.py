@@ -59,7 +59,9 @@ async def ingestion_step(
     # step output dict, with the actual job info nested under "output_data".
     prior_output = execution_context.step_io_data.get(step_id, {}) or {}
     job_info = prior_output
-    if isinstance(prior_output, dict) and isinstance(prior_output.get("output_data"), dict):
+    if isinstance(prior_output, dict) and isinstance(
+        prior_output.get("output_data"), dict
+    ):
         job_info = prior_output["output_data"]
 
     ingestion_job_id = job_info.get("ingestion_job_id")
@@ -151,7 +153,9 @@ async def ingestion_step(
         }
 
 
-async def _check_job_completion(job_id: str, callback_topic: Optional[str]) -> Dict[str, Any]:
+async def _check_job_completion(
+    job_id: str, callback_topic: Optional[str]
+) -> Dict[str, Any]:
     """
     Check if an ingestion job has completed.
 
@@ -169,7 +173,9 @@ async def _check_job_completion(job_id: str, callback_topic: Optional[str]) -> D
     try:
         # Query ingestion service for job status
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{INGESTION_SERVICE_URL}/ingestion/jobs/{job_id}")
+            response = await client.get(
+                f"{INGESTION_SERVICE_URL}/ingestion/jobs/{job_id}"
+            )
             response.raise_for_status()
             job_data = response.json()
 
@@ -196,11 +202,16 @@ async def _check_job_completion(job_id: str, callback_topic: Optional[str]) -> D
             }
         else:
             # Job still running - this shouldn't happen if DBOS event was sent correctly
-            logger.warning(f"Job {job_id} status is {status}, expected SUCCEEDED or FAILED")
+            logger.warning(
+                f"Job {job_id} status is {status}, expected SUCCEEDED or FAILED"
+            )
             return {
                 "success": False,
                 "status": "ingesting",
-                "output_data": {"ingestion_job_id": job_id, "callback_topic": callback_topic},
+                "output_data": {
+                    "ingestion_job_id": job_id,
+                    "callback_topic": callback_topic,
+                },
             }
 
     except Exception as e:

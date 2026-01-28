@@ -8,7 +8,6 @@ async client concurrency, and thread safety.
 import asyncio
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -204,7 +203,11 @@ class TestAsyncClientConcurrency:
                 check_access_async(
                     user_id=i,
                     action="view_project",
-                    resource={"type": "project", "id": f"proj{i}", "organization_id": "org1"},
+                    resource={
+                        "type": "project",
+                        "id": f"proj{i}",
+                        "organization_id": "org1",
+                    },
                 )
                 for i in range(50)
             ]
@@ -238,7 +241,11 @@ class TestAsyncClientConcurrency:
                 check_access_async(
                     user_id=i,
                     action="view_project",
-                    resource={"type": "project", "id": f"proj{i}", "organization_id": "org1"},
+                    resource={
+                        "type": "project",
+                        "id": f"proj{i}",
+                        "organization_id": "org1",
+                    },
                     timeout=0.1,  # Very short timeout
                 )
                 for i in range(10)

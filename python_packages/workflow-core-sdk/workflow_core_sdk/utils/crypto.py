@@ -89,7 +89,9 @@ def decrypt_credentials(encrypted_data: str) -> Dict[str, Any]:
         decrypted = fernet.decrypt(encrypted_bytes)
         return json.loads(decrypted.decode("utf-8"))
     except InvalidToken as e:
-        raise ValueError("Failed to decrypt credentials: invalid key or corrupted data") from e
+        raise ValueError(
+            "Failed to decrypt credentials: invalid key or corrupted data"
+        ) from e
     except Exception as e:
         raise ValueError(f"Failed to decrypt credentials: {e}") from e
 
@@ -115,7 +117,9 @@ def is_encrypted(data: Any) -> bool:
         return False
 
 
-def encrypt_if_configured(credentials: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any] | str]:
+def encrypt_if_configured(
+    credentials: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any] | str]:
     """Encrypt credentials if encryption is configured, otherwise return as-is.
 
     This is a convenience function for optional encryption.
@@ -137,7 +141,9 @@ def encrypt_if_configured(credentials: Optional[Dict[str, Any]]) -> Optional[Dic
     return encrypt_credentials(credentials)
 
 
-def decrypt_if_encrypted(data: Optional[Dict[str, Any] | str]) -> Optional[Dict[str, Any]]:
+def decrypt_if_encrypted(
+    data: Optional[Dict[str, Any] | str],
+) -> Optional[Dict[str, Any]]:
     """Decrypt data if it's encrypted, otherwise return as-is.
 
     This is a convenience function for handling both encrypted and plaintext data.
@@ -161,4 +167,3 @@ def decrypt_if_encrypted(data: Optional[Dict[str, Any] | str]) -> Optional[Dict[
     # Unknown format, return as-is (shouldn't happen in normal use)
     logger.warning(f"Unexpected credential data format: {type(data)}")
     return None
-

@@ -3,7 +3,6 @@ import asyncio
 import sys
 import os
 import json
-import pandas as pd
 from urllib.parse import urlparse
 from datetime import datetime
 
@@ -284,7 +283,7 @@ async def analyze_database_state():
         with open('analysis/analysis_results.json', 'w') as f:
             json.dump(analysis_results, f, indent=2, default=str)
         
-        logger.info(f"\n✅ Analysis complete! Results saved to analysis/database_audit/analysis_results.json")
+        logger.info("\n✅ Analysis complete! Results saved to analysis/database_audit/analysis_results.json")
         
         await connection.close()
         return analysis_results

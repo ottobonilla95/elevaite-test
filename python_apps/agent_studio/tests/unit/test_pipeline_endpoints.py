@@ -8,7 +8,7 @@ system is properly integrated into the new API architecture.
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch
 
 
 @pytest.mark.unit

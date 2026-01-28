@@ -34,9 +34,9 @@ async def tenant1_session(test_session_factory):
         # Verify the search path is set correctly
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly: {search_path}"
+        assert schema_name in search_path, (
+            f"Search path not set correctly: {search_path}"
+        )
 
         yield session
     finally:
@@ -56,9 +56,9 @@ async def tenant2_session(test_session_factory):
         # Verify the search path is set correctly
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly: {search_path}"
+        assert schema_name in search_path, (
+            f"Search path not set correctly: {search_path}"
+        )
 
         yield session
     finally:
@@ -78,9 +78,9 @@ async def default_tenant_session(test_session_factory):
         # Verify the search path is set correctly
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly: {search_path}"
+        assert schema_name in search_path, (
+            f"Search path not set correctly: {search_path}"
+        )
 
         # Commit any pending transactions
         await session.commit()
@@ -96,9 +96,9 @@ async def default_tenant_session(test_session_factory):
         # Verify the search path again
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly after reconnect: {search_path}"
+        assert schema_name in search_path, (
+            f"Search path not set correctly after reconnect: {search_path}"
+        )
 
         yield session
     finally:
@@ -205,9 +205,9 @@ async def test_tenant_context_switching(
         # Verify search path
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly: {search_path}"
+        assert schema_name in search_path, (
+            f"Search path not set correctly: {search_path}"
+        )
 
         tenant1_user = await get_user_by_email(session, "switch1@example.com")
         assert tenant1_user is not None
@@ -221,9 +221,9 @@ async def test_tenant_context_switching(
         # Verify search path
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly: {search_path}"
+        assert schema_name in search_path, (
+            f"Search path not set correctly: {search_path}"
+        )
 
         # Commit any pending transactions
         await session.commit()
@@ -236,9 +236,9 @@ async def test_tenant_context_switching(
         # Verify the search path again
         result = await session.execute(text("SHOW search_path"))
         search_path = result.scalar()
-        assert (
-            schema_name in search_path
-        ), f"Search path not set correctly after reconnect: {search_path}"
+        assert schema_name in search_path, (
+            f"Search path not set correctly after reconnect: {search_path}"
+        )
 
         # Get the user from tenant2
         tenant2_user = await get_user_by_email(session, "switch2@example.com")

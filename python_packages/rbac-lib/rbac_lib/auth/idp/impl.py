@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 import requests
 from fastapi import HTTPException
 from fusionauth.fusionauth_client import FusionAuthClient

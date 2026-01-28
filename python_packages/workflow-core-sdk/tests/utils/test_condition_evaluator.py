@@ -296,4 +296,3 @@ class TestEdgeCases:
             right_operand="value",
         )
         assert evaluator.evaluate_condition(condition, context) is True
-

@@ -20,8 +20,7 @@ import os
 import sys
 import json
 from pathlib import Path
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import List
 import uuid
 
 # Add parent directory to path for imports
@@ -96,7 +95,7 @@ class SchemaMigrator:
     def create_target_database(self) -> bool:
         """Create target database with SDK schema"""
         if self.skip_schema_creation:
-            print(f"⏭️  Skipping database/schema creation (assuming already created via Alembic)")
+            print("⏭️  Skipping database/schema creation (assuming already created via Alembic)")
             return True
 
         print(f"📦 Creating target database: {self.target_db}")
@@ -117,7 +116,7 @@ class SchemaMigrator:
                     print(f"   ⚠️  Database already exists: {self.target_db}")
                     response = input("   Drop and recreate? (yes/no): ")
                     if response.lower() != "yes":
-                        print(f"   ❌ Aborted")
+                        print("   ❌ Aborted")
                         return False
 
                     # Terminate connections
@@ -132,14 +131,14 @@ class SchemaMigrator:
 
                     # Drop database
                     conn.execute(text(f"DROP DATABASE {self.target_db}"))
-                    print(f"   🗑️  Dropped existing database")
+                    print("   🗑️  Dropped existing database")
 
                 # Create database
                 conn.execute(text(f"CREATE DATABASE {self.target_db}"))
                 print(f"   ✅ Database created: {self.target_db}")
 
             # Create SDK schema using SQLModel
-            print(f"   📋 Creating SDK schema...")
+            print("   📋 Creating SDK schema...")
 
             # Temporarily set environment variable for SDK database connection
             original_db_url = os.environ.get("SQLALCHEMY_DATABASE_URL")
@@ -147,7 +146,6 @@ class SchemaMigrator:
 
             try:
                 # Import SDK database module (this will use the new env var)
-                import importlib
                 import sys
 
                 # Remove cached modules to force reload with new env var
@@ -157,10 +155,9 @@ class SchemaMigrator:
 
                 # Import and create tables
                 from workflow_core_sdk.db.database import create_db_and_tables
-                from workflow_core_sdk.db import models  # Import models to register them
 
                 create_db_and_tables()
-                print(f"   ✅ SDK schema created successfully")
+                print("   ✅ SDK schema created successfully")
                 return True
 
             except Exception as e:
@@ -183,7 +180,7 @@ class SchemaMigrator:
 
     def migrate_prompts(self, source_session: Session, target_session: Session) -> bool:
         """Migrate prompts from old schema to new schema"""
-        print(f"\n📝 Migrating prompts...")
+        print("\n📝 Migrating prompts...")
 
         try:
             # Read from old schema
@@ -276,7 +273,7 @@ class SchemaMigrator:
 
     def migrate_agents(self, source_session: Session, target_session: Session) -> bool:
         """Migrate agents from old schema to new schema"""
-        print(f"\n🤖 Migrating agents...")
+        print("\n🤖 Migrating agents...")
 
         try:
             # Read from old schema
@@ -414,7 +411,7 @@ class SchemaMigrator:
 
     def migrate_workflows(self, source_session: Session, target_session: Session) -> bool:
         """Migrate workflows from old schema to new schema with UI metadata"""
-        print(f"\n🔄 Migrating workflows with UI metadata...")
+        print("\n🔄 Migrating workflows with UI metadata...")
 
         try:
             # Read from old schema
@@ -645,7 +642,7 @@ class SchemaMigrator:
 
     def migrate_tools(self, source_session: Session, target_session: Session) -> bool:
         """Migrate tools from old schema to new schema"""
-        print(f"\n🔧 Migrating tools...")
+        print("\n🔧 Migrating tools...")
 
         try:
             # Read from old schema
@@ -791,7 +788,7 @@ class SchemaMigrator:
 
     def migrate_agent_tool_bindings(self, source_session: Session, target_session: Session) -> bool:
         """Migrate agent→tool assignments into AgentToolBinding"""
-        print(f"\n🧩 Migrating agent tool bindings...")
+        print("\n🧩 Migrating agent tool bindings...")
         try:
             # Build tool name → id map from source tools
             tools_res = source_session.execute(
@@ -978,7 +975,7 @@ class SchemaMigrator:
 
     def validate_migration(self, source_session: Session, target_session: Session) -> bool:
         """Validate that migration was successful"""
-        print(f"\n🔍 Validating migration...")
+        print("\n🔍 Validating migration...")
 
         try:
             # Count records in source
@@ -995,7 +992,7 @@ class SchemaMigrator:
 
             # Compare
             all_match = True
-            print(f"\n   Source → Target:")
+            print("\n   Source → Target:")
             print(f"   {'Table':<15} {'Source':<10} {'Target':<10} {'Status':<10}")
             print(f"   {'-' * 50}")
 
@@ -1012,10 +1009,10 @@ class SchemaMigrator:
                 print(f"   {old_table:<15} {source_count:<10} {target_count:<10} {match}")
 
             if all_match:
-                print(f"\n   ✅ All record counts match!")
+                print("\n   ✅ All record counts match!")
                 return True
             else:
-                print(f"\n   ⚠️  Some record counts don't match")
+                print("\n   ⚠️  Some record counts don't match")
                 return False
 
         except Exception as e:
@@ -1038,11 +1035,11 @@ class SchemaMigrator:
             return False
 
         # Step 2: Connect to both databases
-        print(f"\n🔌 Connecting to databases...")
+        print("\n🔌 Connecting to databases...")
         try:
             source_session = self.connect_source()
             target_session = self.connect_target()
-            print(f"   ✅ Connected to both databases")
+            print("   ✅ Connected to both databases")
 
             # Step 2.5: Ensure local tools are registered in target DB (so bindings can resolve)
             if not self.dry_run:
@@ -1104,20 +1101,20 @@ class SchemaMigrator:
         print(f"  - Workflow connections:      {self.stats['workflow_connections_migrated']}")
 
         if self.stats["errors"]:
-            print(f"\n⚠️  Errors encountered:")
+            print("\n⚠️  Errors encountered:")
             for error in self.stats["errors"]:
                 print(f"   - {error}")
 
         if success:
-            print(f"\n✅ Migration completed successfully!")
+            print("\n✅ Migration completed successfully!")
             if not self.dry_run:
-                print(f"\n📍 UI Metadata Migration:")
-                print(f"   - Step positions preserved from workflow_agents table")
-                print(f"   - Connections preserved from workflow_connections table")
-                print(f"\nTo use the new database:")
+                print("\n📍 UI Metadata Migration:")
+                print("   - Step positions preserved from workflow_agents table")
+                print("   - Connections preserved from workflow_connections table")
+                print("\nTo use the new database:")
                 print(f"  export SQLALCHEMY_DATABASE_URL='{self.target_url}'")
         else:
-            print(f"\n❌ Migration failed")
+            print("\n❌ Migration failed")
 
         print("=" * 70)
 

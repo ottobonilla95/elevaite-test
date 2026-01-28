@@ -1,7 +1,6 @@
 from datetime import datetime
 import json
-import threading
-from typing import Any, Callable, Dict, List, Literal, Optional, cast
+from typing import Any, Dict, List, Literal, Optional, cast
 import uuid
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat.chat_completion_tool_message_param import (

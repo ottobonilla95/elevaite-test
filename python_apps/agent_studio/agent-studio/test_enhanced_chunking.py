@@ -115,7 +115,7 @@ async def test_simple_mode_chunking():
         chunks = result.data["chunks"]
         metadata = result.data["metadata"]
         
-        print(f"   ✅ Simple mode execution successful")
+        print("   ✅ Simple mode execution successful")
         print(f"   ✅ Chunks produced: {len(chunks)}")
         print(f"   ✅ Strategy used: {metadata.get('chunk_strategy')}")
         print(f"   ✅ Average chunk size: {metadata.get('average_chunk_size')}")
@@ -165,7 +165,7 @@ async def test_advanced_semantic_chunking():
         assert metadata.get("execution_mode") == "advanced", "Wrong execution mode"
         assert "semantic" in metadata.get("chunker_used", ""), "Wrong chunker used"
         
-        print(f"   ✅ Advanced semantic chunking successful")
+        print("   ✅ Advanced semantic chunking successful")
         print(f"   ✅ Chunks produced: {len(chunks)}")
         print(f"   ✅ Chunker used: {metadata.get('chunker_used')}")
         print(f"   ✅ Execution mode: {metadata.get('execution_mode')}")
@@ -220,7 +220,7 @@ async def test_mdstructure_chunking():
         assert metadata.get("execution_mode") == "advanced", "Wrong execution mode"
         assert "mdstructure" in metadata.get("chunker_used", ""), "Wrong chunker used"
         
-        print(f"   ✅ MDStructure chunking successful")
+        print("   ✅ MDStructure chunking successful")
         print(f"   ✅ Chunks produced: {len(chunks)}")
         print(f"   ✅ Chunker used: {metadata.get('chunker_used')}")
         

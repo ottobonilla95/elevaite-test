@@ -4,7 +4,6 @@ Mitie Context Provider - Provides all available configurations as LLM context
 """
 
 import json
-from typing import Dict, List, Any
 import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
@@ -225,18 +224,18 @@ def get_all_available_mitie_configs() -> str:
 
         # Summary logging
         total_rate_items = sum(len(items) for items in rate_items.values())
-        print(f"\n📋 CONTEXT SUMMARY:")
+        print("\n📋 CONTEXT SUMMARY:")
         print(f"   Rate items: {total_rate_items}")
         print(f"   Preferred items: {len(preferred_items)}")
         print(f"   Steel configs: {len(steel_configs)}")
         print(f"   Regional configs: {len(regional_configs)}")
-        print(f"   Static configs: markup rates, preliminary bands, contingency rates")
+        print("   Static configs: markup rates, preliminary bands, contingency rates")
 
         if total_rate_items == 0 and len(preferred_items) == 0:
-            print(f"   ⚠️ No dynamic data loaded - database connection issue")
-            print(f"   ✅ Static configuration data is still available for LLM")
+            print("   ⚠️ No dynamic data loaded - database connection issue")
+            print("   ✅ Static configuration data is still available for LLM")
         else:
-            print(f"   ✅ Full configuration data available for LLM")
+            print("   ✅ Full configuration data available for LLM")
 
         return json.dumps(context, indent=2)
         

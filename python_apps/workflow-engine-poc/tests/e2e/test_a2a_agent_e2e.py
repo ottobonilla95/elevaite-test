@@ -89,7 +89,9 @@ def a2a_echo_server():
         http_handler=request_handler,
     )
 
-    config = uvicorn.Config(app.build(), host="127.0.0.1", port=port, log_level="warning")
+    config = uvicorn.Config(
+        app.build(), host="127.0.0.1", port=port, log_level="warning"
+    )
     server = uvicorn.Server(config)
 
     # Run server in a background thread
@@ -108,7 +110,11 @@ def a2a_echo_server():
         except Exception:
             time.sleep(0.1)
 
-    yield {"base_url": f"http://127.0.0.1:{port}", "agent_name": "E2E Test Echo Agent", "port": port}
+    yield {
+        "base_url": f"http://127.0.0.1:{port}",
+        "agent_name": "E2E Test Echo Agent",
+        "port": port,
+    }
 
 
 class TestA2AAgentE2E:
@@ -137,7 +143,9 @@ class TestA2AAgentE2E:
         }
 
         response = await client.post("/a2a-agents/", json=a2a_agent_payload)
-        assert response.status_code in [200, 201], f"Failed to create A2A agent: {response.text}"
+        assert response.status_code in [200, 201], (
+            f"Failed to create A2A agent: {response.text}"
+        )
         a2a_agent = response.json()
         a2a_agent_id = a2a_agent["id"]
 
@@ -173,7 +181,9 @@ class TestA2AAgentE2E:
         }
 
         response = await client.post("/workflows/", json=workflow_payload)
-        assert response.status_code in [200, 201], f"Failed to create workflow: {response.text}"
+        assert response.status_code in [200, 201], (
+            f"Failed to create workflow: {response.text}"
+        )
         created_workflow = response.json()
         created_workflow_id = created_workflow["id"]
 
@@ -188,8 +198,12 @@ class TestA2AAgentE2E:
             "wait": False,  # Don't wait - poll for completion
         }
 
-        response = await client.post(f"/workflows/{created_workflow_id}/execute", json=execution_payload)
-        assert response.status_code == 200, f"Failed to execute workflow: {response.text}"
+        response = await client.post(
+            f"/workflows/{created_workflow_id}/execute", json=execution_payload
+        )
+        assert response.status_code == 200, (
+            f"Failed to execute workflow: {response.text}"
+        )
         execution_result = response.json()
         execution_id = execution_result["id"]
 
@@ -198,9 +212,16 @@ class TestA2AAgentE2E:
         for _ in range(30):  # Poll for up to 15 seconds
             time.sleep(0.5)
             response = await client.get(f"/executions/{execution_id}")
-            assert response.status_code == 200, f"Failed to get execution: {response.text}"
+            assert response.status_code == 200, (
+                f"Failed to get execution: {response.text}"
+            )
             execution_status = response.json()
-            if execution_status.get("status") in ["completed", "COMPLETED", "failed", "FAILED"]:
+            if execution_status.get("status") in [
+                "completed",
+                "COMPLETED",
+                "failed",
+                "FAILED",
+            ]:
                 break
 
         assert execution_status is not None
@@ -211,7 +232,9 @@ class TestA2AAgentE2E:
 
         # Step 5: Get the full execution results (includes step_results and step_io_data)
         response = await client.get(f"/executions/{execution_id}/results")
-        assert response.status_code == 200, f"Failed to get execution results: {response.text}"
+        assert response.status_code == 200, (
+            f"Failed to get execution results: {response.text}"
+        )
         execution_details = response.json()
 
         # The API returns step_results from memory (with output_data nested), or step_io_data from db_record
@@ -230,15 +253,23 @@ class TestA2AAgentE2E:
             a2a_step_result = step_io_data.get("a2a_agent_step", {})
 
         # The echo server should have echoed back our message
-        assert a2a_step_result.get("success") is True, f"A2A step failed: {a2a_step_result}"
-        assert a2a_step_result.get("mode") == "a2a", f"Expected A2A mode: {a2a_step_result}"
-        assert f"Echo: {test_message}" in a2a_step_result.get("response", ""), f"Echo not found in response: {a2a_step_result}"
+        assert a2a_step_result.get("success") is True, (
+            f"A2A step failed: {a2a_step_result}"
+        )
+        assert a2a_step_result.get("mode") == "a2a", (
+            f"Expected A2A mode: {a2a_step_result}"
+        )
+        assert f"Echo: {test_message}" in a2a_step_result.get("response", ""), (
+            f"Echo not found in response: {a2a_step_result}"
+        )
 
         # Cleanup: Delete the A2A agent
         await client.delete(f"/a2a-agents/{a2a_agent_id}")
 
     @pytest.mark.asyncio
-    async def test_a2a_agent_with_template_interpolation(self, async_client, a2a_echo_server):
+    async def test_a2a_agent_with_template_interpolation(
+        self, async_client, a2a_echo_server
+    ):
         """
         E2E test for template interpolation in A2A agent queries.
 
@@ -301,7 +332,9 @@ class TestA2AAgentE2E:
             "wait": False,  # Don't wait - poll for completion
         }
 
-        response = await client.post(f"/workflows/{workflow_id}/execute", json=execution_payload)
+        response = await client.post(
+            f"/workflows/{workflow_id}/execute", json=execution_payload
+        )
         assert response.status_code == 200
         execution_result = response.json()
         execution_id = execution_result["id"]
@@ -313,7 +346,12 @@ class TestA2AAgentE2E:
             response = await client.get(f"/executions/{execution_id}")
             assert response.status_code == 200
             execution_status = response.json()
-            if execution_status.get("status") in ["completed", "COMPLETED", "failed", "FAILED"]:
+            if execution_status.get("status") in [
+                "completed",
+                "COMPLETED",
+                "failed",
+                "FAILED",
+            ]:
                 break
 
         assert execution_status is not None
@@ -321,7 +359,9 @@ class TestA2AAgentE2E:
 
         # Get the full execution results (includes step_results and step_io_data)
         response = await client.get(f"/executions/{execution_id}/results")
-        assert response.status_code == 200, f"Failed to get execution results: {response.text}"
+        assert response.status_code == 200, (
+            f"Failed to get execution results: {response.text}"
+        )
         execution_details = response.json()
 
         # The API returns step_results from memory (with output_data nested), or step_io_data from db_record
@@ -342,7 +382,9 @@ class TestA2AAgentE2E:
         # Verify template was interpolated correctly
         assert a2a_result.get("success") is True, f"A2A step failed: {a2a_result}"
         expected_echo = "Echo: Hello Alice, your order ORD-12345 is ready!"
-        assert expected_echo in a2a_result.get("response", ""), f"Template not interpolated: {a2a_result}"
+        assert expected_echo in a2a_result.get("response", ""), (
+            f"Template not interpolated: {a2a_result}"
+        )
 
         # Cleanup
         await client.delete(f"/a2a-agents/{a2a_agent_id}")
@@ -368,7 +410,9 @@ class TestA2AAgentE2E:
         }
 
         response = await client.post("/a2a-agents/", json=agent_payload)
-        assert response.status_code in [200, 201], f"Failed to create A2A agent: {response.text}"
+        assert response.status_code in [200, 201], (
+            f"Failed to create A2A agent: {response.text}"
+        )
         a2a_agent_id = response.json()["id"]
 
         # Step 2: Create workflow with streaming enabled
@@ -412,7 +456,9 @@ class TestA2AAgentE2E:
             "wait": False,
         }
 
-        response = await client.post(f"/workflows/{workflow_id}/execute", json=execution_payload)
+        response = await client.post(
+            f"/workflows/{workflow_id}/execute", json=execution_payload
+        )
         assert response.status_code == 200
         execution_id = response.json()["id"]
 
@@ -423,7 +469,12 @@ class TestA2AAgentE2E:
             response = await client.get(f"/executions/{execution_id}")
             assert response.status_code == 200
             execution_status = response.json()
-            if execution_status.get("status") in ["completed", "COMPLETED", "failed", "FAILED"]:
+            if execution_status.get("status") in [
+                "completed",
+                "COMPLETED",
+                "failed",
+                "FAILED",
+            ]:
                 break
 
         assert execution_status is not None
@@ -447,13 +498,23 @@ class TestA2AAgentE2E:
             a2a_result = step_io_data.get("a2a_streaming_step", {})
 
         # Verify the A2A step completed successfully
-        assert a2a_result.get("success") is True, f"A2A streaming step failed: {a2a_result}"
-        assert f"Echo: {test_message}" in a2a_result.get("response", ""), f"Echo not found: {a2a_result}"
+        assert a2a_result.get("success") is True, (
+            f"A2A streaming step failed: {a2a_result}"
+        )
+        assert f"Echo: {test_message}" in a2a_result.get("response", ""), (
+            f"Echo not found: {a2a_result}"
+        )
 
         # Verify the response structure is streaming-compatible (has response text)
-        assert "response" in a2a_result, f"Missing response field in A2A result: {a2a_result}"
-        assert isinstance(a2a_result["response"], str), f"Response should be string: {a2a_result}"
-        assert len(a2a_result["response"]) > 0, f"Response should not be empty: {a2a_result}"
+        assert "response" in a2a_result, (
+            f"Missing response field in A2A result: {a2a_result}"
+        )
+        assert isinstance(a2a_result["response"], str), (
+            f"Response should be string: {a2a_result}"
+        )
+        assert len(a2a_result["response"]) > 0, (
+            f"Response should not be empty: {a2a_result}"
+        )
 
         # Cleanup
         await client.delete(f"/a2a-agents/{a2a_agent_id}")

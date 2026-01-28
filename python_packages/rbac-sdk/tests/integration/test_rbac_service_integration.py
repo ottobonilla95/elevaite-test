@@ -16,15 +16,8 @@ Requirements:
 - Test users with role assignments
 """
 
-import asyncio
-import os
-from typing import Any, Dict
-from uuid import UUID, uuid4
-
-import httpx
-import pytest
 from rbac_sdk.async_client import check_access_async
-from rbac_sdk.client import check_access, RBACClientError
+from rbac_sdk.client import check_access
 
 
 class TestRBACServiceBasicAccess:

@@ -1,7 +1,6 @@
 import os
 import sys
 import re
-import time
 from typing import List, Dict, Optional
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
@@ -11,7 +10,6 @@ path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.append(path)
 
 import os
-from typing import List
 from dotenv import load_dotenv
 import openai
 
@@ -200,7 +198,7 @@ def retrieve_chunks_semantic(query: str, top_k: int = 30, machine_types: Optiona
                 break
 
         return results[:top_k]
-    except Exception as e:
+    except Exception:
         # logger.error(f"Semantic search failed: {str(e)}")
         return []
 
@@ -268,7 +266,7 @@ def retrieve_by_payload(part_number: str, top_k: int = 20, machine_types: Option
             with_vectors=False
         )
         return [process_match(m) | {"search_type": "payload_filter"} for m in response[0]]
-    except Exception as e:
+    except Exception:
         # logger.error(f"Payload (exact match) retrieval failed: {str(e)}")
         return []
 
@@ -357,7 +355,7 @@ def retrieve_by_keywords(keywords: List[str], top_k: int = 20, machine_types: Op
         matches = response[0]
         # print("Matches: ", len(matches))
         return [process_match(m) | {"search_type": "sparse_keyword"} for m in matches]
-    except Exception as e:
+    except Exception:
         # logger.error(f"Sparse keyword retrieval failed: {str(e)}")
         return []
 

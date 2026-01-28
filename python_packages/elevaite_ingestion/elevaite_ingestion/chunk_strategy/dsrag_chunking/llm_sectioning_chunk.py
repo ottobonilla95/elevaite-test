@@ -33,7 +33,10 @@ class LLMAgentChunker:
 
         response = openai.chat.completions.create(
             model=self.model_name,
-            messages=[{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt},
+            ],
             max_tokens=10,
         )
 
@@ -55,8 +58,13 @@ class LLMAgentChunker:
 
         for line in document_lines:
             # Check if adding this line exceeds the max chunk size
-            if len(current_chunk) + len(line.text) > self.max_chunk_size and current_chunk:
-                chunks.append({"text": current_chunk.strip(), "metadata": current_metadata})
+            if (
+                len(current_chunk) + len(line.text) > self.max_chunk_size
+                and current_chunk
+            ):
+                chunks.append(
+                    {"text": current_chunk.strip(), "metadata": current_metadata}
+                )
                 current_chunk = ""
                 current_metadata = []
                 prev_lines = []
@@ -66,7 +74,9 @@ class LLMAgentChunker:
                 next_lines = [line.text]
                 if not self.is_semantically_related(prev_lines, next_lines):
                     # Start a new chunk
-                    chunks.append({"text": current_chunk.strip(), "metadata": current_metadata})
+                    chunks.append(
+                        {"text": current_chunk.strip(), "metadata": current_metadata}
+                    )
                     current_chunk = ""
                     current_metadata = []
                     prev_lines = []
@@ -85,7 +95,9 @@ class LLMAgentChunker:
             )
 
             # Update previous lines for semantic evaluation
-            prev_lines = [line.text] if not prev_lines else prev_lines[-2:] + [line.text]
+            prev_lines = (
+                [line.text] if not prev_lines else prev_lines[-2:] + [line.text]
+            )
 
         # Add the last chunk if it exists
         if current_chunk:

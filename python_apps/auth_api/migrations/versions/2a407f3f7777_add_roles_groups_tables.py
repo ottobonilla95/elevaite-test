@@ -29,10 +29,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 # System role definitions (from permission matrix)
 SYSTEM_ROLES = [
-    {"name": "Organization Super Admin", "base_type": "superadmin", "scope_type": "organization"},
+    {
+        "name": "Organization Super Admin",
+        "base_type": "superadmin",
+        "scope_type": "organization",
+    },
     {"name": "Organization Admin", "base_type": "admin", "scope_type": "organization"},
-    {"name": "Organization Editor", "base_type": "editor", "scope_type": "organization"},
-    {"name": "Organization Viewer", "base_type": "viewer", "scope_type": "organization"},
+    {
+        "name": "Organization Editor",
+        "base_type": "editor",
+        "scope_type": "organization",
+    },
+    {
+        "name": "Organization Viewer",
+        "base_type": "viewer",
+        "scope_type": "organization",
+    },
     {"name": "Account Admin", "base_type": "admin", "scope_type": "account"},
     {"name": "Account Editor", "base_type": "editor", "scope_type": "account"},
     {"name": "Account Viewer", "base_type": "viewer", "scope_type": "account"},
@@ -53,7 +65,12 @@ def upgrade() -> None:
     # 1. Create roles table
     op.create_table(
         "roles",
-        sa.Column("id", sa.UUID(), server_default=sa.text("uuid_generate_v4()"), nullable=False),
+        sa.Column(
+            "id",
+            sa.UUID(),
+            server_default=sa.text("uuid_generate_v4()"),
+            nullable=False,
+        ),
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column("description", sa.String(length=500), nullable=True),
         sa.Column("base_type", sa.String(length=50), nullable=False),
@@ -61,55 +78,115 @@ def upgrade() -> None:
         sa.Column("is_system", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint("base_type IN ('superadmin', 'admin', 'editor', 'viewer')", name="ck_roles_base_type"),
-        sa.CheckConstraint("scope_type IN ('organization', 'account', 'project')", name="ck_roles_scope_type"),
+        sa.CheckConstraint(
+            "base_type IN ('superadmin', 'admin', 'editor', 'viewer')",
+            name="ck_roles_base_type",
+        ),
+        sa.CheckConstraint(
+            "scope_type IN ('organization', 'account', 'project')",
+            name="ck_roles_scope_type",
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("idx_roles_is_system", "roles", ["is_system"], unique=False)
     op.create_index("idx_roles_name", "roles", ["name"], unique=False)
     op.create_table(
         "groups",
-        sa.Column("id", sa.UUID(), server_default=sa.text("uuid_generate_v4()"), nullable=False),
+        sa.Column(
+            "id",
+            sa.UUID(),
+            server_default=sa.text("uuid_generate_v4()"),
+            nullable=False,
+        ),
         sa.Column("organization_id", sa.UUID(), nullable=False),
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column("description", sa.String(length=500), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["organization_id"], ["organizations.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["organization_id"], ["organizations.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("idx_groups_name", "groups", ["name"], unique=False)
-    op.create_index("idx_groups_org_name", "groups", ["organization_id", "name"], unique=True)
-    op.create_index("idx_groups_organization_id", "groups", ["organization_id"], unique=False)
+    op.create_index(
+        "idx_groups_org_name", "groups", ["organization_id", "name"], unique=True
+    )
+    op.create_index(
+        "idx_groups_organization_id", "groups", ["organization_id"], unique=False
+    )
     op.create_table(
         "role_permissions",
-        sa.Column("id", sa.UUID(), server_default=sa.text("uuid_generate_v4()"), nullable=False),
+        sa.Column(
+            "id",
+            sa.UUID(),
+            server_default=sa.text("uuid_generate_v4()"),
+            nullable=False,
+        ),
         sa.Column("role_id", sa.UUID(), nullable=False),
         sa.Column("service_name", sa.String(length=100), nullable=False),
-        sa.Column("allowed_actions", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column(
+            "allowed_actions", postgresql.JSONB(astext_type=sa.Text()), nullable=False
+        ),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["role_id"], ["roles.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("idx_role_permissions_role_id", "role_permissions", ["role_id"], unique=False)
-    op.create_index("idx_role_permissions_role_service", "role_permissions", ["role_id", "service_name"], unique=True)
-    op.create_index("idx_role_permissions_service", "role_permissions", ["service_name"], unique=False)
+    op.create_index(
+        "idx_role_permissions_role_id", "role_permissions", ["role_id"], unique=False
+    )
+    op.create_index(
+        "idx_role_permissions_role_service",
+        "role_permissions",
+        ["role_id", "service_name"],
+        unique=True,
+    )
+    op.create_index(
+        "idx_role_permissions_service",
+        "role_permissions",
+        ["service_name"],
+        unique=False,
+    )
     op.create_table(
         "group_permissions",
-        sa.Column("id", sa.UUID(), server_default=sa.text("uuid_generate_v4()"), nullable=False),
+        sa.Column(
+            "id",
+            sa.UUID(),
+            server_default=sa.text("uuid_generate_v4()"),
+            nullable=False,
+        ),
         sa.Column("group_id", sa.UUID(), nullable=False),
         sa.Column("service_name", sa.String(length=100), nullable=False),
-        sa.Column("allow_actions", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("deny_actions", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column(
+            "allow_actions", postgresql.JSONB(astext_type=sa.Text()), nullable=False
+        ),
+        sa.Column(
+            "deny_actions", postgresql.JSONB(astext_type=sa.Text()), nullable=False
+        ),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["group_id"], ["groups.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("idx_group_permissions_group_id", "group_permissions", ["group_id"], unique=False)
-    op.create_index("idx_group_permissions_group_service", "group_permissions", ["group_id", "service_name"], unique=True)
-    op.create_index("idx_group_permissions_service", "group_permissions", ["service_name"], unique=False)
+    op.create_index(
+        "idx_group_permissions_group_id",
+        "group_permissions",
+        ["group_id"],
+        unique=False,
+    )
+    op.create_index(
+        "idx_group_permissions_group_service",
+        "group_permissions",
+        ["group_id", "service_name"],
+        unique=True,
+    )
+    op.create_index(
+        "idx_group_permissions_service",
+        "group_permissions",
+        ["service_name"],
+        unique=False,
+    )
     op.create_table(
         "user_group_memberships",
         sa.Column("user_id", sa.Integer(), nullable=False),
@@ -118,24 +195,52 @@ def upgrade() -> None:
         sa.Column("resource_type", sa.String(length=50), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.CheckConstraint(
-            "resource_type IN ('organization', 'account', 'project')", name="ck_user_group_memberships_resource_type"
+            "resource_type IN ('organization', 'account', 'project')",
+            name="ck_user_group_memberships_resource_type",
         ),
         sa.ForeignKeyConstraint(["group_id"], ["groups.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("user_id", "group_id", "resource_id"),
     )
-    op.create_index("idx_user_group_memberships_group_id", "user_group_memberships", ["group_id"], unique=False)
     op.create_index(
-        "idx_user_group_memberships_resource", "user_group_memberships", ["resource_type", "resource_id"], unique=False
+        "idx_user_group_memberships_group_id",
+        "user_group_memberships",
+        ["group_id"],
+        unique=False,
     )
-    op.create_index("idx_user_group_memberships_user_id", "user_group_memberships", ["user_id"], unique=False)
+    op.create_index(
+        "idx_user_group_memberships_resource",
+        "user_group_memberships",
+        ["resource_type", "resource_id"],
+        unique=False,
+    )
+    op.create_index(
+        "idx_user_group_memberships_user_id",
+        "user_group_memberships",
+        ["user_id"],
+        unique=False,
+    )
 
     # 6. Update user_role_assignments table
-    op.add_column("user_role_assignments", sa.Column("role_id", sa.UUID(), nullable=True))
-    op.alter_column("user_role_assignments", "role", existing_type=sa.VARCHAR(), nullable=True)
-    op.create_index("idx_user_role_assignments_role_id", "user_role_assignments", ["role_id"], unique=False)
+    op.add_column(
+        "user_role_assignments", sa.Column("role_id", sa.UUID(), nullable=True)
+    )
+    op.alter_column(
+        "user_role_assignments", "role", existing_type=sa.VARCHAR(), nullable=True
+    )
+    op.create_index(
+        "idx_user_role_assignments_role_id",
+        "user_role_assignments",
+        ["role_id"],
+        unique=False,
+    )
     op.create_foreign_key(
-        "fk_user_role_assignments_role_id", "user_role_assignments", "roles", ["role_id"], ["id"], ondelete="CASCADE"
+        "fk_user_role_assignments_role_id",
+        "user_role_assignments",
+        "roles",
+        ["role_id"],
+        ["id"],
+        ondelete="CASCADE",
     )
 
     # 7. Seed system roles and their permissions
@@ -215,15 +320,27 @@ def downgrade() -> None:
     """)
 
     # 3. Restore user_role_assignments
-    op.drop_constraint("fk_user_role_assignments_role_id", "user_role_assignments", type_="foreignkey")
-    op.drop_index("idx_user_role_assignments_role_id", table_name="user_role_assignments")
-    op.alter_column("user_role_assignments", "role", existing_type=sa.VARCHAR(), nullable=False)
+    op.drop_constraint(
+        "fk_user_role_assignments_role_id", "user_role_assignments", type_="foreignkey"
+    )
+    op.drop_index(
+        "idx_user_role_assignments_role_id", table_name="user_role_assignments"
+    )
+    op.alter_column(
+        "user_role_assignments", "role", existing_type=sa.VARCHAR(), nullable=False
+    )
     op.drop_column("user_role_assignments", "role_id")
 
     # 4. Drop new tables (in reverse order due to FKs)
-    op.drop_index("idx_user_group_memberships_user_id", table_name="user_group_memberships")
-    op.drop_index("idx_user_group_memberships_resource", table_name="user_group_memberships")
-    op.drop_index("idx_user_group_memberships_group_id", table_name="user_group_memberships")
+    op.drop_index(
+        "idx_user_group_memberships_user_id", table_name="user_group_memberships"
+    )
+    op.drop_index(
+        "idx_user_group_memberships_resource", table_name="user_group_memberships"
+    )
+    op.drop_index(
+        "idx_user_group_memberships_group_id", table_name="user_group_memberships"
+    )
     op.drop_table("user_group_memberships")
 
     op.drop_index("idx_group_permissions_service", table_name="group_permissions")

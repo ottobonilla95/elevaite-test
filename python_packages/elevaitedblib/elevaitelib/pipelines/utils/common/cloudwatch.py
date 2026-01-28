@@ -70,7 +70,7 @@ def get_cloudwatch_logs(job_name: str, start_time=None, end_time=None) -> list:
         logs_client = boto3.client("logs")
 
         # Get the log group and stream
-        log_group = f"/aws/sagemaker/ProcessingJobs"
+        log_group = "/aws/sagemaker/ProcessingJobs"
 
         # Get log streams for this job
         streams = logs_client.describe_log_streams(
@@ -378,7 +378,9 @@ def monitor_pipeline(
                     status_symbol = (
                         "✅"
                         if step_status == "Succeeded"
-                        else "❌" if step_status == "Failed" else "⏳"
+                        else "❌"
+                        if step_status == "Failed"
+                        else "⏳"
                     )
                     log_message(
                         f"{status_symbol} Step '{step_name}' - Status: {step_status}"

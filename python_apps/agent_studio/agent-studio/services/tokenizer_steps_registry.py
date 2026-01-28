@@ -84,7 +84,7 @@ class TokenizerStepsRegistry:
             execution_context: Dict[str, Any],
         ) -> Dict[str, Any]:
             # DEBUG: Log what we're receiving
-            self.logger.info(f"🔍 DEBUG file_reader_step:")
+            self.logger.info("🔍 DEBUG file_reader_step:")
             self.logger.info(f"   step_config: {step_config}")
             self.logger.info(f"   input_data: {input_data}")
             self.logger.info(
@@ -124,7 +124,7 @@ class TokenizerStepsRegistry:
                         "❌ No file_path found in config, input_data, or runtime_overrides!"
                     )
             else:
-                self.logger.info(f"✅ Found file_path in config or input_data")
+                self.logger.info("✅ Found file_path in config or input_data")
 
             # Create step instance
             from steps.tokenizer.file_reader_step import create_file_reader_step

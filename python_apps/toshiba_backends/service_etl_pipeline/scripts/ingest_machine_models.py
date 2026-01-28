@@ -59,8 +59,8 @@ def ingest_machine_models():
         try:
             df = pd.read_excel(excel_path, sheet_name=1)  # Second sheet
             print(f"Successfully read Sheet 2 with {len(df)} rows")
-        except Exception as e:
-            print(f"Could not read Sheet 2, trying sheet name 'Sheet2'...")
+        except Exception:
+            print("Could not read Sheet 2, trying sheet name 'Sheet2'...")
             try:
                 df = pd.read_excel(excel_path, sheet_name='Sheet2')
                 print(f"Successfully read Sheet2 with {len(df)} rows")
@@ -88,13 +88,13 @@ def ingest_machine_models():
         
         # Show type distribution
         type_counts = df['Type'].value_counts()
-        print(f"\nType distribution:")
+        print("\nType distribution:")
         for type_name, count in type_counts.items():
             print(f"  {type_name}: {count}")
         
         # Show machine type distribution
         machine_type_counts = df['Machine Type'].value_counts()
-        print(f"\nMachine Type distribution (top 10):")
+        print("\nMachine Type distribution (top 10):")
         for machine_type, count in machine_type_counts.head(10).items():
             print(f"  {machine_type}: {count}")
         

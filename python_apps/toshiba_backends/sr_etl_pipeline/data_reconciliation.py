@@ -538,12 +538,12 @@ class DataReconciliationReport:
         print(f"S3 Folder: {report['report_metadata']['config_folder']}")
         
         # PostgreSQL Summary
-        print(f"\nPostgreSQL DATABASE:")
+        print("\nPostgreSQL DATABASE:")
         postgres = report['postgres_summary']
         if postgres['status'] == 'success':
-            print(f"   Status: Connected")
+            print("   Status: Connected")
             print(f"   Total Records: {postgres['total_records']:,}")
-            print(f"   Tables with Data:")
+            print("   Tables with Data:")
             for table, data in postgres['tables'].items():
                 status = "✓" if data['has_data'] else "Empty"
                 print(f"     - {table}: {data['row_count']:,} records {status}")
@@ -551,11 +551,11 @@ class DataReconciliationReport:
             print(f"   Status: Error - {postgres.get('message', 'Unknown')}")
         
         # S3 Summary
-        print(f"\nS3 BUCKET:")
+        print("\nS3 BUCKET:")
         s3 = report['s3_summary']
         if s3['status'] == 'success':
             summary = s3['summary']
-            print(f"   Status: Connected")
+            print("   Status: Connected")
             print(f"   Total Files: {summary['total_files']}")
             print(f"   Data Files (CSV/Excel): {summary['data_files']}")
             print(f"   Total Data Size: {summary['data_files_size_mb']:.1f} MB")
@@ -563,7 +563,7 @@ class DataReconciliationReport:
             # Show data timeline from folder structure
             if s3.get('data_date_range'):
                 date_range = s3['data_date_range']
-                print(f"   DATA TIMELINE (from folder structure):")
+                print("   DATA TIMELINE (from folder structure):")
                 if date_range['earliest_path_date'] and date_range['latest_path_date']:
                     print(f"     First Data: {date_range['earliest_path_date']}")
                     print(f"     Latest Data: {date_range['latest_path_date']}")
@@ -572,28 +572,28 @@ class DataReconciliationReport:
             # Show oldest and newest files (by upload time)
             if summary.get('oldest_file'):
                 oldest = summary['oldest_file']
-                print(f"   FIRST FILE UPLOADED TO S3:")
+                print("   FIRST FILE UPLOADED TO S3:")
                 print(f"     File: {oldest['filename']}")
                 print(f"     Upload Date: {oldest['readable_date']}")
                 print(f"     Folder: {oldest['folder']}")
             
             if summary.get('newest_file'):
                 newest = summary['newest_file']
-                print(f"   LATEST FILE UPLOADED TO S3:")
+                print("   LATEST FILE UPLOADED TO S3:")
                 print(f"     File: {newest['filename']}")
                 print(f"     Upload Date: {newest['readable_date']}")
                 print(f"     Folder: {newest['folder']}")
             
             # Show date hierarchy (YYYY/MM breakdown)
             if s3.get('date_hierarchy'):
-                print(f"   MONTHLY DATA FOLDERS:")
+                print("   MONTHLY DATA FOLDERS:")
                 for month, info in list(s3['date_hierarchy'].items())[:6]:  # Show last 6 months
                     days_count = len(info['days'])
                     print(f"     - {month}: {info['files_count']} files across {days_count} days ({info['total_size_mb']:.1f} MB)")
             
             # Show daily breakdown (most recent days)
             if s3.get('daily_breakdown'):
-                print(f"   RECENT DAILY DATA:")
+                print("   RECENT DAILY DATA:")
                 for date, info in list(s3['daily_breakdown'].items())[:5]:  # Show last 5 days
                     hours_count = len(info['hours']) if 'hours' in info else 0
                     print(f"     - {date}: {info['files_count']} files in {hours_count} hour folders ({info['total_size_mb']:.1f} MB)")
@@ -601,14 +601,14 @@ class DataReconciliationReport:
             print(f"   Status: Error - {s3.get('error', 'Unknown error')}")
         
         # Processing Logs
-        print(f"\nPROCESSING LOGS:")
+        print("\nPROCESSING LOGS:")
         logs = report['processing_logs']
         print(f"   Processed Files: {logs['processed_files_count']}")
         print(f"   Failed Files: {logs['failed_files_count']}")
         print(f"   Logs Available: {'Yes' if logs['logs_exist'] else 'No'}")
         
         # Coverage Analysis
-        print(f"\nDATA COVERAGE ANALYSIS:")
+        print("\nDATA COVERAGE ANALYSIS:")
         coverage = report['coverage_analysis']
         print(f"   Database Status: {coverage['database_status']}")
         print(f"   Processing Status: {coverage['processing_status']}")
@@ -620,7 +620,7 @@ class DataReconciliationReport:
         # Monthly Gaps Analysis
         if 'monthly_gaps' in coverage:
             gaps = coverage['monthly_gaps']
-            print(f"\nMONTHLY DATA AVAILABILITY:")
+            print("\nMONTHLY DATA AVAILABILITY:")
             
             # PostgreSQL months
             if gaps.get('postgres_months'):
@@ -649,7 +649,7 @@ class DataReconciliationReport:
                 print(f"   Data exists in both: {len(gaps['common_months'])} months")
         
         # Recommendations
-        print(f"\nRECOMMENDATIONS:")
+        print("\nRECOMMENDATIONS:")
         recommendations = report['recommendations']
         if not recommendations:
             print("   No immediate actions needed")

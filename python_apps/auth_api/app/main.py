@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request
 from fastapi.security import HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from db_core.middleware import add_tenant_middleware
@@ -8,9 +8,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from fastapi_logger import ElevaiteLogger
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
 
 from app.routers import auth
 from app.routers import user
@@ -50,6 +47,7 @@ async def lifespan(_app: FastAPI):  # pylint: disable=unused-argument
     try:
         # Initialize tenant schemas and tables
         logger.info("Initializing database and tenant schemas")
+        logger.info(f"Using database URL: {settings.DATABASE_URI[:50]}...")
         await initialize_db()
         logger.info("Database initialization completed successfully")
 
@@ -100,7 +98,9 @@ excluded_paths = {
     r"^/redoc.*": {"default_tenant": "default"},
     r"^/openapi\.json$": {"default_tenant": "default"},
 }
-add_tenant_middleware(app, settings=multitenancy_settings, excluded_paths=excluded_paths)
+add_tenant_middleware(
+    app, settings=multitenancy_settings, excluded_paths=excluded_paths
+)
 
 # Add security middleware
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
@@ -170,6 +170,7 @@ def test_logs():
 
 @app.get("/")
 def root():
+    # Force rebuild
     return {"status": "ok"}
 
 
@@ -181,5 +182,7 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8004,
         reload=settings.DEBUG,
-        reload_excludes=["*.git*", "*.pyc", "__pycache__", "*.log"] if settings.DEBUG else None,
+        reload_excludes=["*.git*", "*.pyc", "__pycache__", "*.log"]
+        if settings.DEBUG
+        else None,
     )

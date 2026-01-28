@@ -43,7 +43,9 @@ AGENT_NAME = f"TimeAgent_{SUFFIX}"
 PROMPT_LABEL = f"TimeAgentPrompt_{SUFFIX}"
 
 MIN_EXPECTED_EXEC = int(os.environ.get("SCHED_MIN_EXEC", "2"))
-WAIT_SECONDS = int(os.environ.get("SCHED_WAIT_SECONDS", "45"))  # total time to wait for scheduled runs
+WAIT_SECONDS = int(
+    os.environ.get("SCHED_WAIT_SECONDS", "45")
+)  # total time to wait for scheduled runs
 
 
 def http_post(path: str, data: Dict[str, Any], files=None) -> requests.Response:
@@ -143,7 +145,10 @@ def create_scheduled_workflow() -> Dict[str, Any]:
             "step_type": "agent_execution",
             "name": "Ask Time",
             "dependencies": ["trigger"],
-            "input_mapping": {"current_message": "trigger.current_message", "messages": "trigger.messages"},
+            "input_mapping": {
+                "current_message": "trigger.current_message",
+                "messages": "trigger.messages",
+            },
             "config": {
                 "agent_name": AGENT_NAME,
                 "system_prompt": (

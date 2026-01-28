@@ -6,8 +6,6 @@ from rbac_sdk import (
     require_permission_async,
     resource_builders,
     principal_resolvers,
-    HDR_API_KEY,
-    HDR_USER_ID,
     HDR_ORG_ID,
     HDR_ACCOUNT_ID,
     HDR_PROJECT_ID,
@@ -18,7 +16,11 @@ from rbac_sdk import (
 _SKIP_RBAC = os.getenv("SKIP_RBAC", "false").lower() in {"1", "true", "yes"}
 
 # Allow insecure API key as principal (for development/testing)
-_ALLOW_INSECURE_APIKEY = os.getenv("ALLOW_INSECURE_APIKEY", "true").lower() in {"1", "true", "yes"}
+_ALLOW_INSECURE_APIKEY = os.getenv("ALLOW_INSECURE_APIKEY", "true").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 
 async def _noop_guard(_request: Request) -> None:
@@ -36,7 +38,9 @@ def api_key_or_user_guard(action: str) -> Callable[[Request], Awaitable[None]]:
             account_header=HDR_ACCOUNT_ID,
             org_header=HDR_ORG_ID,
         ),
-        principal_resolver=principal_resolvers.api_key_or_user(allow_insecure_apikey_as_principal=_ALLOW_INSECURE_APIKEY),
+        principal_resolver=principal_resolvers.api_key_or_user(
+            allow_insecure_apikey_as_principal=_ALLOW_INSECURE_APIKEY
+        ),
     )
 
 

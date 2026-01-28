@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Any
+from pydantic import BaseModel
+from typing import Optional, Dict, Any
 from utils import log_decorator
 
 class Component(BaseModel):

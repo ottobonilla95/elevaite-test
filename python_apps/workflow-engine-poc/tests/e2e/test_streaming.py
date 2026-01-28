@@ -33,13 +33,20 @@ def check_server_available():
     try:
         with httpx.Client(timeout=2.0) as client:
             response = client.get(f"{BASE_URL}/health")
-            if response.status_code not in [200, 404]:  # 404 is ok if /health doesn't exist
-                pytest.skip(f"Server not reachable at {BASE_URL}: HTTP {response.status_code}")
+            if response.status_code not in [
+                200,
+                404,
+            ]:  # 404 is ok if /health doesn't exist
+                pytest.skip(
+                    f"Server not reachable at {BASE_URL}: HTTP {response.status_code}"
+                )
     except (httpx.ConnectError, httpx.TimeoutException) as e:
         pytest.skip(f"Server not reachable at {BASE_URL}: {e}")
 
 
-def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
+def _http(
+    method: str, path: str, json_body: Optional[Dict[str, Any]] = None
+) -> httpx.Response:
     """Make HTTP request to the API"""
     # Ensure path starts with /
     if not path.startswith("/"):
@@ -66,7 +73,9 @@ def _load_fixture(filename: str) -> Dict[str, Any]:
 def _create_workflow(config: Dict[str, Any]) -> str:
     """Create a workflow and return its ID"""
     response = _http("POST", "/workflows/", config)
-    assert response.status_code in [200, 201], f"Failed to create workflow: {response.status_code} {response.text}"
+    assert response.status_code in [200, 201], (
+        f"Failed to create workflow: {response.status_code} {response.text}"
+    )
     return response.json()["id"]
 
 
@@ -94,15 +103,21 @@ def _parse_sse_events(sse_data: str) -> List[Dict[str, Any]]:
     return events
 
 
-async def _stream_execution_events(execution_id: str, max_duration: float = 10.0) -> List[Dict[str, Any]]:
+async def _stream_execution_events(
+    execution_id: str, max_duration: float = 10.0
+) -> List[Dict[str, Any]]:
     """Stream events from an execution and return collected events"""
     events = []
     start_time = time.time()
 
     async with httpx.AsyncClient(timeout=max_duration + 5) as client:
-        async with client.stream("GET", f"{BASE_URL}/executions/{execution_id}/stream") as response:
+        async with client.stream(
+            "GET", f"{BASE_URL}/executions/{execution_id}/stream"
+        ) as response:
             if response.status_code != 200:
-                raise Exception(f"Stream failed: {response.status_code} {response.text}")
+                raise Exception(
+                    f"Stream failed: {response.status_code} {response.text}"
+                )
 
             try:
                 async for chunk in response.aiter_text():
@@ -112,7 +127,9 @@ async def _stream_execution_events(execution_id: str, max_duration: float = 10.0
 
                         # Check for completion or timeout
                         for event in chunk_events:
-                            if event.get("type") == "complete" or event.get("data", {}).get("status") in [
+                            if event.get("type") == "complete" or event.get(
+                                "data", {}
+                            ).get("status") in [
                                 "completed",
                                 "failed",
                             ]:
@@ -127,15 +144,21 @@ async def _stream_execution_events(execution_id: str, max_duration: float = 10.0
     return events
 
 
-async def _stream_workflow_events(workflow_id: str, max_duration: float = 10.0) -> List[Dict[str, Any]]:
+async def _stream_workflow_events(
+    workflow_id: str, max_duration: float = 10.0
+) -> List[Dict[str, Any]]:
     """Stream events from a workflow and return collected events"""
     events = []
     start_time = time.time()
 
     async with httpx.AsyncClient(timeout=max_duration + 5) as client:
-        async with client.stream("GET", f"{BASE_URL}/workflows/{workflow_id}/stream") as response:
+        async with client.stream(
+            "GET", f"{BASE_URL}/workflows/{workflow_id}/stream"
+        ) as response:
             if response.status_code != 200:
-                raise Exception(f"Stream failed: {response.status_code} {response.text}")
+                raise Exception(
+                    f"Stream failed: {response.status_code} {response.text}"
+                )
 
             try:
                 async for chunk in response.aiter_text():
@@ -145,7 +168,9 @@ async def _stream_workflow_events(workflow_id: str, max_duration: float = 10.0) 
 
                         # Check for completion or timeout
                         for event in chunk_events:
-                            if event.get("type") == "complete" or event.get("data", {}).get("status") in [
+                            if event.get("type") == "complete" or event.get(
+                                "data", {}
+                            ).get("status") in [
                                 "completed",
                                 "failed",
                             ]:
@@ -182,7 +207,9 @@ async def test_execution_streaming_basic():
         assert "type" in event, f"Event missing type: {event}"
         assert "execution_id" in event, f"Event missing execution_id: {event}"
         assert "timestamp" in event, f"Event missing timestamp: {event}"
-        assert event["execution_id"] == execution_id, f"Wrong execution_id in event: {event}"
+        assert event["execution_id"] == execution_id, (
+            f"Wrong execution_id in event: {event}"
+        )
 
     # Should have at least a status event
     status_events = [e for e in events if e.get("type") == "status"]
@@ -212,7 +239,10 @@ async def test_workflow_streaming_basic():
         assert "timestamp" in event, f"Event missing timestamp: {event}"
         # Workflow streams may have events from multiple executions
         if "execution_id" in event:
-            assert event["execution_id"] == execution_id or event["execution_id"] == "system"
+            assert (
+                event["execution_id"] == execution_id
+                or event["execution_id"] == "system"
+            )
 
 
 @pytest.mark.asyncio
@@ -242,7 +272,9 @@ async def test_streaming_event_types():
         for event in step_events:
             assert "data" in event, f"Step event missing data: {event}"
             assert "step_id" in event["data"], f"Step event missing step_id: {event}"
-            assert "step_status" in event["data"], f"Step event missing step_status: {event}"
+            assert "step_status" in event["data"], (
+                f"Step event missing step_status: {event}"
+            )
 
 
 @pytest.mark.asyncio
@@ -274,7 +306,9 @@ def test_streaming_headers():
 
     # Test execution streaming headers
     with httpx.Client(timeout=5.0) as client:
-        with client.stream("GET", f"{BASE_URL}/workflows/{workflow_id}/stream") as response:
+        with client.stream(
+            "GET", f"{BASE_URL}/workflows/{workflow_id}/stream"
+        ) as response:
             assert response.status_code == 200
             assert response.headers.get("content-type") == "text/event-stream"
             assert response.headers.get("cache-control") == "no-cache"
@@ -289,14 +323,18 @@ async def test_streaming_heartbeat():
     workflow_id = _create_workflow(wf)
 
     # Stream for a longer duration to catch heartbeat
-    events = await _stream_workflow_events(workflow_id, max_duration=35.0)  # Longer than heartbeat interval
+    events = await _stream_workflow_events(
+        workflow_id, max_duration=35.0
+    )  # Longer than heartbeat interval
 
     # Look for heartbeat events
     heartbeat_events = [e for e in events if e.get("type") == "heartbeat"]
 
     # Should have at least one heartbeat if we streamed long enough
     if len(events) > 5:  # Only check if we got a reasonable number of events
-        assert len(heartbeat_events) > 0, "Should receive heartbeat events during long streams"
+        assert len(heartbeat_events) > 0, (
+            "Should receive heartbeat events during long streams"
+        )
 
 
 @pytest.mark.asyncio
@@ -307,7 +345,11 @@ async def test_streaming_execution_lifecycle():
     workflow_id = _create_workflow(wf)
 
     # Execute the workflow
-    body = {"trigger": {"kind": "webhook"}, "input_data": {"merge": {"a": 1, "b": 2}}, "wait": False}
+    body = {
+        "trigger": {"kind": "webhook"},
+        "input_data": {"merge": {"a": 1, "b": 2}},
+        "wait": False,
+    }
     execution_id = _execute_workflow(workflow_id, body)
 
     # Stream events and track lifecycle
@@ -318,11 +360,15 @@ async def test_streaming_execution_lifecycle():
     statuses = [e.get("data", {}).get("status") for e in status_events]
 
     # Should see progression: running -> completed (or failed)
-    assert "running" in statuses or "pending" in statuses, f"Should see running status. Got: {statuses}"
+    assert "running" in statuses or "pending" in statuses, (
+        f"Should see running status. Got: {statuses}"
+    )
 
     # Should eventually complete or fail
     final_statuses = ["completed", "failed", "cancelled"]
-    assert any(status in statuses for status in final_statuses), f"Should reach final status. Got: {statuses}"
+    assert any(status in statuses for status in final_statuses), (
+        f"Should reach final status. Got: {statuses}"
+    )
 
 
 @pytest.mark.asyncio
@@ -333,7 +379,11 @@ async def test_streaming_concurrent_connections():
     workflow_id = _create_workflow(wf)
 
     # Execute the workflow
-    body = {"trigger": {"kind": "webhook"}, "input_data": {"test": "concurrent"}, "wait": False}
+    body = {
+        "trigger": {"kind": "webhook"},
+        "input_data": {"test": "concurrent"},
+        "wait": False,
+    }
     execution_id = _execute_workflow(workflow_id, body)
 
     # Start multiple concurrent streams
@@ -365,7 +415,9 @@ async def test_streaming_connection_cleanup():
 
     # Start a stream and cancel it early
     async with httpx.AsyncClient(timeout=10.0) as client:
-        async with client.stream("GET", f"{BASE_URL}/workflows/{workflow_id}/stream") as response:
+        async with client.stream(
+            "GET", f"{BASE_URL}/workflows/{workflow_id}/stream"
+        ) as response:
             assert response.status_code == 200
 
             # Read just a few chunks then close
@@ -382,7 +434,9 @@ async def test_streaming_connection_cleanup():
     # Connection should be cleaned up automatically
     # This is hard to test directly, but we can verify the endpoint still works
     async with httpx.AsyncClient(timeout=5.0) as client:
-        async with client.stream("GET", f"{BASE_URL}/workflows/{workflow_id}/stream") as response:
+        async with client.stream(
+            "GET", f"{BASE_URL}/workflows/{workflow_id}/stream"
+        ) as response:
             assert response.status_code == 200
 
 
@@ -430,7 +484,9 @@ class TestA2AAgentStreaming:
                             break
 
                 # Return the echo response
-                await event_queue.enqueue_event(new_agent_text_message(f"Echo: {message_text}"))
+                await event_queue.enqueue_event(
+                    new_agent_text_message(f"Echo: {message_text}")
+                )
 
             async def cancel(self, context, event_queue) -> None:
                 pass
@@ -450,7 +506,13 @@ class TestA2AAgentStreaming:
             defaultOutputModes=["text"],
             capabilities=AgentCapabilities(streaming=True),
             skills=[
-                AgentSkill(id="echo", name="Echo", description="Echoes back the message", tags=["test"], examples=["hello"])
+                AgentSkill(
+                    id="echo",
+                    name="Echo",
+                    description="Echoes back the message",
+                    tags=["test"],
+                    examples=["hello"],
+                )
             ],
         )
 
@@ -459,8 +521,14 @@ class TestA2AAgentStreaming:
             task_store=InMemoryTaskStore(),
         )
 
-        a2a_app = A2AStarletteApplication(agent_card=agent_card, http_handler=request_handler)
-        server = uvicorn.Server(uvicorn.Config(app=a2a_app.build(), host="127.0.0.1", port=port, log_level="warning"))
+        a2a_app = A2AStarletteApplication(
+            agent_card=agent_card, http_handler=request_handler
+        )
+        server = uvicorn.Server(
+            uvicorn.Config(
+                app=a2a_app.build(), host="127.0.0.1", port=port, log_level="warning"
+            )
+        )
 
         thread = threading.Thread(target=server.run, daemon=True)
         thread.start()
@@ -509,7 +577,9 @@ class TestA2AAgentStreaming:
         }
 
         response = _http("POST", "/a2a-agents/", agent_payload)
-        assert response.status_code == 200, f"Failed to create A2A agent: {response.text}"
+        assert response.status_code == 200, (
+            f"Failed to create A2A agent: {response.text}"
+        )
         a2a_agent_id = response.json()["id"]
 
         try:
@@ -521,7 +591,11 @@ class TestA2AAgentStreaming:
                     {
                         "step_id": "trigger",
                         "step_type": "trigger",
-                        "parameters": {"kind": "chat", "need_history": False, "allowed_modalities": ["text"]},
+                        "parameters": {
+                            "kind": "chat",
+                            "need_history": False,
+                            "allowed_modalities": ["text"],
+                        },
                     },
                     {
                         "step_id": "a2a_step",
@@ -576,7 +650,9 @@ class TestA2AAgentStreaming:
                                     # Stop on completion or error
                                     for event in chunk_events:
                                         # Status can be at top level or in data.status
-                                        status = event.get("status") or event.get("data", {}).get("status")
+                                        status = event.get("status") or event.get(
+                                            "data", {}
+                                        ).get("status")
                                         if status in ["completed", "failed", "error"]:
                                             stream_done.set()
                                             return
@@ -630,7 +706,9 @@ class TestA2AAgentStreaming:
                 print(f"Event {i + 1}: {event}")
             print(f"{'=' * 60}\n")
 
-            assert len(collected_events) >= 1, f"Expected at least 1 SSE event, got: {collected_events}"
+            assert len(collected_events) >= 1, (
+                f"Expected at least 1 SSE event, got: {collected_events}"
+            )
 
             # Extract status values - status can be at top level or in data.status
             status_values = []
@@ -646,11 +724,15 @@ class TestA2AAgentStreaming:
             print(f"Status values: {status_values}")
 
             # At minimum we should see 'connected' (always sent when stream starts)
-            assert "connected" in status_values, f"Expected 'connected' in status values, got: {status_values}"
+            assert "connected" in status_values, (
+                f"Expected 'connected' in status values, got: {status_values}"
+            )
 
             # Look for step completion event (a2a_step) or workflow completion
             step_events = [e for e in collected_events if e.get("type") == "step"]
-            a2a_step_events = [e for e in step_events if e.get("data", {}).get("step_id") == "a2a_step"]
+            a2a_step_events = [
+                e for e in step_events if e.get("data", {}).get("step_id") == "a2a_step"
+            ]
 
             # Check if we got a completion event (running -> completed)
             # If using dbos backend, we should see running and completed
@@ -658,7 +740,9 @@ class TestA2AAgentStreaming:
             has_completed = "completed" in status_values
 
             print(f"Has running: {has_running}, Has completed: {has_completed}")
-            print(f"Step events: {len(step_events)}, A2A step events: {len(a2a_step_events)}")
+            print(
+                f"Step events: {len(step_events)}, A2A step events: {len(a2a_step_events)}"
+            )
 
             # With dbos backend, we expect running and completed events
             # (connected is always there, running and completed come from execution)

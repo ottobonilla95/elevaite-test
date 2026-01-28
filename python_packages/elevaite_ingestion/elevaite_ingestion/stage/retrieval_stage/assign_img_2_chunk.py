@@ -113,67 +113,6 @@
 #     assign_images_to_chunks()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ######################################
 # # import torch
 # # import re
@@ -301,7 +240,7 @@
 import torch
 from qdrant_client import QdrantClient
 from transformers import CLIPProcessor, CLIPModel
-from typing import List, Dict
+from typing import List
 from tqdm import tqdm
 
 client = QdrantClient(url="http://3.101.65.253", port=5333)
@@ -312,29 +251,35 @@ device = "cpu"
 clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
 clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
+
 def get_clip_text_embedding(text: str) -> List[float]:
     """Get 512-d normalized CLIP embedding for text input."""
-    inputs = clip_processor(text=[text], return_tensors="pt", padding=True, truncation=True).to(device)
+    inputs = clip_processor(
+        text=[text], return_tensors="pt", padding=True, truncation=True
+    ).to(device)
     with torch.no_grad():
         outputs = clip_model.get_text_features(**inputs)
     normalized = outputs / outputs.norm(dim=-1, keepdim=True)
     return normalized.squeeze(0).cpu().tolist()
+
 
 def query_images(text_embedding: List[float], top_k: int = 20):
     results = client.search(
         collection_name=IMAGE_COLLECTION,
         query_vector=text_embedding,
         limit=top_k,
-        with_payload=True
+        with_payload=True,
     )
     return [
         {
             "image_name": r.payload.get("image_name"),
             "image_path": r.payload.get("image_path"),
             "page_no": r.payload.get("page_no"),
-            "score": r.score
-        } for r in results
+            "score": r.score,
+        }
+        for r in results
     ]
+
 
 def post_filter_by_page(chunk, retrieved_images, margin=1):
     """
@@ -358,13 +303,15 @@ def post_filter_by_page(chunk, retrieved_images, margin=1):
     filtered = [img for img in retrieved_images if img.get("page_no") in pages]
     return filtered
 
+
 def get_all_chunks(limit=5000):
     return client.scroll(
         collection_name=TEXT_COLLECTION,
         with_payload=True,
         with_vectors=False,
-        limit=limit
+        limit=limit,
     )[0]
+
 
 def assign_images_to_chunks():
     chunks = get_all_chunks()
@@ -376,7 +323,7 @@ def assign_images_to_chunks():
 
         header = payload.get("contexual_header", "")
         text = payload.get("chunk_text", "")
-        page_range = payload.get("page_range", [])
+        payload.get("page_range", [])
 
         combined_text = f"{header} {text}".strip()
         text_emb = get_clip_text_embedding(combined_text)
@@ -390,22 +337,23 @@ def assign_images_to_chunks():
         if filtered:
             update_payload["matched_image_candidates"] = filtered
             # Optional: pick top-1 as default if needed
-            update_payload.update({
-                "matched_image_name": filtered[0]["image_name"],
-                "matched_image_path": filtered[0]["image_path"],
-                "matched_image_score": filtered[0]["score"],
-                "matched_image_page_no": filtered[0]["page_no"]
-            })
+            update_payload.update(
+                {
+                    "matched_image_name": filtered[0]["image_name"],
+                    "matched_image_path": filtered[0]["image_path"],
+                    "matched_image_score": filtered[0]["score"],
+                    "matched_image_page_no": filtered[0]["page_no"],
+                }
+            )
 
         full_payload = {**payload, **update_payload}
 
         client.set_payload(
-            collection_name=TEXT_COLLECTION,
-            payload=full_payload,
-            points=[chunk_id]
+            collection_name=TEXT_COLLECTION, payload=full_payload, points=[chunk_id]
         )
 
     print("✅ Completed assigning images to chunks!")
+
 
 if __name__ == "__main__":
     assign_images_to_chunks()

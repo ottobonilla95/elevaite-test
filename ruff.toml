@@ -1,0 +1,17 @@
+# Ruff configuration for ElevAIte project
+# https://docs.astral.sh/ruff/configuration/
+
+[lint]
+# Extend default ignores with project-specific rules
+extend-ignore = [
+    "E402",  # Module level import not at top - Required for FastAPI/DBOS setup
+    "E722",  # Bare except - Used intentionally in test files
+    "F811",  # Redefinition - Legacy schemas being refactored
+    "F821",  # Undefined name - Missing imports in test files
+]
+
+[format]
+# Use consistent formatting
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

@@ -382,7 +382,7 @@ class AgentAnalyticsTest:
         print(f"User ID: {details.get('user_id', 'N/A')}")
 
         if details.get("tools_called"):
-            print(f"\n🔧 Tools Called:")
+            print("\n🔧 Tools Called:")
             tools = details["tools_called"]
             if isinstance(tools, dict):
                 for tool_name, tool_data in tools.items():
@@ -440,10 +440,10 @@ class AgentAnalyticsTest:
         assert agent_id is not None, "agent_id should not be None at this point"
 
         # Get agent schema
-        print(f"\n📋 Getting agent schema...")
+        print("\n📋 Getting agent schema...")
         schema = await self.get_agent_schema(agent_id)
         if schema:
-            print(f"✅ Agent Schema Retrieved:")
+            print("✅ Agent Schema Retrieved:")
             print(f"   Name: {schema.get('name', 'N/A')}")
             print(f"   Model: {schema.get('model', 'N/A')}")
             print(f"   Tools: {len(schema.get('tools', []))}")
@@ -486,7 +486,7 @@ class AgentAnalyticsTest:
             await asyncio.sleep(3)
 
             # Get updated analytics
-            print(f"\n📊 Retrieving analytics after execution...")
+            print("\n📊 Retrieving analytics after execution...")
             summary = await self.get_analytics_summary(days=1)
             if summary:
                 agent_stats = summary.get("agent_stats", [])
@@ -502,13 +502,13 @@ class AgentAnalyticsTest:
                 self.print_execution_details(execution_details)
 
         # Get final session details
-        print(f"\n🔍 Retrieving final session details...")
+        print("\n🔍 Retrieving final session details...")
         await asyncio.sleep(2)  # Wait for session to be recorded
         session_details = await self.get_session_details(session_id)
         self.print_session_details(session_details)
 
         # Final analytics summary
-        print(f"\n📊 Final Analytics Summary")
+        print("\n📊 Final Analytics Summary")
         print("-" * 40)
         final_summary = await self.get_analytics_summary(days=1)
         if final_summary:
@@ -564,7 +564,7 @@ async def quick_test():
 
         # Get analytics
         summary = await test.get_analytics_summary(days=1)
-        print(f"\n📊 Analytics Summary:")
+        print("\n📊 Analytics Summary:")
         print(f"   Agent Stats: {len(summary.get('agent_stats', []))}")
         print(f"   Tool Stats: {len(summary.get('tool_stats', []))}")
 
@@ -647,19 +647,19 @@ async def tool_testing():
                 print(f"   Avg Response Time: {session_details.get('average_response_time_ms', 'N/A')}ms")
         
         # Get overall analytics summary
-        print(f"\n📊 Overall Tool Usage Analytics Summary")
+        print("\n📊 Overall Tool Usage Analytics Summary")
         print("-" * 50)
         summary = await test.get_analytics_summary(days=1)
         
         if summary.get('tool_stats'):
-            print(f"🔧 Tool Usage Stats:")
+            print("🔧 Tool Usage Stats:")
             for tool_stat in summary['tool_stats']:
                 print(f"   - {tool_stat.get('tool_name', 'Unknown')}: {tool_stat.get('total_calls', 0)} calls")
         else:
             print("🔧 No tool usage stats found")
             
         if summary.get('agent_stats'):
-            print(f"\n🤖 Agent Usage Stats:")
+            print("\n🤖 Agent Usage Stats:")
             for agent_stat in summary['agent_stats']:
                 print(f"   - {agent_stat.get('agent_name', 'Unknown')}: {agent_stat.get('total_executions', 0)} executions")
 
@@ -696,7 +696,7 @@ async def workflow_test():
 
         # Get analytics
         summary = await test.get_analytics_summary(days=1)
-        print(f"\n📊 Workflow Analytics Summary:")
+        print("\n📊 Workflow Analytics Summary:")
         print(f"   Agent Stats: {len(summary.get('agent_stats', []))}")
         print(f"   Tool Stats: {len(summary.get('tool_stats', []))}")
         print(f"   Workflow Stats: {len(summary.get('workflow_stats', []))}")

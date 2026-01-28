@@ -59,36 +59,56 @@ app.add_middleware(
 # Define regular SQLAlchemy models - no mixin needed for schema-based multitenancy
 class Product(Base):
     __tablename__ = "products"
-    __table_args__ = {"extend_existing": True}  # Allow table redefinition during hot-reload
+    __table_args__ = {
+        "extend_existing": True
+    }  # Allow table redefinition during hot-reload
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     price = Column(Integer, nullable=False)  # Price in cents
     created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     # Define relationships
-    categories = relationship("Category", secondary="product_categories", back_populates="products")
+    categories = relationship(
+        "Category", secondary="product_categories", back_populates="products"
+    )
 
 
 class Category(Base):
     __tablename__ = "categories"
-    __table_args__ = {"extend_existing": True}  # Allow table redefinition during hot-reload
+    __table_args__ = {
+        "extend_existing": True
+    }  # Allow table redefinition during hot-reload
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, unique=True)
     description = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=datetime.now(timezone.utc),
+        onupdate=datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     # Define relationships
-    products = relationship("Product", secondary="product_categories", back_populates="categories")
+    products = relationship(
+        "Product", secondary="product_categories", back_populates="categories"
+    )
 
 
 class ProductCategory(Base):
     __tablename__ = "product_categories"
-    __table_args__ = {"extend_existing": True}  # Allow table redefinition during hot-reload
+    __table_args__ = {
+        "extend_existing": True
+    }  # Allow table redefinition during hot-reload
 
     product_id = Column(Integer, ForeignKey("products.id"), primary_key=True)
     category_id = Column(Integer, ForeignKey("categories.id"), primary_key=True)
@@ -162,13 +182,19 @@ def custom_openapi():
     # Add the tenant header parameter to all paths except docs and openapi
     for path_name, path_item in openapi_schema["paths"].items():
         # Skip documentation paths
-        if path_name.startswith("/docs") or path_name.startswith("/redoc") or path_name == "/openapi.json":
+        if (
+            path_name.startswith("/docs")
+            or path_name.startswith("/redoc")
+            or path_name == "/openapi.json"
+        ):
             continue
 
         for operation in path_item.values():
             if "parameters" not in operation:
                 operation["parameters"] = []
-            operation["parameters"].append({"$ref": "#/components/parameters/tenant_header"})
+            operation["parameters"].append(
+                {"$ref": "#/components/parameters/tenant_header"}
+            )
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema
@@ -182,7 +208,9 @@ app.openapi = custom_openapi
 @app.get("/")
 def read_root():
     tenant_id = get_current_tenant_id()
-    return {"message": f"Welcome to the schema-based multitenant API! Current tenant: {tenant_id}"}
+    return {
+        "message": f"Welcome to the schema-based multitenant API! Current tenant: {tenant_id}"
+    }
 
 
 @app.get("/categories/", response_model=List[CategoryResponse])

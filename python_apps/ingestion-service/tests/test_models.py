@@ -2,7 +2,6 @@
 Tests for ingestion service data models
 """
 
-import pytest
 import uuid
 from datetime import datetime, timezone
 

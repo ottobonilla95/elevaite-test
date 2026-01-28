@@ -2,7 +2,7 @@
 
 import sys
 import logging
-from typing import Optional, TextIO, Dict, Any
+from typing import Optional, TextIO, Dict
 
 import boto3
 from opentelemetry import trace

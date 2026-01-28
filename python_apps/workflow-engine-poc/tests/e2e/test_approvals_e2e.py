@@ -7,14 +7,11 @@ Uses async tests with httpx.AsyncClient for proper background task execution.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict
 
 import pytest
 from httpx import AsyncClient
 
 try:
-    import dbos  # type: ignore
-
     HAS_DBOS = True
 except Exception:
     HAS_DBOS = False
@@ -106,7 +103,10 @@ async def test_local_human_approval_flow(async_client: AsyncClient):
     assert approval_id, "Approval request not created"
 
     # Approve it
-    ar = await async_client.post(f"/approvals/{approval_id}/approve", json={"payload": {"note": "ok"}, "decided_by": "tester"})
+    ar = await async_client.post(
+        f"/approvals/{approval_id}/approve",
+        json={"payload": {"note": "ok"}, "decided_by": "tester"},
+    )
     assert ar.status_code == 200, ar.text
 
     # Poll execution to completion
@@ -201,5 +201,8 @@ async def test_dbos_human_approval_flow(async_client: AsyncClient):
     assert approval_id, "Approval request not created (dbos)"
 
     # Approve it (this will call DBOS.set_event)
-    ar = await async_client.post(f"/approvals/{approval_id}/approve", json={"payload": {"note": "ok"}, "decided_by": "tester"})
+    ar = await async_client.post(
+        f"/approvals/{approval_id}/approve",
+        json={"payload": {"note": "ok"}, "decided_by": "tester"},
+    )
     assert ar.status_code == 200, ar.text

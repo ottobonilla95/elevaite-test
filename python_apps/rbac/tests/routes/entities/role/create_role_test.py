@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, ANY
+from unittest.mock import patch, MagicMock, ANY
 from .... import models
 from ....auth.idp.google import (
     get_user_email_response_with_error,

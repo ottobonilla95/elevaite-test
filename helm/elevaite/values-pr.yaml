@@ -6,7 +6,7 @@
 # GLOBAL
 # =============================================================================
 global:
-  imageRegistry: "ghcr.io/your-org"  # Update with your registry
+  imageRegistry: "ghcr.io/iopexses/elevaite"
   environment: "pr"
 
 # =============================================================================
@@ -16,15 +16,18 @@ authApi:
   replicaCount: 1
   image:
     tag: "pr"  # Set dynamically: pr-${PR_NUMBER}
+    pullPolicy: Always  # Always pull latest image for PR environments
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 250m
+      cpu: 200m
       memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
   env:
     LOG_LEVEL: DEBUG
+    ALLOWED_HOSTS: "*"
+  envFromSecrets: []
 
 workflowEngine:
   replicaCount: 1
@@ -40,6 +43,8 @@ workflowEngine:
   env:
     LOG_LEVEL: DEBUG
     SCHEDULER_POLL_SECONDS: "10"
+    ALLOWED_HOSTS: "*"
+  envFromSecrets: []
 
 ingestion:
   replicaCount: 1
@@ -54,6 +59,8 @@ ingestion:
       memory: 256Mi
   env:
     LOG_LEVEL: DEBUG
+    ALLOWED_HOSTS: "*"
+  envFromSecrets: []
 
 worker:
   replicaCount: 1  # Single worker for PR envs
@@ -66,6 +73,9 @@ worker:
     limits:
       cpu: 500m
       memory: 512Mi
+  env:
+    LOG_LEVEL: DEBUG
+  envFromSecrets: []
   autoscaling:
     enabled: false
 
@@ -104,11 +114,26 @@ postgresql:
   sslMode: "require"
   existingSecret: "elevaite-db-credentials"
 
-# RabbitMQ - Shared dev instance with unique vhost per PR
+# RabbitMQ - Internal instance per PR namespace
 rabbitmq:
-  host: ""  # Shared dev RabbitMQ host from Terraform
+  internal:
+    enabled: true
+    replicaCount: 1
+    auth:
+      username: elevaite
+      password: elevaite
+      erlangCookie: elevaite-secret-cookie
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
   port: 5672
-  vhost: "pr_${PR_NUMBER}"  # Set dynamically
+  vhost: "/"
   existingSecret: "elevaite-rabbitmq-credentials"
 
 # Object Storage - Shared dev bucket with prefix per PR
@@ -122,6 +147,15 @@ objectStorage:
 # Qdrant - Disabled for PR environments
 qdrant:
   enabled: false
+
+# =============================================================================
+# MIGRATIONS (Single tenant for PR envs)
+# =============================================================================
+migrations:
+  enabled: true
+  backoffLimit: 2  # Lower retry limit for faster failure feedback
+  tenants:
+    - default  # Only migrate default tenant for PRs
 
 # =============================================================================
 # SERVICE ACCOUNT

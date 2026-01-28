@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, Extra, root_validator, validator
+from pydantic import BaseModel, Field, Extra, root_validator, validator
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
@@ -55,7 +55,7 @@ class ProjectPatchRequestDTO(BaseModel):
         # Check if all values are None
         if all(value is None for value in values.values()):
             print(
-                f"Inside PATCH /projects/project_id - ProjectPatchRequestDTO schema validation"
+                "Inside PATCH /projects/project_id - ProjectPatchRequestDTO schema validation"
             )
             raise ValueError("At least one field must be provided in payload")
         return values
@@ -124,7 +124,7 @@ class ProjectAssigneeListDTO(BaseModel):
             user_ids_seen.add(assignee.user_id)
         # Check length constraint
         if len(v) < 1 or len(v) > 50:
-            print(f"Inside ProjectAssigneeListDTO schema validation")
+            print("Inside ProjectAssigneeListDTO schema validation")
             raise ValueError(
                 "The list of project assignee IDs must have length between 1 and 50 (inclusive)"
             )

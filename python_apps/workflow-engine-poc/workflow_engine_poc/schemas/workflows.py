@@ -97,7 +97,9 @@ class ToolOverride(BaseModel):
 
     title: Optional[str] = None  # Override tool title for this workflow
     description: Optional[str] = None  # Override tool description for this workflow
-    parameter_overrides: Dict[str, Any] = Field(default_factory=dict)  # Override specific parameter titles/descriptions
+    parameter_overrides: Dict[str, Any] = Field(
+        default_factory=dict
+    )  # Override specific parameter titles/descriptions
 
 
 class StepBase(BaseModel):
@@ -129,8 +131,12 @@ class PromptVariable(BaseModel):
 
     name: str = Field(..., description="Variable name (used as {{name}} in prompt)")
     description: Optional[str] = Field(None, description="Description of the variable")
-    default_value: Optional[str] = Field(None, description="Default value if not provided")
-    required: bool = Field(default=False, description="Whether the variable is required")
+    default_value: Optional[str] = Field(
+        None, description="Default value if not provided"
+    )
+    required: bool = Field(
+        default=False, description="Whether the variable is required"
+    )
     source: Optional[str] = Field(
         None,
         description="Source for the variable value (e.g., 'step_id.field', 'input.message')",
@@ -156,7 +162,10 @@ class PromptStepParameters(BaseModel):
         default=True,
         description="If True, replace agent's prompt. If False, append to it.",
     )
-    provider: Optional[str] = Field(None, description="Override provider type (e.g., openai_textgen, gemini, bedrock)")
+    provider: Optional[str] = Field(
+        None,
+        description="Override provider type (e.g., openai_textgen, gemini, bedrock)",
+    )
     model_name: Optional[str] = Field(None, description="Override model name")
     temperature: Optional[float] = Field(None, description="Override temperature")
     max_tokens: Optional[int] = Field(None, description="Override max tokens")
@@ -184,7 +193,8 @@ class WorkflowConfig(BaseModel):
 
     # UI metadata for visual workflow editor
     connections: List[StepConnection] = Field(
-        default_factory=list, description="Visual connections between steps for UI rendering"
+        default_factory=list,
+        description="Visual connections between steps for UI rendering",
     )
 
     model_config = {
@@ -208,7 +218,11 @@ class WorkflowConfig(BaseModel):
                                 },
                             },
                         },
-                        {"step_type": "agent", "name": "TimeAgent", "parameters": {"agent_name": "Time Agent"}},
+                        {
+                            "step_type": "agent",
+                            "name": "TimeAgent",
+                            "parameters": {"agent_name": "Time Agent"},
+                        },
                     ],
                     "tags": ["demo"],
                 }

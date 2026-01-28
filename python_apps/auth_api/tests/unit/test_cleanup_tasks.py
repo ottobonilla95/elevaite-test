@@ -21,7 +21,6 @@ class TestCleanupTasks:
             patch("app.tasks.cleanup_tasks.get_async_session") as mock_get_session,
             patch("app.tasks.cleanup_tasks.mfa_device_service") as mock_service,
         ):
-
             # Mock async session generator
             mock_session = AsyncMock()
 
@@ -48,7 +47,6 @@ class TestCleanupTasks:
             patch("app.tasks.cleanup_tasks.mfa_device_service") as mock_service,
             patch("app.tasks.cleanup_tasks.logger") as mock_logger,
         ):
-
             # Mock async session generator
             mock_session = AsyncMock()
 
@@ -87,9 +85,8 @@ class TestCleanupTasks:
                 "app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"
             ) as mock_cleanup,
             patch("asyncio.sleep", side_effect=mock_sleep) as mock_sleep_patch,
-            patch("app.tasks.cleanup_tasks.logger") as mock_logger,
+            patch("app.tasks.cleanup_tasks.logger"),
         ):
-
             # Run the task until our sleep side-effect cancels internally
             await start_cleanup_tasks()
 
@@ -124,7 +121,6 @@ class TestCleanupTasks:
             patch("asyncio.sleep", side_effect=mock_sleep) as mock_sleep_patch,
             patch("app.tasks.cleanup_tasks.logger") as mock_logger,
         ):
-
             # Run the task until our sleep side-effect cancels internally
             await start_cleanup_tasks()
 
@@ -144,15 +140,10 @@ class TestCleanupTasks:
     async def test_start_mfa_cleanup_task_cancellation(self):
         """Test that cleanup task handles cancellation gracefully."""
         with (
-            patch(
-                "app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"
-            ) as mock_cleanup,
-            patch(
-                "asyncio.sleep", side_effect=asyncio.CancelledError()
-            ) as mock_sleep_patch,
+            patch("app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"),
+            patch("asyncio.sleep", side_effect=asyncio.CancelledError()),
             patch("app.tasks.cleanup_tasks.logger") as mock_logger,
         ):
-
             # Run the task and expect cancellation to be swallowed by the loop
             await start_cleanup_tasks()
 
@@ -187,7 +178,6 @@ class TestCleanupTasks:
             patch("asyncio.sleep", side_effect=fast_sleep),
             patch("app.tasks.cleanup_tasks.logger"),
         ):
-
             # Run the task for a short time
             task = asyncio.create_task(start_cleanup_tasks())
 
@@ -217,7 +207,6 @@ class TestCleanupTasks:
             patch("app.tasks.cleanup_tasks.get_async_session") as mock_get_session,
             patch("app.tasks.cleanup_tasks.logger") as mock_logger,
         ):
-
             # Mock async session generator to raise during iteration
             async def _gen():
                 raise Exception("Session creation failed")
@@ -241,9 +230,6 @@ class TestCleanupTasks:
             cleanup_expired_mfa_verifications,
             start_cleanup_tasks,
         )
-        from app.core.logging import logger
-        from app.db.orm import get_async_session
-        from app.services.mfa_device_service import mfa_device_service
 
         # Verify functions are callable
         assert callable(cleanup_expired_mfa_verifications)
@@ -257,7 +243,6 @@ class TestCleanupTasks:
             patch("app.tasks.cleanup_tasks.mfa_device_service") as mock_service,
             patch("app.tasks.cleanup_tasks.logger") as mock_logger,
         ):
-
             # Mock async session generator
             mock_session = AsyncMock()
 
@@ -291,13 +276,10 @@ class TestCleanupTasks:
     async def test_start_cleanup_task_initial_logging(self):
         """Test that cleanup task logs startup message."""
         with (
-            patch(
-                "app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"
-            ) as mock_cleanup,
-            patch("asyncio.sleep", side_effect=asyncio.CancelledError()) as mock_sleep,
+            patch("app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"),
+            patch("asyncio.sleep", side_effect=asyncio.CancelledError()),
             patch("app.tasks.cleanup_tasks.logger") as mock_logger,
         ):
-
             # Run the task and expect immediate cancellation to be swallowed
             await start_cleanup_tasks()
 
@@ -318,13 +300,10 @@ class TestCleanupTasks:
                 raise asyncio.CancelledError()
 
         with (
-            patch(
-                "app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"
-            ) as mock_cleanup,
+            patch("app.tasks.cleanup_tasks.cleanup_expired_mfa_verifications"),
             patch("asyncio.sleep", side_effect=mock_sleep),
             patch("app.tasks.cleanup_tasks.logger") as mock_logger,
         ):
-
             # Run the task until it's cancelled internally
             await start_cleanup_tasks()
 

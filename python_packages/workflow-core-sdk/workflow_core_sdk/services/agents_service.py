@@ -32,7 +32,9 @@ class AgentsService:
                 )
             ).first()
         else:
-            existing = session.exec(select(Agent).where(Agent.name == agent_data.get("name"))).first()
+            existing = session.exec(
+                select(Agent).where(Agent.name == agent_data.get("name"))
+            ).first()
         if existing:
             raise ValueError("Agent with this name already exists")
 
@@ -89,7 +91,9 @@ class AgentsService:
     # ----- Agent Tool Bindings -----
     @staticmethod
     def list_agent_tools(session: Session, agent_id: str) -> List[AgentToolBinding]:
-        return session.exec(select(AgentToolBinding).where(AgentToolBinding.agent_id == UUID(agent_id))).all()
+        return session.exec(
+            select(AgentToolBinding).where(AgentToolBinding.agent_id == UUID(agent_id))
+        ).all()
 
     @staticmethod
     def attach_tool_to_agent(
@@ -107,7 +111,9 @@ class AgentsService:
 
         resolved_tool_id: Optional[str] = tool_id
         if not resolved_tool_id and local_tool_name:
-            synced_id = tool_registry.sync_local_tool_by_name(session, str(local_tool_name))
+            synced_id = tool_registry.sync_local_tool_by_name(
+                session, str(local_tool_name)
+            )
             if not synced_id:
                 raise ValueError("Local tool not found in registry")
             resolved_tool_id = str(synced_id)
@@ -154,7 +160,9 @@ class AgentsService:
         return binding
 
     @staticmethod
-    def detach_tool_from_agent(session: Session, agent_id: str, binding_id: str) -> bool:
+    def detach_tool_from_agent(
+        session: Session, agent_id: str, binding_id: str
+    ) -> bool:
         binding = session.get(AgentToolBinding, UUID(binding_id))
         if not binding:
             return False

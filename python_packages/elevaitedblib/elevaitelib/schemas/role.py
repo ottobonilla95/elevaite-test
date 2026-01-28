@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, Extra, root_validator, validator, PrivateAttr
-from typing import Optional, Literal, List, Dict, Any
+from pydantic import BaseModel, Field, Extra, root_validator, validator
+from typing import Optional, Literal, List
 from uuid import UUID
 from datetime import datetime
 from .permission import (
@@ -27,7 +27,7 @@ class RoleUpdateRequestDTO(BaseModel):
         # Check if all values are None
         if all(value is None for value in values.values()):
             print(
-                f"Inside PATCH /roles/role_id - RoleUpdateRequestDTO schema validation"
+                "Inside PATCH /roles/role_id - RoleUpdateRequestDTO schema validation"
             )
             raise ValueError("At least one field must be provided in payload")
         return values
@@ -62,13 +62,13 @@ class RoleListDTO(BaseModel):
         # Ensure uniqueness
         if len(v) != len(set(v)):
             print(
-                f"Inside PATCH /users/user_id/accounts/account_id/roles - RoleListDTO schema validation"
+                "Inside PATCH /users/user_id/accounts/account_id/roles - RoleListDTO schema validation"
             )
             raise ValueError("Duplicate role IDs are not allowed")
         # Check length constraint
         if len(v) < 1 or len(v) > 10:
             print(
-                f"Inside PATCH /users/user_id/accounts/account_id/roles - RoleListDTO schema validation"
+                "Inside PATCH /users/user_id/accounts/account_id/roles - RoleListDTO schema validation"
             )
             raise ValueError(
                 "The list of role IDs must have length between 1 and 10 (inclusive)"

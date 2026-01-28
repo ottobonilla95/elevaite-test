@@ -206,7 +206,7 @@ def test_workflow_agent_to_agent_streaming_e2e():
             "user_id": "test_e2e_user",
         }
 
-        print(f"\n🚀 Streaming workflow execution...")
+        print("\n🚀 Streaming workflow execution...")
         response = requests.post(
             f"{base_url}/api/workflows/{workflow_id}/stream",
             json=stream_payload,
@@ -306,7 +306,7 @@ def test_workflow_agent_to_agent_streaming_e2e():
         helper_agent_content = [c for c in content_chunks if c.get("source") == helper_agent_id]
         helper_agent_hidden = [c for c in hidden_chunks if c.get("source") == helper_agent_id]
 
-        print(f"\n🔍 Visibility check:")
+        print("\n🔍 Visibility check:")
         print(f"  MainAgent content chunks (should be 0): {len(main_agent_content)}")
         print(f"  MainAgent hidden chunks (should be > 0): {len(main_agent_hidden)}")
         print(f"  HelperAgent content chunks (should be > 0): {len(helper_agent_content)}")
@@ -328,7 +328,7 @@ def test_workflow_agent_to_agent_streaming_e2e():
             f"but got {len(helper_agent_hidden)} hidden chunks"
         )
 
-        print(f"\n📦 All chunks received:")
+        print("\n📦 All chunks received:")
         for i, chunk in enumerate(chunks_received, 1):
             print(f"  {i}. {chunk}")
 

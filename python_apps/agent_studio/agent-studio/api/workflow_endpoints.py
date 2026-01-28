@@ -9,7 +9,6 @@ Legacy features (deployments, agents/connections model) are deprecated.
 """
 
 from typing import List, Optional, Dict, Any
-from uuid import UUID
 import uuid
 import asyncio
 import logging
@@ -27,7 +26,7 @@ logger = logging.getLogger(__name__)
 from workflow_core_sdk import WorkflowsService, ExecutionsService
 
 # Adapter imports
-from adapters import WorkflowAdapter, ExecutionAdapter, RequestAdapter, ResponseAdapter
+from adapters import RequestAdapter, ResponseAdapter
 
 # Database
 from db.database import get_db
@@ -1041,7 +1040,7 @@ async def execute_workflow_stream(
     File attachments are saved and made available to tools/agents via trigger data.
     """
     from workflow_core_sdk.execution.context_impl import ExecutionContext
-    from workflow_core_sdk.execution.streaming import stream_manager, create_sse_stream, get_sse_headers, create_status_event
+    from workflow_core_sdk.execution.streaming import stream_manager, create_sse_stream, get_sse_headers
 
     # Check if execution engine is available
     if not hasattr(request.app.state, "workflow_engine"):
@@ -1635,7 +1634,7 @@ async def execute_workflow_stream(
 
             # Start execution as background task
             asyncio.create_task(run_workflow())
-            logger.info(f"Background task created")
+            logger.info("Background task created")
 
             # Stream events from the queue, converting SDK format to Agent Studio format
             from adapters.streaming_adapter import StreamingAdapter

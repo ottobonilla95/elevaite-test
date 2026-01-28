@@ -1,9 +1,13 @@
 import os
 import json
 from dotenv import load_dotenv
+
 load_dotenv()
 
-CONFIG_PATH = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")), "config.json")
+CONFIG_PATH = os.path.join(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..")), "config.json"
+)
+
 
 def load_config():
     """Loads the config.json file."""
@@ -22,12 +26,12 @@ def load_config():
         print(" config.json NOT FOUND")
         return {}
 
+
 config = load_config()
 
 DEFAULT_LOADING_SOURCE = config.get("loading", {}).get("default_source", "local")
 
 LOADING_CONFIG = {
     "default_source": DEFAULT_LOADING_SOURCE,
-    "sources": config.get("loading", {}).get("sources", {})
+    "sources": config.get("loading", {}).get("sources", {}),
 }
-

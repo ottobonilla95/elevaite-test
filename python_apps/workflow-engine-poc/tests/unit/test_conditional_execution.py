@@ -6,7 +6,6 @@ expression evaluation, and complex conditional logic.
 """
 
 import asyncio
-from typing import Dict, Any
 import pytest
 
 from workflow_core_sdk.condition_evaluator import (
@@ -187,9 +186,11 @@ async def test_conditional_workflow():
     print(f"   Skipped steps: {skipped_steps}")
 
     # Debug: Check step conditions and results
-    print(f"   Debug - Step results:")
+    print("   Debug - Step results:")
     for step_id, step_result in execution_context.step_results.items():
-        print(f"     {step_id}: {step_result.status.value} - {step_result.error_message or 'No error'}")
+        print(
+            f"     {step_id}: {step_result.status.value} - {step_result.error_message or 'No error'}"
+        )
 
     # Check initial step output
     initial_output = execution_context.step_results.get("initial_step")
@@ -205,7 +206,9 @@ async def test_conditional_workflow():
     ]
     expected_skipped = ["failure_step"]
 
-    if set(executed_steps) == set(expected_executed) and set(skipped_steps) == set(expected_skipped):
+    if set(executed_steps) == set(expected_executed) and set(skipped_steps) == set(
+        expected_skipped
+    ):
         print("   ✅ Conditional execution worked as expected!")
     else:
         print("   ❌ Conditional execution did not work as expected")
@@ -331,8 +334,16 @@ async def test_complex_conditions():
     # Expected: data_step, production_check, and feature_check should execute
     # error_alert should be skipped (error rate is 0.02 < 0.05 and user_count is 150 > 50)
 
-    executed_count = sum(1 for result in execution_context.step_results.values() if result.status.value == "completed")
-    skipped_count = sum(1 for result in execution_context.step_results.values() if result.status.value == "skipped")
+    executed_count = sum(
+        1
+        for result in execution_context.step_results.values()
+        if result.status.value == "completed"
+    )
+    skipped_count = sum(
+        1
+        for result in execution_context.step_results.values()
+        if result.status.value == "skipped"
+    )
 
     print(f"   Total executed: {executed_count}, skipped: {skipped_count}")
 

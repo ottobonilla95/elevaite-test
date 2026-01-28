@@ -6,7 +6,7 @@ respecting headers, sections, and other markdown elements.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List
 import re
 import time
 

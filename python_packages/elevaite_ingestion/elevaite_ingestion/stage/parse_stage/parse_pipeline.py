@@ -1,5 +1,4 @@
 import os
-import json
 from typing import Optional
 
 from elevaite_ingestion.config.pipeline_config import PipelineConfig
@@ -9,7 +8,6 @@ from elevaite_ingestion.config.parser_config import PARSER_CONFIG
 from elevaite_ingestion.parsers.docx_parser import DocxParser
 from elevaite_ingestion.parsers.xlsx_parser import XlsxParser
 from elevaite_ingestion.parsers.pdf_parser import PdfParser
-from elevaite_ingestion.structured_data.markdown_writer import MarkdownWriter
 from elevaite_ingestion.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -25,7 +23,9 @@ def map_to_parser(file_type):
     return parsers.get(file_type)
 
 
-def process_file(file_path, output_dir, original_filename, config: Optional[PipelineConfig] = None):
+def process_file(
+    file_path, output_dir, original_filename, config: Optional[PipelineConfig] = None
+):
     """Processes a single file and preserves the original filename.
 
     Args:
@@ -113,7 +113,9 @@ def main_parse(config: Optional[PipelineConfig] = None):
 
         for file_name in os.listdir(input_dir):
             file_path = os.path.join(input_dir, file_name)
-            md_path, file_data = process_file(file_path, output_dir, file_name, config=config)
+            md_path, file_data = process_file(
+                file_path, output_dir, file_name, config=config
+            )
             if md_path:
                 markdown_files.append(md_path)
                 structured_data[md_path] = file_data

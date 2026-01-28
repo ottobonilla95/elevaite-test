@@ -7,10 +7,10 @@ metadata:
     {{- include "elevaite.labels" . | nindent 4 }}
     app.kubernetes.io/component: migrations
   annotations:
-    # Run migrations before deployment upgrades and installs
-    helm.sh/hook: pre-upgrade,pre-install
-    helm.sh/hook-weight: "-5"
-    helm.sh/hook-delete-policy: before-hook-creation
+    # TEMPORARY: Disabled hooks for debugging - run as regular job
+    # helm.sh/hook: pre-upgrade,pre-install
+    # helm.sh/hook-weight: "-5"
+    # helm.sh/hook-delete-policy: hook-succeeded
 spec:
   backoffLimit: {{ .Values.migrations.backoffLimit }}
   ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished }}
@@ -35,35 +35,62 @@ spec:
             - -c
             - |
               echo "Waiting for PostgreSQL to be ready..."
-              until pg_isready -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER}; do
+              until pg_isready -h ${db_host} -p ${db_port} -U ${db_user}; do
                 echo "PostgreSQL is unavailable - sleeping"
                 sleep 2
               done
               echo "PostgreSQL is ready!"
-          env:
-            - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: elevaite-secrets
-                  key: db_host
-            - name: DB_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: elevaite-secrets
-                  key: db_port
-                  optional: true
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: elevaite-secrets
-                  key: db_user
-            - name: PGPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: elevaite-secrets
-                  key: db_password
+          envFrom:
+            - secretRef:
+                name: elevaite-secrets
+
+        - name: create-database
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "=========================================="
+              echo "Creating database: ${db_name}"
+              echo "=========================================="
+              echo "Connecting to: ${db_host}:${db_port} as ${db_user}"
+
+              # Connect to postgres database (always exists) and create our database
+              PGPASSWORD="${db_password}" psql -h "${db_host}" -p "${db_port}" -U "${db_user}" -d postgres \
+                -c "SELECT 1 FROM pg_database WHERE datname = '${db_name}';" | grep -q 1 || \
+                PGPASSWORD="${db_password}" psql -h "${db_host}" -p "${db_port}" -U "${db_user}" -d postgres \
+                -c "CREATE DATABASE ${db_name};"
+
+              echo "✅ Database ${db_name} ready"
+          envFrom:
+            - secretRef:
+                name: elevaite-secrets
+
+        - name: create-schemas
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "=========================================="
+              echo "Creating tenant schemas in database: ${db_name}"
+              echo "=========================================="
+              {{- range .Values.migrations.tenants }}
+              echo "Creating schema: auth_{{ . }}"
+              PGPASSWORD="${db_password}" psql -h "${db_host}" -p "${db_port}" -U "${db_user}" -d "${db_name}" \
+                -c "CREATE SCHEMA IF NOT EXISTS auth_{{ . }};" || {
+                echo "❌ Failed to create schema auth_{{ . }}"
+                exit 1
+              }
+              echo "✅ Schema auth_{{ . }} created"
+              {{- end }}
+              echo "✅ All schemas ready!"
+          envFrom:
+            - secretRef:
+                name: elevaite-secrets
 
       containers:
+        # TEMPORARY: Only testing auth-api migrations for faster feedback
         # Auth API Migrations (Multi-tenant)
         - name: auth-api-migrations
           image: {{ .Values.global.imageRegistry }}/{{ .Values.authApi.image.repository }}:{{ .Values.authApi.image.tag }}
@@ -71,15 +98,35 @@ spec:
             - bash
             - -c
             - |
-              set -e
+              set -ex  # Exit on error, print commands
               cd /elevaite/python_apps/auth_api
 
+              echo "=========================================="
+              echo "Auth API Migration Debug"
+              echo "=========================================="
+              echo "Current directory: $(pwd)"
+              echo "Files in directory:"
+              ls -la
+              echo ""
+              echo "Database connection test:"
+              echo "DB_HOST: ${db_host}"
+              echo "DB_PORT: ${db_port}"
+              echo "DB_USER: ${db_user}"
+              echo "DB_NAME: ${db_name}"
+              echo ""
+              echo "Checking alembic.ini:"
+              cat alembic.ini
+              echo ""
               echo "Running auth-api migrations for tenants: {{ join " " .Values.migrations.tenants }}"
+              echo ""
 
               {{- range .Values.migrations.tenants }}
+              echo "=========================================="
               echo "Migrating schema: auth_{{ . }}"
+              echo "=========================================="
               ALEMBIC_SCHEMA=auth_{{ . }} uv run alembic upgrade head
               echo "✅ auth_{{ . }} migration completed"
+              echo ""
               {{- end }}
 
               echo "✅ All auth-api migrations completed"
@@ -94,7 +141,9 @@ spec:
               cpu: 200m
               memory: 512Mi
 
+        # TEMPORARY: Commented out for faster testing
         # Workflow Engine Migrations (Multi-tenant)
+{{/*
         - name: workflow-engine-migrations
           image: {{ .Values.global.imageRegistry }}/{{ .Values.workflowEngine.image.repository }}:{{ .Values.workflowEngine.image.tag }}
           command:
@@ -123,8 +172,11 @@ spec:
             limits:
               cpu: 200m
               memory: 512Mi
+*/}}
 
+        # TEMPORARY: Commented out for faster testing
         # Ingestion Service Migrations (Single schema)
+{{/*
         - name: ingestion-service-migrations
           image: {{ .Values.global.imageRegistry }}/{{ .Values.ingestion.image.repository }}:{{ .Values.ingestion.image.tag }}
           command:
@@ -147,4 +199,5 @@ spec:
             limits:
               cpu: 200m
               memory: 512Mi
+*/}}
 {{- end }}

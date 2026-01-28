@@ -143,7 +143,7 @@ def delete_user_project_associations_for_subprojects(
                 models.User_Project.user_id == user_id_or_user_ids,
                 models.User_Project.project_id.in_(db.query(cte.c.project_id)),
             )
-        delete_count = delete_query.delete(synchronize_session=False)
+        delete_query.delete(synchronize_session=False)
         # print(f'deleted User_Project count = {delete_count}')
         db.commit()
     except SQLAlchemyError as e:
@@ -217,7 +217,7 @@ def delete_unrooted_user_project_associations(
         cte = cte.union_all(union_query)
 
         # debug
-        associated_project_ids_from_top_level = db.query(cte.c.project_id).all()
+        db.query(cte.c.project_id).all()
         # print("Rooted Project IDs:", [pid[0] for pid in associated_project_ids_from_top_level])
 
         # Perform a bulk delete for User_Project entries which are not a part of rooted user_project associations
@@ -252,18 +252,18 @@ def delete_unrooted_user_project_associations(
                 )
                 .filter(
                     models.User_Project.user_id == user_id,
-                    models.User_Account.is_admin == False,
+                    not models.User_Account.is_admin,
                     models.User_Project.project_id.notin_(db.query(cte.c.project_id)),
                 )
                 .subquery()
             )
 
         # Debug subquery
-        unrooted_project_association_ids = db.query(subquery.c.id).all()
+        db.query(subquery.c.id).all()
         # print("Unrooted User-Project Association IDs to be deleted:", [upid[0] for upid in unrooted_project_association_ids])
 
         # Delete those User_Project entries using the IDs obtained above
-        deleted_unrooted_user_project_association_count = (
+        (
             db.query(models.User_Project)
             .filter(models.User_Project.id.in_(db.query(subquery.c.id)))
             .delete(synchronize_session=False)

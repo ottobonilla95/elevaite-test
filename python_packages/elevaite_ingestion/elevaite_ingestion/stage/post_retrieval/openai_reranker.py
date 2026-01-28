@@ -1,7 +1,6 @@
 import hashlib
 import json
 import os
-import sys
 import time
 import re
 from openai import OpenAI
@@ -33,7 +32,9 @@ def format_chunk_with_context(chunk: Dict) -> str:
     return f"Context: {contextual_header}\n\nContent: {chunk_text}"
 
 
-def instruction_rerank_openai(query: str, chunks: List[Dict], top_k: int = 3, model: str = "gpt-4") -> List[Dict]:
+def instruction_rerank_openai(
+    query: str, chunks: List[Dict], top_k: int = 3, model: str = "gpt-4"
+) -> List[Dict]:
     """
     Rerank retrieved chunks using OpenAI's GPT-3.5/4 with instruction-following prompt.
     """
@@ -44,7 +45,9 @@ def instruction_rerank_openai(query: str, chunks: List[Dict], top_k: int = 3, mo
 
     # Combine each chunk into a string with context
     formatted_chunks = [format_chunk_with_context(chunk) for chunk in chunks]
-    passage_block = "\n\n".join([f"[{i + 1}] {text}" for i, text in enumerate(formatted_chunks)])
+    passage_block = "\n\n".join(
+        [f"[{i + 1}] {text}" for i, text in enumerate(formatted_chunks)]
+    )
 
     # Instructional prompt for reranking
     prompt = (
@@ -59,7 +62,10 @@ def instruction_rerank_openai(query: str, chunks: List[Dict], top_k: int = 3, mo
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that reranks search results."},
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that reranks search results.",
+                },
                 {"role": "user", "content": prompt},
             ],
             temperature=0.0,
@@ -73,7 +79,11 @@ def instruction_rerank_openai(query: str, chunks: List[Dict], top_k: int = 3, mo
     # Extract top-k indices from LLM response
     if reply is None:
         return chunks[:top_k]
-    indices = [int(num) - 1 for num in re.findall(pattern=r"\b\d+\b", query=reply) if 0 < int(num) <= len(chunks)]
+    indices = [
+        int(num) - 1
+        for num in re.findall(pattern=r"\b\d+\b", query=reply)
+        if 0 < int(num) <= len(chunks)
+    ]
 
     # Remove duplicates while preserving order
     seen = set()
@@ -86,7 +96,9 @@ def instruction_rerank_openai(query: str, chunks: List[Dict], top_k: int = 3, mo
             break
 
     if len(indices) != len(set(indices)):
-        print("⚠️ Duplicate indices detected in reranker reply. De-duplicated for safety.")
+        print(
+            "⚠️ Duplicate indices detected in reranker reply. De-duplicated for safety."
+        )
 
     # Fallback if not enough reranked chunks
     if len(reranked) < top_k:
@@ -103,10 +115,14 @@ if __name__ == "__main__":
     start_time = time.time()
 
     retrieved_chunks = retrieve_chunks_semantic(user_query, top_k=5)
-    print(f"\n📄 Retrieved {len(retrieved_chunks)} chunks in {(time.time() - start_time):.2f} seconds")
+    print(
+        f"\n📄 Retrieved {len(retrieved_chunks)} chunks in {(time.time() - start_time):.2f} seconds"
+    )
 
     if retrieved_chunks:
-        reranked_chunks = instruction_rerank_openai(user_query, retrieved_chunks, top_k=5, model="gpt-3.5-turbo")
+        reranked_chunks = instruction_rerank_openai(
+            user_query, retrieved_chunks, top_k=5, model="gpt-3.5-turbo"
+        )
 
         print("\n🏆 Top Reranked Chunks:")
         for i, res in enumerate(reranked_chunks, 1):

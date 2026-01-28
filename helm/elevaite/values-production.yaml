@@ -25,6 +25,8 @@ authApi:
   env:
     LOG_LEVEL: INFO
     DEBUG: "0"
+    ALLOWED_HOSTS: "*"
+  envFromSecrets: []
 
 workflowEngine:
   replicaCount: 1  # Single replica for cost savings

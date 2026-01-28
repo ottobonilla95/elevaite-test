@@ -17,7 +17,6 @@ from pptx.util import Pt
 from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
 
-from dotenv import load_dotenv
 
 
 current_woring_dir = os.path.dirname(os.path.realpath(__file__))
@@ -440,7 +439,7 @@ def generate_presentation(excel_file_path, manifest_file_path, summary, selected
             ppt_path = os.path.join("data/PowerPoints", folderName, ppt_name)
             prs.save(ppt_path)
             return ppt_path
-        except Exception as e:
+        except Exception:
             folderName = "Excel_Sheets"
             os.makedirs(os.path.join("data/PowerPoints", folderName), exist_ok=True)
             #saving presentation

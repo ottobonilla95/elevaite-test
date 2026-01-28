@@ -15,7 +15,9 @@ class StepRegistryProtocol(Protocol):
     port the concrete implementation into the SDK without breaking callers.
     """
 
-    async def register_step(self, step_config: Dict[str, Any]) -> str:  # pragma: no cover - interface
+    async def register_step(
+        self, step_config: Dict[str, Any]
+    ) -> str:  # pragma: no cover - interface
         ...
 
     async def execute_step(  # pragma: no cover - interface

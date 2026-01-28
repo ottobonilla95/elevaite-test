@@ -43,6 +43,5 @@ allow-direct-references = true
 
 [tool.uv.sources]
 elevaite-logger = { workspace = true }
-elevaite-ingestion = { workspace = true }
 db-core = { workspace = true }
 llm-gateway = { workspace = true }

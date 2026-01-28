@@ -1,12 +1,11 @@
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, ANY
+from unittest.mock import patch, MagicMock
 from .... import models
 from ....auth.idp.google import (
     get_user_email_response_with_error,
     get_user_email_response_with_success,
 )
 from ....fixtures.setup_initial_data import db_data
-from elevaitelib.schemas import permission as permission_schemas
 import uuid
 
 

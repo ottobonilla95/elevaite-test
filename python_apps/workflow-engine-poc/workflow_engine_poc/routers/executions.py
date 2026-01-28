@@ -40,7 +40,9 @@ api_key_header = APIKeyHeader(name=HDR_API_KEY, auto_error=False)
 router = APIRouter(prefix="/executions", tags=["executions"])
 
 
-@router.get("/{execution_id}", dependencies=[Depends(api_key_or_user_guard("view_execution"))])
+@router.get(
+    "/{execution_id}", dependencies=[Depends(api_key_or_user_guard("view_execution"))]
+)
 async def get_execution_status(
     execution_id: str,
     request: Request,
@@ -97,7 +99,9 @@ async def get_execution_status(
         # Heuristic: if DB says waiting but we just received a recent user message, surface as running
         if status_str == "waiting":
             try:
-                msgs = WorkflowsService.list_agent_messages(session, execution_id=execution_id, limit=1, offset=0)
+                msgs = WorkflowsService.list_agent_messages(
+                    session, execution_id=execution_id, limit=1, offset=0
+                )
                 if msgs:
                     created_at = msgs[0].get("created_at")
                     if isinstance(created_at, str):
@@ -120,19 +124,31 @@ async def get_execution_status(
 
         # Fallback: derive a minimal summary from persisted step_io_data if we have none
         step_io_from_db = details.get("step_io_data") or {}
-        if (not summary_meta or not summary_meta.get("total_steps")) and isinstance(step_io_from_db, dict) and step_io_from_db:
+        if (
+            (not summary_meta or not summary_meta.get("total_steps"))
+            and isinstance(step_io_from_db, dict)
+            and step_io_from_db
+        ):
             # Treat each non-internal key as a step; this is a heuristic but ensures
             # DBOS-backed executions surface a non-zero step count even if metadata
             # summary was not persisted for some reason.
-            visible_keys = [k for k in step_io_from_db.keys() if not str(k).endswith("_raw")]
-            total_steps_fallback = len(visible_keys) if visible_keys else len(step_io_from_db)
+            visible_keys = [
+                k for k in step_io_from_db.keys() if not str(k).endswith("_raw")
+            ]
+            total_steps_fallback = (
+                len(visible_keys) if visible_keys else len(step_io_from_db)
+            )
             completed_steps_fallback = (
-                total_steps_fallback if status_str == "completed" else summary_meta.get("completed_steps", 0)
+                total_steps_fallback
+                if status_str == "completed"
+                else summary_meta.get("completed_steps", 0)
             )
             summary_meta = {
                 **summary_meta,
                 "total_steps": total_steps_fallback,
-                "steps_executed": summary_meta.get("steps_executed", total_steps_fallback),
+                "steps_executed": summary_meta.get(
+                    "steps_executed", total_steps_fallback
+                ),
                 "completed_steps": completed_steps_fallback,
                 "failed_steps": summary_meta.get("failed_steps", 0),
             }
@@ -145,14 +161,18 @@ async def get_execution_status(
                 status_str,
                 summary_meta.get("total_steps"),
                 summary_meta.get("completed_steps"),
-                list(step_io_from_db.keys()) if isinstance(step_io_from_db, dict) else None,
+                list(step_io_from_db.keys())
+                if isinstance(step_io_from_db, dict)
+                else None,
             )
         except Exception:
             # Logging must never break the endpoint
             pass
 
         # Extract current_step from execution_metadata (set by DBOS workflow during execution)
-        current_step_from_meta = metadata.get("current_step") if isinstance(metadata, dict) else None
+        current_step_from_meta = (
+            metadata.get("current_step") if isinstance(metadata, dict) else None
+        )
 
         execution_summary = {
             "execution_id": details.get("execution_id"),
@@ -211,7 +231,10 @@ async def get_execution_status(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{execution_id}/results", dependencies=[Depends(api_key_or_user_guard("view_execution"))])
+@router.get(
+    "/{execution_id}/results",
+    dependencies=[Depends(api_key_or_user_guard("view_execution"))],
+)
 async def get_execution_results(
     execution_id: str,
     request: Request,
@@ -269,9 +292,13 @@ async def get_execution_results(
         for step_id, output_data in step_io_data.items():
             step_results[step_id] = {
                 "step_id": step_id,
-                "status": "completed" if isinstance(output_data, dict) and output_data.get("success") else "unknown",
+                "status": "completed"
+                if isinstance(output_data, dict) and output_data.get("success")
+                else "unknown",
                 "output_data": output_data,
-                "error_message": output_data.get("error") if isinstance(output_data, dict) else None,
+                "error_message": output_data.get("error")
+                if isinstance(output_data, dict)
+                else None,
                 "execution_time_ms": None,  # Not tracked in step_io_data
             }
 
@@ -323,7 +350,9 @@ async def get_execution_analytics(
     """
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
-        analytics = await workflow_engine.get_execution_analytics(limit=limit, offset=offset, status=status)
+        analytics = await workflow_engine.get_execution_analytics(
+            limit=limit, offset=offset, status=status
+        )
 
         if exclude_db:
             return analytics
@@ -338,7 +367,10 @@ async def get_execution_analytics(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{execution_id}/stream", dependencies=[Depends(api_key_or_user_guard("view_execution"))])
+@router.get(
+    "/{execution_id}/stream",
+    dependencies=[Depends(api_key_or_user_guard("view_execution"))],
+)
 async def stream_execution_updates(
     execution_id: str,
     request: Request,
@@ -392,7 +424,9 @@ async def stream_execution_updates(
                     yield initial_event.to_sse()
 
                 # Stream events from the queue
-                async for event_data in create_sse_stream(queue, heartbeat_interval=30, max_events=5000):
+                async for event_data in create_sse_stream(
+                    queue, heartbeat_interval=30, max_events=5000
+                ):
                     yield event_data
 
             except asyncio.CancelledError:
@@ -400,13 +434,17 @@ async def stream_execution_updates(
             except Exception as e:
                 logger.error(f"Error in execution stream {execution_id}: {e}")
                 # Send error event
-                error_event = create_status_event(execution_id=execution_id, status="error", error=str(e))
+                error_event = create_status_event(
+                    execution_id=execution_id, status="error", error=str(e)
+                )
                 yield error_event.to_sse()
             finally:
                 # Clean up the connection
                 stream_manager.remove_execution_stream(execution_id, queue)
 
-        return StreamingResponse(event_generator(), media_type="text/event-stream", headers=get_sse_headers())
+        return StreamingResponse(
+            event_generator(), media_type="text/event-stream", headers=get_sse_headers()
+        )
 
     except HTTPException:
         raise
@@ -437,12 +475,16 @@ async def step_callback(
         callback_data: Callback payload (job_id, status, result_summary or error_message)
     """
     try:
-        logger.info(f"Received callback for execution {execution_id}, step {step_id}: {callback_data}")
+        logger.info(
+            f"Received callback for execution {execution_id}, step {step_id}: {callback_data}"
+        )
 
         # Verify execution exists
         execution = ExecutionsService.get_execution(session, execution_id)
         if not execution:
-            raise HTTPException(status_code=404, detail=f"Execution {execution_id} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Execution {execution_id} not found"
+            )
 
         # Get backend from execution metadata
         metadata = execution.get("metadata", {})
@@ -456,14 +498,25 @@ async def step_callback(
                 step_id=step_id,
                 decision_output=callback_data,
             )
-            return {"status": "ok", "message": "Callback received and queued for worker"}
+            return {
+                "status": "ok",
+                "message": "Callback received and queued for worker",
+            }
         else:
             # For DBOS backend, the workflow polls for completion; nothing to do
-            logger.info(f"Callback received for DBOS execution {execution_id}, workflow will poll for completion")
-            return {"status": "ok", "message": "Callback received (DBOS workflow polls for completion)"}
+            logger.info(
+                f"Callback received for DBOS execution {execution_id}, workflow will poll for completion"
+            )
+            return {
+                "status": "ok",
+                "message": "Callback received (DBOS workflow polls for completion)",
+            }
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to process callback for {execution_id}/{step_id}: {e}", exc_info=True)
+        logger.error(
+            f"Failed to process callback for {execution_id}/{step_id}: {e}",
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=str(e))

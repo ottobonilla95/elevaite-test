@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 import uvicorn
 
-from app.routers.applications import router as applications_router
 from app.routers.instances import router as instances_router
 from app.routers.configurations import router as configuration_router
 from app.routers.datasets import router as datasets_router

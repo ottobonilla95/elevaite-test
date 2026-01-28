@@ -104,7 +104,7 @@
 #         all_data.extend(images)
 
 #     return all_data
-    
+
 
 # pdf_path = "/Users/dheeraj/Desktop/elevaite/elevaite_ingestion/4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf"
 # output_dir = "extracted_images_with_context_2"
@@ -115,8 +115,6 @@
 #     json.dump(results, f, indent=2)
 
 # print("✅ Saved image captions and context to 'enriched_image_context_2.json'")
-
-
 
 
 ####################
@@ -138,7 +136,7 @@
 
 #     for page_num in range(len(doc)):
 #         page = doc.load_page(page_num)
-#         text_blocks = page.get_text("blocks")  
+#         text_blocks = page.get_text("blocks")
 #         image_blocks = page.get_images(full=True)
 
 #         all_text_blocks = []
@@ -244,28 +242,27 @@ import os
 import re
 import json
 
-def extract_images_with_captions(pdf_path, output_dir, context_window=150, min_image_size=(100, 100)):
+
+def extract_images_with_captions(
+    pdf_path, output_dir, context_window=150, min_image_size=(100, 100)
+):
     os.makedirs(output_dir, exist_ok=True)
     doc = fitz.open(pdf_path)
     pdf_filename = os.path.basename(pdf_path)
     all_images = []
 
-   
     undesired_keywords = ["logo", "header", "footer", "confidential", "company", "name"]
     undesired_pattern = re.compile("|".join(undesired_keywords), re.IGNORECASE)
 
     for page_num in range(len(doc)):
         page = doc.load_page(page_num)
-        text_blocks = page.get_text("blocks")  
+        text_blocks = page.get_text("blocks")
         image_blocks = page.get_images(full=True)
 
         all_text_blocks = []
-        for (x0, y0, x1, y1, text, *_rest) in text_blocks:
+        for x0, y0, x1, y1, text, *_rest in text_blocks:
             if len(text.strip()) > 15:
-                all_text_blocks.append({
-                    "text": text.strip(),
-                    "bbox": [x0, y0, x1, y1]
-                })
+                all_text_blocks.append({"text": text.strip(), "bbox": [x0, y0, x1, y1]})
 
         for img_index, img in enumerate(image_blocks):
             xref = img[0]
@@ -274,26 +271,31 @@ def extract_images_with_captions(pdf_path, output_dir, context_window=150, min_i
 
             # Filter based on image size
             if pix.width < min_image_size[0] or pix.height < min_image_size[1]:
-                print(f"[Filtered] Skipping small image on page {page_num+1}, index {img_index+1}")
+                print(
+                    f"[Filtered] Skipping small image on page {page_num + 1}, index {img_index + 1}"
+                )
                 continue
 
-           
             page_height = page.rect.height
             if bbox.y0 < page_height * 0.1 or bbox.y1 > page_height * 0.9:
-                print(f"[Filtered] Skipping header/footer image on page {page_num+1}, index {img_index+1}")
+                print(
+                    f"[Filtered] Skipping header/footer image on page {page_num + 1}, index {img_index + 1}"
+                )
                 continue
 
-           
-            image_path = os.path.join(output_dir, f"page_{page_num+1}_img_{img_index+1}.png")
+            image_path = os.path.join(
+                output_dir, f"page_{page_num + 1}_img_{img_index + 1}.png"
+            )
             try:
                 if pix.colorspace.n != 3:
                     pix = fitz.Pixmap(fitz.csRGB, pix)
                 pix.save(image_path)
             except Exception as e:
-                print(f"[Warning] Skipping image on page {page_num+1}, index {img_index+1} due to: {e}")
+                print(
+                    f"[Warning] Skipping image on page {page_num + 1}, index {img_index + 1} due to: {e}"
+                )
                 continue
 
-           
             surrounding_texts = []
             for block in all_text_blocks:
                 block_y_center = (block["bbox"][1] + block["bbox"][3]) / 2
@@ -306,21 +308,24 @@ def extract_images_with_captions(pdf_path, output_dir, context_window=150, min_i
 
             # Filter based on caption content
             if undesired_pattern.search(enriched_caption):
-                print(f"[Filtered] Skipping undesired image on page {page_num+1}, index {img_index+1} (Caption: {enriched_caption})")
+                print(
+                    f"[Filtered] Skipping undesired image on page {page_num + 1}, index {img_index + 1} (Caption: {enriched_caption})"
+                )
                 continue
 
-            all_images.append({
-                "image_id": f"img_{page_num+1}_{img_index+1}",
-                "img_path": image_path,
-                "caption": enriched_caption.strip(),
-                "filename": pdf_filename,
-                "page_no": page_num + 1,
-                "bounding_box": [bbox.x0, bbox.y0, bbox.x1, bbox.y1],
-                "embedding": None
-            })
+            all_images.append(
+                {
+                    "image_id": f"img_{page_num + 1}_{img_index + 1}",
+                    "img_path": image_path,
+                    "caption": enriched_caption.strip(),
+                    "filename": pdf_filename,
+                    "page_no": page_num + 1,
+                    "bounding_box": [bbox.x0, bbox.y0, bbox.x1, bbox.y1],
+                    "embedding": None,
+                }
+            )
 
     return all_images
-
 
 
 pdf_path = "/Users/dheeraj/Desktop/elevaite/elevaite_ingestion/4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf"

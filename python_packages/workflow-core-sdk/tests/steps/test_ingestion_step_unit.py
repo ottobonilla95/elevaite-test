@@ -43,7 +43,7 @@ async def test_ingestion_step_creates_job(mock_http_client):
     import httpx
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(
+        await client.post(
             "http://localhost:8000/ingestion/jobs",
             json={
                 "config": step_config["config"]["ingestion_config"],
@@ -94,7 +94,7 @@ async def test_ingestion_step_checks_completion(mock_http_client):
     import httpx
 
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"http://localhost:8000/ingestion/jobs/{job_id}")
+        await client.get(f"http://localhost:8000/ingestion/jobs/{job_id}")
 
     # Verify call was made
     mock_client_instance.get.assert_called_once()
@@ -159,4 +159,3 @@ async def test_error_handling():
     assert error_result["success"] is False
     assert error_result["status"] == "failed"
     assert "Service unavailable" in error_result["error"]
-

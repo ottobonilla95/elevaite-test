@@ -4,10 +4,7 @@ Tests for ingestion service API endpoints.
 Uses conftest.py fixtures for proper database and DBOS mocking.
 """
 
-import pytest
 import uuid
-
-from ingestion_service.models import IngestionJob, JobStatus
 
 
 class TestCreateIngestionJob:

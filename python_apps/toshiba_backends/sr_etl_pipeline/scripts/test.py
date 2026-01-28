@@ -1,6 +1,5 @@
 import json
 import sys
-import os
 
 # Add the connectors directory to path if needed
 sys.path.append('connectors')

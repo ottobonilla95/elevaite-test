@@ -15,7 +15,6 @@ Usage:
 import asyncio
 import logging
 import sys
-import os
 from pathlib import Path
 
 # Add the project root to Python path
@@ -23,10 +22,11 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from workflow_core_sdk.dbos_impl.runtime import get_dbos_adapter, DBOS_AVAILABLE
-from workflow_engine_poc.step_registry import StepRegistry
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +38,12 @@ def create_demo_workflow_config() -> dict:
         "description": "Demonstrates DBOS durable execution with our step registry",
         "execution_pattern": "sequential",
         "steps": [
-            {"step_id": "trigger", "step_type": "trigger", "name": "Chat Trigger", "config": {"trigger_type": "chat"}},
+            {
+                "step_id": "trigger",
+                "step_type": "trigger",
+                "name": "Chat Trigger",
+                "config": {"trigger_type": "chat"},
+            },
             {
                 "step_id": "agent_step",
                 "step_type": "agent_execution",
@@ -72,7 +77,10 @@ def create_demo_workflow_config() -> dict:
                 "name": "Subflow Processing",
                 "config": {
                     "workflow_id": "demo-subflow",
-                    "input_mapping": {"calculation_result": "step_tool_step.result", "original_message": "current_message"},
+                    "input_mapping": {
+                        "calculation_result": "step_tool_step.result",
+                        "original_message": "current_message",
+                    },
                 },
             },
         ],
@@ -114,7 +122,9 @@ async def demonstrate_basic_execution():
     try:
         # Execute the workflow
         result = await adapter.start_workflow(
-            workflow_config=workflow_config, trigger_data=trigger_data, user_context=user_context
+            workflow_config=workflow_config,
+            trigger_data=trigger_data,
+            user_context=user_context,
         )
 
         logger.info("=== Workflow Execution Result ===")
@@ -126,7 +136,9 @@ async def demonstrate_basic_execution():
             logger.info(f"Completed {len(step_results)} steps:")
 
             for step_id, step_result in step_results.items():
-                logger.info(f"  - {step_id}: {'✓' if step_result.get('success') else '✗'}")
+                logger.info(
+                    f"  - {step_id}: {'✓' if step_result.get('success') else '✗'}"
+                )
                 if step_result.get("output_data"):
                     logger.info(f"    Output: {step_result['output_data']}")
         else:
@@ -164,7 +176,9 @@ async def demonstrate_step_registry_integration():
     logger.info("Registered step types:")
     for step_type in step_registry.registered_steps.keys():
         step_info = step_registry.registered_steps[step_type]
-        logger.info(f"  - {step_type}: {step_info['name']} ({step_info['execution_type']})")
+        logger.info(
+            f"  - {step_type}: {step_info['name']} ({step_info['execution_type']})"
+        )
 
     logger.info("\nDBOS Integration Benefits:")
     logger.info("✓ Each step becomes durable automatically")

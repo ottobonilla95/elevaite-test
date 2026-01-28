@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Union, Any
+from typing import List, Optional
 import re
 from data_classes import SourceReference
 import boto3
@@ -374,12 +374,12 @@ async def get_video_presigned_url(filename: str):
             ExpiresIn=EXPIRATION_TIME
         )
 
-        print(f"\nPresigned URL generated successfully!")
+        print("\nPresigned URL generated successfully!")
         print(f"Video file: {first_video}")
         print(f"URL expires in: {EXPIRATION_TIME} seconds ({EXPIRATION_TIME // 3600} hour(s))")
-        print(f"\nPresigned URL:")
+        print("\nPresigned URL:")
         print(presigned_url)
-        print(f"\nYou can now paste this URL into your browser to watch the video.")
+        print("\nYou can now paste this URL into your browser to watch the video.")
 
         return presigned_url
 

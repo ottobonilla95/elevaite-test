@@ -1,7 +1,9 @@
-import type { NextAuthConfig } from "next-auth";
+import type { NextAuthConfig, User, Account } from "next-auth";
 import { stockConfig } from "@repo/lib";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Will be used when the registration is back
-import { IDP, registerToBackend } from "./app/lib/rbacActions";
+import type { AdapterUser } from "next-auth/adapters";
+import type { Profile } from "@auth/core/types";
+// Commented out unused imports - will be used when registration is re-enabled
+// import { IDP, registerToBackend } from "./app/lib/rbacActions";
 
 function getDomainWithoutSubdomain(url: string | URL): string {
   const urlParts = new URL(url).hostname.split(".");
@@ -76,14 +78,26 @@ export const authConfig = {
       return false; // Redirect unauthenticated users to login page
     },
     // eslint-disable-next-line @typescript-eslint/require-await -- Will be async when the registration is back, needs async signature
-    async signIn(params) {
+    async signIn(params: {
+      user: User | AdapterUser;
+      account: Account | null;
+      profile?: Profile;
+    }) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- Profile types vary by provider
       const email = params.profile?.email ?? params.user.email;
-      const firstName = params.profile?.given_name ?? params.user.givenName;
-      const lastName = params.profile?.family_name ?? params.user.familyName;
-      const authToken = params.account?.access_token ?? params.user.accessToken;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- Custom user properties
+      const firstName =
+        params.profile?.given_name ?? (params.user as any).givenName;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- Custom user properties
+      const lastName =
+        params.profile?.family_name ?? (params.user as any).familyName;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access -- Custom user properties
+      const authToken =
+        params.account?.access_token ?? (params.user as any).accessToken;
       // console.dir(params);
       if (!email || !firstName || !lastName || !authToken)
         throw new Error("Missing identifier in provider response", {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Error cause for debugging
           cause: { email, firstName, lastName, authToken },
         });
 

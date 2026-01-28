@@ -2,7 +2,6 @@ import os
 import json
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 
 import boto3
 from dotenv import load_dotenv
@@ -39,12 +38,17 @@ def process_single_s3_file(file_key, input_bucket, intermediate_bucket, config=N
         response = s3_client.get_object(Bucket=input_bucket, Key=file_key)
         file_stream = response["Body"].read()
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file_key)[-1]) as tmp_file:
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=os.path.splitext(file_key)[-1]
+        ) as tmp_file:
             tmp_file.write(file_stream)
             tmp_file_path = tmp_file.name
 
         md_path, structured_data = process_file(
-            tmp_file_path, output_dir="/tmp", original_filename=original_filename, config=config
+            tmp_file_path,
+            output_dir="/tmp",
+            original_filename=original_filename,
+            config=config,
         )
 
         if md_path:
@@ -54,12 +58,19 @@ def process_single_s3_file(file_key, input_bucket, intermediate_bucket, config=N
             json_file_key = file_key.rsplit(".", 1)[0] + ".json"
 
             s3_client.put_object(
-                Bucket=intermediate_bucket, Key=json_file_key, Body=json_content, ContentType="application/json"
+                Bucket=intermediate_bucket,
+                Key=json_file_key,
+                Body=json_content,
+                ContentType="application/json",
             )
 
             logger.info(f"✅ Processed {file_key} -> {json_file_key} successfully.")
 
-            return {"input_key": file_key, "output_key": json_file_key, "status": "Success"}
+            return {
+                "input_key": file_key,
+                "output_key": json_file_key,
+                "status": "Success",
+            }
 
         os.remove(tmp_file_path)
 
@@ -86,7 +97,13 @@ def process_s3_files(input_bucket, intermediate_bucket, config=None):
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
-            executor.submit(process_single_s3_file, file_key, input_bucket, intermediate_bucket, config)
+            executor.submit(
+                process_single_s3_file,
+                file_key,
+                input_bucket,
+                intermediate_bucket,
+                config,
+            )
             for file_key in file_keys
         ]
         for future in as_completed(futures):

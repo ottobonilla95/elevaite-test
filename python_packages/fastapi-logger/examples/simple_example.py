@@ -46,7 +46,7 @@ async def get_item(item_id: int):
 
 
 # Print information about where to find the logs
-print(f"\nRunning example FastAPI app with CloudWatch logging enabled")
+print("\nRunning example FastAPI app with CloudWatch logging enabled")
 print(f"Log Group: {log_group}")
 print(f"Log Stream: {log_stream}")
 print("\nTo view these logs, visit:")

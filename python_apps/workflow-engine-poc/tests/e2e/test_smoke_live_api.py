@@ -34,7 +34,9 @@ def _now_suffix() -> str:
     return str(int(time.time()))
 
 
-def _http(method: str, path: str, json_body: Optional[Dict[str, Any]] = None) -> httpx.Response:
+def _http(
+    method: str, path: str, json_body: Optional[Dict[str, Any]] = None
+) -> httpx.Response:
     # Ensure path starts with /
     if not path.startswith("/"):
         path = "/" + path
@@ -81,7 +83,11 @@ def test_smoke_live_api_end_to_end():
         "description": "Smoke test agent",
         "system_prompt_id": prompt_id,
         "provider_type": "openai_textgen",
-        "provider_config": {"model_name": "gpt-4o", "temperature": 0.2, "max_tokens": 64},
+        "provider_config": {
+            "model_name": "gpt-4o",
+            "temperature": 0.2,
+            "max_tokens": 64,
+        },
         "tags": ["smoke"],
         "status": "active",
         "organization_id": "smoke",
@@ -98,7 +104,12 @@ def test_smoke_live_api_end_to_end():
             "step_id": "trigger",
             "step_type": "trigger",
             "name": "Trigger",
-            "config": {"kind": "chat", "need_history": False, "allowed_modalities": ["text"], "max_files": 0},
+            "config": {
+                "kind": "chat",
+                "need_history": False,
+                "allowed_modalities": ["text"],
+                "max_files": 0,
+            },
         },
         {
             "step_id": "agent",

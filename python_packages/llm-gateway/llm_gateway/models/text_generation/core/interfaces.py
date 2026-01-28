@@ -45,7 +45,11 @@ class ToolCall(BaseModel):
         """OpenAI-compatible function accessor."""
         import json
 
-        args_str = json.dumps(self.arguments) if isinstance(self.arguments, dict) else str(self.arguments)
+        args_str = (
+            json.dumps(self.arguments)
+            if isinstance(self.arguments, dict)
+            else str(self.arguments)
+        )
         return ToolCallFunction(name=self.name, arguments=args_str)
 
 
@@ -56,4 +60,6 @@ class TextGenerationResponse(BaseModel):
     tokens_out: int
     tool_calls: Optional[List[ToolCall]] = None
     finish_reason: Optional[str] = None
-    thinking_content: Optional[str] = None  # Reasoning/thinking data from models that support it
+    thinking_content: Optional[str] = (
+        None  # Reasoning/thinking data from models that support it
+    )

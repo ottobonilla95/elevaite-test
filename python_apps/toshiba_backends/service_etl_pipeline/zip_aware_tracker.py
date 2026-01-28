@@ -6,7 +6,6 @@ from datetime import datetime
 import re
 import logging
 import zipfile
-import tempfile
 import requests
 from io import BytesIO
 
@@ -136,7 +135,7 @@ class SmartZipTracker:
                         }
                         total_zip_contents += 1
         
-        logger.info(f"Smart ZIP analysis complete:")
+        logger.info("Smart ZIP analysis complete:")
         logger.info(f"  - Total files: {len(all_file_info)}")
         logger.info(f"  - ZIP contents extracted: {total_zip_contents}")
         logger.info(f"  - ZIP files analyzed: {len(zip_analysis)}")
@@ -205,7 +204,7 @@ class SmartZipTracker:
         if '.' in cleaned and not cleaned.endswith('.'):
             return cleaned
         
-        if not '.' in cleaned:
+        if '.' not in cleaned:
             return cleaned + '.pdf'
         
         return cleaned

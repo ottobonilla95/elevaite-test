@@ -9,8 +9,6 @@ it works correctly with the existing agent_studio infrastructure.
 import asyncio
 import tempfile
 import os
-import json
-from pathlib import Path
 
 # Add the agent_studio path to import modules
 import sys

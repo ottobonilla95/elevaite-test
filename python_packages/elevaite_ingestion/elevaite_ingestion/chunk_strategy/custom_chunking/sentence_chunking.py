@@ -32,7 +32,10 @@ async def chunk_text(parsed_data: Dict, chunking_params: Dict) -> List[Dict]:
         page_no = paragraph.get("page_no", 1)
 
         # If adding this paragraph exceeds the max_chunk_size, save the current chunk and start a new one
-        if len(current_chunk_text) + len(paragraph_text) > max_chunk_size and current_chunk_text:
+        if (
+            len(current_chunk_text) + len(paragraph_text) > max_chunk_size
+            and current_chunk_text
+        ):
             chunks.append(
                 {
                     "chunk_id": str(uuid.uuid4()),

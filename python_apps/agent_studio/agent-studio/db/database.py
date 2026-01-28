@@ -49,7 +49,7 @@ try:
 except Exception as e:
     print(f"❌ PostgreSQL connection failed: {e}")
     print(f"   Database URL: {SQLALCHEMY_DATABASE_URL}")
-    print(f"   Make sure PostgreSQL is running and the database exists.")
+    print("   Make sure PostgreSQL is running and the database exists.")
     raise RuntimeError(f"Failed to connect to PostgreSQL database: {e}") from e
 
 SQLAlchemyInstrumentor().instrument(engine=engine)  # OTEL

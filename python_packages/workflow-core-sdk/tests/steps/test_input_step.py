@@ -2,7 +2,7 @@
 Unit tests for input_step
 
 Tests the input node step that provides data entry points for workflows.
-Input nodes can be triggered externally (webhook, schedule, gmail, slack) or 
+Input nodes can be triggered externally (webhook, schedule, gmail, slack) or
 filled manually (chat, manual, form).
 """
 
@@ -53,7 +53,9 @@ class TestInputStepBasics:
         assert result["data"]["value"] == 42
 
     @pytest.mark.asyncio
-    async def test_input_step_with_trigger_raw_fallback(self, step_config, execution_context):
+    async def test_input_step_with_trigger_raw_fallback(
+        self, step_config, execution_context
+    ):
         """Test input step falls back to trigger_raw for backwards compatibility"""
         execution_context.step_io_data = {
             "trigger_raw": {"kind": "webhook", "data": {"event": "test"}}
@@ -126,7 +128,11 @@ class TestInputStepKinds:
             "parameters": {"kind": "gmail"},
         }
         execution_context.step_io_data = {
-            "gmail-input": {"from": "user@example.com", "subject": "Test", "body": "Hello"}
+            "gmail-input": {
+                "from": "user@example.com",
+                "subject": "Test",
+                "body": "Hello",
+            }
         }
 
         result = await input_step(step_config, {}, execution_context)
@@ -150,4 +156,3 @@ class TestInputStepKinds:
 
         assert result["kind"] == "slack"
         assert result["data"]["channel"] == "#general"
-

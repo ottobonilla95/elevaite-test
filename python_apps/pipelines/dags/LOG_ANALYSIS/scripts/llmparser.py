@@ -1,7 +1,7 @@
 from airflow.models import Variable
 import re
 import json
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 
 class LogParser:
     def __init__(self, k_prefix=3, similarity_threshold=0.5, client=None, max_words=70):

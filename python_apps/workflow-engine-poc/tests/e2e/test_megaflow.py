@@ -36,7 +36,9 @@ def _create_workflow(client: TestClient, payload: Dict[str, Any]) -> str:
     return data.get("id") or data.get("workflow_id")
 
 
-def _execute_workflow(client: TestClient, workflow_id: str, body: Dict[str, Any]) -> str:
+def _execute_workflow(
+    client: TestClient, workflow_id: str, body: Dict[str, Any]
+) -> str:
     # Prefer generic endpoint that accepts backend in body
     r = client.post(f"/workflows/{workflow_id}/execute", json=body)
     r.raise_for_status()
@@ -71,7 +73,9 @@ def _post_message(
     return r.json()
 
 
-def _list_messages(client: TestClient, execution_id: str, step_id: str) -> list[Dict[str, Any]]:
+def _list_messages(
+    client: TestClient, execution_id: str, step_id: str
+) -> list[Dict[str, Any]]:
     r = client.get(f"/executions/{execution_id}/steps/{step_id}/messages")
     r.raise_for_status()
     return r.json()
@@ -85,7 +89,12 @@ def test_chat_multi_agent_e2e(authenticated_client: TestClient, backend: str):
     workflow_id = _create_workflow(authenticated_client, wf)
 
     # Start with initial user message
-    body = {"backend": backend, "trigger": {"kind": "chat"}, "query": "Research AI trends in healthcare", "wait": False}
+    body = {
+        "backend": backend,
+        "trigger": {"kind": "chat"},
+        "query": "Research AI trends in healthcare",
+        "wait": False,
+    }
     execution_id = _execute_workflow(authenticated_client, workflow_id, body)
 
     # Wait until waiting/running
@@ -98,11 +107,25 @@ def test_chat_multi_agent_e2e(authenticated_client: TestClient, backend: str):
 
     # Expect agent_1 waiting first
     # Provide final turn to complete agent_1
-    _post_message(authenticated_client, execution_id, "agent_1", "user", "That's enough, proceed.", {"final_turn": True})
+    _post_message(
+        authenticated_client,
+        execution_id,
+        "agent_1",
+        "user",
+        "That's enough, proceed.",
+        {"final_turn": True},
+    )
 
     # Unblock agent_2: prompt then finalize
     _post_message(authenticated_client, execution_id, "agent_2", "user", "Analyze now.")
-    _post_message(authenticated_client, execution_id, "agent_2", "user", "Finalize.", {"final_turn": True})
+    _post_message(
+        authenticated_client,
+        execution_id,
+        "agent_2",
+        "user",
+        "Finalize.",
+        {"final_turn": True},
+    )
 
     # Wait briefly for engine to process; allow async runs to remain running
     deadline = time.time() + 60
@@ -129,7 +152,12 @@ def test_webhook_minimal_e2e(authenticated_client: TestClient, backend: str):
     workflow_id = _create_workflow(authenticated_client, wf)
 
     # Execute with webhook data
-    body = {"backend": backend, "trigger": {"kind": "webhook"}, "input_data": {"data": {"foo": "bar"}}, "wait": True}
+    body = {
+        "backend": backend,
+        "trigger": {"kind": "webhook"},
+        "input_data": {"data": {"foo": "bar"}},
+        "wait": True,
+    }
     execution_id = _execute_workflow(authenticated_client, workflow_id, body)
 
     # For local backend: should be immediate; for dbos, may require polling DB endpoint
@@ -137,17 +165,27 @@ def test_webhook_minimal_e2e(authenticated_client: TestClient, backend: str):
     results = _get_results(authenticated_client, execution_id)
     step_results = results.get("step_results") or {}
     # We at least expect trigger present when engine context available
-    assert "trigger" in step_results or results.get("status") in ("completed", "waiting", "running")
+    assert "trigger" in step_results or results.get("status") in (
+        "completed",
+        "waiting",
+        "running",
+    )
 
 
 @pytest.mark.integration
 @pytest.mark.parametrize("backend", ["local", "dbos"])
-def test_non_ai_hybrid_with_tool_and_subflow(authenticated_client: TestClient, backend: str):
+def test_non_ai_hybrid_with_tool_and_subflow(
+    authenticated_client: TestClient, backend: str
+):
     # Create subflow first: it just echoes input
     echo_subflow = {
         "name": "Echo Subflow",
         "steps": [
-            {"step_id": "trigger", "step_type": "trigger", "parameters": {"kind": "webhook"}},
+            {
+                "step_id": "trigger",
+                "step_type": "trigger",
+                "parameters": {"kind": "webhook"},
+            },
             {
                 "step_id": "echo",
                 "step_type": "data_processing",
@@ -167,7 +205,11 @@ def test_non_ai_hybrid_with_tool_and_subflow(authenticated_client: TestClient, b
     workflow_id = _create_workflow(authenticated_client, wf)
 
     # Execute via backend
-    body = {"backend": backend, "trigger": {"kind": "webhook"}, "input_data": {"merge": {"a": 3, "b": 4}}}
+    body = {
+        "backend": backend,
+        "trigger": {"kind": "webhook"},
+        "input_data": {"merge": {"a": 3, "b": 4}},
+    }
     execution_id = _execute_workflow(authenticated_client, workflow_id, body)
 
     # Poll status until completed
@@ -212,7 +254,9 @@ def test_non_ai_hybrid_with_tool_and_subflow(authenticated_client: TestClient, b
         if add_res.get("success"):
             # If successful, verify numeric result
             result_val = str(add_res.get("result"))
-            assert any(c.isdigit() for c in result_val), f"Expected numeric result, got: {result_val}"
+            assert any(c.isdigit() for c in result_val), (
+                f"Expected numeric result, got: {result_val}"
+            )
         else:
             # If failed, just document the error (known issue with param mapping)
             print(f"Tool execution failed (known issue): {add_res.get('error')}")
@@ -263,7 +307,9 @@ def test_tool_success_and_unknown(authenticated_client: TestClient, backend: str
 
 @pytest.mark.integration
 @pytest.mark.parametrize("backend", ["local", "dbos"])
-def test_chat_with_attachment_small_text(authenticated_client: TestClient, backend: str, tmp_path: Path):
+def test_chat_with_attachment_small_text(
+    authenticated_client: TestClient, backend: str, tmp_path: Path
+):
     # Skip DBOS backend in test mode (DBOS is not initialized)
     if backend == "dbos" and os.environ.get("TESTING") == "true":
         pytest.skip("DBOS backend not available in test mode")

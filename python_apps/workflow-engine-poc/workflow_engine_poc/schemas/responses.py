@@ -7,8 +7,6 @@ have corresponding models in the SDK.
 
 from typing import Any, Dict, List, Optional, Literal
 from pydantic import BaseModel, Field
-from datetime import datetime
-import uuid as uuid_module
 
 
 # ============================================================================
@@ -43,14 +41,22 @@ class StepInfoResponse(BaseModel):
     description: Optional[str] = Field(default=None, description="Step description")
     category: Optional[str] = Field(default=None, description="Step category")
     parameters_schema: Dict[str, Any] = Field(description="Parameters JSON Schema")
-    return_schema: Optional[Dict[str, Any]] = Field(default=None, description="Return value schema")
-    execution_config: Optional[Dict[str, Any]] = Field(default=None, description="Execution configuration")
+    return_schema: Optional[Dict[str, Any]] = Field(
+        default=None, description="Return value schema"
+    )
+    execution_config: Optional[Dict[str, Any]] = Field(
+        default=None, description="Execution configuration"
+    )
     handler_url: Optional[str] = Field(default=None, description="Remote handler URL")
-    handler_method: Optional[str] = Field(default=None, description="HTTP method for handler")
+    handler_method: Optional[str] = Field(
+        default=None, description="HTTP method for handler"
+    )
     tags: Optional[List[str]] = Field(default=None, description="Step tags")
     version: str = Field(description="Step version")
     is_async: bool = Field(description="Whether step is async")
-    registered_at: Optional[str] = Field(default=None, description="Registration timestamp")
+    registered_at: Optional[str] = Field(
+        default=None, description="Registration timestamp"
+    )
 
 
 class RegisteredStepsResponse(BaseModel):
@@ -79,13 +85,17 @@ class BuiltinVariableInfo(BaseModel):
     description: str = Field(description="Description of what the variable provides")
     example: Optional[str] = Field(default=None, description="Example value")
     category: str = Field(description="Variable category (time, context, identifier)")
-    source: Literal["builtin", "context"] = Field(description="Whether variable is auto-generated or from execution context")
+    source: Literal["builtin", "context"] = Field(
+        description="Whether variable is auto-generated or from execution context"
+    )
 
 
 class BuiltinVariablesResponse(BaseModel):
     """Response model for listing builtin variables"""
 
-    variables: List[BuiltinVariableInfo] = Field(description="List of available builtin variables")
+    variables: List[BuiltinVariableInfo] = Field(
+        description="List of available builtin variables"
+    )
     total: int = Field(description="Total number of builtin variables")
 
 
@@ -119,9 +129,13 @@ class TraceInfo(BaseModel):
 
     trace_id: str = Field(description="Unique trace identifier")
     timestamp: str = Field(description="Trace timestamp")
-    duration_ms: Optional[float] = Field(default=None, description="Trace duration in milliseconds")
+    duration_ms: Optional[float] = Field(
+        default=None, description="Trace duration in milliseconds"
+    )
     status: Optional[str] = Field(default=None, description="Trace status")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional trace metadata")
+    metadata: Optional[Dict[str, Any]] = Field(
+        default=None, description="Additional trace metadata"
+    )
 
 
 class TracesResponse(BaseModel):
@@ -135,9 +149,15 @@ class TracesResponse(BaseModel):
 class MonitoringComponentStatus(BaseModel):
     """Status of a monitoring component"""
 
-    traces: Literal["active", "inactive", "degraded"] = Field(description="Traces component status")
-    metrics: Literal["active", "inactive", "degraded"] = Field(description="Metrics component status")
-    error_tracking: Literal["active", "inactive", "degraded"] = Field(description="Error tracking status")
+    traces: Literal["active", "inactive", "degraded"] = Field(
+        description="Traces component status"
+    )
+    metrics: Literal["active", "inactive", "degraded"] = Field(
+        description="Metrics component status"
+    )
+    error_tracking: Literal["active", "inactive", "degraded"] = Field(
+        description="Error tracking status"
+    )
 
 
 class MonitoringSummary(BaseModel):
@@ -146,15 +166,21 @@ class MonitoringSummary(BaseModel):
     active_traces: int = Field(default=0, description="Number of active traces")
     total_requests: int = Field(default=0, description="Total requests processed")
     error_rate: float = Field(default=0.0, description="Error rate (0.0 to 1.0)")
-    avg_response_time: float = Field(default=0.0, description="Average response time in ms")
+    avg_response_time: float = Field(
+        default=0.0, description="Average response time in ms"
+    )
 
 
 class MonitoringSummaryResponse(BaseModel):
     """Response model for monitoring summary endpoint"""
 
-    monitoring_status: Literal["active", "inactive", "degraded"] = Field(description="Overall monitoring status")
+    monitoring_status: Literal["active", "inactive", "degraded"] = Field(
+        description="Overall monitoring status"
+    )
     summary: MonitoringSummary = Field(description="Monitoring metrics summary")
-    components: MonitoringComponentStatus = Field(description="Status of monitoring components")
+    components: MonitoringComponentStatus = Field(
+        description="Status of monitoring components"
+    )
 
 
 class ExecutionSummary(BaseModel):
@@ -164,8 +190,12 @@ class ExecutionSummary(BaseModel):
     workflow_id: str = Field(description="Workflow ID")
     status: str = Field(description="Execution status")
     started_at: Optional[str] = Field(default=None, description="Start timestamp")
-    completed_at: Optional[str] = Field(default=None, description="Completion timestamp")
-    duration_ms: Optional[float] = Field(default=None, description="Execution duration in ms")
+    completed_at: Optional[str] = Field(
+        default=None, description="Completion timestamp"
+    )
+    duration_ms: Optional[float] = Field(
+        default=None, description="Execution duration in ms"
+    )
     step_count: Optional[int] = Field(default=None, description="Number of steps")
     error: Optional[str] = Field(default=None, description="Error message if failed")
 
@@ -173,11 +203,15 @@ class ExecutionSummary(BaseModel):
 class ExecutionAnalyticsResponse(BaseModel):
     """Response model for execution analytics endpoint"""
 
-    executions: List[ExecutionSummary] = Field(description="List of execution summaries")
+    executions: List[ExecutionSummary] = Field(
+        description="List of execution summaries"
+    )
     total: int = Field(description="Total number of executions")
     limit: int = Field(description="Limit applied")
     offset: int = Field(description="Offset applied")
-    filter: Optional[Dict[str, Any]] = Field(default=None, description="Filters applied")
+    filter: Optional[Dict[str, Any]] = Field(
+        default=None, description="Filters applied"
+    )
 
 
 class ErrorInfo(BaseModel):
@@ -188,26 +222,40 @@ class ErrorInfo(BaseModel):
     component: str = Field(description="Component where error occurred")
     error_type: str = Field(description="Type of error")
     message: str = Field(description="Error message")
-    stack_trace: Optional[str] = Field(default=None, description="Stack trace if available")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional error metadata")
+    stack_trace: Optional[str] = Field(
+        default=None, description="Stack trace if available"
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        default=None, description="Additional error metadata"
+    )
 
 
 class ErrorStatistics(BaseModel):
     """Error statistics summary"""
 
     total_errors: int = Field(description="Total number of errors")
-    errors_by_component: Dict[str, List[ErrorInfo]] = Field(description="Errors grouped by component")
+    errors_by_component: Dict[str, List[ErrorInfo]] = Field(
+        description="Errors grouped by component"
+    )
     recent_errors: List[ErrorInfo] = Field(description="Most recent errors")
-    last_updated: Optional[str] = Field(default=None, description="Last update timestamp")
+    last_updated: Optional[str] = Field(
+        default=None, description="Last update timestamp"
+    )
 
 
 class ErrorAnalyticsResponse(BaseModel):
     """Response model for error analytics endpoint"""
 
-    component: Optional[str] = Field(default=None, description="Component filter applied")
-    errors: Optional[List[ErrorInfo]] = Field(default=None, description="Errors for specific component")
+    component: Optional[str] = Field(
+        default=None, description="Component filter applied"
+    )
+    errors: Optional[List[ErrorInfo]] = Field(
+        default=None, description="Errors for specific component"
+    )
     total: Optional[int] = Field(default=None, description="Total errors for component")
-    statistics: Optional[ErrorStatistics] = Field(default=None, description="Full error statistics")
+    statistics: Optional[ErrorStatistics] = Field(
+        default=None, description="Full error statistics"
+    )
 
 
 # ============================================================================
@@ -218,7 +266,9 @@ class ErrorAnalyticsResponse(BaseModel):
 class HealthCheckResponse(BaseModel):
     """Response model for basic health check"""
 
-    status: Literal["healthy", "degraded", "unhealthy"] = Field(description="Health status")
+    status: Literal["healthy", "degraded", "unhealthy"] = Field(
+        description="Health status"
+    )
     registered_steps: int = Field(description="Number of registered steps")
     step_types: List[str] = Field(description="List of registered step types")
 
@@ -228,7 +278,9 @@ class RootHealthResponse(BaseModel):
 
     message: str = Field(description="Welcome message")
     version: str = Field(description="API version")
-    status: Literal["running", "starting", "stopping"] = Field(description="Service status")
+    status: Literal["running", "starting", "stopping"] = Field(
+        description="Service status"
+    )
 
 
 class SystemInfo(BaseModel):
@@ -241,10 +293,16 @@ class SystemInfo(BaseModel):
 class DetailedHealthCheckResponse(BaseModel):
     """Response model for detailed health check"""
 
-    status: Literal["healthy", "degraded", "unhealthy"] = Field(description="Health status")
+    status: Literal["healthy", "degraded", "unhealthy"] = Field(
+        description="Health status"
+    )
     timestamp: Optional[str] = Field(default=None, description="Health check timestamp")
-    error_statistics: Optional[ErrorStatistics] = Field(default=None, description="Error statistics")
-    system_info: Optional[SystemInfo] = Field(default=None, description="System information")
+    error_statistics: Optional[ErrorStatistics] = Field(
+        default=None, description="Error statistics"
+    )
+    system_info: Optional[SystemInfo] = Field(
+        default=None, description="System information"
+    )
     error: Optional[str] = Field(default=None, description="Error message if degraded")
 
 
@@ -260,7 +318,9 @@ class MonitoringHealthInfo(BaseModel):
 class MonitoringHealthCheckResponse(BaseModel):
     """Response model for monitoring health check"""
 
-    status: Literal["healthy", "degraded", "unhealthy"] = Field(description="Monitoring health status")
+    status: Literal["healthy", "degraded", "unhealthy"] = Field(
+        description="Monitoring health status"
+    )
     monitoring: MonitoringHealthInfo = Field(description="Monitoring metrics")
     error: Optional[str] = Field(default=None, description="Error message if degraded")
 
@@ -282,14 +342,18 @@ class SuccessResponse(BaseModel):
 
     success: bool = Field(description="Whether the operation succeeded")
     message: Optional[str] = Field(default=None, description="Optional message")
-    data: Optional[Dict[str, Any]] = Field(default=None, description="Optional response data")
+    data: Optional[Dict[str, Any]] = Field(
+        default=None, description="Optional response data"
+    )
 
 
 class ErrorResponse(BaseModel):
     """Generic error response"""
 
     error: str = Field(description="Error message")
-    detail: Optional[str] = Field(default=None, description="Detailed error information")
+    detail: Optional[str] = Field(
+        default=None, description="Detailed error information"
+    )
     code: Optional[str] = Field(default=None, description="Error code")
     timestamp: Optional[str] = Field(default=None, description="Error timestamp")
 
@@ -321,10 +385,16 @@ class ExecutionStatusResponse(BaseModel):
     workflow_id: str = Field(description="Workflow ID")
     status: str = Field(description="Current execution status")
     started_at: Optional[str] = Field(default=None, description="Start timestamp")
-    completed_at: Optional[str] = Field(default=None, description="Completion timestamp")
+    completed_at: Optional[str] = Field(
+        default=None, description="Completion timestamp"
+    )
     current_step: Optional[str] = Field(default=None, description="Current step ID")
-    progress: Optional[float] = Field(default=None, description="Progress percentage (0-100)")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Execution metadata")
+    progress: Optional[float] = Field(
+        default=None, description="Progress percentage (0-100)"
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        default=None, description="Execution metadata"
+    )
     error: Optional[str] = Field(default=None, description="Error message if failed")
 
 
@@ -336,6 +406,10 @@ class ExecutionResultsResponse(BaseModel):
     status: str = Field(description="Execution status")
     results: Dict[str, Any] = Field(description="Execution results")
     outputs: Optional[Dict[str, Any]] = Field(default=None, description="Step outputs")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Execution metadata")
+    metadata: Optional[Dict[str, Any]] = Field(
+        default=None, description="Execution metadata"
+    )
     started_at: Optional[str] = Field(default=None, description="Start timestamp")
-    completed_at: Optional[str] = Field(default=None, description="Completion timestamp")
+    completed_at: Optional[str] = Field(
+        default=None, description="Completion timestamp"
+    )

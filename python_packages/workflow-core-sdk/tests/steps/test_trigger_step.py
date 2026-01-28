@@ -36,7 +36,9 @@ class TestChatTrigger:
     """Tests for chat trigger type"""
 
     @pytest.mark.asyncio
-    async def test_chat_trigger_with_current_message(self, step_config, execution_context):
+    async def test_chat_trigger_with_current_message(
+        self, step_config, execution_context
+    ):
         """Test chat trigger with current message"""
         execution_context.step_io_data = {
             "trigger_raw": {
@@ -56,8 +58,14 @@ class TestChatTrigger:
         assert result["current_message"] == "Hello, how are you?"
         assert len(result["messages"]) == 3
         assert result["messages"][0] == {"role": "user", "content": "Previous message"}
-        assert result["messages"][1] == {"role": "assistant", "content": "Previous response"}
-        assert result["messages"][2] == {"role": "user", "content": "Hello, how are you?"}
+        assert result["messages"][1] == {
+            "role": "assistant",
+            "content": "Previous response",
+        }
+        assert result["messages"][2] == {
+            "role": "user",
+            "content": "Hello, how are you?",
+        }
         assert result["attachments"] == []
 
     @pytest.mark.asyncio
@@ -107,7 +115,9 @@ class TestChatTrigger:
         assert result["messages"][0] == {"role": "user", "content": "New conversation"}
 
     @pytest.mark.asyncio
-    async def test_chat_trigger_with_messages_array(self, step_config, execution_context):
+    async def test_chat_trigger_with_messages_array(
+        self, step_config, execution_context
+    ):
         """Test chat trigger with pre-formatted messages array"""
         execution_context.step_io_data = {
             "trigger_raw": {
@@ -125,11 +135,16 @@ class TestChatTrigger:
 
         assert result["kind"] == "chat"
         assert len(result["messages"]) == 4
-        assert result["messages"][0] == {"role": "system", "content": "You are a helpful assistant"}
+        assert result["messages"][0] == {
+            "role": "system",
+            "content": "You are a helpful assistant",
+        }
         assert result["messages"][3] == {"role": "user", "content": "How are you?"}
 
     @pytest.mark.asyncio
-    async def test_chat_trigger_nested_in_trigger_key(self, step_config, execution_context):
+    async def test_chat_trigger_nested_in_trigger_key(
+        self, step_config, execution_context
+    ):
         """Test chat trigger nested under 'trigger' key"""
         execution_context.step_io_data = {
             "trigger_raw": {
@@ -221,7 +236,9 @@ class TestWebhookTrigger:
         assert result["data"]["amount"] == 100.50
 
     @pytest.mark.asyncio
-    async def test_webhook_trigger_nested_in_trigger_key(self, step_config, execution_context):
+    async def test_webhook_trigger_nested_in_trigger_key(
+        self, step_config, execution_context
+    ):
         """Test webhook trigger nested under 'trigger' key"""
         execution_context.step_io_data = {
             "trigger_raw": {
@@ -284,7 +301,9 @@ class TestMessageParsing:
     """Tests for message parsing edge cases"""
 
     @pytest.mark.asyncio
-    async def test_invalid_message_format_in_history(self, step_config, execution_context):
+    async def test_invalid_message_format_in_history(
+        self, step_config, execution_context
+    ):
         """Test chat trigger with invalid message format in history"""
         execution_context.step_io_data = {
             "trigger_raw": {
@@ -307,7 +326,9 @@ class TestMessageParsing:
         assert result["messages"][1] == {"role": "user", "content": "Hello"}
 
     @pytest.mark.asyncio
-    async def test_invalid_message_format_in_messages_array(self, step_config, execution_context):
+    async def test_invalid_message_format_in_messages_array(
+        self, step_config, execution_context
+    ):
         """Test chat trigger with invalid message format in messages array"""
         execution_context.step_io_data = {
             "trigger_raw": {

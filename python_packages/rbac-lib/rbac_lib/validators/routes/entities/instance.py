@@ -1,16 +1,13 @@
-from fastapi import Path, Depends, Header, Query, Request, HTTPException
+from fastapi import Path, Depends, Header, Request, HTTPException
 from uuid import UUID
-from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from rbac_lib.utils.deps import get_db
 from rbac_lib.utils.api_error import ApiError
 from pprint import pprint
-from typing import Any, Optional, Type, Callable, Dict
+from typing import Any, Type
 
 from elevaitelib.orm.db import models
 from elevaitelib.schemas import (
-    application as application_schemas,
     api as api_schemas,
 )
 from rbac_lib.auth.impl import AccessTokenOrApikeyAuthentication
@@ -358,7 +355,7 @@ def validate_create_instance_factory(
         application_id: int = Path(..., description="id of connector application"),
     ) -> dict[str, Any]:
         db: Session = request.state.db
-        _path = f"/instance"
+        _path = "/instance"
         try:
             # Set the context flags in request.state
             current_frame = inspect.currentframe()

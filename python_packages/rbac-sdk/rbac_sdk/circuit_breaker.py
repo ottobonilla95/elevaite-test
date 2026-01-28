@@ -177,7 +177,7 @@ class CircuitBreaker:
             self._record_success()
             return result
 
-        except Exception as e:
+        except Exception:
             self._record_failure()
             if fallback is not None:
                 return fallback
@@ -249,4 +249,3 @@ class CircuitBreakerOpenError(Exception):
     """Raised when circuit breaker is open and rejects a call."""
 
     pass
-

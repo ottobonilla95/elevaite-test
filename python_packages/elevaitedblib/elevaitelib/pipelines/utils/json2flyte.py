@@ -27,7 +27,6 @@ def execute_script(
             with open(src, "r") as script:
                 exec(script.read(), exec_globals)
         elif task_type == "jupyternotebook":
-
             execute_notebook(
                 input_path=src,
                 output_path=f"/tmp/{task_id}_output.ipynb",

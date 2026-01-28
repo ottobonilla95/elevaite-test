@@ -122,7 +122,6 @@ class TestPasswordResetFlow:
     async def test_test_credentials_trigger_password_reset(self, test_client):
         """Test that the test credentials trigger the password reset flow."""
         # Create a test user with temporary password
-        from sqlalchemy.ext.asyncio import AsyncSession
         from sqlalchemy import text
         from app.db.orm import get_async_session
         from app.core.security import get_password_hash

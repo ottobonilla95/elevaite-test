@@ -138,7 +138,9 @@ class OAuth2Interceptor(ClientCallInterceptor):
         return request_payload, http_kwargs
 
 
-def create_auth_interceptor(auth_config: A2AAuthConfig) -> Optional[ClientCallInterceptor]:
+def create_auth_interceptor(
+    auth_config: A2AAuthConfig,
+) -> Optional[ClientCallInterceptor]:
     """Create an appropriate interceptor based on auth configuration.
 
     Args:
@@ -181,4 +183,3 @@ def create_auth_interceptor(auth_config: A2AAuthConfig) -> Optional[ClientCallIn
         )
 
     return None
-

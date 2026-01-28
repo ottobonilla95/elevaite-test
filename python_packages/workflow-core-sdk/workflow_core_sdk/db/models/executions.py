@@ -6,11 +6,10 @@ Uses the simplified approach: single table model + response models that extend i
 """
 
 import uuid as uuid_module
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from datetime import datetime
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, JSON, Text, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
 from enum import Enum
 
 from .base import get_utc_datetime
@@ -46,29 +45,55 @@ class WorkflowExecutionBase(SQLModel):
     """Base workflow execution model with common fields"""
 
     # Foreign key to workflow
-    workflow_id: uuid_module.UUID = Field(description="ID of the workflow being executed")
+    workflow_id: uuid_module.UUID = Field(
+        description="ID of the workflow being executed"
+    )
 
     # User context
-    user_id: Optional[str] = Field(default=None, max_length=255, description="User who triggered the execution")
-    session_id: Optional[str] = Field(default=None, max_length=255, description="Session ID for tracking")
-    organization_id: Optional[str] = Field(default=None, max_length=255, description="Organization ID")
+    user_id: Optional[str] = Field(
+        default=None, max_length=255, description="User who triggered the execution"
+    )
+    session_id: Optional[str] = Field(
+        default=None, max_length=255, description="Session ID for tracking"
+    )
+    organization_id: Optional[str] = Field(
+        default=None, max_length=255, description="Organization ID"
+    )
 
     # Execution state
-    status: ExecutionStatus = Field(default=ExecutionStatus.PENDING, description="Current execution status")
+    status: ExecutionStatus = Field(
+        default=ExecutionStatus.PENDING, description="Current execution status"
+    )
 
     # Data fields (as regular Dict for base class)
-    input_data: Dict[str, Any] = Field(default_factory=dict, description="Initial input data for the workflow")
-    output_data: Dict[str, Any] = Field(default_factory=dict, description="Final output data from the workflow")
-    step_io_data: Dict[str, Any] = Field(default_factory=dict, description="Input/output data for all steps")
-    execution_metadata: Dict[str, Any] = Field(default_factory=dict, description="Execution metadata and analytics")
+    input_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Initial input data for the workflow"
+    )
+    output_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Final output data from the workflow"
+    )
+    step_io_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Input/output data for all steps"
+    )
+    execution_metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Execution metadata and analytics"
+    )
 
     # Error handling
-    error_message: Optional[str] = Field(default=None, description="Error message if execution failed")
+    error_message: Optional[str] = Field(
+        default=None, description="Error message if execution failed"
+    )
 
     # Timing
-    started_at: Optional[datetime] = Field(default=None, description="When execution started")
-    completed_at: Optional[datetime] = Field(default=None, description="When execution completed")
-    execution_time_seconds: Optional[float] = Field(default=None, description="Total execution time in seconds")
+    started_at: Optional[datetime] = Field(
+        default=None, description="When execution started"
+    )
+    completed_at: Optional[datetime] = Field(
+        default=None, description="When execution completed"
+    )
+    execution_time_seconds: Optional[float] = Field(
+        default=None, description="Total execution time in seconds"
+    )
 
 
 # Database table model (inherits base + adds table-specific fields)
@@ -112,15 +137,25 @@ class WorkflowExecution(WorkflowExecutionBase, table=True):
     )
 
     # Foreign key to workflow (references Workflow.id)
-    workflow_id: uuid_module.UUID = Field(description="ID of the workflow being executed")
+    workflow_id: uuid_module.UUID = Field(
+        description="ID of the workflow being executed"
+    )
 
     # User context
-    user_id: Optional[str] = Field(default=None, max_length=255, description="User who triggered the execution")
-    session_id: Optional[str] = Field(default=None, max_length=255, description="Session ID for tracking")
-    organization_id: Optional[str] = Field(default=None, max_length=255, description="Organization ID")
+    user_id: Optional[str] = Field(
+        default=None, max_length=255, description="User who triggered the execution"
+    )
+    session_id: Optional[str] = Field(
+        default=None, max_length=255, description="Session ID for tracking"
+    )
+    organization_id: Optional[str] = Field(
+        default=None, max_length=255, description="Organization ID"
+    )
 
     # Execution state
-    status: ExecutionStatus = Field(default=ExecutionStatus.PENDING, description="Current execution status")
+    status: ExecutionStatus = Field(
+        default=ExecutionStatus.PENDING, description="Current execution status"
+    )
 
     # Data fields
     input_data: Dict[str, Any] = Field(
@@ -152,9 +187,15 @@ class WorkflowExecution(WorkflowExecutionBase, table=True):
     )
 
     # Timing
-    started_at: Optional[datetime] = Field(default=None, description="When execution started")
-    completed_at: Optional[datetime] = Field(default=None, description="When execution completed")
-    execution_time_seconds: Optional[float] = Field(default=None, description="Total execution time in seconds")
+    started_at: Optional[datetime] = Field(
+        default=None, description="When execution started"
+    )
+    completed_at: Optional[datetime] = Field(
+        default=None, description="When execution completed"
+    )
+    execution_time_seconds: Optional[float] = Field(
+        default=None, description="Total execution time in seconds"
+    )
 
     # Timestamps
     created_at: datetime = Field(
@@ -174,30 +215,54 @@ class StepExecutionBase(SQLModel):
     """Base step execution model with common fields"""
 
     # Foreign key to workflow execution
-    workflow_execution_id: uuid_module.UUID = Field(description="ID of the workflow execution")
+    workflow_execution_id: uuid_module.UUID = Field(
+        description="ID of the workflow execution"
+    )
 
     # Step identification
-    step_id: str = Field(max_length=255, description="ID of the step from workflow configuration")
+    step_id: str = Field(
+        max_length=255, description="ID of the step from workflow configuration"
+    )
     step_name: str = Field(max_length=255, description="Name of the step")
     step_type: str = Field(max_length=100, description="Type of step being executed")
 
     # Execution state
-    status: StepStatus = Field(default=StepStatus.PENDING, description="Current step status")
+    status: StepStatus = Field(
+        default=StepStatus.PENDING, description="Current step status"
+    )
 
     # Data fields
-    input_data: Dict[str, Any] = Field(default_factory=dict, description="Input data for the step")
-    output_data: Dict[str, Any] = Field(default_factory=dict, description="Output data from the step")
-    step_config: Dict[str, Any] = Field(default_factory=dict, description="Step configuration used for execution")
+    input_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Input data for the step"
+    )
+    output_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Output data from the step"
+    )
+    step_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Step configuration used for execution"
+    )
 
     # Error handling
-    error_message: Optional[str] = Field(default=None, description="Error message if step failed")
+    error_message: Optional[str] = Field(
+        default=None, description="Error message if step failed"
+    )
 
     # Timing and execution details
-    started_at: Optional[datetime] = Field(default=None, description="When step execution started")
-    completed_at: Optional[datetime] = Field(default=None, description="When step execution completed")
-    execution_time_seconds: Optional[float] = Field(default=None, description="Step execution time in seconds")
-    retry_count: int = Field(default=0, description="Number of times this step was retried")
-    step_order: Optional[int] = Field(default=None, description="Order of execution within the workflow")
+    started_at: Optional[datetime] = Field(
+        default=None, description="When step execution started"
+    )
+    completed_at: Optional[datetime] = Field(
+        default=None, description="When step execution completed"
+    )
+    execution_time_seconds: Optional[float] = Field(
+        default=None, description="Step execution time in seconds"
+    )
+    retry_count: int = Field(
+        default=0, description="Number of times this step was retried"
+    )
+    step_order: Optional[int] = Field(
+        default=None, description="Order of execution within the workflow"
+    )
 
 
 # Step execution table model (inherits base + adds table-specific fields)
@@ -212,15 +277,21 @@ class StepExecution(StepExecutionBase, table=True):
     )
 
     # Foreign key to workflow execution
-    workflow_execution_id: uuid_module.UUID = Field(description="ID of the workflow execution")
+    workflow_execution_id: uuid_module.UUID = Field(
+        description="ID of the workflow execution"
+    )
 
     # Step identification
-    step_id: str = Field(max_length=255, description="ID of the step from workflow configuration")
+    step_id: str = Field(
+        max_length=255, description="ID of the step from workflow configuration"
+    )
     step_name: str = Field(max_length=255, description="Name of the step")
     step_type: str = Field(max_length=100, description="Type of step being executed")
 
     # Execution state
-    status: StepStatus = Field(default=StepStatus.PENDING, description="Current step status")
+    status: StepStatus = Field(
+        default=StepStatus.PENDING, description="Current step status"
+    )
 
     # Data fields
     input_data: Dict[str, Any] = Field(
@@ -240,14 +311,26 @@ class StepExecution(StepExecutionBase, table=True):
     )
 
     # Error handling
-    error_message: Optional[str] = Field(default=None, sa_column=Column(Text), description="Error message if step failed")
+    error_message: Optional[str] = Field(
+        default=None, sa_column=Column(Text), description="Error message if step failed"
+    )
 
     # Timing and execution details
-    started_at: Optional[datetime] = Field(default=None, description="When step execution started")
-    completed_at: Optional[datetime] = Field(default=None, description="When step execution completed")
-    execution_time_seconds: Optional[float] = Field(default=None, description="Step execution time in seconds")
-    retry_count: int = Field(default=0, description="Number of times this step was retried")
-    step_order: Optional[int] = Field(default=None, description="Order of execution within the workflow")
+    started_at: Optional[datetime] = Field(
+        default=None, description="When step execution started"
+    )
+    completed_at: Optional[datetime] = Field(
+        default=None, description="When step execution completed"
+    )
+    execution_time_seconds: Optional[float] = Field(
+        default=None, description="Step execution time in seconds"
+    )
+    retry_count: int = Field(
+        default=0, description="Number of times this step was retried"
+    )
+    step_order: Optional[int] = Field(
+        default=None, description="Order of execution within the workflow"
+    )
 
     # Timestamps
     created_at: datetime = Field(
@@ -272,9 +355,15 @@ class WorkflowExecutionRead(WorkflowExecutionBase):
     updated_at: Optional[datetime] = None
 
     # Optional step summary (computed fields)
-    total_steps: Optional[int] = Field(default=None, description="Total number of steps")
-    completed_steps: Optional[int] = Field(default=None, description="Number of completed steps")
-    failed_steps: Optional[int] = Field(default=None, description="Number of failed steps")
+    total_steps: Optional[int] = Field(
+        default=None, description="Total number of steps"
+    )
+    completed_steps: Optional[int] = Field(
+        default=None, description="Number of completed steps"
+    )
+    failed_steps: Optional[int] = Field(
+        default=None, description="Number of failed steps"
+    )
 
 
 class StepExecutionRead(StepExecutionBase):

@@ -99,7 +99,9 @@ class TestGetTraces:
     def test_get_traces_with_limit(self, mock_get_traces):
         """Test getting traces with custom limit"""
         # Create 150 mock traces
-        mock_traces = [{"trace_id": f"trace-{i}", "operation": "test"} for i in range(150)]
+        mock_traces = [
+            {"trace_id": f"trace-{i}", "operation": "test"} for i in range(150)
+        ]
         mock_get_traces.return_value = mock_traces
 
         response = client.get("/monitoring/traces?limit=50")
@@ -110,7 +112,9 @@ class TestGetTraces:
         assert data["limit"] == 50
         # Should return last 50 traces
         assert len(data["traces"]) == 50
-        assert data["traces"][0]["trace_id"] == "trace-100"  # Last 50 start at index 100
+        assert (
+            data["traces"][0]["trace_id"] == "trace-100"
+        )  # Last 50 start at index 100
 
     @patch("workflow_engine_poc.routers.monitoring.monitoring.get_traces")
     @pytest.mark.api
@@ -206,20 +210,28 @@ class TestGetExecutionAnalytics:
             "status": "running",
             "duration_ms": None,
         }
-        mock_engine.get_execution_history = AsyncMock(return_value=[mock_execution_1, mock_execution_2])
+        mock_engine.get_execution_history = AsyncMock(
+            return_value=[mock_execution_1, mock_execution_2]
+        )
 
         # Mock request with app state
         mock_request = MagicMock()
         mock_request.app.state.workflow_engine = mock_engine
 
         # Patch the request parameter
-        with patch("workflow_engine_poc.routers.monitoring.Request", return_value=mock_request):
+        with patch(
+            "workflow_engine_poc.routers.monitoring.Request", return_value=mock_request
+        ):
             # Need to inject the mock request into the endpoint
             # This is tricky with TestClient, so let's call the endpoint directly
             from workflow_engine_poc.routers.monitoring import get_execution_analytics
             import asyncio
 
-            result = asyncio.run(get_execution_analytics(limit=100, offset=0, status=None, request=mock_request))
+            result = asyncio.run(
+                get_execution_analytics(
+                    limit=100, offset=0, status=None, request=mock_request
+                )
+            )
 
         assert result["total"] == 2
         assert result["limit"] == 100
@@ -246,14 +258,18 @@ class TestGetExecutionAnalytics:
         import asyncio
 
         result = asyncio.run(
-            get_execution_analytics(limit=50, offset=10, status="completed", request=mock_request)
+            get_execution_analytics(
+                limit=50, offset=10, status="completed", request=mock_request
+            )
         )
 
         assert result["limit"] == 50
         assert result["offset"] == 10
         assert result["filter"]["status"] == "completed"
         # Verify the engine was called with correct parameters
-        mock_engine.get_execution_history.assert_called_once_with(limit=50, offset=10, status="completed")
+        mock_engine.get_execution_history.assert_called_once_with(
+            limit=50, offset=10, status="completed"
+        )
 
 
 # ========== Error Analytics Tests ==========
@@ -271,8 +287,12 @@ class TestGetErrorAnalytics:
             "total_errors": 10,
             "errors_by_type": {"ValueError": 5, "TypeError": 3, "RuntimeError": 2},
             "errors_by_component": {
-                "workflow_engine": [{"error": "Error 1", "timestamp": "2024-01-01T00:00:00Z"}],
-                "step_executor": [{"error": "Error 2", "timestamp": "2024-01-01T00:01:00Z"}],
+                "workflow_engine": [
+                    {"error": "Error 1", "timestamp": "2024-01-01T00:00:00Z"}
+                ],
+                "step_executor": [
+                    {"error": "Error 2", "timestamp": "2024-01-01T00:01:00Z"}
+                ],
             },
         }
         mock_get_stats.return_value = mock_stats
@@ -333,4 +353,3 @@ class TestGetErrorAnalytics:
 
         assert response.status_code == 500
         assert "Error stats collection failed" in response.json()["detail"]
-

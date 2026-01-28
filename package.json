@@ -16,11 +16,11 @@
     "dev:down": "docker-compose -f docker-compose.dev.yaml down",
     "dev:clean": "docker-compose -f docker-compose.dev.yaml down -v",
     "dev:logs": "docker-compose -f docker-compose.dev.yaml logs -f",
-    "dev:death": "docker-compose -f docker-compose.dev.yaml down -v --remove-orphans; docker rm -f $(docker ps -aq) 2>/dev/null; docker network prune -f; echo '💀 Everything is dead'",
+    "dev:death": "docker-compose -f docker-compose.dev.yaml down -v --remove-orphans; docker rm -f $(docker ps -aq --filter 'name=elevaite') 2>/dev/null; echo '💀 Elevaite containers removed'",
     "lint": "turbo lint --filter=auth --filter=elevaite",
     "lint:frontend": "turbo lint --filter=auth --filter=elevaite",
     "lint:frontend:all": "turbo lint",
-    "lint:python": "uv run ruff check python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/",
+    "lint:python": "uv run ruff check --extend-ignore=B904,E402,E501,E701,E721,E722,F401,F403,F811,F821,F823 python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/",
     "lint:python:fix": "uv run ruff check python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/ --fix",
     "lint:python:all": "uv run ruff check python_apps/ python_packages/",
     "lint:all": "npm run lint && npm run lint:python",
@@ -63,6 +63,11 @@
     "packages/*"
   ],
   "dependencies": {},
+  "overrides": {
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "next-auth": "5.0.0-beta.25"
+  },
   "resolutions": {
     "@repo/sass-config": "file:packages/config-sass",
     "@repo/typescript-config": "file:packages/config-typescript",

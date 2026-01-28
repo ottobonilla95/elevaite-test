@@ -12,7 +12,7 @@ import os
 import asyncio
 import pytest
 import uuid
-from typing import AsyncGenerator, Generator, Dict, Any
+from typing import Generator, Dict
 from unittest.mock import Mock, AsyncMock, patch
 
 from fastapi.testclient import TestClient
@@ -60,16 +60,22 @@ def _mock_guard_factory(action: str):
 
 
 # Patch before importing the app
-_rbac_patcher = patch("workflow_engine_poc.util.api_key_or_user_guard", side_effect=_mock_guard_factory)
+_rbac_patcher = patch(
+    "workflow_engine_poc.util.api_key_or_user_guard", side_effect=_mock_guard_factory
+)
 _rbac_patcher.start()
 
 # Also patch superadmin_guard for tenant admin endpoints
 # We need to patch both the util module and the tenant_admin module where it's imported
-_superadmin_patcher = patch("workflow_engine_poc.util.superadmin_guard", side_effect=_mock_guard_factory)
+_superadmin_patcher = patch(
+    "workflow_engine_poc.util.superadmin_guard", side_effect=_mock_guard_factory
+)
 _superadmin_patcher.start()
 
 # Patch at the tenant_admin module level as well (where it's imported)
-_superadmin_tenant_patcher = patch("workflow_engine_poc.tenant_admin.superadmin_guard", side_effect=_mock_guard_factory)
+_superadmin_tenant_patcher = patch(
+    "workflow_engine_poc.tenant_admin.superadmin_guard", side_effect=_mock_guard_factory
+)
 _superadmin_tenant_patcher.start()
 
 from workflow_engine_poc.main import app
@@ -290,7 +296,9 @@ def mock_rbac_allow_fixture():
         return mock_guard
 
     # Patch the guard factory function
-    with patch("workflow_engine_poc.util.api_key_or_user_guard", side_effect=mock_guard_factory):
+    with patch(
+        "workflow_engine_poc.util.api_key_or_user_guard", side_effect=mock_guard_factory
+    ):
         yield
 
 
@@ -308,7 +316,9 @@ def mock_rbac_deny_fixture():
         return mock_guard
 
     # Patch the guard factory function
-    with patch("workflow_engine_poc.util.api_key_or_user_guard", side_effect=mock_guard_factory):
+    with patch(
+        "workflow_engine_poc.util.api_key_or_user_guard", side_effect=mock_guard_factory
+    ):
         yield
 
 
@@ -509,7 +519,8 @@ def setup_test_environment():
             "SKIP_EXTERNAL_SERVICES": "true",
             # Only use mock keys if real keys not already set
             "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY") or "sk-test-mock-key",
-            "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_API_KEY") or "sk-ant-test-mock-key",
+            "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_API_KEY")
+            or "sk-ant-test-mock-key",
             "REDIS_HOST": "localhost",
             "REDIS_PORT": "6379",
         }

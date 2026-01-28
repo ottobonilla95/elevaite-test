@@ -40,7 +40,9 @@ class PyPDFTool:
                         if page_text.strip():
                             text_content.append(f"Page {page_num + 1}:\n{page_text}")
                     except Exception as e:
-                        logger.warning(f"Failed to extract text from page {page_num + 1}: {e}")
+                        logger.warning(
+                            f"Failed to extract text from page {page_num + 1}: {e}"
+                        )
                         continue
 
             if not text_content:
@@ -48,7 +50,9 @@ class PyPDFTool:
                 return f"No text content extracted from {os.path.basename(file_path)}"
 
             full_text = "\n\n".join(text_content)
-            logger.info(f"Successfully extracted {len(full_text)} characters from {file_path}")
+            logger.info(
+                f"Successfully extracted {len(full_text)} characters from {file_path}"
+            )
             return full_text
 
         except Exception as e:

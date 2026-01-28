@@ -19,22 +19,22 @@ SUPERUSER_TOKEN = "your-superuser-token-here"
 async def setup_user_project_access():
     """
     Example: Set up access for multiple users on multiple projects
-    
+
     Scenario:
     - Alice: Admin on project-123, Viewer on project-456
     - Bob: Editor on project-123, Editor on project-456
     - Charlie: Viewer on project-456 only
     """
-    
+
     async with httpx.AsyncClient() as client:
         headers = {
             "Authorization": f"Bearer {SUPERUSER_TOKEN}",
             "Content-Type": "application/json",
         }
-        
+
         # Alice's permissions
         print("Setting up Alice's permissions...")
-        
+
         # Alice is admin on project-123
         response = await client.post(
             f"{AUTH_API_URL}/api/rbac/role-assignments",
@@ -47,7 +47,7 @@ async def setup_user_project_access():
             headers=headers,
         )
         print(f"  Alice admin on project-123: {response.status_code}")
-        
+
         # Alice is viewer on project-456
         response = await client.post(
             f"{AUTH_API_URL}/api/rbac/role-assignments",
@@ -60,10 +60,10 @@ async def setup_user_project_access():
             headers=headers,
         )
         print(f"  Alice viewer on project-456: {response.status_code}")
-        
+
         # Bob's permissions
         print("\nSetting up Bob's permissions...")
-        
+
         # Bob is editor on both projects
         for project_id in ["project-123", "project-456"]:
             response = await client.post(
@@ -77,10 +77,10 @@ async def setup_user_project_access():
                 headers=headers,
             )
             print(f"  Bob editor on {project_id}: {response.status_code}")
-        
+
         # Charlie's permissions
         print("\nSetting up Charlie's permissions...")
-        
+
         # Charlie is viewer on project-456 only
         response = await client.post(
             f"{AUTH_API_URL}/api/rbac/role-assignments",
@@ -99,13 +99,13 @@ async def test_authorization():
     """
     Test authorization for different users and actions
     """
-    
+
     async with httpx.AsyncClient() as client:
         headers = {
             "Authorization": f"Bearer {SUPERUSER_TOKEN}",
             "Content-Type": "application/json",
         }
-        
+
         test_cases = [
             # Alice tests
             {
@@ -195,11 +195,11 @@ async def test_authorization():
                 "expected": False,
             },
         ]
-        
+
         print("\n" + "=" * 80)
         print("Testing Authorization")
         print("=" * 80)
-        
+
         for test in test_cases:
             response = await client.post(
                 f"{AUTH_API_URL}/api/authz/check_access",
@@ -210,10 +210,10 @@ async def test_authorization():
                 },
                 headers=headers,
             )
-            
+
             result = response.json()
             allowed = result.get("allowed", False)
-            
+
             status = "✅ PASS" if allowed == test["expected"] else "❌ FAIL"
             print(f"{status} - {test['name']}")
             if allowed != test["expected"]:
@@ -226,13 +226,13 @@ async def main():
     print("=" * 80)
     print("User/Project-Specific Access Example")
     print("=" * 80)
-    
+
     # Step 1: Set up permissions
     await setup_user_project_access()
-    
+
     # Step 2: Test authorization
     await test_authorization()
-    
+
     print("\n" + "=" * 80)
     print("Example complete!")
     print("=" * 80)
@@ -240,4 +240,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

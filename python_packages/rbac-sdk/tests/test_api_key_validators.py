@@ -11,13 +11,10 @@ These tests cover:
 
 import pytest
 import os
-import sys
-import time
 from unittest.mock import Mock, patch
 from rbac_sdk.fastapi_helpers import (
     api_key_http_validator,
     api_key_jwt_validator,
-    HDR_API_KEY,
 )
 
 
@@ -127,7 +124,9 @@ class TestApiKeyHttpValidator:
         mock_response.json.return_value = {"user_id": "123"}
         mock_post.return_value = mock_response
 
-        validator = api_key_http_validator(base_url="http://auth-api:8004", path="/custom/validate")
+        validator = api_key_http_validator(
+            base_url="http://auth-api:8004", path="/custom/validate"
+        )
         request = Mock()
         validator("test-key", request)
 
@@ -142,7 +141,9 @@ class TestApiKeyHttpValidator:
         mock_response.json.return_value = {"user_id": "123"}
         mock_post.return_value = mock_response
 
-        validator = api_key_http_validator(base_url="http://auth-api:8004", header_name="X-Custom-ApiKey")
+        validator = api_key_http_validator(
+            base_url="http://auth-api:8004", header_name="X-Custom-ApiKey"
+        )
         request = Mock()
         validator("test-key", request)
 
@@ -158,7 +159,9 @@ class TestApiKeyHttpValidator:
         mock_response.json.return_value = {"user_id": "123"}
         mock_post.return_value = mock_response
 
-        validator = api_key_http_validator(base_url="http://auth-api:8004", extra_headers={"X-Tenant-ID": "tenant-123"})
+        validator = api_key_http_validator(
+            base_url="http://auth-api:8004", extra_headers={"X-Tenant-ID": "tenant-123"}
+        )
         request = Mock()
         validator("test-key", request)
 
@@ -173,7 +176,9 @@ class TestApiKeyHttpValidator:
         mock_response.json.return_value = {"user_id": "123"}
         mock_post.return_value = mock_response
 
-        validator = api_key_http_validator(base_url="http://auth-api:8004", timeout=10.0)
+        validator = api_key_http_validator(
+            base_url="http://auth-api:8004", timeout=10.0
+        )
         request = Mock()
         validator("test-key", request)
 
@@ -218,7 +223,9 @@ class TestApiKeyHttpValidatorCaching:
         mock_response.json.return_value = {"user_id": "123"}
         mock_post.return_value = mock_response
 
-        validator = api_key_http_validator(base_url="http://auth-api:8004", cache_ttl=60.0)
+        validator = api_key_http_validator(
+            base_url="http://auth-api:8004", cache_ttl=60.0
+        )
         request = Mock()
 
         # First call
@@ -242,7 +249,9 @@ class TestApiKeyHttpValidatorCaching:
         mock_response.json.return_value = {"user_id": "123"}
         mock_post.return_value = mock_response
 
-        validator = api_key_http_validator(base_url="http://auth-api:8004", cache_ttl=60.0)
+        validator = api_key_http_validator(
+            base_url="http://auth-api:8004", cache_ttl=60.0
+        )
         request = Mock()
 
         # First call at t=1000
@@ -261,7 +270,9 @@ class TestApiKeyHttpValidatorCaching:
         mock_response.json.return_value = {"user_id": "123"}
         mock_post.return_value = mock_response
 
-        validator = api_key_http_validator(base_url="http://auth-api:8004", cache_ttl=0.0)
+        validator = api_key_http_validator(
+            base_url="http://auth-api:8004", cache_ttl=0.0
+        )
         request = Mock()
 
         # First call
@@ -274,7 +285,9 @@ class TestApiKeyHttpValidatorCaching:
 
     @patch("rbac_sdk.fastapi_helpers.requests.post")
     @patch("rbac_sdk.fastapi_helpers.time.time")
-    def test_http_validator_different_keys_not_cached_together(self, mock_time, mock_post):
+    def test_http_validator_different_keys_not_cached_together(
+        self, mock_time, mock_post
+    ):
         """Test that different API keys are cached separately."""
         mock_time.return_value = 1000.0
         mock_response = Mock()
@@ -282,7 +295,9 @@ class TestApiKeyHttpValidatorCaching:
         mock_response.json.return_value = {"user_id": "123"}
         mock_post.return_value = mock_response
 
-        validator = api_key_http_validator(base_url="http://auth-api:8004", cache_ttl=60.0)
+        validator = api_key_http_validator(
+            base_url="http://auth-api:8004", cache_ttl=60.0
+        )
         request = Mock()
 
         # First key
@@ -300,7 +315,9 @@ class TestApiKeyHttpValidatorCaching:
         mock_response.status_code = 401
         mock_post.return_value = mock_response
 
-        validator = api_key_http_validator(base_url="http://auth-api:8004", cache_ttl=60.0)
+        validator = api_key_http_validator(
+            base_url="http://auth-api:8004", cache_ttl=60.0
+        )
         request = Mock()
 
         # First call - fails
@@ -384,7 +401,9 @@ class TestApiKeyJwtValidator:
             algorithm="HS256",
         )
 
-        validator = api_key_jwt_validator(algorithm="HS256", secret=secret, require_type="api_key")
+        validator = api_key_jwt_validator(
+            algorithm="HS256", secret=secret, require_type="api_key"
+        )
         request = Mock()
         user_id = validator(token, request)
 
@@ -454,13 +473,17 @@ class TestApiKeyJwtValidator:
             algorithm="HS256",
         )
 
-        validator = api_key_jwt_validator(algorithm="HS256", secret=secret, require_type=None)
+        validator = api_key_jwt_validator(
+            algorithm="HS256", secret=secret, require_type=None
+        )
         request = Mock()
         user_id = validator(token, request)
 
         assert user_id == "user-123"
 
-    @patch.dict(os.environ, {"API_KEY_ALGORITHM": "HS256", "API_KEY_SECRET": "env-secret-key"})
+    @patch.dict(
+        os.environ, {"API_KEY_ALGORITHM": "HS256", "API_KEY_SECRET": "env-secret-key"}
+    )
     def test_jwt_validator_uses_env_vars(self):
         """Test that environment variables are used when parameters not provided."""
         from jose import jwt

@@ -9,21 +9,18 @@ import asyncio
 import os
 
 import logging
-from typing import Dict, Any, List, Optional, Union, Set
-from datetime import datetime
+from typing import Dict, Any, List, Optional, Union
 
-from .execution.context_impl import ExecutionContext, StepResult
-from .schemas.workflows import StepConfig, StepBase
+from .execution.context_impl import ExecutionContext
+from .schemas.workflows import StepBase
 
 # Prefer SDK status enums; fallback to local if SDK unavailable
 from .models import ExecutionStatus, StepStatus
-from .execution.registry_impl import StepRegistry
 from .execution.error_handling import (
     error_handler,
     RetryConfig,
     RetryStrategy,
     ErrorSeverity,
-    StepExecutionError,
     ValidationError,
     RetryableError,
     NonRetryableError,
@@ -61,7 +58,9 @@ class WorkflowEngine:
         self.active_executions: Dict[str, ExecutionContext] = {}
         self.execution_history: List[ExecutionContext] = []
 
-    async def execute_workflow(self, execution_context: ExecutionContext) -> ExecutionContext:
+    async def execute_workflow(
+        self, execution_context: ExecutionContext
+    ) -> ExecutionContext:
         """
         Execute a workflow using the provided execution context.
 
@@ -82,9 +81,13 @@ class WorkflowEngine:
             logger.info(f"Starting workflow execution: {execution_id}")
 
             # Start workflow tracing
-            with monitoring.trace_workflow_execution(workflow_id=execution_context.workflow_id, execution_id=execution_id):
+            with monitoring.trace_workflow_execution(
+                workflow_id=execution_context.workflow_id, execution_id=execution_id
+            ):
                 # Determine execution pattern
-                execution_pattern = execution_context.workflow_config.get("execution_pattern", "sequential")
+                execution_pattern = execution_context.workflow_config.get(
+                    "execution_pattern", "sequential"
+                )
 
                 if execution_pattern == "sequential":
                     await self._execute_sequential(execution_context)
@@ -108,8 +111,14 @@ class WorkflowEngine:
 
                     seconds = None
                     try:
-                        if execution_context.started_at and execution_context.completed_at:
-                            seconds = (execution_context.completed_at - execution_context.started_at).total_seconds()
+                        if (
+                            execution_context.started_at
+                            and execution_context.completed_at
+                        ):
+                            seconds = (
+                                execution_context.completed_at
+                                - execution_context.started_at
+                            ).total_seconds()
                     except Exception:
                         pass
 
@@ -126,12 +135,19 @@ class WorkflowEngine:
                             },
                         )
                 except Exception as _persist_e:
-                    logger.warning(f"Failed to persist final execution state: {_persist_e}")
+                    logger.warning(
+                        f"Failed to persist final execution state: {_persist_e}"
+                    )
 
                 # Persist workflow-level analytics rollup (tokens-only)
                 try:
                     # Sum tokens across agent steps
-                    totals = {"tokens_in": 0, "tokens_out": 0, "total_tokens": 0, "llm_calls": 0}
+                    totals = {
+                        "tokens_in": 0,
+                        "tokens_out": 0,
+                        "total_tokens": 0,
+                        "llm_calls": 0,
+                    }
                     for sid, step in execution_context.step_results.items():
                         od = step.output_data or {}
                         if isinstance(od, dict) and od.get("usage"):
@@ -139,7 +155,9 @@ class WorkflowEngine:
                             try:
                                 totals["tokens_in"] += int(u.get("tokens_in", 0) or 0)
                                 totals["tokens_out"] += int(u.get("tokens_out", 0) or 0)
-                                totals["total_tokens"] += int(u.get("total_tokens", 0) or 0)
+                                totals["total_tokens"] += int(
+                                    u.get("total_tokens", 0) or 0
+                                )
                                 totals["llm_calls"] += int(u.get("llm_calls", 0) or 0)
                             except Exception:
                                 pass
@@ -171,7 +189,11 @@ class WorkflowEngine:
         finally:
             # Move to history and clean up
             # Keep WAITING executions active so they can be resumed
-            if execution_context.status in (ExecutionStatus.COMPLETED, ExecutionStatus.FAILED, ExecutionStatus.CANCELLED):
+            if execution_context.status in (
+                ExecutionStatus.COMPLETED,
+                ExecutionStatus.FAILED,
+                ExecutionStatus.CANCELLED,
+            ):
                 if execution_id in self.active_executions:
                     del self.active_executions[execution_id]
                 self.execution_history.append(execution_context)
@@ -220,7 +242,9 @@ class WorkflowEngine:
                 # No steps ready - check if we're stuck
                 if execution_context.pending_steps:
                     logger.error("Workflow stuck - no steps ready but steps pending")
-                    execution_context.fail_execution("Workflow stuck - circular dependencies or missing steps")
+                    execution_context.fail_execution(
+                        "Workflow stuck - circular dependencies or missing steps"
+                    )
                 break
 
             # Execute all ready steps in parallel
@@ -228,7 +252,9 @@ class WorkflowEngine:
             for step_id in ready_steps:
                 step_config = execution_context.get_step_config(step_id)
                 if step_config:
-                    task = asyncio.create_task(self._execute_single_step(execution_context, step_config))
+                    task = asyncio.create_task(
+                        self._execute_single_step(execution_context, step_config)
+                    )
                     tasks.append(task)
 
             # Wait for all parallel steps to complete
@@ -255,7 +281,9 @@ class WorkflowEngine:
             if not ready_steps:
                 if execution_context.pending_steps:
                     logger.error("Workflow stuck - no steps ready but steps pending")
-                    execution_context.fail_execution("Workflow stuck - circular dependencies")
+                    execution_context.fail_execution(
+                        "Workflow stuck - circular dependencies"
+                    )
                 break
 
             # Execute one step at a time (can be made parallel if needed)
@@ -265,7 +293,9 @@ class WorkflowEngine:
             if step_config:
                 await self._execute_single_step(execution_context, step_config)
 
-    async def _execute_single_step(self, execution_context: ExecutionContext, step_config: StepBase):
+    async def _execute_single_step(
+        self, execution_context: ExecutionContext, step_config: StepBase
+    ):
         """Execute a single step with enhanced error handling and retry logic"""
 
         step_id = step_config.step_id
@@ -327,18 +357,24 @@ class WorkflowEngine:
                         },
                     )
             except Exception as _persist_step_e:
-                logger.warning(f"Failed to persist step I/O for {execution_context.execution_id}: {_persist_step_e}")
+                logger.warning(
+                    f"Failed to persist step I/O for {execution_context.execution_id}: {_persist_step_e}"
+                )
 
             if step_result.status == StepStatus.WAITING:
                 # Early exit; engine will pause
                 return
 
             if step_result.status == StepStatus.COMPLETED:
-                logger.info(f"Step completed: {step_id} ({step_result.execution_time_ms}ms)")
+                logger.info(
+                    f"Step completed: {step_id} ({step_result.execution_time_ms}ms)"
+                )
 
                 # Persist agent analytics if applicable (tokens-only)
                 try:
-                    if effective_step_type == "agent_execution" and isinstance(step_result.output_data, dict):
+                    if effective_step_type == "agent_execution" and isinstance(
+                        step_result.output_data, dict
+                    ):
                         agent_out = step_result.output_data
                         # Insert analytics row
                         # Use a real Session context manager (get_session is a generator)
@@ -356,7 +392,10 @@ class WorkflowEngine:
                                 completed_at=execution_context.completed_at,
                                 error_message=None,
                                 redact_response_in_analytics=bool(
-                                    os.getenv("REDACT_ANALYTICS_RESPONSE", "false").lower() == "true"
+                                    os.getenv(
+                                        "REDACT_ANALYTICS_RESPONSE", "false"
+                                    ).lower()
+                                    == "true"
                                 ),
                             )
                 except Exception as ae:
@@ -371,14 +410,21 @@ class WorkflowEngine:
 
                 # Check if this should fail the entire workflow
                 if step_config.critical:  # Steps are critical by default
-                    execution_context.fail_execution(f"Critical step {step_id} failed: {step_result.error_message}")
+                    execution_context.fail_execution(
+                        f"Critical step {step_id} failed: {step_result.error_message}"
+                    )
 
         except Exception as e:
             # Final failure after all retries
             logger.error(f"Step {step_id} failed after all retries: {e}")
             execution_context.fail_execution(f"Step {step_id} failed: {e}")
 
-    async def _execute_step_once(self, execution_context: ExecutionContext, step_config: StepBase, effective_step_type: str):
+    async def _execute_step_once(
+        self,
+        execution_context: ExecutionContext,
+        step_config: StepBase,
+        effective_step_type: str,
+    ):
         """Execute a single step once (used by retry mechanism)"""
 
         step_id = step_config.step_id
@@ -513,7 +559,9 @@ class WorkflowEngine:
         # Default to non-retryable for unknown errors
         return False
 
-    def _should_execute_step(self, execution_context: ExecutionContext, step_config: StepBase) -> bool:
+    def _should_execute_step(
+        self, execution_context: ExecutionContext, step_config: StepBase
+    ) -> bool:
         """
         Check if a step should be executed based on its conditions.
 
@@ -538,7 +586,9 @@ class WorkflowEngine:
                 # Simple string condition
                 condition = condition_evaluator.parse_condition_string(conditions)
                 if condition:
-                    return condition_evaluator.evaluate_condition(condition, condition_context)
+                    return condition_evaluator.evaluate_condition(
+                        condition, condition_context
+                    )
                 else:
                     logger.warning(f"Could not parse condition string: {conditions}")
                     return True
@@ -549,20 +599,28 @@ class WorkflowEngine:
                     # Parse as conditional expression
                     expression = self._parse_conditional_expression(conditions)
                     if expression:
-                        return condition_evaluator.evaluate_expression(expression, condition_context)
+                        return condition_evaluator.evaluate_expression(
+                            expression, condition_context
+                        )
                 else:
                     # Parse as single condition
                     condition = self._parse_condition_dict(conditions)
                     if condition:
-                        return condition_evaluator.evaluate_condition(condition, condition_context)
+                        return condition_evaluator.evaluate_condition(
+                            condition, condition_context
+                        )
 
             elif isinstance(conditions, list):
                 # List of conditions (default AND logic)
                 expression = ConditionalExpression(
-                    conditions=[self._parse_condition_item(cond) for cond in conditions],
+                    conditions=[
+                        self._parse_condition_item(cond) for cond in conditions
+                    ],
                     logical_operator=LogicalOperator.AND,
                 )
-                return condition_evaluator.evaluate_expression(expression, condition_context)
+                return condition_evaluator.evaluate_expression(
+                    expression, condition_context
+                )
 
             logger.warning(f"Unknown condition format: {type(conditions)}")
             return True
@@ -571,7 +629,9 @@ class WorkflowEngine:
             logger.error(f"Error evaluating step conditions: {e}")
             return True  # Default to executing on error
 
-    def _prepare_condition_context(self, execution_context: ExecutionContext) -> Dict[str, Any]:
+    def _prepare_condition_context(
+        self, execution_context: ExecutionContext
+    ) -> Dict[str, Any]:
         """Prepare context data for condition evaluation"""
         context = {
             "workflow": {
@@ -600,7 +660,9 @@ class WorkflowEngine:
 
         return context
 
-    def _parse_conditional_expression(self, expr_dict: Dict[str, Any]) -> Optional[ConditionalExpression]:
+    def _parse_conditional_expression(
+        self, expr_dict: Dict[str, Any]
+    ) -> Optional[ConditionalExpression]:
         """Parse a conditional expression from dictionary"""
         try:
             conditions = []
@@ -636,7 +698,9 @@ class WorkflowEngine:
             logger.error(f"Error parsing condition dict: {e}")
             return None
 
-    def _parse_condition_item(self, item: Any) -> Optional[Union[Condition, ConditionalExpression]]:
+    def _parse_condition_item(
+        self, item: Any
+    ) -> Optional[Union[Condition, ConditionalExpression]]:
         """Parse a condition item (string, dict, or nested expression)"""
         if isinstance(item, str):
             return condition_evaluator.parse_condition_string(item)
@@ -649,7 +713,9 @@ class WorkflowEngine:
             logger.warning(f"Unknown condition item type: {type(item)}")
             return None
 
-    async def get_execution_context(self, execution_id: str) -> Optional[ExecutionContext]:
+    async def get_execution_context(
+        self, execution_id: str
+    ) -> Optional[ExecutionContext]:
         """Get execution context by ID"""
 
         # Check active executions
@@ -663,7 +729,9 @@ class WorkflowEngine:
 
         return None
 
-    async def resume_execution(self, execution_id: str, step_id: str, decision_output: Dict[str, Any]) -> bool:
+    async def resume_execution(
+        self, execution_id: str, step_id: str, decision_output: Dict[str, Any]
+    ) -> bool:
         """Resume a paused local execution by injecting decision output and continuing."""
         ctx = await self.get_execution_context(execution_id)
         if not ctx:
@@ -684,7 +752,9 @@ class WorkflowEngine:
             ctx.complete_execution()
         return True
 
-    async def validate_workflow(self, workflow_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def validate_workflow(
+        self, workflow_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Validate a workflow configuration"""
 
         errors = []
@@ -739,24 +809,32 @@ class WorkflowEngine:
         # Validate trigger steps (legacy single-trigger support)
         trigger_steps = [s for s in steps if s.get("step_type") == "trigger"]
         if len(trigger_steps) > 1:
-            errors.append("Workflow can have at most one 'trigger' step (use 'input' for multiple entry points)")
+            errors.append(
+                "Workflow can have at most one 'trigger' step (use 'input' for multiple entry points)"
+            )
         elif trigger_steps:
             trigger = trigger_steps[0]
             if trigger.get("dependencies"):
                 errors.append("Trigger step must not have dependencies")
-            orders = [s.get("step_order") for s in steps if s.get("step_order") is not None]
+            orders = [
+                s.get("step_order") for s in steps if s.get("step_order") is not None
+            ]
             if orders and trigger.get("step_order") != min(orders):
                 errors.append("Trigger step must be first in execution order")
 
         # Validate input nodes: must have no dependencies
         for s in steps:
             if s.get("step_type") == "input" and s.get("dependencies"):
-                errors.append(f"Input node '{s.get('step_id')}' must not have dependencies")
+                errors.append(
+                    f"Input node '{s.get('step_id')}' must not have dependencies"
+                )
 
         # Validate merge nodes: must have 2+ dependencies
         for s in steps:
             if s.get("step_type") == "merge" and len(s.get("dependencies", [])) < 2:
-                errors.append(f"Merge node '{s.get('step_id')}' must have at least 2 dependencies")
+                errors.append(
+                    f"Merge node '{s.get('step_id')}' must have at least 2 dependencies"
+                )
 
         # Check for circular dependencies
         if not self._has_circular_dependencies(steps):
@@ -806,7 +884,9 @@ class WorkflowEngine:
 
         return False
 
-    async def get_execution_analytics(self, limit: int = 100, offset: int = 0, status: Optional[str] = None) -> Dict[str, Any]:
+    async def get_execution_analytics(
+        self, limit: int = 100, offset: int = 0, status: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Get execution analytics and history"""
 
         # Combine active and historical executions
@@ -814,10 +894,16 @@ class WorkflowEngine:
 
         # Filter by status if provided
         if status:
-            all_executions = [exec_ctx for exec_ctx in all_executions if exec_ctx.status.value == status]
+            all_executions = [
+                exec_ctx
+                for exec_ctx in all_executions
+                if exec_ctx.status.value == status
+            ]
 
         # Sort by creation time (most recent first)
-        all_executions.sort(key=lambda x: x.metadata.get("created_at", ""), reverse=True)
+        all_executions.sort(
+            key=lambda x: x.metadata.get("created_at", ""), reverse=True
+        )
 
         # Paginate
         total = len(all_executions)

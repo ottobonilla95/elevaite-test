@@ -6,7 +6,6 @@ Tests the OPA policy management service in isolation using mocked HTTP calls.
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-import httpx
 
 from app.services.policy_service import PolicyService, get_policy_service
 

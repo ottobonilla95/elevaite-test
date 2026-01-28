@@ -11,13 +11,10 @@ Tests for common JWT vulnerabilities:
 - Weak secrets
 """
 
-import os
-import time
 from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock
 
 import jwt
-import pytest
 
 from rbac_sdk.fastapi_helpers import api_key_jwt_validator
 
@@ -47,8 +44,14 @@ class TestJWTAlgorithmConfusion:
         import base64
         import json
 
-        header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
-        payload_b64 = base64.urlsafe_b64encode(json.dumps(payload, default=str).encode()).decode().rstrip("=")
+        header_b64 = (
+            base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+        )
+        payload_b64 = (
+            base64.urlsafe_b64encode(json.dumps(payload, default=str).encode())
+            .decode()
+            .rstrip("=")
+        )
         none_token = f"{header_b64}.{payload_b64}."
 
         validator = api_key_jwt_validator(algorithm=ALGORITHM, secret=API_KEY_SECRET)
@@ -92,8 +95,14 @@ class TestJWTAlgorithmConfusion:
         import json
 
         header = {"alg": "HS256", "typ": "JWT"}
-        header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
-        payload_b64 = base64.urlsafe_b64encode(json.dumps(payload, default=str).encode()).decode().rstrip("=")
+        header_b64 = (
+            base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+        )
+        payload_b64 = (
+            base64.urlsafe_b64encode(json.dumps(payload, default=str).encode())
+            .decode()
+            .rstrip("=")
+        )
         unsigned_token = f"{header_b64}.{payload_b64}"  # No signature part
 
         validator = api_key_jwt_validator(algorithm=ALGORITHM, secret=API_KEY_SECRET)
@@ -150,7 +159,11 @@ class TestJWTSignatureValidation:
         decoded_payload["sub"] = "attacker999"
 
         # Re-encode payload
-        tampered_payload = base64.urlsafe_b64encode(json.dumps(decoded_payload).encode()).decode().rstrip("=")
+        tampered_payload = (
+            base64.urlsafe_b64encode(json.dumps(decoded_payload).encode())
+            .decode()
+            .rstrip("=")
+        )
 
         # Create tampered token (same signature, different payload)
         tampered_token = f"{parts[0]}.{tampered_payload}.{parts[2]}"
@@ -191,7 +204,8 @@ class TestJWTExpiration:
             "sub": "user123",
             "type": "api_key",
             "tenant_id": "default",
-            "exp": datetime.now(timezone.utc) - timedelta(hours=1),  # Expired 1 hour ago
+            "exp": datetime.now(timezone.utc)
+            - timedelta(hours=1),  # Expired 1 hour ago
         }
 
         token = jwt.encode(payload, API_KEY_SECRET, algorithm=ALGORITHM)
@@ -208,7 +222,8 @@ class TestJWTExpiration:
             "sub": "user123",
             "type": "api_key",
             "tenant_id": "default",
-            "exp": datetime.now(timezone.utc) + timedelta(seconds=5),  # Expires in 5 seconds
+            "exp": datetime.now(timezone.utc)
+            + timedelta(seconds=5),  # Expires in 5 seconds
         }
 
         token = jwt.encode(payload, API_KEY_SECRET, algorithm=ALGORITHM)

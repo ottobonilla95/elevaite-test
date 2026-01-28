@@ -6,7 +6,7 @@ analysis to create chunks based on semantic coherence rather than just size.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List
 import asyncio
 import time
 import re

@@ -7,18 +7,12 @@ and graceful failure recovery for production reliability.
 
 import asyncio
 import time
-from typing import Dict, Any
 import pytest
 
 from workflow_core_sdk.error_handling import (
     error_handler,
     RetryConfig,
     RetryStrategy,
-    ErrorSeverity,
-    WorkflowError,
-    StepExecutionError,
-    RetryableError,
-    NonRetryableError,
     CircuitBreakerError,
 )
 
@@ -40,7 +34,9 @@ async def test_retry_mechanisms():
         attempt_count += 1
 
         if attempt_count < 3:
-            raise ConnectionError(f"Temporary connection error (attempt {attempt_count})")
+            raise ConnectionError(
+                f"Temporary connection error (attempt {attempt_count})"
+            )
 
         return {"success": True, "attempts": attempt_count}
 
@@ -84,7 +80,9 @@ async def test_retry_mechanisms():
     async def always_failing_function():
         raise ConnectionError("This always fails")
 
-    retry_config_limited = RetryConfig(max_attempts=2, strategy=RetryStrategy.FIXED_DELAY, base_delay=0.1)
+    retry_config_limited = RetryConfig(
+        max_attempts=2, strategy=RetryStrategy.FIXED_DELAY, base_delay=0.1
+    )
 
     try:
         await error_handler.execute_with_retry(
@@ -110,7 +108,9 @@ async def test_circuit_breaker():
     async def failing_service():
         raise ConnectionError("Service unavailable")
 
-    retry_config = RetryConfig(max_attempts=2, strategy=RetryStrategy.FIXED_DELAY, base_delay=0.1)
+    retry_config = RetryConfig(
+        max_attempts=2, strategy=RetryStrategy.FIXED_DELAY, base_delay=0.1
+    )
 
     # Trigger circuit breaker by failing multiple times
     print("📋 Triggering circuit breaker:")
@@ -175,7 +175,7 @@ async def test_error_classification():
     # Get error statistics
     stats = error_handler.get_error_statistics()
 
-    print(f"📊 Error Statistics:")
+    print("📊 Error Statistics:")
     print(f"   Total errors: {stats.get('total_errors', 0)}")
     print(f"   Error types: {stats.get('error_types', {})}")
     print(f"   Severity counts: {stats.get('severity_counts', {})}")
@@ -213,9 +213,9 @@ async def test_retry_strategies():
             jitter=False,  # Disable jitter for predictable timing
         )
 
-        start_time = time.time()
+        time.time()
         try:
-            result = await error_handler.execute_with_retry(
+            await error_handler.execute_with_retry(
                 timing_function,
                 retry_config=retry_config,
                 context={"component": "test_strategy", "operation": "timing_function"},

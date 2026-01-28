@@ -39,7 +39,9 @@ class TestInitDb:
         """Test initializing the database in async mode."""
         result = init_db(
             settings=multitenancy_settings,
-            db_url=multitenancy_settings.db_url.replace("postgresql://", "postgresql+asyncpg://"),
+            db_url=multitenancy_settings.db_url.replace(
+                "postgresql://", "postgresql+asyncpg://"
+            ),
             create_schemas=True,
             base_model_class=Base,
             tenant_ids=["tenant1", "tenant2"],
@@ -104,7 +106,9 @@ class TestSessionManagement:
             # Reset tenant ID
             set_current_tenant_id(None)
 
-    async def test_get_tenant_async_session(self, setup_async_db, multitenancy_settings, init_async_db_config):
+    async def test_get_tenant_async_session(
+        self, setup_async_db, multitenancy_settings, init_async_db_config
+    ):
         """Test get_tenant_async_session function."""
         # Set current tenant ID
         set_current_tenant_id("tenant1")
@@ -126,7 +130,9 @@ class TestSessionManagement:
             # Reset tenant ID
             set_current_tenant_id(None)
 
-    def test_tenant_db_session_decorator(self, setup_db, multitenancy_settings, init_db_config, db_session):
+    def test_tenant_db_session_decorator(
+        self, setup_db, multitenancy_settings, init_db_config, db_session
+    ):
         """Test tenant_db_session decorator."""
 
         # Define a function with the decorator
@@ -154,7 +160,11 @@ class TestSessionManagement:
             set_current_tenant_id(None)
 
     async def test_tenant_async_db_session_decorator(
-        self, setup_async_db, multitenancy_settings, init_async_db_config, async_db_session
+        self,
+        setup_async_db,
+        multitenancy_settings,
+        init_async_db_config,
+        async_db_session,
     ):
         """Test tenant_async_db_session decorator."""
 
@@ -181,7 +191,9 @@ class TestSessionManagement:
             # Reset tenant ID
             set_current_tenant_id(None)
 
-    def test_session_without_tenant(self, setup_db, multitenancy_settings, init_db_config):
+    def test_session_without_tenant(
+        self, setup_db, multitenancy_settings, init_db_config
+    ):
         """Test session behavior without tenant ID."""
         # Don't set a tenant ID
         set_current_tenant_id(None)

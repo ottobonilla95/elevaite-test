@@ -56,7 +56,7 @@ class GeminiVisionProvider(BaseVisionProvider):
             else:
                 raise ValueError("Images must be Base64 bytes or valid URLs.")
 
-        input_data = prepared_images + [prompt]
+        prepared_images + [prompt]
 
         # Create generation config
         generation_config = types.GenerateContentConfig(

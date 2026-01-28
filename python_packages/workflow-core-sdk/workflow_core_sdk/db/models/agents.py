@@ -8,7 +8,6 @@ import uuid as uuid_module
 from typing import Optional, List, Dict, Any, Literal, Union
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, JSON, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
 
 from datetime import datetime
 from .base import get_utc_datetime
@@ -101,7 +100,9 @@ class Agent(SQLModel, table=True):
     system_prompt_id: uuid_module.UUID
 
     provider_type: str
-    provider_config: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    provider_config: Dict[str, Any] = Field(
+        default_factory=dict, sa_column=Column(JSON)
+    )
 
     tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     status: str = Field(default="active")
@@ -113,7 +114,9 @@ class Agent(SQLModel, table=True):
         default_factory=get_utc_datetime,
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
-    updated_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now()))
+    updated_at: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now())
+    )
 
 
 class AgentToolBinding(SQLModel, table=True):
@@ -125,7 +128,9 @@ class AgentToolBinding(SQLModel, table=True):
     )
     agent_id: uuid_module.UUID
     tool_id: uuid_module.UUID
-    override_parameters: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    override_parameters: Dict[str, Any] = Field(
+        default_factory=dict, sa_column=Column(JSON)
+    )
     is_active: bool = True
 
     organization_id: Optional[str] = None
@@ -135,4 +140,6 @@ class AgentToolBinding(SQLModel, table=True):
         default_factory=get_utc_datetime,
         sa_column=Column(DateTime(timezone=True), server_default=func.now()),
     )
-    updated_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now()))
+    updated_at: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now())
+    )

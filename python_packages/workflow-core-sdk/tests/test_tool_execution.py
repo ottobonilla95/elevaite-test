@@ -9,7 +9,6 @@ This test suite verifies that:
 """
 
 import json
-import pytest
 from workflow_core_sdk.tools.basic_tools import get_all_tools, get_all_schemas
 
 
@@ -73,7 +72,9 @@ def test_servicenow_tools_available():
     ]
 
     for tool_name in servicenow_tools:
-        assert tool_name in tools, f"ServiceNow tool '{tool_name}' not found in registry"
+        assert tool_name in tools, (
+            f"ServiceNow tool '{tool_name}' not found in registry"
+        )
         assert callable(tools[tool_name]), f"Tool '{tool_name}' is not callable"
 
 
@@ -83,10 +84,16 @@ def test_salesforce_tools_available():
 
     # Only the migrated Salesforce CSM tools should be in SDK
     # Extended tools (get_salesforce_accounts, etc.) are registered by agent-studio
-    salesforce_tools = ["salesforce_csm_create_case", "salesforce_csm_get_case", "salesforce_csm_update_case"]
+    salesforce_tools = [
+        "salesforce_csm_create_case",
+        "salesforce_csm_get_case",
+        "salesforce_csm_update_case",
+    ]
 
     for tool_name in salesforce_tools:
-        assert tool_name in tools, f"Salesforce tool '{tool_name}' not found in registry"
+        assert tool_name in tools, (
+            f"Salesforce tool '{tool_name}' not found in registry"
+        )
         assert callable(tools[tool_name]), f"Tool '{tool_name}' is not callable"
 
 
@@ -118,7 +125,9 @@ def test_sdk_only_has_migrated_tools():
     ]
 
     for tool_name in agent_studio_only_tools:
-        assert tool_name not in tools, f"Tool '{tool_name}' should not be in SDK (registered by agent-studio at runtime)"
+        assert tool_name not in tools, (
+            f"Tool '{tool_name}' should not be in SDK (registered by agent-studio at runtime)"
+        )
 
 
 def test_tool_schemas_valid():
@@ -128,20 +137,30 @@ def test_tool_schemas_valid():
     for tool_name, schema in schemas.items():
         # Check basic schema structure
         assert "type" in schema, f"Tool '{tool_name}' schema missing 'type'"
-        assert schema["type"] == "function", f"Tool '{tool_name}' schema type should be 'function'"
+        assert schema["type"] == "function", (
+            f"Tool '{tool_name}' schema type should be 'function'"
+        )
 
         assert "function" in schema, f"Tool '{tool_name}' schema missing 'function'"
         func_schema = schema["function"]
 
         assert "name" in func_schema, f"Tool '{tool_name}' schema missing 'name'"
-        assert "description" in func_schema, f"Tool '{tool_name}' schema missing 'description'"
-        assert "parameters" in func_schema, f"Tool '{tool_name}' schema missing 'parameters'"
+        assert "description" in func_schema, (
+            f"Tool '{tool_name}' schema missing 'description'"
+        )
+        assert "parameters" in func_schema, (
+            f"Tool '{tool_name}' schema missing 'parameters'"
+        )
 
         # Check parameters structure
         params = func_schema["parameters"]
         assert "type" in params, f"Tool '{tool_name}' parameters missing 'type'"
-        assert params["type"] == "object", f"Tool '{tool_name}' parameters type should be 'object'"
-        assert "properties" in params, f"Tool '{tool_name}' parameters missing 'properties'"
+        assert params["type"] == "object", (
+            f"Tool '{tool_name}' parameters type should be 'object'"
+        )
+        assert "properties" in params, (
+            f"Tool '{tool_name}' parameters missing 'properties'"
+        )
 
 
 def test_basic_tool_execution():
@@ -200,7 +219,9 @@ def test_servicenow_tool_execution():
     # Test servicenow_itsm_get_incident (correct parameter name is 'identifier')
     get_incident = tools["servicenow_itsm_get_incident"]
     result = get_incident(identifier="INC0000001", identifier_type="number")
-    assert isinstance(result, str), "servicenow_itsm_get_incident should return a string"
+    assert isinstance(result, str), (
+        "servicenow_itsm_get_incident should return a string"
+    )
 
     # Should be valid JSON
     data = json.loads(result)
@@ -238,7 +259,7 @@ def test_tool_parameter_extraction():
 def test_no_duplicate_tools():
     """Test that there are no duplicate tools in the registry."""
     tools = get_all_tools()
-    schemas = get_all_schemas()
+    get_all_schemas()
 
     # Tool names should be unique (dict keys are unique by definition)
     # But let's verify that migrated tools aren't duplicated
@@ -248,9 +269,15 @@ def test_no_duplicate_tools():
     # Check that we don't have both old and new versions of the same tool
     # For example, we shouldn't have both "ServiceNow_ITSM" and "servicenow_itsm_create_incident"
     # (The wrapper should filter out the old ones)
-    assert "ServiceNow_ITSM" not in tools, "Old ServiceNow_ITSM tool should be filtered out"
-    assert "ServiceNow_CSM" not in tools, "Old ServiceNow_CSM tool should be filtered out"
-    assert "Salesforce_CSM" not in tools, "Old Salesforce_CSM tool should be filtered out"
+    assert "ServiceNow_ITSM" not in tools, (
+        "Old ServiceNow_ITSM tool should be filtered out"
+    )
+    assert "ServiceNow_CSM" not in tools, (
+        "Old ServiceNow_CSM tool should be filtered out"
+    )
+    assert "Salesforce_CSM" not in tools, (
+        "Old Salesforce_CSM tool should be filtered out"
+    )
 
 
 def test_all_tools_return_strings():
@@ -267,7 +294,9 @@ def test_all_tools_return_strings():
     for tool_name, params in test_cases:
         if tool_name in tools:
             result = tools[tool_name](**params)
-            assert isinstance(result, str), f"Tool '{tool_name}' should return a string, got {type(result)}"
+            assert isinstance(result, str), (
+                f"Tool '{tool_name}' should return a string, got {type(result)}"
+            )
 
 
 if __name__ == "__main__":

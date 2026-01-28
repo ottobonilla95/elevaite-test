@@ -32,7 +32,11 @@ class ToolsService:
 
     @staticmethod
     def create_tool(session: Session, payload: ToolCreate) -> Tool:
-        existing = session.exec(select(Tool).where(Tool.name == payload.name, Tool.version == payload.version)).first()
+        existing = session.exec(
+            select(Tool).where(
+                Tool.name == payload.name, Tool.version == payload.version
+            )
+        ).first()
         if existing:
             raise ValueError("Tool with this name and version already exists")
         db_tool = Tool(**payload.model_dump())
@@ -42,12 +46,14 @@ class ToolsService:
         return db_tool
 
     @staticmethod
-    def list_db_tools(session: Session, *, q: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[Tool]:
+    def list_db_tools(
+        session: Session, *, q: Optional[str] = None, limit: int = 100, offset: int = 0
+    ) -> List[Tool]:
         query = select(Tool)
         tools = session.exec(query.offset(offset).limit(limit)).all()
         if q:
             ql = q.lower()
-            tools = [t for t in tools if ql in (t.name or '').lower()]
+            tools = [t for t in tools if ql in (t.name or "").lower()]
         return tools
 
     @staticmethod
@@ -74,7 +80,9 @@ class ToolsService:
     # ---- Categories ----
     @staticmethod
     def create_category(session: Session, payload: ToolCategoryCreate) -> ToolCategory:
-        existing = session.exec(select(ToolCategory).where(ToolCategory.name == payload.name)).first()
+        existing = session.exec(
+            select(ToolCategory).where(ToolCategory.name == payload.name)
+        ).first()
         if existing:
             raise ValueError("Category with this name already exists")
         db_cat = ToolCategory(**payload.model_dump())
@@ -89,10 +97,14 @@ class ToolsService:
 
     @staticmethod
     def get_category(session: Session, category_id: str) -> Optional[ToolCategory]:
-        return session.exec(select(ToolCategory).where(ToolCategory.id == UUID_type(category_id))).first()
+        return session.exec(
+            select(ToolCategory).where(ToolCategory.id == UUID_type(category_id))
+        ).first()
 
     @staticmethod
-    def update_category(session: Session, category_id: str, payload: ToolCategoryUpdate) -> ToolCategory:
+    def update_category(
+        session: Session, category_id: str, payload: ToolCategoryUpdate
+    ) -> ToolCategory:
         db_cat = ToolsService.get_category(session, category_id)
         if not db_cat:
             raise LookupError("Category not found")
@@ -115,7 +127,9 @@ class ToolsService:
     # ---- MCP Servers ----
     @staticmethod
     def create_mcp_server(session: Session, payload: MCPServerCreate) -> MCPServer:
-        existing = session.exec(select(MCPServer).where(MCPServer.name == payload.name)).first()
+        existing = session.exec(
+            select(MCPServer).where(MCPServer.name == payload.name)
+        ).first()
         if existing:
             raise ValueError("MCP server with this name already exists")
         db_server = MCPServer(**payload.model_dump())
@@ -130,10 +144,14 @@ class ToolsService:
 
     @staticmethod
     def get_mcp_server(session: Session, server_id: str) -> Optional[MCPServer]:
-        return session.exec(select(MCPServer).where(MCPServer.id == UUID_type(server_id))).first()
+        return session.exec(
+            select(MCPServer).where(MCPServer.id == UUID_type(server_id))
+        ).first()
 
     @staticmethod
-    def update_mcp_server(session: Session, server_id: str, payload: MCPServerUpdate) -> MCPServer:
+    def update_mcp_server(
+        session: Session, server_id: str, payload: MCPServerUpdate
+    ) -> MCPServer:
         db_server = ToolsService.get_mcp_server(session, server_id)
         if not db_server:
             raise LookupError("MCP server not found")
@@ -152,4 +170,3 @@ class ToolsService:
         session.delete(db_server)
         session.commit()
         return True
-

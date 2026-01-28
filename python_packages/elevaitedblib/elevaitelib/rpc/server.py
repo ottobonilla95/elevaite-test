@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import json
-import os
 import threading
 from typing import Any, Callable
-from dotenv import load_dotenv
 import pika
 import pika.spec
 from elevaite_client.rpc.connection import get_rmq_connection

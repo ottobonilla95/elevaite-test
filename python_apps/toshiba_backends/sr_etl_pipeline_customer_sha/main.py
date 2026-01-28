@@ -11,10 +11,8 @@ Enhanced ETL Pipeline with Production Logging
 import json
 import os
 import pickle
-import asyncio
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
-import sys
+from typing import Dict, List, Tuple
 
 from connectors.S3Connector import S3Connector
 from etl_transformers.normalize_excel import transform_excel_to_model

@@ -24,7 +24,7 @@ def find_sharepoint_libraries():
         root_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drives/{drive_id}/root/children"
         
         response = requests.get(root_url, headers=connector.headers, verify=False)
-        print(f"\n📂 Root folder contents:")
+        print("\n📂 Root folder contents:")
         print("="*50)
         
         if response.status_code == 200:
@@ -51,7 +51,7 @@ def find_sharepoint_libraries():
             print(response.text)
             
         # Also try to get all drives/libraries
-        print(f"\n📚 All document libraries:")
+        print("\n📚 All document libraries:")
         print("="*50)
         drives_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drives"
         drives_response = requests.get(drives_url, headers=connector.headers, verify=False)

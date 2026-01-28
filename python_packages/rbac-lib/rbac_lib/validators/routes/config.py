@@ -64,35 +64,51 @@ route_validator_map = {
     (
         api_schemas.APINamespace.RBAC_API,
         "create_project",
-    ): entity_validators.project.validate_post_project_factory(models.Project, ("CREATE",)),
+    ): entity_validators.project.validate_post_project_factory(
+        models.Project, ("CREATE",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "patch_project",
-    ): entity_validators.project.validate_patch_project_factory(models.Project, ("READ",)),
+    ): entity_validators.project.validate_patch_project_factory(
+        models.Project, ("READ",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "get_project",
-    ): entity_validators.project.validate_get_project_factory(models.Project, ("READ",)),
+    ): entity_validators.project.validate_get_project_factory(
+        models.Project, ("READ",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "get_projects",
-    ): entity_validators.project.validate_get_projects_factory(models.Project, ("READ",)),
+    ): entity_validators.project.validate_get_projects_factory(
+        models.Project, ("READ",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "get_project_user_list",
-    ): entity_validators.project.validate_get_project_user_list_factory(models.Project, ("READ",)),
+    ): entity_validators.project.validate_get_project_user_list_factory(
+        models.Project, ("READ",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "deassign_user_from_project",
-    ): entity_validators.project.validate_deassign_user_from_project_factory(models.Project, ("READ",)),
+    ): entity_validators.project.validate_deassign_user_from_project_factory(
+        models.Project, ("READ",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "assign_users_to_project",
-    ): entity_validators.project.validate_assign_users_to_project_factory(models.Project, ("READ",)),
+    ): entity_validators.project.validate_assign_users_to_project_factory(
+        models.Project, ("READ",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "patch_user_project_admin_status",
-    ): entity_validators.project.validate_update_user_project_admin_status_factory(models.Project, ("READ",)),
+    ): entity_validators.project.validate_update_user_project_admin_status_factory(
+        models.Project, ("READ",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "get_apikey",
@@ -104,11 +120,15 @@ route_validator_map = {
     (
         api_schemas.APINamespace.RBAC_API,
         "create_apikey",
-    ): entity_validators.apikey.validate_create_apikey_factory(models.Apikey, ("CREATE",)),
+    ): entity_validators.apikey.validate_create_apikey_factory(
+        models.Apikey, ("CREATE",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "delete_apikey",
-    ): entity_validators.apikey.validate_delete_apikey_factory(models.Apikey, ("READ",)),
+    ): entity_validators.apikey.validate_delete_apikey_factory(
+        models.Apikey, ("READ",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "create_role",
@@ -152,11 +172,15 @@ route_validator_map = {
     (
         api_schemas.APINamespace.RBAC_API,
         "update_user_project_permission_overrides",
-    ): entity_validators.user.validate_update_project_permission_overrides_factory(models.Project, ("READ",)),
+    ): entity_validators.user.validate_update_project_permission_overrides_factory(
+        models.Project, ("READ",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "get_user_project_permission_overrides",
-    ): entity_validators.user.validate_get_project_permission_overrides_factory(models.Project, ("READ",)),
+    ): entity_validators.user.validate_get_project_permission_overrides_factory(
+        models.Project, ("READ",)
+    ),
     (
         api_schemas.APINamespace.RBAC_API,
         "patch_user_superadmin_status",
@@ -182,59 +206,87 @@ route_validator_map = {
     (
         api_schemas.APINamespace.ETL_API,
         "getCollectionsOfProject",
-    ): entity_validators.collection.validate_get_project_collections_factory(models.Collection, ("READ",)),
+    ): entity_validators.collection.validate_get_project_collections_factory(
+        models.Collection, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "getCollectionById",
-    ): entity_validators.collection.validate_get_project_collection_factory(models.Collection, ("READ",)),
+    ): entity_validators.collection.validate_get_project_collection_factory(
+        models.Collection, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "createCollection",
-    ): entity_validators.collection.validate_create_project_collection_factory(models.Collection, ("CREATE",)),
+    ): entity_validators.collection.validate_create_project_collection_factory(
+        models.Collection, ("CREATE",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "getCollectionScroll",
-    ): entity_validators.collection.validate_get_project_collection_scroll_factory(models.Collection, ("READ",)),
+    ): entity_validators.collection.validate_get_project_collection_scroll_factory(
+        models.Collection, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "getPipelineConfigurations",
-    ): entity_validators.configuration.validate_get_pipeline_configurations_factory(models.Configuration, ("READ",)),
+    ): entity_validators.configuration.validate_get_pipeline_configurations_factory(
+        models.Configuration, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "getConfigurationById",
-    ): entity_validators.configuration.validate_get_pipeline_configuration_factory(models.Configuration, ("READ",)),
+    ): entity_validators.configuration.validate_get_pipeline_configuration_factory(
+        models.Configuration, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "createConfiguration",
-    ): entity_validators.configuration.validate_create_application_configuration_factory(models.Configuration, ("CREATE",)),
+    ): entity_validators.configuration.validate_create_application_configuration_factory(
+        models.Configuration, ("CREATE",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "updateConfiguration",
-    ): entity_validators.configuration.validate_update_application_configuration_factory(models.Configuration, ("UPDATE",)),
+    ): entity_validators.configuration.validate_update_application_configuration_factory(
+        models.Configuration, ("UPDATE",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "getProjectDatasets",
-    ): entity_validators.dataset.validate_get_project_datasets_factory(models.Dataset, ("READ",)),
+    ): entity_validators.dataset.validate_get_project_datasets_factory(
+        models.Dataset, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "getDatasetById",
-    ): entity_validators.dataset.validate_get_project_dataset_factory(models.Dataset, ("READ",)),
+    ): entity_validators.dataset.validate_get_project_dataset_factory(
+        models.Dataset, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "addTagToDataset",
-    ): entity_validators.dataset.validate_add_tag_to_dataset_factory(models.Dataset, ("TAG",)),
+    ): entity_validators.dataset.validate_add_tag_to_dataset_factory(
+        models.Dataset, ("TAG",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "getPipelineInstances",
-    ): entity_validators.instance.validate_get_pipeline_instances_factory(models.Instance, ("READ",)),
+    ): entity_validators.instance.validate_get_pipeline_instances_factory(
+        models.Instance, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "getApplicationInstanceById",
-    ): entity_validators.instance.validate_get_instance_factory(models.Instance, ("READ",)),
+    ): entity_validators.instance.validate_get_instance_factory(
+        models.Instance, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "getApplicationInstanceChart",
-    ): entity_validators.instance.validate_get_instance_chart_factory(models.Instance, ("READ",)),
+    ): entity_validators.instance.validate_get_instance_chart_factory(
+        models.Instance, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "getInstanceConfiguration",
@@ -248,11 +300,15 @@ route_validator_map = {
     (
         api_schemas.APINamespace.ETL_API,
         "getApplicationInstanceLogs",
-    ): entity_validators.instance.validate_get_instance_logs_factory(models.Instance, ("READ",)),
+    ): entity_validators.instance.validate_get_instance_logs_factory(
+        models.Instance, ("READ",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "launchInstance",
-    ): entity_validators.instance.validate_create_instance_factory(models.Instance, ("CREATE",)),
+    ): entity_validators.instance.validate_create_instance_factory(
+        models.Instance, ("CREATE",)
+    ),
     (
         api_schemas.APINamespace.ETL_API,
         "ingestServiceNowTickets",

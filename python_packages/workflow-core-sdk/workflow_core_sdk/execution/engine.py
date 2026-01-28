@@ -26,4 +26,3 @@ class WorkflowEngine:
     ) -> bool:
         """Resume a paused execution by injecting decision output for a waiting step."""
         raise NotImplementedError
-

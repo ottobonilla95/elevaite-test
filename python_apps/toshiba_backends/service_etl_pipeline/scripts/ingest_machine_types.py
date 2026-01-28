@@ -55,7 +55,7 @@ def ingest_machine_types():
         
         # Show type distribution
         type_counts = df['Type'].value_counts()
-        print(f"\nType distribution:")
+        print("\nType distribution:")
         for type_name, count in type_counts.items():
             print(f"  {type_name}: {count}")
         

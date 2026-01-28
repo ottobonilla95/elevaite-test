@@ -1,5 +1,4 @@
-import pytest
-from db.fixtures import DEFAULT_AGENTS, DEFAULT_PROMPTS, AGENT_CODES
+from db.fixtures import DEFAULT_AGENTS, AGENT_CODES
 
 
 class TestSimpleDeploymentCodes:

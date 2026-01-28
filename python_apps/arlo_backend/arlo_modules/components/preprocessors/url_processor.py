@@ -5,7 +5,6 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
 class QueryBasedURLTextExtractor:
     def __init__(self):
@@ -42,7 +41,7 @@ class QueryBasedURLTextExtractor:
             text = ' '.join(chunk for chunk in chunks if chunk)
             text = text.replace("|", '\n')
             return text
-        except Exception as e:
+        except Exception:
             return "None found"
 
     def preprocess_text(self, text):

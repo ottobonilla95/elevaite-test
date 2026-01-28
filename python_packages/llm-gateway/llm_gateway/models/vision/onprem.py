@@ -124,12 +124,12 @@ class OnPremVisionProvider(BaseVisionProvider):
     def validate_config(self, config: Dict[str, Any]) -> bool:
         try:
             assert isinstance(config, dict), "Config must be a dictionary"
-            assert isinstance(
-                config.get("max_tokens", 50), int
-            ), "Max tokens must be an integer"
-            assert isinstance(
-                config.get("retries", 5), int
-            ), "Retries must be an integer"
+            assert isinstance(config.get("max_tokens", 50), int), (
+                "Max tokens must be an integer"
+            )
+            assert isinstance(config.get("retries", 5), int), (
+                "Retries must be an integer"
+            )
             return True
         except AssertionError as e:
             logging.error(f"On-Prem Vision Provider Validation Failed: {e}")

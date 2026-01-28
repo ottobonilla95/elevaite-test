@@ -10,7 +10,6 @@ Phase 2: MCP health monitoring and maintenance
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Optional
 
 # MCP imports are done locally to avoid circular imports
 

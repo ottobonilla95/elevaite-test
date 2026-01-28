@@ -1,4 +1,3 @@
-import os
 import sys
 import json
 import subprocess
@@ -12,7 +11,9 @@ def run_stage(stage_name, script_path):
     """Runs a stage script and captures its status."""
     logger.info(f"🚀 Running {stage_name} using {script_path}...")
     try:
-        result = subprocess.run([sys.executable, script_path], capture_output=True, text=True, check=True)
+        result = subprocess.run(
+            [sys.executable, script_path], capture_output=True, text=True, check=True
+        )
 
         logger.info(f"✅ {stage_name} completed successfully.")
 
@@ -33,7 +34,9 @@ def run_stage(stage_name, script_path):
             )
             return {stage_name: {"STATUS": "Unknown - No JSON output"}}
     except subprocess.CalledProcessError as e:
-        logger.error(f"❌ Error in {stage_name}: {e}\nSTDOUT: {e.stdout}\nSTDERR: {e.stderr}")
+        logger.error(
+            f"❌ Error in {stage_name}: {e}\nSTDOUT: {e.stdout}\nSTDERR: {e.stderr}"
+        )
         return {stage_name: {"STATUS": "Failed", "ERROR": str(e)}}
 
 
@@ -64,7 +67,10 @@ def main():
             pipeline_status.update(response)
         else:
             logger.error(f"Unexpected response format from {stage_name}: {response}")
-            pipeline_status[stage_name] = {"STATUS": "Failed", "ERROR": "Invalid response format"}
+            pipeline_status[stage_name] = {
+                "STATUS": "Failed",
+                "ERROR": "Invalid response format",
+            }
             break
 
     status_file = "pipeline_status.json"

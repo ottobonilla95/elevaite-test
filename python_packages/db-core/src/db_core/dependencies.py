@@ -29,7 +29,9 @@ def get_multitenancy_settings() -> MultitenancySettings:
 multitenancy_settings_dependency = Depends(get_multitenancy_settings)
 
 
-def get_tenant_id(settings: MultitenancySettings = multitenancy_settings_dependency) -> str:
+def get_tenant_id(
+    settings: MultitenancySettings = multitenancy_settings_dependency,
+) -> str:
     """
     Get the current tenant ID from the context.
 
@@ -113,7 +115,7 @@ async def get_tenant_async_db(
         from db_core.utils import get_schema_name
 
         # Handle the case where tenant_id might be a Depends object
-        if hasattr(tenant_id, "__call__"):
+        if callable(tenant_id):
             # Skip setting schema if tenant_id is a dependency
             pass
         else:

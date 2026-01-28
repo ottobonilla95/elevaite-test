@@ -36,11 +36,19 @@ def store_embeddings(
                     # Qdrant requires integer or UUID point IDs; use integers for batch safety
                     "id": i,
                     "vector": vec,
-                    "payload": {"text": text, "chunk_index": i, "filename": filename or "unknown"},
+                    "payload": {
+                        "text": text,
+                        "chunk_index": i,
+                        "filename": filename or "unknown",
+                    },
                 }
             )
         client.upsert_vectors(collection_name=collection_name, vectors=vectors)
-        return {"db": "qdrant", "collection_name": collection_name, "upserted": len(vectors)}
+        return {
+            "db": "qdrant",
+            "collection_name": collection_name,
+            "upserted": len(vectors),
+        }
 
     if db_type == "chroma":
         db_path = settings.get("db_path", "data/chroma_db")
@@ -48,9 +56,22 @@ def store_embeddings(
         client = ChromaClient(db_path=db_path)
         collection = client.init_collection(collection_name)
         ids = [f"{filename or 'doc'}_chunk_{i}" for i in range(len(chunks))]
-        metadatas = [{"chunk_index": i, "filename": filename or "unknown"} for i in range(len(chunks))]
-        client.add(collection, documents=chunks, embeddings=embeddings, metadatas=metadatas, ids=ids)
-        return {"db": "chroma", "collection_name": collection_name, "upserted": len(ids)}
+        metadatas = [
+            {"chunk_index": i, "filename": filename or "unknown"}
+            for i in range(len(chunks))
+        ]
+        client.add(
+            collection,
+            documents=chunks,
+            embeddings=embeddings,
+            metadatas=metadatas,
+            ids=ids,
+        )
+        return {
+            "db": "chroma",
+            "collection_name": collection_name,
+            "upserted": len(ids),
+        }
 
     if db_type == "pinecone":
         client = PineconeClient(
@@ -66,10 +87,18 @@ def store_embeddings(
                 {
                     "id": f"{filename or 'doc'}_chunk_{i}",
                     "values": vec,
-                    "metadata": {"text": text, "chunk_index": i, "filename": filename or "unknown"},
+                    "metadata": {
+                        "text": text,
+                        "chunk_index": i,
+                        "filename": filename or "unknown",
+                    },
                 }
             )
         client.upsert_vectors(vectors)
-        return {"db": "pinecone", "index_name": settings["index_name"], "upserted": len(vectors)}
+        return {
+            "db": "pinecone",
+            "index_name": settings["index_name"],
+            "upserted": len(vectors),
+        }
 
     raise ValueError(f"Unsupported vector database type: {db_type}")

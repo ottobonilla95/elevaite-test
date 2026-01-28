@@ -11,10 +11,13 @@ Features:
 - Pass model configuration overrides (model_name, temperature, max_tokens)
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from workflow_core_sdk.execution_context import ExecutionContext
-from workflow_core_sdk.utils.variable_injection import inject_variables, extract_variables
+from workflow_core_sdk.utils.variable_injection import (
+    inject_variables,
+    extract_variables,
+)
 
 
 def _resolve_variable_sources(
@@ -130,7 +133,9 @@ async def prompt_step(
         model_overrides["max_tokens"] = params["max_tokens"]
 
     # Resolve variable values from sources
-    resolved_variables = _resolve_variable_sources(variable_defs, execution_context, input_data)
+    resolved_variables = _resolve_variable_sources(
+        variable_defs, execution_context, input_data
+    )
 
     # Also include any variables from input_data that match template variables
     if raw_system_prompt:

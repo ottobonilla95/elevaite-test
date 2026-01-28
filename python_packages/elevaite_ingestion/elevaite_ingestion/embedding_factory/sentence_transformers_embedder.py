@@ -2,7 +2,7 @@ from typing import List, Optional
 
 try:
     from sentence_transformers import SentenceTransformer
-except Exception as e:  # pragma: no cover
+except Exception:  # pragma: no cover
     SentenceTransformer = None  # type: ignore
 
 
@@ -30,4 +30,3 @@ def get_embedding(text: str, model: Optional[str] = None) -> List[float]:
     mdl = _get_model(model_name)
     vec = mdl.encode(text)
     return vec.tolist() if hasattr(vec, "tolist") else list(vec)
-

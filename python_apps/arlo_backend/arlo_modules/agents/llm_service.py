@@ -4,7 +4,6 @@ import os
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 # from arlo_modules.components.postprocessors.processor import Post
-import dotenv
 
 class LLMService:
     def __init__(self, model='openai',api_key=None,max_tokens=500):

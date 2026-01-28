@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy import DateTime, String, Text, Boolean, JSON
+from sqlalchemy import JSON, Boolean, DateTime, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,7 +33,7 @@ class TenantStatus(str, Enum):
 class Tenant(Base):
     """
     Tenant model for storing tenant metadata.
-    
+
     This table is stored in the public schema and tracks all tenants
     in the system along with their status and configuration.
     """
@@ -101,4 +101,3 @@ class Tenant(Base):
     def __repr__(self) -> str:
         """String representation."""
         return f"<Tenant {self.tenant_id} ({self.status})>"
-

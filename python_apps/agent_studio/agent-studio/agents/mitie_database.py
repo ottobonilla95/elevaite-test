@@ -8,9 +8,8 @@ It implements the Elevate Logic Queries requirements with proper separation of c
 import json
 import logging
 import os
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Any
 from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 # Configure logging

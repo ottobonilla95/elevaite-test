@@ -8,9 +8,8 @@ Bug context: Second tool step was incorrectly receiving input from all previous
 steps instead of just the immediate predecessor (Tool1).
 """
 
-import pytest
 import uuid
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock
 
 
 class TestRequestAdapterInputMapping:
@@ -444,7 +443,7 @@ class TestStreamingEndpointInputMappingExpansion:
 
         # Verify tool2 only gets tool1's data
         assert "response" in tool2_input, f"tool2_input should have 'response' key, got keys: {list(tool2_input.keys())}"
-        assert tool2_input["response"] == context.step_io_data[tool1_id], f"tool2 should get tool1's data via 'response' key"
+        assert tool2_input["response"] == context.step_io_data[tool1_id], "tool2 should get tool1's data via 'response' key"
 
         # Verify tool2 does NOT have agent's data
         assert "Agent response" not in str(tool2_input), f"tool2 should NOT have agent's response, but got {tool2_input}"

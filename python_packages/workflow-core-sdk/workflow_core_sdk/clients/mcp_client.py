@@ -12,11 +12,9 @@ Based on Agent Studio's MCP client implementation, adapted for workflow-core-sdk
 """
 
 import asyncio
-import json
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Literal
-from urllib.parse import urljoin
 import httpx
 import logging
 
@@ -54,13 +52,22 @@ class MCPClient:
     Supports both modern Streamable HTTP (JSON-RPC 2.0) and legacy HTTP+SSE transports.
     """
 
-    def __init__(self, timeout: int = 30, max_retries: int = 3, transport: MCPTransportType = "auto"):
+    def __init__(
+        self,
+        timeout: int = 30,
+        max_retries: int = 3,
+        transport: MCPTransportType = "auto",
+    ):
         self.timeout = timeout
         self.max_retries = max_retries
         self.transport = transport
         self._client_cache: Dict[str, httpx.AsyncClient] = {}
-        self._transport_cache: Dict[str, MCPTransportType] = {}  # Cache detected transport per server
-        self._session_cache: Dict[str, str] = {}  # Cache session IDs per server (for Streamable HTTP)
+        self._transport_cache: Dict[
+            str, MCPTransportType
+        ] = {}  # Cache detected transport per server
+        self._session_cache: Dict[
+            str, str
+        ] = {}  # Cache session IDs per server (for Streamable HTTP)
         self._jsonrpc_id_counter = 0
 
     async def close(self):
@@ -111,9 +118,13 @@ class MCPClient:
 
             # Per spec: Server SHOULD respond with 200 OK or 204 No Content
             if response.status_code in [200, 204]:
-                logger.info(f"Successfully terminated session {session_id} for {server_key}")
+                logger.info(
+                    f"Successfully terminated session {session_id} for {server_key}"
+                )
             else:
-                logger.warning(f"Unexpected status code when terminating session: {response.status_code}")
+                logger.warning(
+                    f"Unexpected status code when terminating session: {response.status_code}"
+                )
         except Exception as e:
             logger.warning(f"Failed to send DELETE for session termination: {e}")
 
@@ -177,7 +188,11 @@ class MCPClient:
             # Create client - disable automatic redirect following for MCP
             # Store endpoint in client for later use
             client = httpx.AsyncClient(
-                base_url=base_url, timeout=self.timeout, auth=auth, headers=headers, follow_redirects=False
+                base_url=base_url,
+                timeout=self.timeout,
+                auth=auth,
+                headers=headers,
+                follow_redirects=False,
             )
             # Store endpoint path separately
             client._mcp_endpoint = endpoint or ""  # type: ignore
@@ -190,7 +205,9 @@ class MCPClient:
         self._jsonrpc_id_counter += 1
         return self._jsonrpc_id_counter
 
-    async def _detect_transport(self, server_config: Dict[str, Any]) -> MCPTransportType:
+    async def _detect_transport(
+        self, server_config: Dict[str, Any]
+    ) -> MCPTransportType:
         """
         Detect which transport the server uses.
 
@@ -283,7 +300,9 @@ class MCPClient:
             response = await client.post(endpoint, json=request_data, headers=headers)
 
             if response.status_code not in [200, 201]:
-                raise MCPClientError(f"Session initialization failed: HTTP {response.status_code}")
+                raise MCPClientError(
+                    f"Session initialization failed: HTTP {response.status_code}"
+                )
 
             # Extract session ID from response header (optional per MCP spec)
             session_id = response.headers.get("mcp-session-id")
@@ -303,13 +322,17 @@ class MCPClient:
             return session_id
 
         except httpx.RequestError as e:
-            raise MCPServerUnavailableError(f"Server {server_config.get('host')} is unavailable: {e}")
+            raise MCPServerUnavailableError(
+                f"Server {server_config.get('host')} is unavailable: {e}"
+            )
         except MCPClientError:
             raise
         except Exception as e:
             raise MCPClientError(f"Session initialization failed: {e}")
 
-    async def _send_initialized_notification(self, server_config: Dict[str, Any], session_id: Optional[str]) -> None:
+    async def _send_initialized_notification(
+        self, server_config: Dict[str, Any], session_id: Optional[str]
+    ) -> None:
         """
         Send the 'initialized' notification after successful initialization.
 
@@ -336,11 +359,15 @@ class MCPClient:
         }
 
         try:
-            response = await client.post(endpoint, json=notification_data, headers=headers)
+            response = await client.post(
+                endpoint, json=notification_data, headers=headers
+            )
 
             # Per spec: Server MUST respond with 202 Accepted for notifications
             if response.status_code != 202:
-                logger.warning(f"Unexpected status code for initialized notification: {response.status_code}")
+                logger.warning(
+                    f"Unexpected status code for initialized notification: {response.status_code}"
+                )
         except Exception as e:
             logger.warning(f"Failed to send initialized notification: {e}")
 
@@ -383,7 +410,10 @@ class MCPClient:
             raise MCPClientError(f"Failed to parse SSE data as JSON: {e}")
 
     async def _jsonrpc_request(
-        self, server_config: Dict[str, Any], method: str, params: Optional[Dict[str, Any]] = None
+        self,
+        server_config: Dict[str, Any],
+        method: str,
+        params: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Make a JSON-RPC 2.0 request to the server.
@@ -431,12 +461,16 @@ class MCPClient:
         try:
             # Get the endpoint path from the client (stored during client creation)
             endpoint = getattr(client, "_mcp_endpoint", "")
-            logger.debug(f"JSON-RPC request to endpoint: {repr(endpoint)}, method: {method}")
+            logger.debug(
+                f"JSON-RPC request to endpoint: {repr(endpoint)}, method: {method}"
+            )
             # Post to the endpoint path without trailing slash
             response = await client.post(endpoint, json=request_data, headers=headers)
 
             if response.status_code not in [200, 201]:
-                raise MCPClientError(f"JSON-RPC request failed: HTTP {response.status_code}")
+                raise MCPClientError(
+                    f"JSON-RPC request failed: HTTP {response.status_code}"
+                )
 
             # Check Content-Type to determine how to parse response
             content_type = response.headers.get("content-type", "")
@@ -452,7 +486,9 @@ class MCPClient:
 
             if "error" in data:
                 error = data["error"]
-                raise MCPClientError(f"JSON-RPC error: {error.get('message', 'Unknown error')}")
+                raise MCPClientError(
+                    f"JSON-RPC error: {error.get('message', 'Unknown error')}"
+                )
 
             if "result" not in data:
                 raise MCPClientError("JSON-RPC response missing 'result' field")
@@ -460,7 +496,9 @@ class MCPClient:
             return data["result"]
 
         except httpx.RequestError as e:
-            raise MCPServerUnavailableError(f"Server {server_config.get('host')} is unavailable: {e}")
+            raise MCPServerUnavailableError(
+                f"Server {server_config.get('host')} is unavailable: {e}"
+            )
         except MCPClientError:
             raise
         except Exception as e:
@@ -493,7 +531,9 @@ class MCPClient:
                 return await self._health_check_http_sse(server_config)
 
         except Exception as e:
-            logger.error(f"Health check failed for server {server_config.get('host')}: {e}")
+            logger.error(
+                f"Health check failed for server {server_config.get('host')}: {e}"
+            )
             return False
 
     async def _health_check_jsonrpc(self, server_config: Dict[str, Any]) -> bool:
@@ -541,7 +581,9 @@ class MCPClient:
         except Exception:
             return False
 
-    async def discover_tools(self, server_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def discover_tools(
+        self, server_config: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """
         Discover available tools from MCP server.
 
@@ -570,9 +612,13 @@ class MCPClient:
         except (MCPServerUnavailableError, MCPClientError):
             raise
         except Exception as e:
-            raise MCPClientError(f"Tool discovery failed for {server_config.get('host')}: {e}")
+            raise MCPClientError(
+                f"Tool discovery failed for {server_config.get('host')}: {e}"
+            )
 
-    async def _discover_tools_jsonrpc(self, server_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _discover_tools_jsonrpc(
+        self, server_config: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Discover tools using JSON-RPC (Streamable HTTP transport)."""
         try:
             result = await self._jsonrpc_request(server_config, "tools/list")
@@ -583,14 +629,20 @@ class MCPClient:
             elif isinstance(result, dict) and "tools" in result:
                 return result["tools"]
             else:
-                logger.warning(f"Unexpected tools response format from {server_config.get('host')}: {result}")
+                logger.warning(
+                    f"Unexpected tools response format from {server_config.get('host')}: {result}"
+                )
                 return []
 
         except Exception as e:
-            logger.error(f"JSON-RPC tool discovery failed for {server_config.get('host')}: {e}")
+            logger.error(
+                f"JSON-RPC tool discovery failed for {server_config.get('host')}: {e}"
+            )
             raise
 
-    async def _discover_tools_http_sse(self, server_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _discover_tools_http_sse(
+        self, server_config: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Discover tools using HTTP+SSE transport (legacy)."""
         try:
             client = await self._get_client(server_config)
@@ -608,22 +660,32 @@ class MCPClient:
                         elif isinstance(data, dict) and "tools" in data:
                             return data["tools"]
                         else:
-                            logger.warning(f"Unexpected tools response format from {server_config.get('host')}: {data}")
+                            logger.warning(
+                                f"Unexpected tools response format from {server_config.get('host')}: {data}"
+                            )
                             return []
 
                     elif response.status_code == 404:
                         # Server doesn't support tool discovery
-                        logger.info(f"Server {server_config.get('host')} doesn't support tool discovery")
+                        logger.info(
+                            f"Server {server_config.get('host')} doesn't support tool discovery"
+                        )
                         return []
 
                     else:
-                        logger.warning(f"Tool discovery failed for {server_config.get('host')}: {response.status_code}")
+                        logger.warning(
+                            f"Tool discovery failed for {server_config.get('host')}: {response.status_code}"
+                        )
                         if attempt == self.max_retries - 1:
-                            raise MCPClientError(f"Tool discovery failed: HTTP {response.status_code}")
+                            raise MCPClientError(
+                                f"Tool discovery failed: HTTP {response.status_code}"
+                            )
 
                 except httpx.RequestError as e:
                     if attempt == self.max_retries - 1:
-                        raise MCPServerUnavailableError(f"Server {server_config.get('host')} is unavailable: {e}")
+                        raise MCPServerUnavailableError(
+                            f"Server {server_config.get('host')} is unavailable: {e}"
+                        )
 
                     # Wait before retry
                     await asyncio.sleep(2**attempt)
@@ -631,7 +693,9 @@ class MCPClient:
         except MCPServerUnavailableError:
             raise
         except Exception as e:
-            raise MCPClientError(f"HTTP+SSE tool discovery failed for {server_config.get('host')}: {e}")
+            raise MCPClientError(
+                f"HTTP+SSE tool discovery failed for {server_config.get('host')}: {e}"
+            )
 
         return []
 
@@ -669,17 +733,27 @@ class MCPClient:
 
             # Use appropriate transport
             if transport == "streamable_http":
-                return await self._execute_tool_jsonrpc(server_config, tool_name, parameters, execution_id)
+                return await self._execute_tool_jsonrpc(
+                    server_config, tool_name, parameters, execution_id
+                )
             else:
-                return await self._execute_tool_http_sse(server_config, tool_name, parameters, execution_id)
+                return await self._execute_tool_http_sse(
+                    server_config, tool_name, parameters, execution_id
+                )
 
         except (MCPServerUnavailableError, MCPToolExecutionError):
             raise
         except Exception as e:
-            raise MCPToolExecutionError(f"Tool execution failed for {tool_name} on {server_config.get('host')}: {e}")
+            raise MCPToolExecutionError(
+                f"Tool execution failed for {tool_name} on {server_config.get('host')}: {e}"
+            )
 
     async def _execute_tool_jsonrpc(
-        self, server_config: Dict[str, Any], tool_name: str, parameters: Dict[str, Any], execution_id: str
+        self,
+        server_config: Dict[str, Any],
+        tool_name: str,
+        parameters: Dict[str, Any],
+        execution_id: str,
     ) -> Dict[str, Any]:
         """Execute tool using JSON-RPC (Streamable HTTP transport)."""
         try:
@@ -697,7 +771,11 @@ class MCPClient:
             raise MCPToolExecutionError(f"Tool execution failed for {tool_name}: {e}")
 
     async def _execute_tool_http_sse(
-        self, server_config: Dict[str, Any], tool_name: str, parameters: Dict[str, Any], execution_id: str
+        self,
+        server_config: Dict[str, Any],
+        tool_name: str,
+        parameters: Dict[str, Any],
+        execution_id: str,
     ) -> Dict[str, Any]:
         """Execute tool using HTTP+SSE transport (legacy)."""
         try:
@@ -722,24 +800,34 @@ class MCPClient:
                         # Bad request - don't retry
                         error_data = (
                             response.json()
-                            if response.headers.get("content-type", "").startswith("application/json")
+                            if response.headers.get("content-type", "").startswith(
+                                "application/json"
+                            )
                             else {"error": response.text}
                         )
-                        raise MCPToolExecutionError(f"Tool execution failed: {error_data}")
+                        raise MCPToolExecutionError(
+                            f"Tool execution failed: {error_data}"
+                        )
 
                     elif response.status_code == 404:
-                        raise MCPToolExecutionError(f"Tool '{tool_name}' not found on server {server_config.get('host')}")
+                        raise MCPToolExecutionError(
+                            f"Tool '{tool_name}' not found on server {server_config.get('host')}"
+                        )
 
                     else:
                         logger.warning(
                             f"Tool execution failed for {tool_name} on {server_config.get('host')}: {response.status_code}"
                         )
                         if attempt == self.max_retries - 1:
-                            raise MCPToolExecutionError(f"Tool execution failed: HTTP {response.status_code}")
+                            raise MCPToolExecutionError(
+                                f"Tool execution failed: HTTP {response.status_code}"
+                            )
 
                 except httpx.RequestError as e:
                     if attempt == self.max_retries - 1:
-                        raise MCPServerUnavailableError(f"Server {server_config.get('host')} is unavailable: {e}")
+                        raise MCPServerUnavailableError(
+                            f"Server {server_config.get('host')} is unavailable: {e}"
+                        )
 
                     # Wait before retry
                     await asyncio.sleep(2**attempt)
@@ -747,9 +835,13 @@ class MCPClient:
         except (MCPServerUnavailableError, MCPToolExecutionError):
             raise
         except Exception as e:
-            raise MCPToolExecutionError(f"HTTP+SSE tool execution failed for {tool_name}: {e}")
+            raise MCPToolExecutionError(
+                f"HTTP+SSE tool execution failed for {tool_name}: {e}"
+            )
 
-        raise MCPToolExecutionError(f"Unexpected error during tool execution for {tool_name}")
+        raise MCPToolExecutionError(
+            f"Unexpected error during tool execution for {tool_name}"
+        )
 
     async def close(self):
         """Close all HTTP clients."""

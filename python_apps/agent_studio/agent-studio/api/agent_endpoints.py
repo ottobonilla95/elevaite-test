@@ -8,8 +8,7 @@ Note: This is a simplified version focusing on agent configuration CRUD.
 Legacy features (agent execution, streaming) are handled via workflow execution.
 """
 
-from typing import List, Optional, Dict, Any
-from uuid import UUID
+from typing import List, Dict, Any
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session

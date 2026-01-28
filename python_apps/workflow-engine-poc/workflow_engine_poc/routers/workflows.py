@@ -3,7 +3,6 @@ Workflow management endpoints
 """
 
 import logging
-import os
 import uuid
 import asyncio
 from pathlib import Path
@@ -34,10 +33,14 @@ from rbac_sdk import (
 
 from sqlmodel import Session
 from workflow_core_sdk.db.database import get_db_session
-from workflow_core_sdk.db.models import WorkflowRead, WorkflowBase, WorkflowExecutionRead, ExecutionStatus
+from workflow_core_sdk.db.models import (
+    WorkflowRead,
+    WorkflowBase,
+    WorkflowExecutionRead,
+    ExecutionStatus,
+)
 from workflow_core_sdk.services.workflows_service import WorkflowsService
 from workflow_core_sdk import WorkflowEngine
-from workflow_core_sdk.db.service import DatabaseService
 from workflow_core_sdk.streaming import (
     stream_manager,
     create_sse_stream,
@@ -127,17 +130,25 @@ async def execute_workflow_by_id(
         content_type = request.headers.get("content-type", "").lower()
         body_data: Dict[str, Any] = {}
         raw_json: Dict[str, Any] = {}
-        if payload is not None or files is not None or "multipart/form-data" in content_type:
+        if (
+            payload is not None
+            or files is not None
+            or "multipart/form-data" in content_type
+        ):
             # Multipart path
             import json
 
             if payload is None:
-                raise HTTPException(status_code=400, detail="Missing 'payload' form field")
+                raise HTTPException(
+                    status_code=400, detail="Missing 'payload' form field"
+                )
             try:
                 raw_json = json.loads(payload)
                 body_data = raw_json
             except Exception:
-                raise HTTPException(status_code=400, detail="Invalid JSON in 'payload' form field")
+                raise HTTPException(
+                    status_code=400, detail="Invalid JSON in 'payload' form field"
+                )
         else:
             # JSON path
             parsed = await request.json()
@@ -176,7 +187,12 @@ async def execute_workflow_by_id(
         trigger_cfg = next((s for s in steps if s.get("step_type") == "trigger"), None)
         trigger_params = trigger_cfg.get("parameters", {}) if trigger_cfg else {}
         body_trigger = body_data.get("trigger") or {}
-        kind = (body_trigger.get("kind") or body_data.get("kind") or trigger_params.get("kind") or "webhook").lower()
+        kind = (
+            body_trigger.get("kind")
+            or body_data.get("kind")
+            or trigger_params.get("kind")
+            or "webhook"
+        ).lower()
 
         # Limits and MIME rules
         max_files = int(trigger_params.get("max_files", MAX_FILES_DEFAULT))
@@ -200,7 +216,9 @@ async def execute_workflow_by_id(
         total_size = 0
         if files:
             if len(files) > max_files:
-                raise HTTPException(status_code=400, detail=f"Too many files (max {max_files})")
+                raise HTTPException(
+                    status_code=400, detail=f"Too many files (max {max_files})"
+                )
             upload_root = Path("uploads")
             upload_root.mkdir(exist_ok=True)
             import uuid as uuid_module
@@ -210,14 +228,22 @@ async def execute_workflow_by_id(
             for up in files:
                 mime = up.content_type or "application/octet-stream"
                 if allowed_mime_types and mime not in allowed_mime_types:
-                    raise HTTPException(status_code=400, detail=f"Disallowed MIME type: {mime}")
+                    raise HTTPException(
+                        status_code=400, detail=f"Disallowed MIME type: {mime}"
+                    )
                 content = await up.read()
                 size = len(content)
                 if size > per_file_limit:
-                    raise HTTPException(status_code=400, detail=f"File too large (> {per_file_mb} MB): {up.filename}")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"File too large (> {per_file_mb} MB): {up.filename}",
+                    )
                 total_size += size
                 if total_size > total_limit:
-                    raise HTTPException(status_code=400, detail=f"Total attachment size exceeds {total_mb} MB")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Total attachment size exceeds {total_mb} MB",
+                    )
                 dest = run_dir / (up.filename or "upload.bin")
                 with open(dest, "wb") as f:
                     f.write(content)
@@ -237,26 +263,46 @@ async def execute_workflow_by_id(
             trigger_payload = {
                 "kind": "chat",
                 "current_message": (
-                    (trigger_payload.get("current_message") if isinstance(trigger_payload, dict) else None)
+                    (
+                        trigger_payload.get("current_message")
+                        if isinstance(trigger_payload, dict)
+                        else None
+                    )
                     or body_data.get("current_message")
                     or body_data.get("query")
                 ),
                 "history": (
-                    (trigger_payload.get("history") if isinstance(trigger_payload, dict) else None)
+                    (
+                        trigger_payload.get("history")
+                        if isinstance(trigger_payload, dict)
+                        else None
+                    )
                     or body_data.get("history", [])
                 ),
                 # Accept an optional pre-assembled messages array of {role, content}
                 "messages": (
-                    (trigger_payload.get("messages") if isinstance(trigger_payload, dict) else None)
+                    (
+                        trigger_payload.get("messages")
+                        if isinstance(trigger_payload, dict)
+                        else None
+                    )
                     or body_data.get("messages")
                 ),
                 "attachments": attachments
-                or (trigger_payload.get("attachments", []) if isinstance(trigger_payload, dict) else []),
+                or (
+                    trigger_payload.get("attachments", [])
+                    if isinstance(trigger_payload, dict)
+                    else []
+                ),
                 "need_history": bool(trigger_params.get("need_history", True)),
             }
             # If messages missing but current_message provided, synthesize a single user message
-            if not trigger_payload.get("messages") and trigger_payload.get("current_message"):
-                trigger_payload["messages"] = [{"role": "user", "content": trigger_payload["current_message"]}]
+            if not trigger_payload.get("messages") and trigger_payload.get(
+                "current_message"
+            ):
+                trigger_payload["messages"] = [
+                    {"role": "user", "content": trigger_payload["current_message"]}
+                ]
         elif kind == "file":
             trigger_payload = {
                 "kind": "file",
@@ -300,7 +346,10 @@ async def execute_workflow_by_id(
 
         # Persist initial chat messages to the DB under the first agent step so they are queryable
         try:
-            if isinstance(trigger_payload, dict) and trigger_payload.get("kind") == "chat":
+            if (
+                isinstance(trigger_payload, dict)
+                and trigger_payload.get("kind") == "chat"
+            ):
                 initial_msgs = trigger_payload.get("messages") or []
                 if initial_msgs:
                     # Choose first agent_execution step to scope these messages
@@ -311,7 +360,11 @@ async def execute_workflow_by_id(
                             break
                     if first_agent_step_id:
                         for m in initial_msgs:
-                            if isinstance(m, dict) and m.get("role") and m.get("content"):
+                            if (
+                                isinstance(m, dict)
+                                and m.get("role")
+                                and m.get("content")
+                            ):
                                 WorkflowsService.create_agent_message(
                                     session,
                                     execution_id=execution_id,
@@ -381,7 +434,10 @@ async def execute_workflow_by_id(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{workflow_id}/stream", dependencies=[Depends(api_key_or_user_guard("view_workflow"))])
+@router.get(
+    "/{workflow_id}/stream",
+    dependencies=[Depends(api_key_or_user_guard("view_workflow"))],
+)
 async def stream_workflow_execution(
     workflow_id: str,
     request: Request,
@@ -428,7 +484,9 @@ async def stream_workflow_execution(
                     stream_manager.add_execution_stream(execution_id, queue)
 
                     # Send initial status for the specific execution
-                    execution_context = await workflow_engine.get_execution_context(execution_id)
+                    execution_context = await workflow_engine.get_execution_context(
+                        execution_id
+                    )
                     if execution_context:
                         initial_event = create_status_event(
                             execution_id=execution_id,
@@ -441,7 +499,9 @@ async def stream_workflow_execution(
                         yield initial_event.to_sse()
                 else:
                     # Send status for latest execution of the workflow
-                    executions = WorkflowsService.list_executions(session, workflow_id=workflow_id, limit=1, offset=0)
+                    executions = WorkflowsService.list_executions(
+                        session, workflow_id=workflow_id, limit=1, offset=0
+                    )
                     if executions:
                         latest_execution = executions[0]
                         initial_event = create_status_event(
@@ -454,7 +514,9 @@ async def stream_workflow_execution(
 
                 # Stream events from the queue
                 # Use a shorter heartbeat for workflow streams to ensure a second chunk arrives promptly
-                async for event_data in create_sse_stream(queue, heartbeat_interval=2, max_events=1000):
+                async for event_data in create_sse_stream(
+                    queue, heartbeat_interval=2, max_events=1000
+                ):
                     yield event_data
 
             except asyncio.CancelledError:
@@ -462,7 +524,12 @@ async def stream_workflow_execution(
             except Exception as e:
                 logger.error(f"Error in workflow stream {workflow_id}: {e}")
                 # Send error event
-                error_event = create_status_event(execution_id="system", status="error", workflow_id=workflow_id, error=str(e))
+                error_event = create_status_event(
+                    execution_id="system",
+                    status="error",
+                    workflow_id=workflow_id,
+                    error=str(e),
+                )
                 yield error_event.to_sse()
             finally:
                 # Clean up the connections
@@ -470,7 +537,9 @@ async def stream_workflow_execution(
                 if execution_id:
                     stream_manager.remove_execution_stream(execution_id, queue)
 
-        return StreamingResponse(event_generator(), media_type="text/event-stream", headers=get_sse_headers())
+        return StreamingResponse(
+            event_generator(), media_type="text/event-stream", headers=get_sse_headers()
+        )
 
     except HTTPException:
         raise
@@ -479,7 +548,9 @@ async def stream_workflow_execution(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/validate", dependencies=[Depends(api_key_or_user_guard("view_workflow"))])
+@router.post(
+    "/validate", dependencies=[Depends(api_key_or_user_guard("view_workflow"))]
+)
 async def validate_workflow(
     workflow_config: WorkflowBase,
     request: Request,
@@ -493,7 +564,9 @@ async def validate_workflow(
     """Validate a workflow configuration"""
     try:
         workflow_engine: WorkflowEngine = request.app.state.workflow_engine
-        validation_result = await workflow_engine.validate_workflow(workflow_config.model_dump())
+        validation_result = await workflow_engine.validate_workflow(
+            workflow_config.model_dump()
+        )
 
         return validation_result
     except Exception as e:
@@ -501,7 +574,11 @@ async def validate_workflow(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/", response_model=List[WorkflowRead], dependencies=[Depends(api_key_or_user_guard("view_workflow"))])
+@router.get(
+    "/",
+    response_model=List[WorkflowRead],
+    dependencies=[Depends(api_key_or_user_guard("view_workflow"))],
+)
 async def list_workflows(
     session: Session = Depends(get_db_session),
     limit: int = 100,
@@ -515,7 +592,9 @@ async def list_workflows(
 ) -> List[WorkflowRead]:
     """List all saved workflows returning ORM entities"""
     try:
-        workflows = WorkflowsService.list_workflows_entities(session, limit=limit, offset=offset)
+        workflows = WorkflowsService.list_workflows_entities(
+            session, limit=limit, offset=offset
+        )
         # Convert Workflow entities to WorkflowRead schemas
         return [WorkflowRead.model_validate(workflow) for workflow in workflows]
     except Exception as e:
@@ -523,7 +602,9 @@ async def list_workflows(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/{workflow_id}", dependencies=[Depends(api_key_or_user_guard("delete_workflow"))])
+@router.delete(
+    "/{workflow_id}", dependencies=[Depends(api_key_or_user_guard("delete_workflow"))]
+)
 async def delete_workflow(
     workflow_id: str,
     session: Session = Depends(get_db_session),
@@ -553,7 +634,11 @@ async def delete_workflow(
 # New SQLModel-based endpoints
 
 
-@router.post("/", response_model=WorkflowRead, dependencies=[Depends(api_key_or_user_guard("create_workflow"))])
+@router.post(
+    "/",
+    response_model=WorkflowRead,
+    dependencies=[Depends(api_key_or_user_guard("create_workflow"))],
+)
 async def create_workflow(
     workflow_data: WorkflowConfig,
     session: Session = Depends(get_db_session),
@@ -569,7 +654,9 @@ async def create_workflow(
     Request body schema: WorkflowConfig
     """
     try:
-        workflow_obj = WorkflowsService.create_workflow(session, workflow_data.model_dump())
+        workflow_obj = WorkflowsService.create_workflow(
+            session, workflow_data.model_dump()
+        )
         return workflow_obj  # type: ignore[return-value]
 
     except Exception as e:
@@ -577,7 +664,11 @@ async def create_workflow(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{workflow_id}", response_model=WorkflowRead, dependencies=[Depends(api_key_or_user_guard("view_workflow"))])
+@router.get(
+    "/{workflow_id}",
+    response_model=WorkflowRead,
+    dependencies=[Depends(api_key_or_user_guard("view_workflow"))],
+)
 async def get_workflow_by_id(
     workflow_id: str,
     session: Session = Depends(get_db_session),

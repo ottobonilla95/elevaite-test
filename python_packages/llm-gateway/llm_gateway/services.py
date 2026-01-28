@@ -27,7 +27,7 @@ class EmbeddingService:
 
         try:
             if not isinstance(provider, BaseEmbeddingProvider):
-                raise TypeError(f"Provider is not a BaseEmbeddingProvider")
+                raise TypeError("Provider is not a BaseEmbeddingProvider")
             return provider.embed_documents(request.texts, request.info)
         except Exception as e:
             error_msg = f"Error in embedding for provider {request.info.type}: {str(e)}"
@@ -63,7 +63,7 @@ class TextGenerationService:
 
         try:
             if not isinstance(provider, BaseTextGenerationProvider):
-                raise TypeError(f"Provider is not a BaseTextGenerationProvider")
+                raise TypeError("Provider is not a BaseTextGenerationProvider")
             return provider.generate_text(
                 prompt=prompt,
                 config=processed_config,
@@ -79,7 +79,9 @@ class TextGenerationService:
                 files=files,
             )
         except Exception as e:
-            error_msg = f"Error in text generation for provider {config['type']}: {str(e)}"
+            error_msg = (
+                f"Error in text generation for provider {config['type']}: {str(e)}"
+            )
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
 
@@ -162,7 +164,7 @@ class VisionService:
 
         try:
             if not isinstance(provider, BaseVisionProvider):
-                raise TypeError(f"Provider is not a BaseVisionProvider")
+                raise TypeError("Provider is not a BaseVisionProvider")
             return provider.generate_text(
                 prompt=prompt,
                 images=images,
@@ -174,7 +176,9 @@ class VisionService:
                 temperature=temperature,
             )
         except Exception as e:
-            error_msg = f"Error in processing images for provider {config['type']}: {str(e)}"
+            error_msg = (
+                f"Error in processing images for provider {config['type']}: {str(e)}"
+            )
             self.logger.error(error_msg)
             raise RuntimeError(error_msg)
 
@@ -208,12 +212,12 @@ class UniversalService:
         try:
             if request_type == RequestType.EMBEDDING:
                 if not isinstance(provider, BaseEmbeddingProvider):
-                    raise TypeError(f"Provider is not a BaseEmbeddingProvider")
+                    raise TypeError("Provider is not a BaseEmbeddingProvider")
                 return provider.embed_documents(kwargs["texts"], kwargs["info"])
 
             elif request_type == RequestType.TEXT_GENERATION:
                 if not isinstance(provider, BaseTextGenerationProvider):
-                    raise TypeError(f"Provider is not a BaseTextGenerationProvider")
+                    raise TypeError("Provider is not a BaseTextGenerationProvider")
                 # Apply thinking defaults based on provider type
                 processed_config = apply_thinking_defaults(kwargs.get("config"))
                 return provider.generate_text(
@@ -233,7 +237,7 @@ class UniversalService:
 
             elif request_type == RequestType.VISION:
                 if not isinstance(provider, BaseVisionProvider):
-                    raise TypeError(f"Provider is not a BaseVisionProvider")
+                    raise TypeError("Provider is not a BaseVisionProvider")
                 return provider.generate_text(
                     prompt=kwargs.get("prompt"),
                     images=kwargs["images"],

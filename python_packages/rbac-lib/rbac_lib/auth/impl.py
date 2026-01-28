@@ -23,7 +23,6 @@ auditor = AuditorProvider.get_instance()
 
 
 class AccessTokenOrApikeyAuthentication(AuthenticationInterface):
-
     @auditor.audit(api_namespace=api_schemas.APINamespace.RBAC_API)
     @staticmethod
     async def authenticate(
@@ -43,7 +42,6 @@ class AccessTokenOrApikeyAuthentication(AuthenticationInterface):
         ),
         db: Session = Depends(get_db),
     ) -> User | Apikey:
-
         request.state.db = db
 
         # Ensure only one method of authentication is provided
@@ -61,7 +59,7 @@ class AccessTokenOrApikeyAuthentication(AuthenticationInterface):
             )
             if not access_token_header.startswith("Bearer "):
                 print(
-                    f"in authenticate middleware : Request auth header must contain bearer iDP access_token for authentication"
+                    "in authenticate middleware : Request auth header must contain bearer iDP access_token for authentication"
                 )
                 raise ApiError.unauthorized(
                     "Request auth header must contain bearer iDP access_token for authentication"
@@ -76,7 +74,7 @@ class AccessTokenOrApikeyAuthentication(AuthenticationInterface):
                     idp_type=idp_type if idp_type else auth_schemas.iDPType.GOOGLE
                 )
                 email = idp.get_user_email(access_token=token)
-                pprint(f"user email obtained from token successfully")
+                pprint("user email obtained from token successfully")
                 RedisSingleton().connection.setex(token, 60 * 60, email)
             else:
                 email = cached_email
@@ -123,14 +121,13 @@ class AccessTokenAuthentication(AuthenticationInterface):
         ),
         db: Session = Depends(get_db),
     ) -> User:
-
         request.state.db = db
         request.state.access_method = auth_schemas.AuthType.ACCESS_TOKEN.value
         request.state.idp = idp_type if idp_type else auth_schemas.iDPType.GOOGLE.value
 
         if not access_token_header.startswith("Bearer "):  # access token authentication
             print(
-                f"in authenticate middleware : Request auth header must contain bearer iDP access_token for authentication"
+                "in authenticate middleware : Request auth header must contain bearer iDP access_token for authentication"
             )
             raise ApiError.unauthorized(
                 "Request auth header must contain bearer iDP access_token for authentication"
@@ -170,7 +167,6 @@ class ApikeyAuthentication(AuthenticationInterface):
         ),
         db: Session = Depends(get_db),
     ) -> Apikey:
-
         request.state.db = db
         request.state.access_method = auth_schemas.AuthType.API_KEY.value
 

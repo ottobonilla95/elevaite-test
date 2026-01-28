@@ -10,7 +10,6 @@ Tests all CRUD operations for prompts including:
 - Error cases and validation
 """
 
-import pytest
 import uuid
 from fastapi.testclient import TestClient
 

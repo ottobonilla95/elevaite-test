@@ -26,7 +26,9 @@ class TestResolveVariableSources:
 
     def test_resolve_from_input_data(self, execution_context):
         """Test resolving variable from input_data source."""
-        variables = [{"name": "user_name", "source": "name", "default_value": "default"}]
+        variables = [
+            {"name": "user_name", "source": "name", "default_value": "default"}
+        ]
         input_data = {"name": "Alice"}
 
         result = _resolve_variable_sources(variables, execution_context, input_data)
@@ -44,7 +46,9 @@ class TestResolveVariableSources:
 
     def test_fallback_to_default(self, execution_context):
         """Test falling back to default when source not found."""
-        variables = [{"name": "greeting", "source": "nonexistent", "default_value": "Hello"}]
+        variables = [
+            {"name": "greeting", "source": "nonexistent", "default_value": "Hello"}
+        ]
 
         result = _resolve_variable_sources(variables, execution_context, {})
 
@@ -96,7 +100,10 @@ class TestPromptStep:
             "step_id": "prompt-1",
             "parameters": {
                 "system_prompt": "Hello {{name}}, you are {{role}}.",
-                "variables": [{"name": "name", "source": "user_name"}, {"name": "role", "default_value": "a tester"}],
+                "variables": [
+                    {"name": "name", "source": "user_name"},
+                    {"name": "role", "default_value": "a tester"},
+                ],
             },
         }
         input_data = {"user_name": "Alice"}
@@ -128,7 +135,12 @@ class TestPromptStep:
         """Test that model overrides are extracted."""
         step_config = {
             "step_id": "prompt-1",
-            "parameters": {"system_prompt": "Test", "model_name": "gpt-4", "temperature": 0.7, "max_tokens": 2000},
+            "parameters": {
+                "system_prompt": "Test",
+                "model_name": "gpt-4",
+                "temperature": 0.7,
+                "max_tokens": 2000,
+            },
         }
 
         result = await prompt_step(step_config, {}, execution_context)
@@ -154,7 +166,10 @@ class TestPromptStep:
     @pytest.mark.asyncio
     async def test_override_agent_prompt_false(self, execution_context):
         """Test setting override_agent_prompt to False."""
-        step_config = {"step_id": "prompt-1", "parameters": {"system_prompt": "Test", "override_agent_prompt": False}}
+        step_config = {
+            "step_id": "prompt-1",
+            "parameters": {"system_prompt": "Test", "override_agent_prompt": False},
+        }
 
         result = await prompt_step(step_config, {}, execution_context)
 
@@ -163,7 +178,9 @@ class TestPromptStep:
     @pytest.mark.asyncio
     async def test_step_data_variable_resolution(self, execution_context):
         """Test resolving variables from previous step output."""
-        execution_context.step_io_data = {"input-step": {"user_query": "Help me debug", "priority": "high"}}
+        execution_context.step_io_data = {
+            "input-step": {"user_query": "Help me debug", "priority": "high"}
+        }
         step_config = {
             "step_id": "prompt-1",
             "parameters": {
@@ -278,8 +295,14 @@ Be professional and helpful. Reference the ticket ID when appropriate.""",
                 "variables": [
                     {"name": "customer_name", "source": "customer-input.customer_name"},
                     {"name": "ticket_id", "source": "customer-input.ticket_id"},
-                    {"name": "issue_category", "source": "customer-input.issue_category"},
-                    {"name": "interactions", "source": "customer-input.previous_interactions"},
+                    {
+                        "name": "issue_category",
+                        "source": "customer-input.issue_category",
+                    },
+                    {
+                        "name": "interactions",
+                        "source": "customer-input.previous_interactions",
+                    },
                 ],
                 "model_name": "gpt-4",
                 "temperature": 0.3,  # Lower temp for support consistency
@@ -421,7 +444,10 @@ Provide insights based on this information.""",
                     {"name": "industry", "source": "data-collector.industry"},
                     {"name": "news", "source": "research-step.recent_news"},
                     {"name": "stock", "source": "research-step.stock_price"},
-                    {"name": "sentiment", "source": "sentiment-analyzer.overall_sentiment"},
+                    {
+                        "name": "sentiment",
+                        "source": "sentiment-analyzer.overall_sentiment",
+                    },
                     {"name": "confidence", "source": "sentiment-analyzer.confidence"},
                 ],
                 "temperature": 0.5,
@@ -520,8 +546,16 @@ Deadline: {{deadline}}
 Process this task appropriately.""",
                 "variables": [
                     {"name": "task_name", "source": "partial-data.name"},
-                    {"name": "priority", "source": "partial-data.priority", "default_value": "medium"},
-                    {"name": "deadline", "source": "partial-data.deadline", "default_value": "not specified"},
+                    {
+                        "name": "priority",
+                        "source": "partial-data.priority",
+                        "default_value": "medium",
+                    },
+                    {
+                        "name": "deadline",
+                        "source": "partial-data.deadline",
+                        "default_value": "not specified",
+                    },
                 ],
             },
         }
@@ -563,7 +597,9 @@ class TestDemoWorkflows:
         # STEP 1: Input Node
         # User provides raw product specifications
         # ============================================================
-        input_node_output = {"raw_copy": "Arlo Pro 5 camera 2K video color night vision weather resistant"}
+        input_node_output = {
+            "raw_copy": "Arlo Pro 5 camera 2K video color night vision weather resistant"
+        }
 
         # Store input node output in execution context
         execution_context.step_io_data = {"input-node": input_node_output}
@@ -585,7 +621,9 @@ class TestDemoWorkflows:
             },
         }
 
-        prompt_node_output = await prompt_step(prompt_node_config, {}, execution_context)
+        prompt_node_output = await prompt_step(
+            prompt_node_config, {}, execution_context
+        )
 
         # Verify prompt node processed correctly
         assert prompt_node_output["step_type"] == "prompt"
@@ -618,7 +656,9 @@ class TestDemoWorkflows:
                 prompt_config = dep_output
                 break
 
-        assert prompt_config is not None, "Agent should receive prompt config from prompt node"
+        assert prompt_config is not None, (
+            "Agent should receive prompt config from prompt node"
+        )
         assert (
             prompt_config["system_prompt"]
             == "You are an expert advertising copywriter specializing in home security products. Create compelling, concise ad copy."
@@ -649,7 +689,9 @@ class TestDemoWorkflows:
         #  "config": {"output_mapping": {"ad_copy": "agent-node.response"}}}
         # ============================================================
         # Simulate output node extracting the response
-        final_output = {"ad_copy": execution_context.step_io_data["agent-node"]["response"]}
+        final_output = {
+            "ad_copy": execution_context.step_io_data["agent-node"]["response"]
+        }
 
         # ============================================================
         # FINAL VERIFICATION

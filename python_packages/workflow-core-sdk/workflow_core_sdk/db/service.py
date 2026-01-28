@@ -28,7 +28,9 @@ class DatabaseService:
         pass
 
     # Workflow operations
-    def save_workflow(self, session: Session, workflow_id: str, workflow_data: Dict[str, Any]) -> str:
+    def save_workflow(
+        self, session: Session, workflow_id: str, workflow_data: Dict[str, Any]
+    ) -> str:
         """Save or create a workflow by UUID (id)."""
         # Parse/normalize UUID
         wf_uuid = uuid_module.UUID(workflow_id)
@@ -38,14 +40,22 @@ class DatabaseService:
         if existing:
             # Update only known fields explicitly
             existing.name = workflow_data.get("name", existing.name)
-            existing.description = workflow_data.get("description", existing.description)
+            existing.description = workflow_data.get(
+                "description", existing.description
+            )
             existing.version = workflow_data.get("version", existing.version)
-            existing.execution_pattern = workflow_data.get("execution_pattern", existing.execution_pattern)
+            existing.execution_pattern = workflow_data.get(
+                "execution_pattern", existing.execution_pattern
+            )
             # Store the entire workflow_data as configuration (not a nested field)
             existing.configuration = workflow_data
-            existing.global_config = workflow_data.get("global_config", existing.global_config)
+            existing.global_config = workflow_data.get(
+                "global_config", existing.global_config
+            )
             existing.tags = workflow_data.get("tags", existing.tags)
-            existing.timeout_seconds = workflow_data.get("timeout_seconds", existing.timeout_seconds)
+            existing.timeout_seconds = workflow_data.get(
+                "timeout_seconds", existing.timeout_seconds
+            )
             existing.created_by = workflow_data.get("created_by", existing.created_by)
             session.add(existing)
         else:
@@ -68,15 +78,24 @@ class DatabaseService:
         session.commit()
         return workflow_id
 
-    def get_workflow(self, session: Session, workflow_id: str) -> Optional[Dict[str, Any]]:
+    def get_workflow(
+        self, session: Session, workflow_id: str
+    ) -> Optional[Dict[str, Any]]:
         """Get a workflow by ID"""
         wf_uuid = uuid_module.UUID(workflow_id)
         workflow = session.exec(select(Workflow).where(Workflow.id == wf_uuid)).first()
         return workflow.configuration if workflow else None
 
-    def list_workflows(self, session: Session, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
+    def list_workflows(
+        self, session: Session, limit: int = 100, offset: int = 0
+    ) -> List[Dict[str, Any]]:
         """List all workflows"""
-        workflows = session.exec(select(Workflow).offset(offset).limit(limit).order_by(desc(Workflow.created_at))).all()
+        workflows = session.exec(
+            select(Workflow)
+            .offset(offset)
+            .limit(limit)
+            .order_by(desc(Workflow.created_at))
+        ).all()
 
         return [
             {
@@ -121,10 +140,14 @@ class DatabaseService:
 
         return str(execution.id)
 
-    def get_execution(self, session: Session, execution_id: str) -> Optional[Dict[str, Any]]:
+    def get_execution(
+        self, session: Session, execution_id: str
+    ) -> Optional[Dict[str, Any]]:
         """Get an execution by ID"""
         execution = session.exec(
-            select(WorkflowExecution).where(WorkflowExecution.id == uuid_module.UUID(execution_id))
+            select(WorkflowExecution).where(
+                WorkflowExecution.id == uuid_module.UUID(execution_id)
+            )
         ).first()
 
         if not execution:
@@ -142,16 +165,24 @@ class DatabaseService:
             "step_io_data": execution.step_io_data,
             "metadata": execution.execution_metadata,
             "error_message": execution.error_message,
-            "started_at": (execution.started_at.isoformat() if execution.started_at else None),
-            "completed_at": (execution.completed_at.isoformat() if execution.completed_at else None),
+            "started_at": (
+                execution.started_at.isoformat() if execution.started_at else None
+            ),
+            "completed_at": (
+                execution.completed_at.isoformat() if execution.completed_at else None
+            ),
             "execution_time_seconds": execution.execution_time_seconds,
             "created_at": execution.created_at.isoformat(),
         }
 
-    def update_execution(self, session: Session, execution_id: str, update_data: Dict[str, Any]) -> bool:
+    def update_execution(
+        self, session: Session, execution_id: str, update_data: Dict[str, Any]
+    ) -> bool:
         """Update an execution"""
         execution = session.exec(
-            select(WorkflowExecution).where(WorkflowExecution.id == uuid_module.UUID(execution_id))
+            select(WorkflowExecution).where(
+                WorkflowExecution.id == uuid_module.UUID(execution_id)
+            )
         ).first()
 
         if not execution:
@@ -177,13 +208,19 @@ class DatabaseService:
         query = select(WorkflowExecution)
 
         if workflow_id:
-            query = query.where(WorkflowExecution.workflow_id == uuid_module.UUID(workflow_id))
+            query = query.where(
+                WorkflowExecution.workflow_id == uuid_module.UUID(workflow_id)
+            )
         if status:
             status_enum = ExecutionStatus(status) if isinstance(status, str) else status
             if status_enum:
                 query = query.where(WorkflowExecution.status == status_enum)
 
-        executions = session.exec(query.offset(offset).limit(limit).order_by(desc(WorkflowExecution.created_at))).all()
+        executions = session.exec(
+            query.offset(offset)
+            .limit(limit)
+            .order_by(desc(WorkflowExecution.created_at))
+        ).all()
 
         return [
             {
@@ -191,8 +228,14 @@ class DatabaseService:
                 "workflow_id": str(execution.workflow_id),
                 "status": execution.status,
                 "user_id": execution.user_id,
-                "started_at": (execution.started_at.isoformat() if execution.started_at else None),
-                "completed_at": (execution.completed_at.isoformat() if execution.completed_at else None),
+                "started_at": (
+                    execution.started_at.isoformat() if execution.started_at else None
+                ),
+                "completed_at": (
+                    execution.completed_at.isoformat()
+                    if execution.completed_at
+                    else None
+                ),
                 "execution_time_seconds": execution.execution_time_seconds,
                 "created_at": execution.created_at.isoformat(),
             }
@@ -200,7 +243,9 @@ class DatabaseService:
         ]
 
     # Step type operations
-    def rekey_execution(self, session: Session, old_execution_id: str, new_execution_id: str) -> bool:
+    def rekey_execution(
+        self, session: Session, old_execution_id: str, new_execution_id: str
+    ) -> bool:
         """Change the primary key of an execution row to a new UUID.
         This is safe immediately after creation when no FKs reference it yet.
         """
@@ -210,7 +255,9 @@ class DatabaseService:
         except Exception:
             return False
 
-        exec_row = session.exec(select(WorkflowExecution).where(WorkflowExecution.id == old_uuid)).first()
+        exec_row = session.exec(
+            select(WorkflowExecution).where(WorkflowExecution.id == old_uuid)
+        ).first()
         if not exec_row:
             return False
 
@@ -222,14 +269,27 @@ class DatabaseService:
         return True
 
     # -------- New SQLModel entity helpers (non-dict) --------
-    def get_workflow_entity(self, session: Session, workflow_id: str) -> Optional[Workflow]:
+    def get_workflow_entity(
+        self, session: Session, workflow_id: str
+    ) -> Optional[Workflow]:
         wf_uuid = uuid_module.UUID(workflow_id)
         return session.exec(select(Workflow).where(Workflow.id == wf_uuid)).first()
 
-    def list_workflow_entities(self, session: Session, limit: int = 100, offset: int = 0) -> List[Workflow]:
-        return list(session.exec(select(Workflow).order_by(desc(Workflow.created_at)).offset(offset).limit(limit)).all())
+    def list_workflow_entities(
+        self, session: Session, limit: int = 100, offset: int = 0
+    ) -> List[Workflow]:
+        return list(
+            session.exec(
+                select(Workflow)
+                .order_by(desc(Workflow.created_at))
+                .offset(offset)
+                .limit(limit)
+            ).all()
+        )
 
-    def create_execution_entity(self, session: Session, execution_data: Dict[str, Any]) -> WorkflowExecution:
+    def create_execution_entity(
+        self, session: Session, execution_data: Dict[str, Any]
+    ) -> WorkflowExecution:
         execution = WorkflowExecution(
             workflow_id=uuid_module.UUID(execution_data["workflow_id"]),
             user_id=execution_data.get("user_id"),
@@ -245,9 +305,13 @@ class DatabaseService:
         session.refresh(execution)
         return execution
 
-    def get_execution_entity(self, session: Session, execution_id: str) -> Optional[WorkflowExecution]:
+    def get_execution_entity(
+        self, session: Session, execution_id: str
+    ) -> Optional[WorkflowExecution]:
         exe_uuid = uuid_module.UUID(execution_id)
-        return session.exec(select(WorkflowExecution).where(WorkflowExecution.id == exe_uuid)).first()
+        return session.exec(
+            select(WorkflowExecution).where(WorkflowExecution.id == exe_uuid)
+        ).first()
 
     def list_execution_entities(
         self,
@@ -259,12 +323,20 @@ class DatabaseService:
     ) -> List[WorkflowExecution]:
         query = select(WorkflowExecution)
         if workflow_id:
-            query = query.where(WorkflowExecution.workflow_id == uuid_module.UUID(workflow_id))
+            query = query.where(
+                WorkflowExecution.workflow_id == uuid_module.UUID(workflow_id)
+            )
         if status:
             status_enum = ExecutionStatus(status) if isinstance(status, str) else status
             if status_enum:
                 query = query.where(WorkflowExecution.status == status_enum)
-        return list(session.exec(query.order_by(desc(WorkflowExecution.created_at)).offset(offset).limit(limit)).all())
+        return list(
+            session.exec(
+                query.order_by(desc(WorkflowExecution.created_at))
+                .offset(offset)
+                .limit(limit)
+            ).all()
+        )
 
     # Approvals operations
     def create_approval_request(self, session: Session, data: Dict[str, Any]) -> str:
@@ -281,7 +353,9 @@ class DatabaseService:
         session.refresh(rec)
         return str(rec.id)
 
-    def update_approval_request(self, session: Session, approval_id: str, changes: Dict[str, Any]) -> bool:
+    def update_approval_request(
+        self, session: Session, approval_id: str, changes: Dict[str, Any]
+    ) -> bool:
         rec = session.get(ApprovalRequest, uuid_module.UUID(approval_id))
         if not rec:
             return False
@@ -292,7 +366,9 @@ class DatabaseService:
         session.commit()
         return True
 
-    def get_approval_request(self, session: Session, approval_id: str) -> Optional[Dict[str, Any]]:
+    def get_approval_request(
+        self, session: Session, approval_id: str
+    ) -> Optional[Dict[str, Any]]:
         rec = session.get(ApprovalRequest, uuid_module.UUID(approval_id))
         if not rec:
             return None
@@ -322,12 +398,18 @@ class DatabaseService:
 
         query = select(ApprovalRequest)
         if execution_id:
-            query = query.where(ApprovalRequest.execution_id == uuid_module.UUID(execution_id))
+            query = query.where(
+                ApprovalRequest.execution_id == uuid_module.UUID(execution_id)
+            )
         if status:
             st = ApprovalStatus(status) if isinstance(status, str) else status
             if st:
                 query = query.where(ApprovalRequest.status == st)
-        rows = session.exec(query.order_by(desc(ApprovalRequest.requested_at)).offset(offset).limit(limit)).all()
+        rows = session.exec(
+            query.order_by(desc(ApprovalRequest.requested_at))
+            .offset(offset)
+            .limit(limit)
+        ).all()
         res = []
         for rec in rows:
             res.append(
@@ -341,7 +423,9 @@ class DatabaseService:
                     "approval_metadata": rec.approval_metadata,
                     "response_payload": rec.response_payload,
                     "requested_at": rec.requested_at.isoformat(),
-                    "decided_at": rec.decided_at.isoformat() if rec.decided_at else None,
+                    "decided_at": rec.decided_at.isoformat()
+                    if rec.decided_at
+                    else None,
                     "decided_by": rec.decided_by,
                 }
             )
@@ -350,7 +434,9 @@ class DatabaseService:
     def register_step_type(self, session: Session, step_data: Dict[str, Any]) -> str:
         """Register a new step type"""
         # Check if step type already exists
-        existing = session.exec(select(StepType).where(StepType.step_type == step_data["step_type"])).first()
+        existing = session.exec(
+            select(StepType).where(StepType.step_type == step_data["step_type"])
+        ).first()
 
         if existing:
             # Update existing step type
@@ -386,9 +472,13 @@ class DatabaseService:
         session.commit()
         return step_type_id
 
-    def get_step_type(self, session: Session, step_type: str) -> Optional[Dict[str, Any]]:
+    def get_step_type(
+        self, session: Session, step_type: str
+    ) -> Optional[Dict[str, Any]]:
         """Get a step type by name"""
-        step = session.exec(select(StepType).where(StepType.step_type == step_type)).first()
+        step = session.exec(
+            select(StepType).where(StepType.step_type == step_type)
+        ).first()
         if not step:
             return None
         return {
@@ -407,9 +497,11 @@ class DatabaseService:
             "created_at": step.created_at.isoformat(),
         }
 
-    def list_step_types(self, session: Session, category: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_step_types(
+        self, session: Session, category: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """List all step types"""
-        query = select(StepType).where(StepType.is_active == True)
+        query = select(StepType).where(StepType.is_active)
         if category:
             query = query.where(StepType.category == category)
 
@@ -473,7 +565,9 @@ class DatabaseService:
         query = select(AgentMessage).where(AgentMessage.execution_id == exe_uuid)
         if step_id:
             query = query.where(AgentMessage.step_id == step_id)
-        rows = session.exec(query.order_by(desc(AgentMessage.created_at))).all()[offset : offset + limit]
+        rows = session.exec(query.order_by(desc(AgentMessage.created_at))).all()[
+            offset : offset + limit
+        ]
         return [
             {
                 "id": str(r.id),

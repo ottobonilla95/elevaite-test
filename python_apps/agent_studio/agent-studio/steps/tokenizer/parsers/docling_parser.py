@@ -7,7 +7,7 @@ and image processing.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Tuple
 from pathlib import Path
 import asyncio
 import time

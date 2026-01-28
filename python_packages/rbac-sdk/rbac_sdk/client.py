@@ -55,7 +55,9 @@ def check_access(
     except (ValueError, TypeError) as e:
         raise RBACClientError(f"Invalid user_id format: {user_id}") from e
 
-    url = (base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip("/") + "/api/authz/check_access"
+    url = (base_url or DEFAULT_AUTHZ_SERVICE_URL).rstrip(
+        "/"
+    ) + "/api/authz/check_access"
     try:
         resp = requests.post(
             url,

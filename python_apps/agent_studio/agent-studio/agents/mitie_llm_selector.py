@@ -5,7 +5,7 @@ Mitie LLM Item Selector - Uses LLM to intelligently select relevant items from a
 
 import json
 import openai
-from typing import Dict, List, Any
+from typing import Dict, Any
 import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))

@@ -10,7 +10,6 @@ from db import crud
 from db.schemas import prompts as prompt_schemas
 from db.schemas import agents as agent_schemas
 from db.schemas import workflows as workflow_schemas
-from db.models.analytics import WorkflowExecution, WorkflowExecutionStep
 
 
 @pytest.mark.integration

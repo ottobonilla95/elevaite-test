@@ -2,7 +2,7 @@ import asyncio
 import logging
 import random
 from datetime import datetime, timezone, timedelta
-from typing import Any, Optional
+from typing import Optional
 from zoneinfo import ZoneInfo
 from croniter import croniter
 
@@ -25,7 +25,9 @@ class WorkflowScheduler:
             return
         self._running = True
         self._task = asyncio.create_task(self._run_loop(app))
-        logger.info("✅ WorkflowScheduler started (poll=%ss)", self.poll_interval_seconds)
+        logger.info(
+            "✅ WorkflowScheduler started (poll=%ss)", self.poll_interval_seconds
+        )
 
     async def stop(self):
         self._running = False
@@ -73,7 +75,9 @@ class WorkflowScheduler:
             last_run = None
             if isinstance(last_run_iso, str):
                 try:
-                    last_run = datetime.fromisoformat(last_run_iso.replace("Z", "+00:00"))
+                    last_run = datetime.fromisoformat(
+                        last_run_iso.replace("Z", "+00:00")
+                    )
                 except Exception:
                     last_run = None
 
@@ -100,7 +104,8 @@ class WorkflowScheduler:
 
                 # Decide seconds position handling for 6-field crons (Quartz-style seconds first vs default seconds last)
                 sab = bool(
-                    schedule.get("seconds_at_beginning") or schedule.get("second_at_beginning")
+                    schedule.get("seconds_at_beginning")
+                    or schedule.get("second_at_beginning")
                 )  # seconds field is first when sab=True
 
                 # Determine the next scheduled run (UTC) using croniter
@@ -109,19 +114,25 @@ class WorkflowScheduler:
                 if isinstance(next_iso, str):
                     try:
                         nr = datetime.fromisoformat(next_iso.replace("Z", "+00:00"))
-                        next_run_utc = nr if nr.tzinfo else nr.replace(tzinfo=timezone.utc)
+                        next_run_utc = (
+                            nr if nr.tzinfo else nr.replace(tzinfo=timezone.utc)
+                        )
                     except Exception:
                         next_run_utc = None
                 if not next_run_utc:
                     # Compute the next run from 'now' and persist it so future ticks can compare to a stable target
                     base_local = now.astimezone(tz)
                     try:
-                        next_local = croniter(expr, base_local, second_at_beginning=sab).get_next(datetime)
+                        next_local = croniter(
+                            expr, base_local, second_at_beginning=sab
+                        ).get_next(datetime)
                         if next_local.tzinfo is None:
                             next_local = next_local.replace(tzinfo=tz)
                         next_run_utc = next_local.astimezone(timezone.utc)
                         # Persist the computed next run immediately
-                        global_config["scheduler_next_run_at"] = next_run_utc.isoformat()
+                        global_config["scheduler_next_run_at"] = (
+                            next_run_utc.isoformat()
+                        )
                         cfg["global_config"] = global_config
                         # Save using a short-lived session to avoid pool starvation
                         from sqlmodel import Session as _Sess
@@ -130,7 +141,9 @@ class WorkflowScheduler:
                         with _Sess(_eng) as _s:
                             db.save_workflow(_s, wf["id"], cfg)
                     except Exception as e:
-                        logger.warning(f"Invalid cron '{expr}' on workflow {wf.get('id')}: {e}")
+                        logger.warning(
+                            f"Invalid cron '{expr}' on workflow {wf.get('id')}: {e}"
+                        )
                         continue
                 else:
                     # Guard: if persisted next_run is at or behind last_run, advance until strictly after 'now'
@@ -139,7 +152,9 @@ class WorkflowScheduler:
                             base_local = last_run.astimezone(tz)
                             # Advance until after now (handles catch-up bursts)
                             while True:
-                                tmp_local = croniter(expr, base_local, second_at_beginning=sab).get_next(datetime)
+                                tmp_local = croniter(
+                                    expr, base_local, second_at_beginning=sab
+                                ).get_next(datetime)
                                 if tmp_local.tzinfo is None:
                                     tmp_local = tmp_local.replace(tzinfo=tz)
                                 tmp_utc = tmp_local.astimezone(timezone.utc)
@@ -147,7 +162,9 @@ class WorkflowScheduler:
                                     next_run_utc = tmp_utc
                                     break
                                 base_local = tmp_local
-                            global_config["scheduler_next_run_at"] = next_run_utc.isoformat()
+                            global_config["scheduler_next_run_at"] = (
+                                next_run_utc.isoformat()
+                            )
                             cfg["global_config"] = global_config
                             from sqlmodel import Session as _Sess
                             from .db.database import engine as _eng
@@ -196,25 +213,42 @@ class WorkflowScheduler:
                         except Exception:
                             tz = ZoneInfo("UTC")
                         # seconds-at-beginning flag (Quartz-style): allow schedule to indicate seconds is the 1st field
-                        sab = bool(schedule.get("seconds_at_beginning") or schedule.get("second_at_beginning"))
+                        sab = bool(
+                            schedule.get("seconds_at_beginning")
+                            or schedule.get("second_at_beginning")
+                        )
                         # Advance from the previously computed next_run to ensure monotonic stepping
                         # Use the actual time after the execution to avoid setting a next_run in the past
                         now_exec = datetime.now(timezone.utc)
-                        base_local = prev_next_run_utc.astimezone(tz) if prev_next_run_utc else now_exec.astimezone(tz)
+                        base_local = (
+                            prev_next_run_utc.astimezone(tz)
+                            if prev_next_run_utc
+                            else now_exec.astimezone(tz)
+                        )
                         expr2 = (schedule.get("cron") or "").strip()
                         if expr2:
                             try:
-                                upcoming_local = croniter(expr2, base_local, second_at_beginning=sab).get_next(datetime)
+                                upcoming_local = croniter(
+                                    expr2, base_local, second_at_beginning=sab
+                                ).get_next(datetime)
                                 if upcoming_local.tzinfo is None:
                                     upcoming_local = upcoming_local.replace(tzinfo=tz)
                                 upcoming_utc = upcoming_local.astimezone(timezone.utc)
                                 # Ensure next_run is strictly in the future relative to now_exec
                                 while upcoming_utc <= now_exec:
-                                    upcoming_local = croniter(expr2, upcoming_local, second_at_beginning=sab).get_next(datetime)
+                                    upcoming_local = croniter(
+                                        expr2, upcoming_local, second_at_beginning=sab
+                                    ).get_next(datetime)
                                     if upcoming_local.tzinfo is None:
-                                        upcoming_local = upcoming_local.replace(tzinfo=tz)
-                                    upcoming_utc = upcoming_local.astimezone(timezone.utc)
-                                global_config["scheduler_next_run_at"] = upcoming_utc.isoformat()
+                                        upcoming_local = upcoming_local.replace(
+                                            tzinfo=tz
+                                        )
+                                    upcoming_utc = upcoming_local.astimezone(
+                                        timezone.utc
+                                    )
+                                global_config["scheduler_next_run_at"] = (
+                                    upcoming_utc.isoformat()
+                                )
                             except Exception:
                                 pass
                     cfg["global_config"] = global_config

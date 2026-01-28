@@ -1,9 +1,17 @@
 import re
 from datetime import datetime
-from typing import Optional, Union, ClassVar, Annotated 
-from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict, BeforeValidator
+from typing import Optional, Union, ClassVar, Annotated
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    field_validator,
+    ConfigDict,
+    BeforeValidator,
+)
 
 from app.core.password_utils import normalize_email
+
 
 def normalize_email_validator(v):
     """Normalize email to lowercase and strip whitespace."""
@@ -29,7 +37,6 @@ class UserCreate(UserBase):
     is_one_time_password: bool = Field(default=False)
     application_admin: bool = Field(default=False)
     is_manager: bool = Field(default=False)
-
 
     @field_validator("password")
     @classmethod
@@ -139,7 +146,6 @@ class UserDetail(UserResponse):
     biometric_mfa_enabled: bool = False
 
 
-
 class Token(BaseModel):
     """Token schema."""
 
@@ -235,23 +241,24 @@ class SessionInfo(BaseModel):
     is_current: bool = False
 
     model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
-    
+
+
 class BiometricDeviceResponse(BaseModel):
     """Biometric device response schema."""
-    
+
     id: int
     device_name: str
     device_model: Optional[str] = None
     is_active: bool
     last_used_at: Optional[datetime] = None
     created_at: datetime
-    
+
     model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
 
 
 class BiometricRegisterRequest(BaseModel):
     """Biometric device registration request schema."""
-    
+
     device_fingerprint: str = Field(..., min_length=1, max_length=255)
     device_name: str = Field(..., min_length=1, max_length=255)
     device_model: Optional[str] = Field(None, max_length=255)
@@ -260,18 +267,19 @@ class BiometricRegisterRequest(BaseModel):
 
 class BiometricLoginRequest(BaseModel):
     """Biometric login request schema."""
-    
+
     device_fingerprint: str = Field(..., min_length=1, max_length=255)
     challenge_signature: str = Field(..., min_length=1)
 
+
 class BiometricLoginRequest(BaseModel):
     """Biometric login request schema."""
-    
+
     device_fingerprint: str = Field(..., min_length=1, max_length=255)
     challenge_signature: str = Field(..., min_length=1)
 
 
 class BiometricToggleRequest(BaseModel):
     """Request to toggle biometric MFA setting."""
-    
+
     enabled: bool

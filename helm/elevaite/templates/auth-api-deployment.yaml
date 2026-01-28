@@ -42,8 +42,8 @@ spec:
               value: {{ .Values.postgresql.port | default 5432 | quote }}
             - name: DATABASE_NAME
               value: {{ .Values.postgresql.database | default "elevaite" | quote }}
-            - name: DATABASE_SSLMODE
-              value: {{ .Values.postgresql.sslMode | default "require" | quote }}
+            - name: DATABASE_SSL
+              value: {{ .Values.postgresql.ssl | default "true" | quote }}
             - name: DATABASE_USER
               valueFrom:
                 secretKeyRef:
@@ -55,7 +55,9 @@ spec:
                   name: {{ .Values.postgresql.existingSecret }}
                   key: POSTGRES_PASSWORD
             - name: DATABASE_URL
-              value: "postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)?sslmode=$(DATABASE_SSLMODE)"
+              value: "postgresql+asyncpg://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)?ssl=require"
+            - name: SQLALCHEMY_DATABASE_URL
+              value: "postgresql+asyncpg://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)?ssl=require"
             
             # Environment
             - name: ENVIRONMENT

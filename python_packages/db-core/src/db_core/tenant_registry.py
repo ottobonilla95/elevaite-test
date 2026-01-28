@@ -9,23 +9,22 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional, Set
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
+from db_core.audit import (
+    TenantAuditEvent,
+    log_tenant_activated,
+    log_tenant_created,
+    log_tenant_deactivated,
+    log_tenant_deleted,
+    log_tenant_event,
+    log_tenant_init_completed,
+    log_tenant_init_failed,
+    log_tenant_init_started,
+    log_tenant_updated,
+)
 from db_core.config import MultitenancySettings
 from db_core.models import Tenant, TenantStatus
 from db_core.utils import get_schema_name
-from db_core.audit import (
-    log_tenant_created,
-    log_tenant_updated,
-    log_tenant_activated,
-    log_tenant_deactivated,
-    log_tenant_deleted,
-    log_tenant_init_started,
-    log_tenant_init_completed,
-    log_tenant_init_failed,
-    TenantAuditEvent,
-    log_tenant_event,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,10 @@ class TenantCache:
     def is_active(self, tenant_id: str) -> Optional[bool]:
         """Check if tenant is active. Returns None if cache needs refresh."""
         with self._lock:
-            if not self._initialized or time.time() - self._last_refresh > self._ttl_seconds:
+            if (
+                not self._initialized
+                or time.time() - self._last_refresh > self._ttl_seconds
+            ):
                 return None
             return tenant_id in self._active_tenants
 
@@ -162,7 +164,11 @@ class TenantRegistry:
 
         # Create the schema
         await session.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
-        log_tenant_event(TenantAuditEvent.TENANT_SCHEMA_CREATED, tenant_id, details={"schema_name": schema_name})
+        log_tenant_event(
+            TenantAuditEvent.TENANT_SCHEMA_CREATED,
+            tenant_id,
+            details={"schema_name": schema_name},
+        )
 
         # Create tenant record
         tenant = Tenant(
@@ -183,7 +189,9 @@ class TenantRegistry:
             for initializer in _tenant_initializers:
                 try:
                     await initializer(tenant_id, session)
-                    logger.info(f"Ran initializer '{initializer.__name__}' for tenant '{tenant_id}'")
+                    logger.info(
+                        f"Ran initializer '{initializer.__name__}' for tenant '{tenant_id}'"
+                    )
                 except Exception as e:
                     log_tenant_init_failed(tenant_id, schema_name, str(e))
                     raise
@@ -200,7 +208,9 @@ class TenantRegistry:
         log_tenant_created(tenant_id, display_name=name)
         return tenant
 
-    async def get_tenant(self, session: AsyncSession, tenant_id: str) -> Optional[Tenant]:
+    async def get_tenant(
+        self, session: AsyncSession, tenant_id: str
+    ) -> Optional[Tenant]:
         """
         Get a tenant by its ID.
 
@@ -211,7 +221,9 @@ class TenantRegistry:
         Returns:
             Tenant object or None if not found
         """
-        result = await session.execute(select(Tenant).where(Tenant.tenant_id == tenant_id))
+        result = await session.execute(
+            select(Tenant).where(Tenant.tenant_id == tenant_id)
+        )
         return result.scalar_one_or_none()
 
     async def list_tenants(
@@ -253,7 +265,9 @@ class TenantRegistry:
         Returns:
             Set of active tenant IDs
         """
-        query = select(Tenant.tenant_id).where(Tenant.status == TenantStatus.ACTIVE.value)
+        query = select(Tenant.tenant_id).where(
+            Tenant.status == TenantStatus.ACTIVE.value
+        )
         result = await session.execute(query)
         return {row[0] for row in result.fetchall()}
 
@@ -266,7 +280,9 @@ class TenantRegistry:
         """
         active_tenant_ids = await self.get_active_tenant_ids(session)
         _tenant_cache.refresh(active_tenant_ids)
-        logger.info(f"Refreshed tenant cache with {len(active_tenant_ids)} active tenants")
+        logger.info(
+            f"Refreshed tenant cache with {len(active_tenant_ids)} active tenants"
+        )
 
     async def update_tenant(
         self,
@@ -334,7 +350,9 @@ class TenantRegistry:
         Returns:
             Updated Tenant object or None if not found
         """
-        result = await self.update_tenant(session, tenant_id, status=TenantStatus.INACTIVE)
+        result = await self.update_tenant(
+            session, tenant_id, status=TenantStatus.INACTIVE
+        )
         if result:
             _tenant_cache.remove_tenant(tenant_id)
             log_tenant_deactivated(tenant_id)
@@ -355,7 +373,9 @@ class TenantRegistry:
         Returns:
             Updated Tenant object or None if not found
         """
-        result = await self.update_tenant(session, tenant_id, status=TenantStatus.ACTIVE)
+        result = await self.update_tenant(
+            session, tenant_id, status=TenantStatus.ACTIVE
+        )
         if result:
             _tenant_cache.add_tenant(tenant_id)
             log_tenant_activated(tenant_id)
@@ -392,8 +412,14 @@ class TenantRegistry:
 
         # Optionally drop the schema
         if drop_schema:
-            await session.execute(text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE'))
-            log_tenant_event(TenantAuditEvent.TENANT_SCHEMA_DROPPED, tenant_id, details={"schema_name": schema_name})
+            await session.execute(
+                text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE')
+            )
+            log_tenant_event(
+                TenantAuditEvent.TENANT_SCHEMA_DROPPED,
+                tenant_id,
+                details={"schema_name": schema_name},
+            )
 
         await session.commit()
 

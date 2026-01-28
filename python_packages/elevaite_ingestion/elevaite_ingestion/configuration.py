@@ -1,6 +1,7 @@
 import os
 import json
 from dotenv import load_dotenv
+
 load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,8 +14,8 @@ SUPPORTED_FORMATS = ["docx", "xlsx", "html", "pdf"]
 LOG_DIR = os.getenv("LOG_DIR", os.path.join(BASE_DIR, "logs"))
 LOG_FILE = os.path.join(LOG_DIR, "pipeline.log")
 
-DEFAULT_TOOL = "markitdown" 
-TOOL_CHOICES = ["markitdown", "docling", "llamaparse"] 
+DEFAULT_TOOL = "markitdown"
+TOOL_CHOICES = ["markitdown", "docling", "llamaparse"]
 
 os.makedirs(INPUT_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -34,8 +35,13 @@ with open(CONFIG_PATH, "r", encoding="utf-8") as f:
 
 # Ensure essential keys exist
 CONFIG.setdefault("data_source", "s3")
-CONFIG.setdefault("aws", {"input_bucket": "kb-check-pdf", "intermediate_bucket": "kb-check-docs"})
-CONFIG.setdefault("local", {"input_directory": "data/raw", "output_parsed_directory": "data/processed"})
+CONFIG.setdefault(
+    "aws", {"input_bucket": "kb-check-pdf", "intermediate_bucket": "kb-check-docs"}
+)
+CONFIG.setdefault(
+    "local",
+    {"input_directory": "data/raw", "output_parsed_directory": "data/processed"},
+)
 CONFIG.setdefault("parsing", {"default_mode": "auto_parser"})
 CONFIG.setdefault("vector_db", {})
 
@@ -43,4 +49,3 @@ CONFIG.setdefault("vector_db", {})
 os.makedirs(CONFIG["local"]["input_directory"], exist_ok=True)
 os.makedirs(CONFIG["local"]["output_parsed_directory"], exist_ok=True)
 os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
-

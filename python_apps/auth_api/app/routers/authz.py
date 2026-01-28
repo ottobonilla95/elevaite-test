@@ -1,16 +1,19 @@
 """Authorization (authz) endpoints using OPA for policy evaluation."""
 
 import logging
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_current_user
 from app.db.models import User
-from app.db.models_rbac import UserRoleAssignment, PermissionOverride, UserGroupMembership, Group
+from app.db.models_rbac import (
+    UserRoleAssignment,
+    PermissionOverride,
+    UserGroupMembership,
+    Group,
+)
 from app.db.tenant_db import get_tenant_async_db
 from app.schemas.rbac import AccessCheckRequest, AccessCheckResponse
 from app.services.opa_service import get_opa_service
@@ -61,7 +64,9 @@ async def check_access(
     # Step 2: SECURITY CHECK - User must be active
     # This is the critical security fix - we check status BEFORE checking permissions
     if user.status != "active":
-        logger.warning(f"Access denied for user {user.id} ({user.email}) - User status is '{user.status}', not 'active'")
+        logger.warning(
+            f"Access denied for user {user.id} ({user.email}) - User status is '{user.status}', not 'active'"
+        )
         return AccessCheckResponse(
             allowed=False,
             deny_reason="user_not_active",
@@ -80,14 +85,18 @@ async def check_access(
     # Use role_ref.base_type if available, fall back to legacy role string
     user_assignments = [
         {
-            "role": assignment.role_ref.base_type if assignment.role_ref else assignment.role,
+            "role": assignment.role_ref.base_type
+            if assignment.role_ref
+            else assignment.role,
             "resource_type": assignment.resource_type,
             "resource_id": str(assignment.resource_id),
         }
         for assignment in assignments
     ]
 
-    logger.info(f"User {user.id} ({user.email}) has {len(user_assignments)} role assignments")
+    logger.info(
+        f"User {user.id} ({user.email}) has {len(user_assignments)} role assignments"
+    )
 
     # Step 3.5: Get user's permission overrides for this resource
     overrides_result = await session.execute(
@@ -115,7 +124,9 @@ async def check_access(
     # Include groups at the resource level and parent levels (org, account)
     group_memberships_result = await session.execute(
         select(UserGroupMembership)
-        .options(selectinload(UserGroupMembership.group).selectinload(Group.permissions))
+        .options(
+            selectinload(UserGroupMembership.group).selectinload(Group.permissions)
+        )
         .where(UserGroupMembership.user_id == request.user_id)
     )
     group_memberships = group_memberships_result.scalars().all()
@@ -192,5 +203,9 @@ async def authz_health_check():
     return {
         "status": "healthy" if opa_healthy else "degraded",
         "opa": "healthy" if opa_healthy else "unhealthy",
-        "message": ("Authorization service is operational" if opa_healthy else "OPA service unavailable"),
+        "message": (
+            "Authorization service is operational"
+            if opa_healthy
+            else "OPA service unavailable"
+        ),
     }

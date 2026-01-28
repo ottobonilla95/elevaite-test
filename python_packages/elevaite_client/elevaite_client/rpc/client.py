@@ -11,7 +11,6 @@ from .interfaces import (
     LogInfo,
     MaxDatasetVersionInput,
     PipelineStepStatusInput,
-    RPCResponse,
     RegisterPipelineInput,
     RepoNameInput,
     SetInstanceChartDataInput,
@@ -22,7 +21,6 @@ from .connection import get_rmq_connection
 
 
 class RPCClient(object):
-
     def __init__(self):
         self.connection = get_rmq_connection()
 

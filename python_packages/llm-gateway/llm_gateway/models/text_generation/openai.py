@@ -2,13 +2,26 @@ import logging
 import time
 import json
 from typing import Dict, Any, Optional, List, Iterable
-from openai import OpenAI, BadRequestError, AuthenticationError, PermissionDeniedError, NotFoundError, UnprocessableEntityError
+from openai import (
+    OpenAI,
+    BadRequestError,
+    AuthenticationError,
+    PermissionDeniedError,
+    NotFoundError,
+    UnprocessableEntityError,
+)
 
 from .core.base import BaseTextGenerationProvider
 from .core.interfaces import TextGenerationResponse, ToolCall
 
 # Client errors that should not be retried (4xx errors)
-NON_RETRYABLE_ERRORS = (BadRequestError, AuthenticationError, PermissionDeniedError, NotFoundError, UnprocessableEntityError)
+NON_RETRYABLE_ERRORS = (
+    BadRequestError,
+    AuthenticationError,
+    PermissionDeniedError,
+    NotFoundError,
+    UnprocessableEntityError,
+)
 
 
 class OpenAITextGenerationProvider(BaseTextGenerationProvider):
@@ -91,11 +104,15 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
 
                         # If assistant also had content, add it as a separate item
                         if content:
-                            input_items.append({"role": "assistant", "content": content})
+                            input_items.append(
+                                {"role": "assistant", "content": content}
+                            )
                     else:
                         # Regular assistant message without tool calls
                         if content:
-                            input_items.append({"role": "assistant", "content": content})
+                            input_items.append(
+                                {"role": "assistant", "content": content}
+                            )
                 elif msg_role == "tool":
                     # Convert tool response to function_call_output
                     tool_call_id = msg.get("tool_call_id")
@@ -167,13 +184,19 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     else:
                         # Already in Responses API format
                         responses_tools.append(tool)
-                elif tool.get("type") in ("file_search", "web_search", "code_interpreter"):
+                elif tool.get("type") in (
+                    "file_search",
+                    "web_search",
+                    "code_interpreter",
+                ):
                     # Built-in tools
                     responses_tools.append(tool)
 
         return responses_tools
 
-    def _extract_response_content(self, response) -> tuple[str, List[ToolCall], str, str]:
+    def _extract_response_content(
+        self, response
+    ) -> tuple[str, List[ToolCall], str, str]:
         """
         Extract content, tool calls, finish reason, and reasoning content from Responses API output.
 
@@ -196,7 +219,9 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     if content_type == "output_text":
                         text_content += getattr(content_item, "text", "")
                     elif content_type == "refusal":
-                        text_content += f"[Refusal: {getattr(content_item, 'refusal', '')}]"
+                        text_content += (
+                            f"[Refusal: {getattr(content_item, 'refusal', '')}]"
+                        )
 
             elif item_type == "reasoning":
                 # Extract reasoning/thinking content from reasoning models (o1, o3, o4-mini)
@@ -209,13 +234,19 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
             elif item_type == "function_call":
                 # Extract function/tool call
                 try:
-                    arguments = json.loads(item.arguments) if isinstance(item.arguments, str) else item.arguments
+                    arguments = (
+                        json.loads(item.arguments)
+                        if isinstance(item.arguments, str)
+                        else item.arguments
+                    )
                 except json.JSONDecodeError:
                     arguments = {"raw": item.arguments}
 
                 tool_calls.append(
                     ToolCall(
-                        id=getattr(item, "call_id", item.id) if hasattr(item, "call_id") else item.id,
+                        id=getattr(item, "call_id", item.id)
+                        if hasattr(item, "call_id")
+                        else item.id,
                         name=item.name,
                         arguments=arguments,
                     )
@@ -225,11 +256,15 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
             elif item_type == "file_search_call":
                 # Built-in file search was invoked
                 # The results are in the annotations of the message
-                logging.debug(f"File search performed with query: {getattr(item, 'queries', [])}")
+                logging.debug(
+                    f"File search performed with query: {getattr(item, 'queries', [])}"
+                )
 
         return text_content.strip(), tool_calls, finish_reason, thinking_content.strip()
 
-    def _prepare_files_for_search(self, files: List[str], timeout_seconds: int = 60) -> str:
+    def _prepare_files_for_search(
+        self, files: List[str], timeout_seconds: int = 60
+    ) -> str:
         """
         Upload files to a vector store for file search and wait for indexing.
 
@@ -264,7 +299,9 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
 
         return vector_store_id
 
-    def _wait_for_vector_store_ready(self, vector_store_id: str, timeout_seconds: int = 60) -> None:
+    def _wait_for_vector_store_ready(
+        self, vector_store_id: str, timeout_seconds: int = 60
+    ) -> None:
         """
         Wait for a vector store to finish processing all files.
 
@@ -278,7 +315,9 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         while True:
             elapsed = time.time() - start_time
             if elapsed > timeout_seconds:
-                logging.warning(f"Timeout waiting for vector store {vector_store_id} to be ready after {timeout_seconds}s")
+                logging.warning(
+                    f"Timeout waiting for vector store {vector_store_id} to be ready after {timeout_seconds}s"
+                )
                 break
 
             # Check vector store status
@@ -299,7 +338,9 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 if in_progress == 0:
                     # All files have been processed (either completed or failed)
                     if failed > 0:
-                        logging.warning(f"Vector store {vector_store_id}: {failed} file(s) failed to process")
+                        logging.warning(
+                            f"Vector store {vector_store_id}: {failed} file(s) failed to process"
+                        )
                     break
 
             except Exception as e:
@@ -336,7 +377,9 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         vector_store_id = None
         if files:
             vector_store_id = self._prepare_files_for_search(files)
-            logging.debug(f"Created vector store {vector_store_id} for {len(files)} file(s)")
+            logging.debug(
+                f"Created vector store {vector_store_id} for {len(files)} file(s)"
+            )
 
         for attempt in range(retries):
             tokens_in = -1
@@ -345,18 +388,24 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 start_time = time.time()
 
                 # Convert messages to Responses API format (returns list of input items)
-                instructions, input_items = self._convert_messages_to_responses_input(messages or [], sys_msg, prompt)
+                instructions, input_items = self._convert_messages_to_responses_input(
+                    messages or [], sys_msg, prompt
+                )
 
                 # If we have a vector store from file uploads, add it to config for tool conversion
                 effective_config = config.copy()
                 if vector_store_id:
                     effective_config["file_search"] = {
                         "vector_store_ids": [vector_store_id],
-                        "max_num_results": config.get("file_search", {}).get("max_num_results", 10),
+                        "max_num_results": config.get("file_search", {}).get(
+                            "max_num_results", 10
+                        ),
                     }
 
                 # Convert tools to Responses API format
-                responses_tools = self._convert_tools_to_responses_format(tools, effective_config)
+                responses_tools = self._convert_tools_to_responses_format(
+                    tools, effective_config
+                )
 
                 # Build API params for Responses API
                 api_params: Dict[str, Any] = {
@@ -369,7 +418,9 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     api_params["instructions"] = instructions
 
                 # Add temperature (some models like o1 and gpt-5 don't support it)
-                if not model_name.startswith("o1") and not model_name.startswith("gpt-5"):
+                if not model_name.startswith("o1") and not model_name.startswith(
+                    "gpt-5"
+                ):
                     api_params["temperature"] = temperature
 
                 # Add max tokens
@@ -414,7 +465,9 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     tokens_out = getattr(response.usage, "output_tokens", -1)
 
                 # Extract content, tool calls, and reasoning content
-                text_content, tool_calls, finish_reason, thinking_content = self._extract_response_content(response)
+                text_content, tool_calls, finish_reason, thinking_content = (
+                    self._extract_response_content(response)
+                )
 
                 return TextGenerationResponse(
                     text=text_content,
@@ -431,9 +484,13 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 logging.error(f"Non-retryable error (client error): {e}")
                 raise RuntimeError(f"Text generation failed with client error: {e}")
             except Exception as e:
-                logging.warning(f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
+                logging.warning(
+                    f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
+                )
                 if attempt == retries - 1:
-                    raise RuntimeError(f"Text generation failed after {retries} attempts: {e}")
+                    raise RuntimeError(
+                        f"Text generation failed after {retries} attempts: {e}"
+                    )
                 time.sleep((2**attempt) * 0.5)
 
         raise RuntimeError("Text generation failed unexpectedly")
@@ -466,23 +523,31 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         vector_store_id = None
         if files:
             vector_store_id = self._prepare_files_for_search(files)
-            logging.debug(f"Created vector store {vector_store_id} for streaming with {len(files)} file(s)")
+            logging.debug(
+                f"Created vector store {vector_store_id} for streaming with {len(files)} file(s)"
+            )
 
         for attempt in range(retries):
             try:
                 # Convert messages to Responses API format (returns list of input items)
-                instructions, input_items = self._convert_messages_to_responses_input(messages or [], sys_msg, prompt)
+                instructions, input_items = self._convert_messages_to_responses_input(
+                    messages or [], sys_msg, prompt
+                )
 
                 # If we have a vector store from file uploads, add it to config for tool conversion
                 effective_config = config.copy()
                 if vector_store_id:
                     effective_config["file_search"] = {
                         "vector_store_ids": [vector_store_id],
-                        "max_num_results": config.get("file_search", {}).get("max_num_results", 10),
+                        "max_num_results": config.get("file_search", {}).get(
+                            "max_num_results", 10
+                        ),
                     }
 
                 # Convert tools to Responses API format
-                responses_tools = self._convert_tools_to_responses_format(tools, effective_config)
+                responses_tools = self._convert_tools_to_responses_format(
+                    tools, effective_config
+                )
 
                 # Build API params for Responses API streaming
                 api_params: Dict[str, Any] = {
@@ -496,7 +561,9 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     api_params["instructions"] = instructions
 
                 # Add temperature (some models like o1 don't support it)
-                if not model_name.startswith("o1") and not model_name.startswith("gpt-5"):
+                if not model_name.startswith("o1") and not model_name.startswith(
+                    "gpt-5"
+                ):
                     api_params["temperature"] = temperature
 
                 # Add max tokens
@@ -547,7 +614,14 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                                 name = getattr(item, "name", None)
                                 item_id = getattr(item, "id", None)
                                 call_id = getattr(item, "call_id", None)
-                                existing = next((tc for tc in tool_calls_collected if tc.get("item_id") == item_id), None)
+                                existing = next(
+                                    (
+                                        tc
+                                        for tc in tool_calls_collected
+                                        if tc.get("item_id") == item_id
+                                    ),
+                                    None,
+                                )
                                 if existing:
                                     existing["function"]["name"] = name
                                     if call_id:
@@ -569,7 +643,14 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                             call_id = getattr(event, "call_id", "")
                             delta_args = getattr(event, "delta", "")
                             # Find or create the tool call entry
-                            existing = next((tc for tc in tool_calls_collected if tc.get("item_id") == item_id), None)
+                            existing = next(
+                                (
+                                    tc
+                                    for tc in tool_calls_collected
+                                    if tc.get("item_id") == item_id
+                                ),
+                                None,
+                            )
                             if existing:
                                 existing["function"]["arguments"] += delta_args
                                 # Update call_id if we got it and don't have it yet
@@ -580,7 +661,10 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                                     {
                                         "item_id": item_id,
                                         "type": "function",
-                                        "function": {"name": "", "arguments": delta_args},
+                                        "function": {
+                                            "name": "",
+                                            "arguments": delta_args,
+                                        },
                                         "id": call_id,
                                     }
                                 )
@@ -588,9 +672,18 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                         elif event_type == "response.function_call_arguments.done":
                             # Function call complete
                             item_id = getattr(event, "item_id", "")
-                            call_id = getattr(event, "call_id", "")  # call_id doesn't exist here.
+                            call_id = getattr(
+                                event, "call_id", ""
+                            )  # call_id doesn't exist here.
                             arguments = getattr(event, "arguments", "")
-                            existing = next((tc for tc in tool_calls_collected if tc.get("item_id") == item_id), None)
+                            existing = next(
+                                (
+                                    tc
+                                    for tc in tool_calls_collected
+                                    if tc.get("item_id") == item_id
+                                ),
+                                None,
+                            )
                             if existing:
                                 existing["function"]["arguments"] = arguments
                                 # Update call_id if we got it and don't have it yet
@@ -602,14 +695,19 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                                         "item_id": item_id,
                                         "id": call_id,
                                         "type": "function",
-                                        "function": {"name": "", "arguments": arguments},
+                                        "function": {
+                                            "name": "",
+                                            "arguments": arguments,
+                                        },
                                     }
                                 )
                             finish_reason = "tool_calls"
 
                         # Handle file search events
                         elif event_type == "response.file_search_call.searching":
-                            logging.debug(f"File search in progress: {getattr(event, 'queries', [])}")
+                            logging.debug(
+                                f"File search in progress: {getattr(event, 'queries', [])}"
+                            )
 
                         elif event_type == "response.file_search_call.completed":
                             logging.debug("File search completed")
@@ -635,9 +733,16 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
 
                 # Include tool calls in final response if present
                 # Filter out any incomplete tool calls (missing function name)
-                valid_tool_calls = [tc for tc in tool_calls_collected if tc.get("function", {}).get("name")]
+                valid_tool_calls = [
+                    tc
+                    for tc in tool_calls_collected
+                    if tc.get("function", {}).get("name")
+                ]
 
-                final_data: Dict[str, Any] = {"type": "final", "response": response.model_dump()}
+                final_data: Dict[str, Any] = {
+                    "type": "final",
+                    "response": response.model_dump(),
+                }
                 if valid_tool_calls:
                     final_data["tool_calls"] = valid_tool_calls
                 if finish_reason:
@@ -651,10 +756,14 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                 logging.error(f"Non-retryable streaming error (client error): {e}")
                 raise RuntimeError(f"Streaming failed with client error: {e}")
             except Exception as e:
-                logging.warning(f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
+                logging.warning(
+                    f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
+                )
                 logging.error(e)
                 if attempt == retries - 1:
-                    raise RuntimeError(f"Streaming failed after {retries} attempts: {e}")
+                    raise RuntimeError(
+                        f"Streaming failed after {retries} attempts: {e}"
+                    )
                 time.sleep((2**attempt) * 0.5)
 
     def validate_config(self, config: Dict[str, Any]) -> bool:
@@ -662,8 +771,12 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
             assert isinstance(config, dict), "Config must be a dictionary"
             assert "model" in config, "Model name is required in config"
             assert isinstance(config.get("model"), str), "Model name must be a string"
-            assert isinstance(config.get("temperature", 0.7), (float, int)), "Temperature must be a number"
-            assert isinstance(config.get("max_tokens", 256), int), "Max tokens must be an integer"
+            assert isinstance(config.get("temperature", 0.7), (float, int)), (
+                "Temperature must be a number"
+            )
+            assert isinstance(config.get("max_tokens", 256), int), (
+                "Max tokens must be an integer"
+            )
             return True
         except AssertionError as e:
             logging.error(f"OpenAI Provider Validation Failed: {e}")
@@ -745,7 +858,11 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
         try:
             self.client.vector_stores.delete(vector_store_id)
             # Remove from cache
-            self._vector_store_cache = {k: v for k, v in self._vector_store_cache.items() if v != vector_store_id}
+            self._vector_store_cache = {
+                k: v
+                for k, v in self._vector_store_cache.items()
+                if v != vector_store_id
+            }
             logging.debug(f"Deleted vector store: {vector_store_id}")
             return True
         except Exception as e:

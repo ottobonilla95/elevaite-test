@@ -1,30 +1,24 @@
 from fastapi import status, HTTPException, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session, aliased, load_only
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.sql import and_, exists
-from sqlalchemy import func, case
-from typing import List, Optional, cast
+from sqlalchemy import func
+from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 from pprint import pprint
-from pydantic import EmailStr
 from rbac_lib.utils.api_error import ApiError
-from datetime import UTC
-import secrets
 
 from elevaitelib.schemas import (
     project as project_schemas,
     user as user_schemas,
     role as role_schemas,
-    permission as permission_schemas,
-    api as api_schemas,
 )
 from elevaitelib.orm.db import models
 
 from rbac_lib.utils.cte import (
     delete_user_project_associations_for_subprojects_of_user,
-    delete_user_project_associations_for_subprojects_of_user_list,
 )
 
 
@@ -413,7 +407,7 @@ def assign_users_to_project(
             print(
                 f"in PATCH /projects/{project.id}/users service method: One or more users not found in user table"
             )
-            raise ApiError.notfound(f"One or more users not found")
+            raise ApiError.notfound("One or more users not found")
         if total_user_account_associations_in_list != len(user_ids):
             print(
                 f"in PATCH /projects/{project.id}/users service method: One or more users are not assigned to project account - {project.account_id}"

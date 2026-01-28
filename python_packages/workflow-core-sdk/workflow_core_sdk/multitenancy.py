@@ -15,7 +15,9 @@ from workflow_core_sdk.db.database import DATABASE_URL
 
 # Default tenants to create on startup (comma-separated list from env, or defaults)
 _default_tenants_str = os.getenv("WORKFLOW_DEFAULT_TENANTS", "default,iopex")
-DEFAULT_TENANTS: List[str] = [t.strip() for t in _default_tenants_str.split(",") if t.strip()]
+DEFAULT_TENANTS: List[str] = [
+    t.strip() for t in _default_tenants_str.split(",") if t.strip()
+]
 
 # Multitenancy settings for workflow engine
 multitenancy_settings = MultitenancySettings(

@@ -1,6 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List, Dict, Any
-from datetime import datetime, date
+from typing import Optional
 import os
 import logging
 from simple_salesforce import Salesforce

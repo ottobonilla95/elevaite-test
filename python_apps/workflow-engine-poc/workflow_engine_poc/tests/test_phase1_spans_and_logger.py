@@ -40,7 +40,12 @@ def test_monitoring_step_span_records_error_status():
     # Last span should be step_execution with error status
     step_spans = [s for s in spans if s.name == "step_execution"]
     assert step_spans, "No step_execution spans captured"
-    assert any(s.status and hasattr(s.status, "status_code") and s.status.status_code.name == "ERROR" for s in step_spans)
+    assert any(
+        s.status
+        and hasattr(s.status, "status_code")
+        and s.status.status_code.name == "ERROR"
+        for s in step_spans
+    )
     # Attribute coverage
     attrs = step_spans[-1].attributes
     assert attrs.get("step.id") == "s1"

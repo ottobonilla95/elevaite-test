@@ -1,5 +1,3 @@
-import time
-import random
 
 class GradioInterface:
     def __init__(self, chat_service, knowledge_service, web_search_service, streaming=True):

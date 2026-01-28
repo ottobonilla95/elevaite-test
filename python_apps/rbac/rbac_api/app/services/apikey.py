@@ -3,14 +3,13 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, load_only
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import and_, exists
-from typing import List, cast
+from typing import List
 from uuid import UUID
 from datetime import datetime
 from pprint import pprint
 from rbac_lib.utils.api_error import ApiError
 from datetime import UTC
 import secrets
-from fastapi.encoders import jsonable_encoder
 
 from elevaitelib.schemas import (
     apikey as apikey_schemas,
@@ -110,7 +109,7 @@ async def create_apikey(
                     payload_custom_permissions, logged_in_user_overall_permissions
                 ):
                     raise ApiError.forbidden(
-                        f"Attempting to create api key with custom permissions which exceed your current user permissions"
+                        "Attempting to create api key with custom permissions which exceed your current user permissions"
                     )
                 apikey_overall_permissions = payload_custom_permissions
 

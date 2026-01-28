@@ -148,7 +148,7 @@ def test_chatbot_connection():
         cur.close()
         conn.close()
         
-        logging.info(f"✅ Chatbot connection test successful:")
+        logging.info("✅ Chatbot connection test successful:")
         logging.info(f"   - chat_data_final: {chat_count['count']} records")
         logging.info(f"   - agent_flow_data: {agent_count['count']} records")
         

@@ -1,14 +1,21 @@
 from __future__ import annotations
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from datetime import datetime
 import uuid
 
-from workflow_core_sdk.execution_context import StepResult, StepStatus, ExecutionContext, ExecutionStatus
+from workflow_core_sdk.execution_context import (
+    StepResult,
+    StepStatus,
+    ExecutionContext,
+    ExecutionStatus,
+)
 
 
 async def human_approval_step(
-    step_config: Dict[str, Any], input_data: Dict[str, Any], execution_context: ExecutionContext
+    step_config: Dict[str, Any],
+    input_data: Dict[str, Any],
+    execution_context: ExecutionContext,
 ) -> StepResult:
     """Pause execution and wait for human approval.
 
@@ -27,7 +34,9 @@ async def human_approval_step(
     try:
         from sqlmodel import Session as _SQLSession
         from workflow_core_sdk.db.database import engine
-        from workflow_core_sdk.services.approvals_service import ApprovalsService as DatabaseService
+        from workflow_core_sdk.services.approvals_service import (
+            ApprovalsService as DatabaseService,
+        )
 
         _dbs = DatabaseService()
         with _SQLSession(engine) as _session:
@@ -64,14 +73,21 @@ async def human_approval_step(
     # If local backend and a decision was injected via resume_execution, complete immediately
     if backend != "dbos":
         injected = execution_context.step_io_data.get(step_id)
-        if isinstance(injected, dict) and injected.get("decision") in ("approved", "denied"):
-            return StepResult(step_id=step_id, status=StepStatus.COMPLETED, output_data=injected)
+        if isinstance(injected, dict) and injected.get("decision") in (
+            "approved",
+            "denied",
+        ):
+            return StepResult(
+                step_id=step_id, status=StepStatus.COMPLETED, output_data=injected
+            )
 
     if backend == "dbos":
         # For DBOS, wait by polling the database for the approval decision.
         # This keeps the wait within the step (DBOS context) and avoids external event signaling.
         import asyncio
-        from workflow_core_sdk.services.approvals_service import ApprovalsService as DatabaseService
+        from workflow_core_sdk.services.approvals_service import (
+            ApprovalsService as DatabaseService,
+        )
         from sqlmodel import Session as _SQLSession
         from workflow_core_sdk.db.database import engine
 
@@ -82,10 +98,16 @@ async def human_approval_step(
         while True:
             try:
                 with _SQLSession(engine) as _s:
-                    rec = _dbs.get_approval_request(_s, approval_id) if approval_id else None
+                    rec = (
+                        _dbs.get_approval_request(_s, approval_id)
+                        if approval_id
+                        else None
+                    )
                     if not rec and approval_id is None:
                         # Fallback: lookup by execution_id+step_id
-                        items = _dbs.list_approval_requests(_s, execution_id=str(execution_context.execution_id))
+                        items = _dbs.list_approval_requests(
+                            _s, execution_id=str(execution_context.execution_id)
+                        )
                         for it in items:
                             if (it.get("step_id") or "") == step_id:
                                 rec = it
@@ -95,7 +117,11 @@ async def human_approval_step(
 
             if rec:
                 _st = rec.get("status")
-                _st_str = _st.value if hasattr(_st, "value") else (str(_st) if _st is not None else None)
+                _st_str = (
+                    _st.value
+                    if hasattr(_st, "value")
+                    else (str(_st) if _st is not None else None)
+                )
                 if _st_str in ("approved", "denied"):
                     from datetime import timezone as _tz
 
@@ -103,21 +129,30 @@ async def human_approval_step(
                         "decision": _st_str,
                         "payload": rec.get("response_payload"),
                         "decided_by": rec.get("decided_by"),
-                        "decided_at": rec.get("decided_at") or datetime.now(_tz.utc).isoformat(),
+                        "decided_at": rec.get("decided_at")
+                        or datetime.now(_tz.utc).isoformat(),
                         "comment": (rec.get("response_payload") or {}).get("comment")
                         if isinstance(rec.get("response_payload"), dict)
                         else None,
                     }
-                    return StepResult(step_id=step_id, status=StepStatus.COMPLETED, output_data=out)
+                    return StepResult(
+                        step_id=step_id, status=StepStatus.COMPLETED, output_data=out
+                    )
 
             # Check timeout
             if deadline and datetime.now().timestamp() >= deadline:
                 # On timeout, keep the workflow alive but indicate waiting to callers via output payload
                 execution_context.status = ExecutionStatus.WAITING
-                return StepResult(step_id=step_id, status=StepStatus.WAITING, output_data=request_payload)
+                return StepResult(
+                    step_id=step_id,
+                    status=StepStatus.WAITING,
+                    output_data=request_payload,
+                )
 
             await asyncio.sleep(poll_interval)
 
     # Local backend: mark waiting and let API resume later
     execution_context.status = ExecutionStatus.WAITING
-    return StepResult(step_id=step_id, status=StepStatus.WAITING, output_data=request_payload)
+    return StepResult(
+        step_id=step_id, status=StepStatus.WAITING, output_data=request_payload
+    )

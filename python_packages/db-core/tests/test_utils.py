@@ -5,7 +5,6 @@ Tests for the utils module of db-core package.
 import pytest
 from sqlalchemy import text
 
-from db_core import MultitenancySettings
 from db_core.exceptions import InvalidTenantIdError
 from db_core.utils import (
     async_create_tenant_schema,
@@ -30,19 +29,19 @@ class TestSchemaUtils:
         # Default settings
         schema_name = get_schema_name("tenant1", multitenancy_settings)
         assert schema_name == "test_tenant_tenant1"
-        
+
         # Custom prefix
         settings = multitenancy_settings.copy()
         settings.schema_prefix = "custom_"
         schema_name = get_schema_name("tenant2", settings)
         assert schema_name == "custom_tenant2"
-        
+
         # Mixed case tenant ID with case insensitivity
         settings = multitenancy_settings.copy()
         settings.case_sensitive_tenant_id = False
         schema_name = get_schema_name("TenANT3", settings)
         assert schema_name == "test_tenant_tenant3"
-        
+
         # Mixed case tenant ID with case sensitivity
         settings = multitenancy_settings.copy()
         settings.case_sensitive_tenant_id = True
@@ -56,29 +55,29 @@ class TestSchemaUtils:
         assert validate_tenant_id("tenant-2", multitenancy_settings) is True
         assert validate_tenant_id("tenant_3", multitenancy_settings) is True
         assert validate_tenant_id("123", multitenancy_settings) is True
-        
+
         # Invalid tenant IDs
         with pytest.raises(InvalidTenantIdError):
             validate_tenant_id("tenant@1", multitenancy_settings)
-        
+
         with pytest.raises(InvalidTenantIdError):
             validate_tenant_id("tenant.1", multitenancy_settings)
-        
+
         with pytest.raises(InvalidTenantIdError):
             validate_tenant_id("tenant/1", multitenancy_settings)
-        
+
         # Empty tenant ID
         assert validate_tenant_id("", multitenancy_settings) is False
-        
+
         # Custom validation pattern
         settings = multitenancy_settings.copy()
         settings.tenant_id_validation_pattern = r"^[a-z]+$"
-        
+
         assert validate_tenant_id("tenant", settings) is True
-        
+
         with pytest.raises(InvalidTenantIdError):
             validate_tenant_id("tenant1", settings)
-        
+
         with pytest.raises(InvalidTenantIdError):
             validate_tenant_id("Tenant", settings)
 
@@ -88,7 +87,7 @@ class TestSchemaUtils:
         # Check existing schema
         schema_name = get_schema_name("tenant1", multitenancy_settings)
         assert tenant_schema_exists(db_engine, schema_name) is True
-        
+
         # Check non-existing schema
         assert tenant_schema_exists(db_engine, "nonexistent_schema") is False
 
@@ -101,7 +100,7 @@ class TestSchemaUtils:
         schema_name = get_schema_name("tenant1", multitenancy_settings)
         result = await async_tenant_schema_exists(async_db_engine, schema_name)
         assert result is True
-        
+
         # Check non-existing schema
         result = await async_tenant_schema_exists(async_db_engine, "nonexistent_schema")
         assert result is False
@@ -111,40 +110,42 @@ class TestSchemaUtils:
         """Test create_tenant_schema function."""
         # Create a new schema
         schema_name = "test_new_schema"
-        
+
         # First, make sure it doesn't exist
         with db_engine.connect() as conn:
             conn.execute(text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE'))
-        
+
         # Create the schema
         result = create_tenant_schema(db_engine, schema_name)
         assert result is True
-        
+
         # Verify schema exists
         assert tenant_schema_exists(db_engine, schema_name) is True
-        
+
         # Clean up
         with db_engine.connect() as conn:
             conn.execute(text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE'))
 
     @pytest.mark.db
-    async def test_async_create_tenant_schema(self, async_db_engine, multitenancy_settings):
+    async def test_async_create_tenant_schema(
+        self, async_db_engine, multitenancy_settings
+    ):
         """Test async_create_tenant_schema function."""
         # Create a new schema
         schema_name = "test_async_new_schema"
-        
+
         # First, make sure it doesn't exist
         async with async_db_engine.connect() as conn:
             await conn.execute(text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE'))
-        
+
         # Create the schema
         result = await async_create_tenant_schema(async_db_engine, schema_name)
         assert result is True
-        
+
         # Verify schema exists
         result = await async_tenant_schema_exists(async_db_engine, schema_name)
         assert result is True
-        
+
         # Clean up
         async with async_db_engine.connect() as conn:
             await conn.execute(text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE'))
@@ -154,7 +155,7 @@ class TestSchemaUtils:
         """Test list_tenant_schemas function."""
         # Get list of tenant schemas
         schemas = list_tenant_schemas(db_engine, multitenancy_settings.schema_prefix)
-        
+
         # Verify all test tenant schemas are in the list
         for tenant_id in ["tenant1", "tenant2", "admin"]:
             schema_name = get_schema_name(tenant_id, multitenancy_settings)
@@ -169,7 +170,7 @@ class TestSchemaUtils:
         schemas = await async_list_tenant_schemas(
             async_db_engine, multitenancy_settings.schema_prefix
         )
-        
+
         # Verify all test tenant schemas are in the list
         for tenant_id in ["tenant1", "tenant2", "admin"]:
             schema_name = get_schema_name(tenant_id, multitenancy_settings)
@@ -179,17 +180,21 @@ class TestSchemaUtils:
         """Test get_tenant_id_from_schema function."""
         # Get tenant ID from schema name
         schema_name = "test_tenant_tenant1"
-        tenant_id = get_tenant_id_from_schema(schema_name, multitenancy_settings.schema_prefix)
+        tenant_id = get_tenant_id_from_schema(
+            schema_name, multitenancy_settings.schema_prefix
+        )
         assert tenant_id == "tenant1"
-        
+
         # Get tenant ID from schema with different prefix
         schema_name = "custom_tenant2"
         tenant_id = get_tenant_id_from_schema(schema_name, "custom_")
         assert tenant_id == "tenant2"
-        
+
         # Non-matching schema name
         schema_name = "public"
-        tenant_id = get_tenant_id_from_schema(schema_name, multitenancy_settings.schema_prefix)
+        tenant_id = get_tenant_id_from_schema(
+            schema_name, multitenancy_settings.schema_prefix
+        )
         assert tenant_id is None
 
     @pytest.mark.db
@@ -199,7 +204,7 @@ class TestSchemaUtils:
         schema_name = get_schema_name("tenant1", multitenancy_settings)
         result = set_tenant_search_path(db_engine, schema_name)
         assert result is True
-        
+
         # Verify search path was set (use the same connection)
         with db_engine.connect() as conn:
             # Set search path for this specific connection
@@ -218,7 +223,7 @@ class TestSchemaUtils:
         schema_name = get_schema_name("tenant1", multitenancy_settings)
         result = await async_set_tenant_search_path(async_db_engine, schema_name)
         assert result is True
-        
+
         # Verify search path was set
         async with async_db_engine.connect() as conn:
             result = await conn.execute(text("SELECT current_schema()"))

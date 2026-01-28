@@ -23,7 +23,9 @@ class InvalidTenantIdError(TenantError):
     def __init__(self, tenant_id: str, pattern: str):
         self.tenant_id = tenant_id
         self.pattern = pattern
-        super().__init__(f"Invalid tenant ID: {tenant_id}. Must match pattern: {pattern}")
+        super().__init__(
+            f"Invalid tenant ID: {tenant_id}. Must match pattern: {pattern}"
+        )
 
 
 class TenantSchemaError(TenantError):

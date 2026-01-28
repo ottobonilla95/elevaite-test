@@ -5,7 +5,7 @@ This module provides utility functions for working with enhanced tokenizer confi
 including merging configs, extracting step-specific settings, and handling defaults.
 """
 
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, Union
 import os
 import json
 import logging
@@ -16,7 +16,7 @@ from .enhanced_config import (
     ExecutionMode,
     ConfigDefaults
 )
-from .config_migrator import ConfigMigrator, ConfigDetector
+from .config_migrator import ConfigMigrator
 
 logger = logging.getLogger(__name__)
 

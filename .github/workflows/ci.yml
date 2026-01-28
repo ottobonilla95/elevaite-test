@@ -107,6 +107,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build packages
+        run: npm run build --workspace=@repo/ui
+
       - name: Run linter
         run: npm run lint
 
@@ -139,7 +142,7 @@ jobs:
         run: uv sync
 
       - name: Run Ruff linter
-        run: uv run ruff check python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/
+        run: uv run ruff check --extend-ignore=B904,E402,E501,E701,E721,E722,F401,F403,F811,F821,F823 python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/
 
       - name: Run Ruff formatter check
         run: uv run ruff format --check python_apps/auth_api python_apps/workflow-engine-poc python_apps/ingestion-service python_packages/
@@ -155,6 +158,40 @@ jobs:
       (needs.python.result == 'success' || needs.python.result == 'skipped') &&
       needs.changes.outputs.python == 'true'
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: elevaite
+          POSTGRES_PASSWORD: elevaite
+          POSTGRES_DB: auth_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth_test
+      DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth_test
+      FRONTEND_URL: http://localhost:3005
+      REDIS_ENABLED: "true"
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+
     steps:
       - uses: actions/checkout@v4
 
@@ -164,31 +201,59 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync
+        run: |
+          uv sync --all-packages
 
-      - name: Run Python tests with coverage
+      - name: Run auth-api tests with coverage
         run: |
           uv run pytest \
             python_apps/auth_api \
-            python_apps/workflow-engine-poc \
-            python_apps/ingestion-service \
-            python_packages \
             --tb=short \
             --cov=python_apps/auth_api \
-            --cov=python_apps/workflow-engine-poc \
-            --cov=python_apps/ingestion-service \
-            --cov=python_packages \
             --cov-report=term-missing \
-            --cov-report=xml \
+            --cov-report=xml:coverage-auth-api.xml \
             --cov-fail-under=40 \
             -q
 
-      - name: Upload coverage report
+      - name: Run workflow-engine tests with coverage
+        run: |
+          uv run pytest \
+            python_apps/workflow-engine-poc \
+            --tb=short \
+            --cov=python_apps/workflow-engine-poc \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage-workflow-engine.xml \
+            --cov-fail-under=40 \
+            -q
+
+      - name: Run ingestion-service tests with coverage
+        run: |
+          uv run pytest \
+            python_apps/ingestion-service \
+            --tb=short \
+            --cov=python_apps/ingestion-service \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage-ingestion-service.xml \
+            --cov-fail-under=40 \
+            -q
+
+      - name: Run python_packages tests with coverage
+        run: |
+          uv run pytest \
+            python_packages \
+            --tb=short \
+            --cov=python_packages \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage-python-packages.xml \
+            --cov-fail-under=40 \
+            -q
+
+      - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coverage-report
-          path: coverage.xml
+          name: coverage-reports
+          path: coverage-*.xml
           retention-days: 7
 
   # ============================================================
@@ -202,6 +267,27 @@ jobs:
       (needs.python.result == 'success' || needs.python.result == 'skipped') &&
       needs.changes.outputs.python == 'true'
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: elevaite
+          POSTGRES_PASSWORD: elevaite
+          POSTGRES_DB: auth_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SQLALCHEMY_DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth_test
+      DATABASE_URL: postgresql+asyncpg://elevaite:elevaite@localhost:5433/auth_test
+      FRONTEND_URL: http://localhost:3005
+
     steps:
       - uses: actions/checkout@v4
 

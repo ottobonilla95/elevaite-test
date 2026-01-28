@@ -13,7 +13,6 @@ Run with:
 """
 
 import pytest
-import httpx
 from unittest.mock import Mock
 from datetime import datetime, timedelta, timezone
 from jose import jwt
@@ -155,7 +154,9 @@ class TestApiKeyJwtValidator:
         valid_jwt = create_test_jwt(user_id="123")
 
         # Create validator
-        validator = api_key_jwt_validator(algorithm=api_key_config["algorithm"], secret=api_key_config["secret"])
+        validator = api_key_jwt_validator(
+            algorithm=api_key_config["algorithm"], secret=api_key_config["secret"]
+        )
 
         # Create mock request
         request = Mock()
@@ -179,7 +180,9 @@ class TestApiKeyJwtValidator:
         )
 
         # Create validator
-        validator = api_key_jwt_validator(algorithm=api_key_config["algorithm"], secret=api_key_config["secret"])
+        validator = api_key_jwt_validator(
+            algorithm=api_key_config["algorithm"], secret=api_key_config["secret"]
+        )
 
         # Create mock request
         request = Mock()
@@ -198,7 +201,9 @@ class TestApiKeyJwtValidator:
         valid_jwt = create_test_jwt(user_id="123")
 
         # Try to validate with a different secret
-        validator = api_key_jwt_validator(algorithm=api_key_config["algorithm"], secret="wrong-secret")
+        validator = api_key_jwt_validator(
+            algorithm=api_key_config["algorithm"], secret="wrong-secret"
+        )
 
         # Create mock request
         request = Mock()
@@ -220,7 +225,9 @@ class TestApiKeyJwtValidator:
         )
 
         # Create validator
-        validator = api_key_jwt_validator(algorithm=api_key_config["algorithm"], secret=api_key_config["secret"])
+        validator = api_key_jwt_validator(
+            algorithm=api_key_config["algorithm"], secret=api_key_config["secret"]
+        )
 
         # Create mock request
         request = Mock()
@@ -245,7 +252,9 @@ class TestApiKeyJwtValidator:
         )
 
         # Create validator
-        validator = api_key_jwt_validator(algorithm=api_key_config["algorithm"], secret=api_key_config["secret"])
+        validator = api_key_jwt_validator(
+            algorithm=api_key_config["algorithm"], secret=api_key_config["secret"]
+        )
 
         # Create mock request
         request = Mock()

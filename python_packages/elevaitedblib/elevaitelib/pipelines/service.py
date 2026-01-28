@@ -17,7 +17,9 @@ def get_available_providers() -> List[str]:
     return providers
 
 
-def create_pipelines_for_provider(provider_type: str, file_paths: List[dict]) -> Dict[str, Any]:
+def create_pipelines_for_provider(
+    provider_type: str, file_paths: List[dict]
+) -> Dict[str, Any]:
     try:
         match provider_type:
             case ProviderType.SAGEMAKER:
@@ -45,7 +47,9 @@ def create_pipelines_for_provider(provider_type: str, file_paths: List[dict]) ->
         }
 
 
-def delete_pipelines_for_provider(provider_type: str, pipeline_ids: List[str]) -> Dict[str, Any]:
+def delete_pipelines_for_provider(
+    provider_type: str, pipeline_ids: List[str]
+) -> Dict[str, Any]:
     try:
         match provider_type:
             case ProviderType.SAGEMAKER:
@@ -73,7 +77,9 @@ def delete_pipelines_for_provider(provider_type: str, pipeline_ids: List[str]) -
         }
 
 
-def monitor_pipelines_for_provider(provider_type: str, execution_ids: List[str]) -> Dict[str, Any]:
+def monitor_pipelines_for_provider(
+    provider_type: str, execution_ids: List[str]
+) -> Dict[str, Any]:
     try:
         match provider_type:
             case ProviderType.SAGEMAKER:
@@ -99,7 +105,9 @@ def monitor_pipelines_for_provider(provider_type: str, execution_ids: List[str])
         }
 
 
-def rerun_pipelines_for_provider(provider_type: str, execution_ids: List[str]) -> Dict[str, Any]:
+def rerun_pipelines_for_provider(
+    provider_type: str, execution_ids: List[str]
+) -> Dict[str, Any]:
     try:
         match provider_type:
             case ProviderType.SAGEMAKER:

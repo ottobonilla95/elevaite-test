@@ -61,7 +61,9 @@ class TestTokenGeneration:
         assert isinstance(token, str)
 
         # Token should be decodable with the correct secret
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
 
         # Token should contain the correct user ID
         assert payload["sub"] == str(user_id)
@@ -81,7 +83,9 @@ class TestTokenGeneration:
         assert isinstance(token, str)
 
         # Token should be decodable with the correct secret
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
 
         # Token should contain the correct user ID
         assert payload["sub"] == str(user_id)
@@ -119,8 +123,14 @@ class TestTokenGeneration:
         user_id = 123
 
         # Create a token that's already expired
-        payload = {"sub": str(user_id), "exp": datetime.now(timezone.utc) - timedelta(minutes=1), "type": "access"}
-        expired_token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        payload = {
+            "sub": str(user_id),
+            "exp": datetime.now(timezone.utc) - timedelta(minutes=1),
+            "type": "access",
+        }
+        expired_token = jwt.encode(
+            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        )
 
         # Verify that expired token is rejected
         with pytest.raises(Exception):

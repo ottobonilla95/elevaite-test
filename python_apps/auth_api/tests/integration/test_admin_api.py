@@ -61,7 +61,9 @@ def app(mock_superuser, mock_admin_user, mock_session):
 
     # Override dependencies
     test_app.dependency_overrides[get_current_superuser] = lambda: mock_superuser
-    test_app.dependency_overrides[get_current_admin_or_superuser] = lambda: mock_admin_user
+    test_app.dependency_overrides[get_current_admin_or_superuser] = (
+        lambda: mock_admin_user
+    )
     test_app.dependency_overrides[get_async_session] = lambda: mock_session
 
     return test_app
@@ -85,6 +87,7 @@ class TestUpdateUserStatus:
 
         # Mock log_user_activity
         from unittest.mock import patch
+
         with patch("app.routers.admin.log_user_activity", new=AsyncMock()):
             response = client.post(
                 "/api/admin/users/2/status",
@@ -146,6 +149,7 @@ class TestConvenienceEndpoints:
         mock_session.execute = AsyncMock(return_value=mock_result)
 
         from unittest.mock import patch
+
         with patch("app.routers.admin.log_user_activity", new=AsyncMock()):
             response = client.post(
                 "/api/admin/users/2/suspend",
@@ -166,6 +170,7 @@ class TestConvenienceEndpoints:
         mock_session.execute = AsyncMock(return_value=mock_result)
 
         from unittest.mock import patch
+
         with patch("app.routers.admin.log_user_activity", new=AsyncMock()):
             response = client.post("/api/admin/users/2/activate")
 
@@ -181,6 +186,7 @@ class TestConvenienceEndpoints:
         mock_session.execute = AsyncMock(return_value=mock_result)
 
         from unittest.mock import patch
+
         with patch("app.routers.admin.log_user_activity", new=AsyncMock()):
             response = client.post("/api/admin/users/2/deactivate")
 
@@ -211,12 +217,11 @@ class TestSessionManagement:
         sessions_result = MagicMock()
         sessions_result.scalars.return_value.all.return_value = [active_session]
 
-        mock_session.execute = AsyncMock(
-            side_effect=[user_result, sessions_result]
-        )
+        mock_session.execute = AsyncMock(side_effect=[user_result, sessions_result])
 
         # Override dependency for this test to use admin user
         from app.routers.admin import get_current_admin_or_superuser as get_admin
+
         client.app.dependency_overrides[get_admin] = lambda: mock_target_user
 
         response = client.get("/api/admin/users/2/sessions")
@@ -236,11 +241,10 @@ class TestSessionManagement:
         revoke_result = MagicMock()
         revoke_result.rowcount = 3
 
-        mock_session.execute = AsyncMock(
-            side_effect=[user_result, revoke_result]
-        )
+        mock_session.execute = AsyncMock(side_effect=[user_result, revoke_result])
 
         from unittest.mock import patch
+
         with patch("app.routers.admin.log_user_activity", new=AsyncMock()):
             response = client.post("/api/admin/users/2/revoke-sessions")
 
@@ -301,6 +305,7 @@ class TestRequestValidation:
         mock_session.execute = AsyncMock(return_value=mock_result)
 
         from unittest.mock import patch
+
         with patch("app.routers.admin.log_user_activity", new=AsyncMock()):
             response = client.post(
                 "/api/admin/users/2/status",
@@ -310,4 +315,3 @@ class TestRequestValidation:
         assert response.status_code == 200
         data = response.json()
         assert data["reason"] is None
-

@@ -7,9 +7,6 @@ from rbac_api.app.routes.main import (
    role_router,
    organization_router,
    account_router,
-   project_router,
-   user_router,
-   auth_router,
 )
 from rbac_api.utils.deps import get_db
 

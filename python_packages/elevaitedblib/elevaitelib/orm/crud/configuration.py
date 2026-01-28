@@ -43,14 +43,20 @@ def create_configuration(
     return _configuration
 
 
-def update_configuration(db: Session, application_id: int, conf_id: str, dto: schema.ConfigurationUpdate):
+def update_configuration(
+    db: Session, application_id: int, conf_id: str, dto: schema.ConfigurationUpdate
+):
     _conf = get_configuration_by_id(db, application_id, conf_id)
     if _conf is None:
         return None
 
     for var, value in vars(dto).items():
         if value:
-            (setattr(_conf, var, value) if var != "raw" else setattr(_conf, var, to_dict(value)))
+            (
+                setattr(_conf, var, value)
+                if var != "raw"
+                else setattr(_conf, var, to_dict(value))
+            )
 
     db.add(_conf)
     db.commit()

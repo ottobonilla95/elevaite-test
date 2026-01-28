@@ -6,7 +6,4 @@ LOG_FILE = os.path.join(LOG_DIR, "pipeline.log")
 
 os.makedirs(LOG_DIR, exist_ok=True)
 
-LOGGING_CONFIG = {
-    "log_dir": LOG_DIR,
-    "log_file": LOG_FILE
-}
+LOGGING_CONFIG = {"log_dir": LOG_DIR, "log_file": LOG_FILE}

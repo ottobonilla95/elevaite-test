@@ -1,7 +1,7 @@
 import asyncio
 import inspect
 import logging
-from typing import Dict, Any, Optional, TypedDict, cast
+from typing import Dict, Any, Optional, cast
 from datetime import datetime
 import uuid
 import os
@@ -37,7 +37,9 @@ class DBOSWorkflowAdapter:
         self.logger = logger
 
         if not DBOS_AVAILABLE:
-            self.logger.warning("DBOS not available - running in mock mode for development")
+            self.logger.warning(
+                "DBOS not available - running in mock mode for development"
+            )
 
     async def initialize(self):
         """Initialize the adapter and register built-in steps"""
@@ -45,7 +47,11 @@ class DBOSWorkflowAdapter:
         self.logger.info("DBOS Workflow Adapter initialized")
 
     async def execute_step_durable(
-        self, step_type: str, step_config: Dict[str, Any], input_data: Dict[str, Any], execution_context_data: Dict[str, Any]
+        self,
+        step_type: str,
+        step_config: Dict[str, Any],
+        input_data: Dict[str, Any],
+        execution_context_data: Dict[str, Any],
     ) -> DBOSStepResult:
         """
         DBOS step that wraps our existing step execution.
@@ -58,11 +64,16 @@ class DBOSWorkflowAdapter:
 
         # Execute the step using our existing step registry
         step_result = await self.step_registry.execute_step(
-            step_type=step_type, step_config=step_config, input_data=input_data, execution_context=execution_context
+            step_type=step_type,
+            step_config=step_config,
+            input_data=input_data,
+            execution_context=execution_context,
         )
 
         # Store result in execution context for next steps
-        execution_context.step_io_data[step_config.get("step_id", "unknown")] = step_result.output_data
+        execution_context.step_io_data[step_config.get("step_id", "unknown")] = (
+            step_result.output_data
+        )
 
         return {
             "success": step_result.status == StepStatus.COMPLETED,
@@ -75,7 +86,10 @@ class DBOSWorkflowAdapter:
         }
 
     async def execute_workflow_durable(
-        self, workflow_config: Dict[str, Any], trigger_data: Dict[str, Any], user_context_data: Optional[Dict[str, Any]] = None
+        self,
+        workflow_config: Dict[str, Any],
+        trigger_data: Dict[str, Any],
+        user_context_data: Optional[Dict[str, Any]] = None,
     ) -> DBOSWorkflowResult:
         """
         DBOS workflow that executes our step graph durably.
@@ -122,16 +136,23 @@ class DBOSWorkflowAdapter:
             # Execute step durably
             try:
                 step_result = await self.execute_step_durable(
-                    step_type=step_type, step_config=step, input_data=input_data, execution_context_data=execution_context_data
+                    step_type=step_type,
+                    step_config=step,
+                    input_data=input_data,
+                    execution_context_data=execution_context_data,
                 )
 
                 step_results[step_id] = step_result
 
                 # Update execution context with step result
-                execution_context_data["step_io_data"][step_id] = step_result["output_data"]
+                execution_context_data["step_io_data"][step_id] = step_result[
+                    "output_data"
+                ]
 
                 if not step_result["success"]:
-                    self.logger.error(f"Step {step_id} failed: {step_result.get('error')}")
+                    self.logger.error(
+                        f"Step {step_id} failed: {step_result.get('error')}"
+                    )
                     return {
                         "success": False,
                         "error": f"Step {step_id} failed: {step_result.get('error')}",
@@ -159,7 +180,10 @@ class DBOSWorkflowAdapter:
         }
 
     def _prepare_step_input(
-        self, step: Dict[str, Any], step_results: Dict[str, Any], trigger_data: Dict[str, Any]
+        self,
+        step: Dict[str, Any],
+        step_results: Dict[str, Any],
+        trigger_data: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Prepare input data for a step based on previous step results and trigger data"""
         input_data = {}
@@ -179,10 +203,15 @@ class DBOSWorkflowAdapter:
 
         return input_data
 
-    def _reconstruct_execution_context(self, execution_context_data: Dict[str, Any]) -> ExecutionContext:
+    def _reconstruct_execution_context(
+        self, execution_context_data: Dict[str, Any]
+    ) -> ExecutionContext:
         """Reconstruct ExecutionContext from serializable data"""
         user_context_data = execution_context_data.get("user_context", {})
-        user_context = UserContext(user_id=user_context_data.get("user_id"), session_id=user_context_data.get("session_id"))
+        user_context = UserContext(
+            user_id=user_context_data.get("user_id"),
+            session_id=user_context_data.get("session_id"),
+        )
 
         execution_context = ExecutionContext(
             workflow_config=execution_context_data["workflow_config"],
@@ -243,7 +272,11 @@ class DBOSWorkflowAdapter:
                             )
                             if hasattr(h, m)
                         ]
-                        return {"handle_type": str(type(h)), "attributes": attrs, "methods": methods_present}
+                        return {
+                            "handle_type": str(type(h)),
+                            "attributes": attrs,
+                            "methods": methods_present,
+                        }
                     except Exception:
                         return {"handle_type": str(type(h))}
 
@@ -260,7 +293,11 @@ class DBOSWorkflowAdapter:
                 dbos_meta = _mk_dbos_meta(handle)
 
                 def _attach_dbos(val: Any) -> DBOSWorkflowResult:
-                    res: Dict[str, Any] = val if isinstance(val, dict) else {"success": True, "result": val}
+                    res: Dict[str, Any] = (
+                        val
+                        if isinstance(val, dict)
+                        else {"success": True, "result": val}
+                    )
                     try:
                         res["_dbos"] = {"handle": dbos_meta}
                     except Exception:
@@ -326,7 +363,9 @@ class DBOSWorkflowAdapter:
 
                 # Last resort: include attrs to help debugging
                 attrs = [a for a in dir(handle) if not a.startswith("_")]
-                raise RuntimeError(f"Unsupported DBOS workflow handle type: {type(handle)} with attrs={attrs}")
+                raise RuntimeError(
+                    f"Unsupported DBOS workflow handle type: {type(handle)} with attrs={attrs}"
+                )
 
             try:
                 return await _start_once()
@@ -334,11 +373,23 @@ class DBOSWorkflowAdapter:
                 if "No DBOS was created yet" in str(e):
                     try:
                         # Build config and create DBOS instance
-                        from workflow_core_sdk.db.database import DATABASE_URL as _SDK_DB_URL
+                        from workflow_core_sdk.db.database import (
+                            DATABASE_URL as _SDK_DB_URL,
+                        )
 
-                        _dbos_db_url = os.getenv("DBOS_DATABASE_URL") or os.getenv("DATABASE_URL") or _SDK_DB_URL
-                        _app_name = os.getenv("DBOS_APPLICATION_NAME") or os.getenv("DBOS_APP_NAME") or "workflow-engine-poc"
-                        cfg = DBOSConfig(database_url=_dbos_db_url, name=_app_name)  # dbos 1.12.0 expects 'name'
+                        _dbos_db_url = (
+                            os.getenv("DBOS_DATABASE_URL")
+                            or os.getenv("DATABASE_URL")
+                            or _SDK_DB_URL
+                        )
+                        _app_name = (
+                            os.getenv("DBOS_APPLICATION_NAME")
+                            or os.getenv("DBOS_APP_NAME")
+                            or "workflow-engine-poc"
+                        )
+                        cfg = DBOSConfig(
+                            database_url=_dbos_db_url, name=_app_name
+                        )  # dbos 1.12.0 expects 'name'
                         DBOS(config=cfg)
                         try:
                             DBOS.launch()
@@ -355,4 +406,6 @@ class DBOSWorkflowAdapter:
 
         else:
             # For development without DBOS, run directly
-            return await self.execute_workflow_durable(workflow_config, trigger_data, user_context)
+            return await self.execute_workflow_durable(
+                workflow_config, trigger_data, user_context
+            )

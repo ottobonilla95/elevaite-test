@@ -11,13 +11,8 @@ from app.routers import rbac
 from app.db.models import User, UserStatus
 from app.db.models_rbac import (
     Role,
-    RolePermission,
     Group,
-    GroupPermission,
-    UserGroupMembership,
-    Organization,
     UserRoleAssignment,
-    PermissionOverride,
 )
 from app.core.deps import get_current_user, get_current_superuser
 from app.db.orm import get_tenant_async_db
@@ -105,7 +100,9 @@ def regular_user_client(regular_user_app):
 class TestGetMyRbac:
     """Integration tests for GET /api/rbac/me endpoint."""
 
-    def test_get_my_rbac_as_superuser(self, superuser_client, mock_superuser, mock_session):
+    def test_get_my_rbac_as_superuser(
+        self, superuser_client, mock_superuser, mock_session
+    ):
         """Test superuser gets their RBAC info with is_superuser=True."""
         # Mock empty results for role assignments, group memberships, overrides
         empty_result = MagicMock()
@@ -122,7 +119,9 @@ class TestGetMyRbac:
         assert data["group_memberships"] == []
         assert data["permission_overrides"] == []
 
-    def test_get_my_rbac_as_regular_user(self, regular_user_client, mock_regular_user, mock_session):
+    def test_get_my_rbac_as_regular_user(
+        self, regular_user_client, mock_regular_user, mock_session
+    ):
         """Test regular user gets their RBAC info with is_superuser=False."""
         empty_result = MagicMock()
         empty_result.scalars.return_value.all.return_value = []
@@ -135,7 +134,9 @@ class TestGetMyRbac:
         assert data["user_id"] == mock_regular_user.id
         assert data["is_superuser"] is False
 
-    def test_get_my_rbac_with_role_assignments(self, superuser_client, mock_superuser, mock_session):
+    def test_get_my_rbac_with_role_assignments(
+        self, superuser_client, mock_superuser, mock_session
+    ):
         """Test user with role assignments gets them in response."""
         # Create mock role assignment
         mock_assignment = MagicMock(spec=UserRoleAssignment)
@@ -151,7 +152,9 @@ class TestGetMyRbac:
         empty_result = MagicMock()
         empty_result.scalars.return_value.all.return_value = []
 
-        mock_session.execute = AsyncMock(side_effect=[role_result, empty_result, empty_result])
+        mock_session.execute = AsyncMock(
+            side_effect=[role_result, empty_result, empty_result]
+        )
 
         response = superuser_client.get("/api/rbac/me")
 
@@ -181,7 +184,11 @@ class TestRoleAuthorizationEndpoints:
         )
 
         # Should fail because get_current_superuser dependency will reject
-        assert response.status_code in [401, 403, 500]  # Depends on how dependency fails
+        assert response.status_code in [
+            401,
+            403,
+            500,
+        ]  # Depends on how dependency fails
 
     def test_anyone_can_list_roles(self, regular_user_client, mock_session):
         """Test that any authenticated user can list roles."""

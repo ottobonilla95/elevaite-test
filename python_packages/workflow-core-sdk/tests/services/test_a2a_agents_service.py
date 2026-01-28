@@ -11,7 +11,10 @@ from unittest.mock import MagicMock
 import pytest
 
 from workflow_core_sdk.db.models import A2AAgent, A2AAgentCreate, A2AAgentUpdate
-from workflow_core_sdk.services.a2a_agents_service import A2AAgentsService, A2AAgentsListQuery
+from workflow_core_sdk.services.a2a_agents_service import (
+    A2AAgentsService,
+    A2AAgentsListQuery,
+)
 
 
 @pytest.fixture
@@ -59,7 +62,9 @@ def sample_a2a_agent_create():
 class TestA2AAgentsCRUD:
     """Tests for A2A agent CRUD operations"""
 
-    def test_create_agent_success(self, mock_session, sample_a2a_agent_create, sample_a2a_agent):
+    def test_create_agent_success(
+        self, mock_session, sample_a2a_agent_create, sample_a2a_agent
+    ):
         """Test creating a new A2A agent"""
         mock_result = MagicMock()
         mock_result.first.return_value = None  # No existing agent
@@ -67,9 +72,13 @@ class TestA2AAgentsCRUD:
 
         mock_session.add.return_value = None
         mock_session.commit.return_value = None
-        mock_session.refresh.side_effect = lambda obj: setattr(obj, "id", sample_a2a_agent.id)
+        mock_session.refresh.side_effect = lambda obj: setattr(
+            obj, "id", sample_a2a_agent.id
+        )
 
-        agent = A2AAgentsService.create_agent(mock_session, sample_a2a_agent_create, created_by="user-123")
+        agent = A2AAgentsService.create_agent(
+            mock_session, sample_a2a_agent_create, created_by="user-123"
+        )
 
         assert agent is not None
         assert agent.name == "new_a2a_agent"
@@ -77,7 +86,9 @@ class TestA2AAgentsCRUD:
         mock_session.add.assert_called_once()
         mock_session.commit.assert_called_once()
 
-    def test_create_agent_duplicate_base_url(self, mock_session, sample_a2a_agent_create, sample_a2a_agent):
+    def test_create_agent_duplicate_base_url(
+        self, mock_session, sample_a2a_agent_create, sample_a2a_agent
+    ):
         """Test creating an agent with duplicate base_url fails"""
         mock_result = MagicMock()
         mock_result.first.return_value = sample_a2a_agent  # Existing agent
@@ -171,7 +182,9 @@ class TestA2AAgentsCRUD:
         mock_result.first.return_value = sample_a2a_agent
         mock_session.exec.return_value = mock_result
 
-        agent = A2AAgentsService.get_agent_by_base_url(mock_session, "https://agent.example.com")
+        agent = A2AAgentsService.get_agent_by_base_url(
+            mock_session, "https://agent.example.com"
+        )
 
         assert agent is not None
         assert agent.base_url == "https://agent.example.com"
@@ -183,7 +196,9 @@ class TestA2AAgentsCRUD:
         mock_session.exec.return_value = mock_result
 
         payload = A2AAgentUpdate(description="Updated description", status="inactive")
-        agent = A2AAgentsService.update_agent(mock_session, str(sample_a2a_agent.id), payload)
+        agent = A2AAgentsService.update_agent(
+            mock_session, str(sample_a2a_agent.id), payload
+        )
 
         assert agent is not None
         mock_session.add.assert_called_once()
@@ -243,7 +258,9 @@ class TestA2AAgentCardManagement:
             },
         }
 
-        agent = A2AAgentsService.update_agent_card(mock_session, str(sample_a2a_agent.id), agent_card)
+        agent = A2AAgentsService.update_agent_card(
+            mock_session, str(sample_a2a_agent.id), agent_card
+        )
 
         assert agent is not None
         assert agent.agent_card == agent_card
@@ -276,14 +293,18 @@ class TestA2AHealthCheckManagement:
         mock_result.first.return_value = sample_a2a_agent
         mock_session.exec.return_value = mock_result
 
-        agent = A2AAgentsService.update_health_status(mock_session, str(sample_a2a_agent.id), is_healthy=True)
+        agent = A2AAgentsService.update_health_status(
+            mock_session, str(sample_a2a_agent.id), is_healthy=True
+        )
 
         assert agent.status == "active"
         assert agent.consecutive_failures == 0
         assert agent.last_health_check is not None
         assert agent.last_seen is not None
 
-    def test_update_health_status_unhealthy_first_failure(self, mock_session, sample_a2a_agent):
+    def test_update_health_status_unhealthy_first_failure(
+        self, mock_session, sample_a2a_agent
+    ):
         """Test updating health status on first failure"""
         sample_a2a_agent.consecutive_failures = 0
         sample_a2a_agent.status = "active"
@@ -292,12 +313,16 @@ class TestA2AHealthCheckManagement:
         mock_result.first.return_value = sample_a2a_agent
         mock_session.exec.return_value = mock_result
 
-        agent = A2AAgentsService.update_health_status(mock_session, str(sample_a2a_agent.id), is_healthy=False)
+        agent = A2AAgentsService.update_health_status(
+            mock_session, str(sample_a2a_agent.id), is_healthy=False
+        )
 
         assert agent.status == "error"
         assert agent.consecutive_failures == 1
 
-    def test_update_health_status_unhealthy_becomes_unreachable(self, mock_session, sample_a2a_agent):
+    def test_update_health_status_unhealthy_becomes_unreachable(
+        self, mock_session, sample_a2a_agent
+    ):
         """Test agent becomes unreachable after 3 consecutive failures"""
         sample_a2a_agent.consecutive_failures = 2
         sample_a2a_agent.status = "error"
@@ -306,12 +331,16 @@ class TestA2AHealthCheckManagement:
         mock_result.first.return_value = sample_a2a_agent
         mock_session.exec.return_value = mock_result
 
-        agent = A2AAgentsService.update_health_status(mock_session, str(sample_a2a_agent.id), is_healthy=False)
+        agent = A2AAgentsService.update_health_status(
+            mock_session, str(sample_a2a_agent.id), is_healthy=False
+        )
 
         assert agent.status == "unreachable"
         assert agent.consecutive_failures == 3
 
-    def test_get_agents_needing_health_check_never_checked(self, mock_session, sample_a2a_agent):
+    def test_get_agents_needing_health_check_never_checked(
+        self, mock_session, sample_a2a_agent
+    ):
         """Test getting agents that have never been health checked"""
         sample_a2a_agent.last_health_check = None
 
@@ -324,10 +353,14 @@ class TestA2AHealthCheckManagement:
         assert len(agents) == 1
         assert agents[0].id == sample_a2a_agent.id
 
-    def test_get_agents_needing_health_check_overdue(self, mock_session, sample_a2a_agent):
+    def test_get_agents_needing_health_check_overdue(
+        self, mock_session, sample_a2a_agent
+    ):
         """Test getting agents that are overdue for health check"""
         sample_a2a_agent.health_check_interval = 300  # 5 minutes
-        sample_a2a_agent.last_health_check = datetime.now(timezone.utc) - timedelta(minutes=10)
+        sample_a2a_agent.last_health_check = datetime.now(timezone.utc) - timedelta(
+            minutes=10
+        )
 
         mock_result = MagicMock()
         mock_result.all.return_value = [sample_a2a_agent]
@@ -337,10 +370,14 @@ class TestA2AHealthCheckManagement:
 
         assert len(agents) == 1
 
-    def test_get_agents_needing_health_check_recently_checked(self, mock_session, sample_a2a_agent):
+    def test_get_agents_needing_health_check_recently_checked(
+        self, mock_session, sample_a2a_agent
+    ):
         """Test agents recently checked are not included"""
         sample_a2a_agent.health_check_interval = 300  # 5 minutes
-        sample_a2a_agent.last_health_check = datetime.now(timezone.utc) - timedelta(minutes=1)
+        sample_a2a_agent.last_health_check = datetime.now(timezone.utc) - timedelta(
+            minutes=1
+        )
 
         mock_result = MagicMock()
         mock_result.all.return_value = [sample_a2a_agent]

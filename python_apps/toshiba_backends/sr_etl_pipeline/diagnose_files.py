@@ -74,7 +74,7 @@ async def investigate_unprocessed_files():
     # Sort by upload date
     unprocessed_details.sort(key=lambda x: x['last_modified'] if x['last_modified'] else datetime.min)
     
-    print(f"\n2. UPLOAD DATE DISTRIBUTION")
+    print("\n2. UPLOAD DATE DISTRIBUTION")
     print(f"   Earliest unprocessed file: {unprocessed_details[0]['last_modified'] if unprocessed_details else 'N/A'}")
     print(f"   Latest unprocessed file: {unprocessed_details[-1]['last_modified'] if unprocessed_details else 'N/A'}")
     
@@ -87,14 +87,14 @@ async def investigate_unprocessed_files():
                 date_groups[date_key] = []
             date_groups[date_key].append(file_info)
     
-    print(f"\n3. UNPROCESSED FILES BY UPLOAD DATE")
+    print("\n3. UNPROCESSED FILES BY UPLOAD DATE")
     for date_key in sorted(date_groups.keys()):
         files = date_groups[date_key]
         total_mb = sum(f['size_mb'] for f in files)
         print(f"   {date_key}: {len(files)} files ({total_mb:.2f} MB)")
     
     # Check if these files have any common patterns
-    print(f"\n4. FILE NAME PATTERN ANALYSIS")
+    print("\n4. FILE NAME PATTERN ANALYSIS")
     
     # Check for common prefixes
     prefixes = {}
@@ -102,24 +102,24 @@ async def investigate_unprocessed_files():
         prefix = file_info['filename'].split('-')[0] if '-' in file_info['filename'] else 'other'
         prefixes[prefix] = prefixes.get(prefix, 0) + 1
     
-    print(f"   Filename prefixes:")
+    print("   Filename prefixes:")
     for prefix, count in sorted(prefixes.items(), key=lambda x: x[1], reverse=True):
         print(f"     {prefix}: {count} files")
     
     # Check folder paths
-    print(f"\n5. FOLDER PATH ANALYSIS")
+    print("\n5. FOLDER PATH ANALYSIS")
     folder_paths = {}
     for file_info in unprocessed_details:
         path_parts = file_info['full_path'].split('/')
         folder = '/'.join(path_parts[:-1]) if len(path_parts) > 1 else 'root'
         folder_paths[folder] = folder_paths.get(folder, 0) + 1
     
-    print(f"   Unprocessed files by folder:")
+    print("   Unprocessed files by folder:")
     for folder, count in sorted(folder_paths.items(), key=lambda x: x[1], reverse=True)[:10]:
         print(f"     {folder}: {count} files")
     
     # Now test if we can actually read these files
-    print(f"\n6. FILE READABILITY TEST (Testing first 5 unprocessed files)")
+    print("\n6. FILE READABILITY TEST (Testing first 5 unprocessed files)")
     
     test_results = []
     for i, file_info in enumerate(unprocessed_details[:5]):
@@ -146,7 +146,7 @@ async def investigate_unprocessed_files():
                             'column_names': list(df.columns),
                             'error': None
                         })
-                        print(f"      ✓ Successfully read CSV")
+                        print("      ✓ Successfully read CSV")
                         print(f"      - Columns: {len(df.columns)}")
                         print(f"      - Column names: {', '.join(list(df.columns)[:5])}...")
                     except Exception as csv_error:
@@ -162,14 +162,14 @@ async def investigate_unprocessed_files():
                         'status': 'NON_CSV',
                         'error': 'Not a CSV file'
                     })
-                    print(f"      - Non-CSV file type")
+                    print("      - Non-CSV file type")
             else:
                 test_results.append({
                     'filename': filename,
                     'status': 'DOWNLOAD_FAILED',
                     'error': 'Could not download file'
                 })
-                print(f"      ✗ Could not download file")
+                print("      ✗ Could not download file")
                 
         except Exception as e:
             test_results.append({
@@ -180,7 +180,7 @@ async def investigate_unprocessed_files():
             print(f"      ✗ Error: {e}")
     
     # Compare with processed files - timing analysis
-    print(f"\n7. TIMING ANALYSIS")
+    print("\n7. TIMING ANALYSIS")
     
     # Get last processed file date
     if processed_files:
@@ -200,13 +200,13 @@ async def investigate_unprocessed_files():
             
             if before_last_run:
                 print(f"\n   ⚠️ WARNING: {len(before_last_run)} files were in S3 BEFORE last run but weren't processed!")
-                print(f"   This suggests the ETL script may have skipped them for a reason.")
-                print(f"\n   Sample of files that should have been processed:")
+                print("   This suggests the ETL script may have skipped them for a reason.")
+                print("\n   Sample of files that should have been processed:")
                 for f in before_last_run[:5]:
                     print(f"     - {f['filename']} (uploaded {f['last_modified']})")
     
     # Generate recommendations
-    print(f"\n" + "="*80)
+    print("\n" + "="*80)
     print("FINDINGS & RECOMMENDATIONS")
     print("="*80)
     

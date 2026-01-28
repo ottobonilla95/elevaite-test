@@ -48,10 +48,15 @@ def upload_to_s3(
     bucket = bucket_name or os.getenv("AWS_S3_BUCKET")
     if not bucket:
         return json.dumps(
-            {"error": "No S3 bucket specified. Set AWS_S3_BUCKET env var or pass bucket_name parameter.", "success": False}
+            {
+                "error": "No S3 bucket specified. Set AWS_S3_BUCKET env var or pass bucket_name parameter.",
+                "success": False,
+            }
         )
 
-    prefix = s3_prefix if s3_prefix is not None else os.getenv("AWS_S3_PREFIX", "uploads/")
+    prefix = (
+        s3_prefix if s3_prefix is not None else os.getenv("AWS_S3_PREFIX", "uploads/")
+    )
     expiration = url_expiration_seconds or 3600
 
     # Generate unique S3 key
@@ -99,7 +104,10 @@ def upload_to_s3(
 
     except NoCredentialsError:
         return json.dumps(
-            {"error": "AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.", "success": False}
+            {
+                "error": "AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.",
+                "success": False,
+            }
         )
     except ClientError as e:
         return json.dumps({"error": f"S3 error: {str(e)}", "success": False})
@@ -111,4 +119,6 @@ STORAGE_TOOL_STORE = {
     "upload_to_s3": upload_to_s3,
 }
 
-STORAGE_TOOL_SCHEMAS = {name: func.openai_schema for name, func in STORAGE_TOOL_STORE.items()}
+STORAGE_TOOL_SCHEMAS = {
+    name: func.openai_schema for name, func in STORAGE_TOOL_STORE.items()
+}

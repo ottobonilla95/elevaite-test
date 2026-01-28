@@ -15,4 +15,3 @@ class WorkflowConfig(TypedDict, total=False):
     steps: List[StepConfig]
     trigger: Dict[str, Any]
     metadata: Dict[str, Any]
-

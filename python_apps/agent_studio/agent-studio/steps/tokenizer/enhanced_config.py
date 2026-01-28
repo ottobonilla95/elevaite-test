@@ -8,7 +8,7 @@ The system maintains backward compatibility while enabling access to advanced
 features like docling parsing, semantic chunking, and multi-provider support.
 """
 
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 from enum import Enum
 

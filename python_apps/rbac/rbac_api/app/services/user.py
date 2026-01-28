@@ -3,10 +3,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func, exists, and_
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from typing import List, Optional, cast
+from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
-from fastapi.encoders import jsonable_encoder
 from pprint import pprint
 import os
 
@@ -402,7 +401,7 @@ def patch_user_account_roles(
             f"Error in PATCH /users/{user_to_patch.id}/accounts/{account_id}/roles service method: {e}"
         )
         raise ApiError.conflict(
-            f"One or more account-scoped roles for user already exists in account"
+            "One or more account-scoped roles for user already exists in account"
         )
     except SQLAlchemyError as e:
         db.rollback()
@@ -473,7 +472,7 @@ def update_user_project_permission_overrides(
         db.commit()
         return JSONResponse(
             content={
-                "message": f"Project permission overrides successfully updated for user"
+                "message": "Project permission overrides successfully updated for user"
             },
             status_code=status.HTTP_200_OK,
         )
@@ -586,7 +585,7 @@ def patch_user_superadmin_status(
     try:
         if user_id == logged_in_user_id:
             raise ApiError.validationerror(
-                f"Invalid action - cannot update superadmin status of self"
+                "Invalid action - cannot update superadmin status of self"
             )
 
         # Check if user in payload exists

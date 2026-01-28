@@ -23,7 +23,9 @@ class TestGeminiTextGenerationProvider:
         mock_response = Mock()
         mock_response.text = "This is a test response from Gemini"
         mock_response.function_calls = None  # Important: must be None, not a Mock
-        mock_response.candidates = None  # Set to None so fallback to response.text is used
+        mock_response.candidates = (
+            None  # Set to None so fallback to response.text is used
+        )
         mock_response.usage_metadata = mock_usage_metadata
 
         provider = GeminiTextGenerationProvider(api_key="test-key")
@@ -106,7 +108,9 @@ class TestGeminiTextGenerationProvider:
         mock_response = Mock()
         mock_response.text = "I remember our previous conversation"
         mock_response.function_calls = None
-        mock_response.candidates = None  # Set to None so fallback to response.text is used
+        mock_response.candidates = (
+            None  # Set to None so fallback to response.text is used
+        )
         mock_response.usage_metadata = mock_usage_metadata
 
         provider = GeminiTextGenerationProvider(api_key="test-key")
@@ -134,9 +138,13 @@ class TestGeminiTextGenerationProvider:
     def test_generate_text_api_error(self):
         """Test handling of API errors"""
         provider = GeminiTextGenerationProvider(api_key="test-key")
-        provider.client.models.generate_content = Mock(side_effect=Exception("API Error"))
+        provider.client.models.generate_content = Mock(
+            side_effect=Exception("API Error")
+        )
 
-        with pytest.raises(RuntimeError, match="Text generation failed after 1 attempts"):
+        with pytest.raises(
+            RuntimeError, match="Text generation failed after 1 attempts"
+        ):
             provider.generate_text(
                 model_name="gemini-1.5-flash",
                 temperature=0.7,
@@ -179,15 +187,17 @@ class TestGeminiTextGenerationProvider:
         provider.client.models.generate_content_stream = Mock(return_value=[mock_chunk])
 
         # Call stream_text and collect results
-        results = list(provider.stream_text(
-            model_name="gemini-1.5-flash",
-            temperature=0.7,
-            max_tokens=100,
-            sys_msg="You are a helpful assistant",
-            prompt="Hello",
-            retries=1,
-            config={},
-        ))
+        results = list(
+            provider.stream_text(
+                model_name="gemini-1.5-flash",
+                temperature=0.7,
+                max_tokens=100,
+                sys_msg="You are a helpful assistant",
+                prompt="Hello",
+                retries=1,
+                config={},
+            )
+        )
 
         # Should have delta and final chunks
         assert len(results) >= 1
@@ -225,7 +235,9 @@ class TestGeminiEmbeddingProvider:
         mock_response2.embedding = [0.4, 0.5, 0.6]
 
         provider = GeminiEmbeddingProvider(api_key="test-key")
-        provider.client.models.embed_content = Mock(side_effect=[mock_response1, mock_response2])
+        provider.client.models.embed_content = Mock(
+            side_effect=[mock_response1, mock_response2]
+        )
 
         info = EmbeddingInfo(type=EmbeddingType.GEMINI, name="text-embedding-004")
         result = provider.embed_documents(texts=["First doc", "Second doc"], info=info)
@@ -345,9 +357,13 @@ class TestGeminiVisionProvider:
     def test_generate_text_api_error(self):
         """Test handling of API errors"""
         provider = GeminiVisionProvider(api_key="test-key")
-        provider.client.models.generate_content = Mock(side_effect=Exception("API Error"))
+        provider.client.models.generate_content = Mock(
+            side_effect=Exception("API Error")
+        )
 
-        with pytest.raises(RuntimeError, match="Image processing failed after 1 attempts"):
+        with pytest.raises(
+            RuntimeError, match="Image processing failed after 1 attempts"
+        ):
             provider.generate_text(
                 images=[b"fake_image_bytes"],
                 model_name="gemini-1.5-pro",

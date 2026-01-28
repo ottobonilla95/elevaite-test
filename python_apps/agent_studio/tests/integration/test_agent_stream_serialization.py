@@ -6,7 +6,6 @@ the AgentStreamChunk objects are properly serialized to JSON without errors.
 """
 
 import json
-import uuid
 from typing import Any
 
 import pytest
@@ -296,6 +295,6 @@ def test_agent_to_agent_streaming_serialization(test_client, test_db_session: Se
 
     print(f"\n✅ Test passed! Received {len(chunks_received)} chunks without JSON serialization errors")
     print(f"Content chunks: {len(content_chunks)}")
-    print(f"\n📦 All chunks received:")
+    print("\n📦 All chunks received:")
     for i, chunk in enumerate(chunks_received, 1):
         print(f"  {i}. {chunk}")

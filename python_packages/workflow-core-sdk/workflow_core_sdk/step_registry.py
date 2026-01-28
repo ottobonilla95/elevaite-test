@@ -9,7 +9,7 @@ import uuid
 import importlib
 import asyncio
 import aiohttp
-from typing import Dict, Any, List, Optional, Callable, Union
+from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 import logging
 
@@ -70,9 +70,13 @@ class StepRegistry:
 
         # Load function if it's a local execution type
         if step_config["execution_type"] == "local":
-            await self._load_local_function(step_type, step_config["function_reference"])
+            await self._load_local_function(
+                step_type, step_config["function_reference"]
+            )
 
-        logger.info(f"Registered step type: {step_type} ({step_config['execution_type']})")
+        logger.info(
+            f"Registered step type: {step_type} ({step_config['execution_type']})"
+        )
         return step_id
 
     async def _load_local_function(self, step_type: str, function_reference: str):
@@ -122,13 +126,21 @@ class StepRegistry:
             try:
                 # Execute based on execution type
                 if execution_type == "local":
-                    result = await self._execute_local_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_local_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 elif execution_type == "rpc":
-                    result = await self._execute_rpc_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_rpc_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 elif execution_type == "api":
-                    result = await self._execute_api_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_api_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 elif execution_type == "grpc":
-                    result = await self._execute_grpc_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_grpc_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 else:
                     raise Exception(f"Unknown execution type: {execution_type}")
 
@@ -144,7 +156,11 @@ class StepRegistry:
 
                 # If the step returned a dict indicating WAITING or INGESTING, map to a WAITING StepResult
                 # (INGESTING is treated as WAITING since both mean "not complete yet, poll for completion")
-                status_lower = str(result.get("status", "")).lower() if isinstance(result, dict) else ""
+                status_lower = (
+                    str(result.get("status", "")).lower()
+                    if isinstance(result, dict)
+                    else ""
+                )
                 if status_lower in ("waiting", "ingesting"):
                     return StepResult(
                         step_id=step_id,
@@ -235,7 +251,9 @@ class StepRegistry:
         # Make RPC call
         timeout = endpoint_config.get("timeout", 30)
         async with aiohttp.ClientSession() as session:
-            async with session.post(rpc_url, json=payload, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+            async with session.post(
+                rpc_url, json=payload, timeout=aiohttp.ClientTimeout(total=timeout)
+            ) as response:
                 if response.status != 200:
                     raise StepExecutionError(f"RPC call failed: {response.status}")
 
@@ -313,7 +331,9 @@ class StepRegistry:
             mod = importlib.import_module(module_path)
             invoker = getattr(mod, func_name)
         except Exception as e:
-            raise StepExecutionError(f"Failed to import gRPC invoker '{invoker_ref}': {e}")
+            raise StepExecutionError(
+                f"Failed to import gRPC invoker '{invoker_ref}': {e}"
+            )
 
         kwargs = {
             "step_config": step_config,
@@ -367,20 +387,34 @@ class StepRegistry:
                         "need_history": {"type": "boolean"},
                         "allowed_modalities": {
                             "type": "array",
-                            "items": {"type": "string", "enum": ["text", "image", "audio"]},
+                            "items": {
+                                "type": "string",
+                                "enum": ["text", "image", "audio"],
+                            },
                         },
                         "max_files": {"type": "integer", "minimum": 0},
                         "per_file_size_mb": {"type": "integer", "minimum": 1},
                         "total_size_mb": {"type": "integer", "minimum": 1},
-                        "allowed_mime_types": {"type": "array", "items": {"type": "string"}},
+                        "allowed_mime_types": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
                         "schedule": {
                             "type": "object",
                             "properties": {
                                 "enabled": {"type": "boolean", "default": False},
-                                "mode": {"type": "string", "enum": ["interval", "cron"], "default": "interval"},
+                                "mode": {
+                                    "type": "string",
+                                    "enum": ["interval", "cron"],
+                                    "default": "interval",
+                                },
                                 "interval_seconds": {"type": "integer", "minimum": 5},
                                 "cron": {"type": "string"},
-                                "backend": {"type": "string", "enum": ["dbos", "local"], "default": "dbos"},
+                                "backend": {
+                                    "type": "string",
+                                    "enum": ["dbos", "local"],
+                                    "default": "dbos",
+                                },
                                 "jitter_seconds": {"type": "integer", "minimum": 0},
                                 "timezone": {"type": "string"},
                             },
@@ -403,7 +437,15 @@ class StepRegistry:
                     "properties": {
                         "kind": {
                             "type": "string",
-                            "enum": ["webhook", "schedule", "gmail", "slack", "chat", "manual", "form"],
+                            "enum": [
+                                "webhook",
+                                "schedule",
+                                "gmail",
+                                "slack",
+                                "chat",
+                                "manual",
+                                "form",
+                            ],
                             "default": "manual",
                         },
                         "schema": {"type": "object"},
@@ -412,14 +454,23 @@ class StepRegistry:
                             "type": "object",
                             "properties": {
                                 "enabled": {"type": "boolean"},
-                                "mode": {"type": "string", "enum": ["interval", "cron"]},
+                                "mode": {
+                                    "type": "string",
+                                    "enum": ["interval", "cron"],
+                                },
                                 "interval_seconds": {"type": "integer"},
                                 "cron": {"type": "string"},
                             },
                         },
                         "need_history": {"type": "boolean"},
-                        "allowed_modalities": {"type": "array", "items": {"type": "string"}},
-                        "allowed_mime_types": {"type": "array", "items": {"type": "string"}},
+                        "allowed_modalities": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "allowed_mime_types": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
                         "max_files": {"type": "integer"},
                         "per_file_size_mb": {"type": "integer"},
                         "total_size_mb": {"type": "integer"},
@@ -730,7 +781,10 @@ class StepRegistry:
                     "properties": {
                         "tool_name": {"type": "string"},
                         "tool_id": {"type": "string"},
-                        "param_mapping": {"type": "object", "additionalProperties": {"type": "string"}},
+                        "param_mapping": {
+                            "type": "object",
+                            "additionalProperties": {"type": "string"},
+                        },
                         "static_params": {"type": "object"},
                     },
                 },

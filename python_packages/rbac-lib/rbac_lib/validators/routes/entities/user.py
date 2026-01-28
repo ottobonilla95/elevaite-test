@@ -1,4 +1,4 @@
-from fastapi import Depends, Body, Path, Depends, HTTPException, Request, Header
+from fastapi import Depends, Path, Depends, HTTPException, Request, Header
 from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -50,7 +50,7 @@ async def validate_get_user_profile(
                 )
                 .filter(
                     models.User_Account.user_id == logged_in_user.id,
-                    models.User_Account.is_admin == True,
+                    models.User_Account.is_admin,
                     models.Account.organization_id == os.getenv("ORGANIZATION_ID"),
                 )
                 .first()
@@ -362,14 +362,14 @@ def validate_update_project_permission_overrides_factory(
                 request.state.account_context_exists = False
                 request.state.project_context_exists = False
 
-            validation_info: dict[str, Any] = (
-                await rbacValidator.validate_rbac_permissions(
-                    request=request,
-                    db=db,
-                    target_model_action_sequence=target_model_action_sequence,
-                    authenticated_entity=logged_in_user,
-                    target_model_class=target_model_class,
-                )
+            validation_info: dict[
+                str, Any
+            ] = await rbacValidator.validate_rbac_permissions(
+                request=request,
+                db=db,
+                target_model_action_sequence=target_model_action_sequence,
+                authenticated_entity=logged_in_user,
+                target_model_class=target_model_class,
             )
 
             if logged_in_user:
@@ -452,14 +452,14 @@ def validate_get_project_permission_overrides_factory(
                 request.state.account_context_exists = False
                 request.state.project_context_exists = False
 
-            validation_info: dict[str, Any] = (
-                await rbacValidator.validate_rbac_permissions(
-                    request=request,
-                    db=db,
-                    target_model_action_sequence=target_model_action_sequence,
-                    authenticated_entity=logged_in_user,
-                    target_model_class=target_model_class,
-                )
+            validation_info: dict[
+                str, Any
+            ] = await rbacValidator.validate_rbac_permissions(
+                request=request,
+                db=db,
+                target_model_action_sequence=target_model_action_sequence,
+                authenticated_entity=logged_in_user,
+                target_model_class=target_model_class,
             )
 
             if logged_in_user:

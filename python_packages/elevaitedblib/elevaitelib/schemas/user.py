@@ -1,6 +1,6 @@
 # app/schemas/user_schemas.py
 from pydantic import BaseModel, EmailStr, Field, Extra, root_validator, validator
-from typing import Optional, List, Literal, Dict, Any
+from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
 from .role import (
@@ -27,9 +27,7 @@ class UserPatchRequestDTO(BaseModel):
     def check_not_all_none(cls, values):
         # Check if all values are None
         if all(value is None for value in values.values()):
-            print(
-                f"Inside PATCH /users/user_id - UserPatchRequestDTO schema validation"
-            )
+            print("Inside PATCH /users/user_id - UserPatchRequestDTO schema validation")
             raise ValueError("At least one field must be provided in payload")
         return values
 
@@ -45,11 +43,11 @@ class UserListDTO(BaseModel):
     def validate_user_ids(cls, v: List[UUID]) -> List[UUID]:
         # Ensure uniqueness
         if len(v) != len(set(v)):
-            print(f"Inside UserListDTO schema validation")
+            print("Inside UserListDTO schema validation")
             raise ValueError("Duplicate user IDs are not allowed")
         # Check length constraint
         if len(v) < 1 or len(v) > 50:
-            print(f"Inside UserListDTO schema validation")
+            print("Inside UserListDTO schema validation")
             raise ValueError(
                 "The list of user IDs must have length between 1 and 50 (inclusive)"
             )

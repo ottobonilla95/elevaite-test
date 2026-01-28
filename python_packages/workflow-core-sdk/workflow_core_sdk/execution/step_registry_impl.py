@@ -71,9 +71,13 @@ class StepRegistry:
 
         # Load function if it's a local execution type
         if step_config["execution_type"] == "local":
-            await self._load_local_function(step_type, step_config["function_reference"])
+            await self._load_local_function(
+                step_type, step_config["function_reference"]
+            )
 
-        logger.info(f"Registered step type: {step_type} ({step_config['execution_type']})")
+        logger.info(
+            f"Registered step type: {step_type} ({step_config['execution_type']})"
+        )
         return step_id
 
     async def _load_local_function(self, step_type: str, function_reference: str):
@@ -123,13 +127,21 @@ class StepRegistry:
             try:
                 # Execute based on execution type
                 if execution_type == "local":
-                    result = await self._execute_local_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_local_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 elif execution_type == "rpc":
-                    result = await self._execute_rpc_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_rpc_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 elif execution_type == "api":
-                    result = await self._execute_api_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_api_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 elif execution_type == "grpc":
-                    result = await self._execute_grpc_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_grpc_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 else:
                     raise Exception(f"Unknown execution type: {execution_type}")
 
@@ -144,7 +156,10 @@ class StepRegistry:
                     return result
 
                 # If the step returned a dict indicating WAITING, map to a WAITING StepResult
-                if isinstance(result, dict) and str(result.get("status", "")).lower() == "waiting":
+                if (
+                    isinstance(result, dict)
+                    and str(result.get("status", "")).lower() == "waiting"
+                ):
                     return StepResult(
                         step_id=step_id,
                         status=StepStatus.WAITING,
@@ -225,8 +240,12 @@ class StepRegistry:
                 "execution_id": execution_context.execution_id,
                 "workflow_id": execution_context.workflow_id,
                 "user_context": {
-                    "user_id": execution_context.user_context.user_id if execution_context.user_context else None,
-                    "session_id": execution_context.user_context.session_id if execution_context.user_context else None,
+                    "user_id": execution_context.user_context.user_id
+                    if execution_context.user_context
+                    else None,
+                    "session_id": execution_context.user_context.session_id
+                    if execution_context.user_context
+                    else None,
                 },
             },
         }
@@ -234,7 +253,9 @@ class StepRegistry:
         # Make RPC call
         timeout = endpoint_config.get("timeout", 30)
         async with aiohttp.ClientSession() as session:
-            async with session.post(rpc_url, json=payload, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+            async with session.post(
+                rpc_url, json=payload, timeout=aiohttp.ClientTimeout(total=timeout)
+            ) as response:
                 if response.status != 200:
                     raise StepExecutionError(f"RPC call failed: {response.status}")
 
@@ -312,7 +333,9 @@ class StepRegistry:
             mod = importlib.import_module(module_path)
             invoker = getattr(mod, func_name)
         except Exception as e:
-            raise StepExecutionError(f"Failed to import gRPC invoker '{invoker_ref}': {e}")
+            raise StepExecutionError(
+                f"Failed to import gRPC invoker '{invoker_ref}': {e}"
+            )
 
         kwargs = {
             "step_config": step_config,
@@ -356,5 +379,7 @@ class StepRegistry:
         from the steps module once they are moved to the SDK.
         For now, this is a placeholder that applications can override.
         """
-        logger.info("Built-in steps registration - to be implemented with step migrations")
+        logger.info(
+            "Built-in steps registration - to be implemented with step migrations"
+        )
         pass

@@ -200,3 +200,5 @@ python -m pytest tests/unit/ -v
 # Run integration tests
 python -m pytest tests/integration/ -v
 ```
+# Force rebuild
+# Force rebuild Tue 27 Jan 2026 23:45:45 -05

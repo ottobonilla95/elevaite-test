@@ -69,14 +69,20 @@ class TestRegisterStep:
     """Tests for POST /steps/register endpoint"""
 
     @pytest.mark.api
-    def test_register_step_success(self, authenticated_client: TestClient, sample_step_config):
+    def test_register_step_success(
+        self, authenticated_client: TestClient, sample_step_config
+    ):
         """Test successfully registering a new step"""
         with patch.object(
-            authenticated_client.app.state.step_registry, "register_step", new_callable=AsyncMock
+            authenticated_client.app.state.step_registry,
+            "register_step",
+            new_callable=AsyncMock,
         ) as mock_register:
             mock_register.return_value = "step-123"
 
-            response = authenticated_client.post("/steps/register", json=sample_step_config)
+            response = authenticated_client.post(
+                "/steps/register", json=sample_step_config
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -86,7 +92,9 @@ class TestRegisterStep:
             mock_register.assert_called_once()
 
     @pytest.mark.api
-    def test_register_step_missing_required_field(self, authenticated_client: TestClient):
+    def test_register_step_missing_required_field(
+        self, authenticated_client: TestClient
+    ):
         """Test registering step with missing required field - name is required"""
         incomplete_config = {
             "step_type": "custom_step",
@@ -98,14 +106,20 @@ class TestRegisterStep:
         assert response.status_code == 422
 
     @pytest.mark.api
-    def test_register_step_duplicate_type(self, authenticated_client: TestClient, sample_step_config):
+    def test_register_step_duplicate_type(
+        self, authenticated_client: TestClient, sample_step_config
+    ):
         """Test registering step with duplicate step_type"""
         with patch.object(
-            authenticated_client.app.state.step_registry, "register_step", new_callable=AsyncMock
+            authenticated_client.app.state.step_registry,
+            "register_step",
+            new_callable=AsyncMock,
         ) as mock_register:
             mock_register.side_effect = ValueError("Step type already registered")
 
-            response = authenticated_client.post("/steps/register", json=sample_step_config)
+            response = authenticated_client.post(
+                "/steps/register", json=sample_step_config
+            )
 
             assert response.status_code == 500
             assert "already registered" in response.json()["detail"]
@@ -122,7 +136,9 @@ class TestRegisterStep:
         }
 
         with patch.object(
-            authenticated_client.app.state.step_registry, "register_step", new_callable=AsyncMock
+            authenticated_client.app.state.step_registry,
+            "register_step",
+            new_callable=AsyncMock,
         ) as mock_register:
             mock_register.return_value = "step-remote-001"
 
@@ -132,7 +148,9 @@ class TestRegisterStep:
             assert response.json()["step_type"] == "remote_processor"
 
     @pytest.mark.api
-    def test_register_step_with_parameters_schema(self, authenticated_client: TestClient):
+    def test_register_step_with_parameters_schema(
+        self, authenticated_client: TestClient
+    ):
         """Test registering step with JSON schema for parameters"""
         config = {
             "step_type": "schema_step",
@@ -148,7 +166,9 @@ class TestRegisterStep:
         }
 
         with patch.object(
-            authenticated_client.app.state.step_registry, "register_step", new_callable=AsyncMock
+            authenticated_client.app.state.step_registry,
+            "register_step",
+            new_callable=AsyncMock,
         ) as mock_register:
             mock_register.return_value = "step-schema-001"
 
@@ -163,10 +183,14 @@ class TestListRegisteredSteps:
     """Tests for GET /steps endpoint"""
 
     @pytest.mark.api
-    def test_list_steps_success(self, authenticated_client: TestClient, registered_steps_list):
+    def test_list_steps_success(
+        self, authenticated_client: TestClient, registered_steps_list
+    ):
         """Test listing all registered steps"""
         with patch.object(
-            authenticated_client.app.state.step_registry, "get_registered_steps", new_callable=AsyncMock
+            authenticated_client.app.state.step_registry,
+            "get_registered_steps",
+            new_callable=AsyncMock,
         ) as mock_list:
             mock_list.return_value = registered_steps_list
 
@@ -185,7 +209,9 @@ class TestListRegisteredSteps:
     def test_list_steps_empty(self, authenticated_client: TestClient):
         """Test listing when no steps are registered"""
         with patch.object(
-            authenticated_client.app.state.step_registry, "get_registered_steps", new_callable=AsyncMock
+            authenticated_client.app.state.step_registry,
+            "get_registered_steps",
+            new_callable=AsyncMock,
         ) as mock_list:
             mock_list.return_value = []
 
@@ -200,7 +226,9 @@ class TestListRegisteredSteps:
     def test_list_steps_error_handling(self, authenticated_client: TestClient):
         """Test error handling when listing steps fails"""
         with patch.object(
-            authenticated_client.app.state.step_registry, "get_registered_steps", new_callable=AsyncMock
+            authenticated_client.app.state.step_registry,
+            "get_registered_steps",
+            new_callable=AsyncMock,
         ) as mock_list:
             mock_list.side_effect = Exception("Database connection failed")
 
@@ -232,7 +260,9 @@ class TestListRegisteredSteps:
         ]
 
         with patch.object(
-            authenticated_client.app.state.step_registry, "get_registered_steps", new_callable=AsyncMock
+            authenticated_client.app.state.step_registry,
+            "get_registered_steps",
+            new_callable=AsyncMock,
         ) as mock_list:
             mock_list.return_value = mixed_steps
 
@@ -269,7 +299,11 @@ class TestGetStepInfo:
             "handler_url": "http://example.com/process",
         }
 
-        with patch.object(authenticated_client.app.state.step_registry, "get_step_info", new_callable=AsyncMock) as mock_get:
+        with patch.object(
+            authenticated_client.app.state.step_registry,
+            "get_step_info",
+            new_callable=AsyncMock,
+        ) as mock_get:
             mock_get.return_value = step_info
 
             response = authenticated_client.get("/steps/custom_processor")
@@ -284,7 +318,11 @@ class TestGetStepInfo:
     @pytest.mark.api
     def test_get_step_info_not_found(self, authenticated_client: TestClient):
         """Test getting info for non-existent step type"""
-        with patch.object(authenticated_client.app.state.step_registry, "get_step_info", new_callable=AsyncMock) as mock_get:
+        with patch.object(
+            authenticated_client.app.state.step_registry,
+            "get_step_info",
+            new_callable=AsyncMock,
+        ) as mock_get:
             mock_get.return_value = None
 
             response = authenticated_client.get("/steps/nonexistent_step")
@@ -304,7 +342,11 @@ class TestGetStepInfo:
             "is_async": True,
         }
 
-        with patch.object(authenticated_client.app.state.step_registry, "get_step_info", new_callable=AsyncMock) as mock_get:
+        with patch.object(
+            authenticated_client.app.state.step_registry,
+            "get_step_info",
+            new_callable=AsyncMock,
+        ) as mock_get:
             mock_get.return_value = builtin_step
 
             response = authenticated_client.get("/steps/trigger")
@@ -317,7 +359,11 @@ class TestGetStepInfo:
     @pytest.mark.api
     def test_get_step_info_error_handling(self, authenticated_client: TestClient):
         """Test error handling when getting step info fails"""
-        with patch.object(authenticated_client.app.state.step_registry, "get_step_info", new_callable=AsyncMock) as mock_get:
+        with patch.object(
+            authenticated_client.app.state.step_registry,
+            "get_step_info",
+            new_callable=AsyncMock,
+        ) as mock_get:
             mock_get.side_effect = Exception("Internal error")
 
             response = authenticated_client.get("/steps/some_step")
@@ -326,7 +372,9 @@ class TestGetStepInfo:
             assert "Internal error" in response.json()["detail"]
 
     @pytest.mark.api
-    def test_get_step_info_with_special_characters(self, authenticated_client: TestClient):
+    def test_get_step_info_with_special_characters(
+        self, authenticated_client: TestClient
+    ):
         """Test getting step info with special characters in step_type"""
         step_info = {
             "step_type": "custom-processor_v2",
@@ -336,7 +384,11 @@ class TestGetStepInfo:
             "is_async": False,
         }
 
-        with patch.object(authenticated_client.app.state.step_registry, "get_step_info", new_callable=AsyncMock) as mock_get:
+        with patch.object(
+            authenticated_client.app.state.step_registry,
+            "get_step_info",
+            new_callable=AsyncMock,
+        ) as mock_get:
             mock_get.return_value = step_info
 
             response = authenticated_client.get("/steps/custom-processor_v2")
@@ -365,7 +417,9 @@ class TestListBuiltinVariables:
         assert data["total"] > 0
 
     @pytest.mark.api
-    def test_builtin_variables_have_required_fields(self, authenticated_client: TestClient):
+    def test_builtin_variables_have_required_fields(
+        self, authenticated_client: TestClient
+    ):
         """Test that each variable has all required fields"""
         response = authenticated_client.get("/steps/variables/builtin")
 
@@ -373,15 +427,19 @@ class TestListBuiltinVariables:
         data = response.json()
 
         for var in data["variables"]:
-            assert "name" in var, f"Variable missing 'name' field"
-            assert "description" in var, f"Variable {var.get('name')} missing 'description'"
+            assert "name" in var, "Variable missing 'name' field"
+            assert "description" in var, (
+                f"Variable {var.get('name')} missing 'description'"
+            )
             assert "category" in var, f"Variable {var.get('name')} missing 'category'"
             assert "source" in var, f"Variable {var.get('name')} missing 'source'"
             # example is optional but should be present for most
             assert "example" in var, f"Variable {var.get('name')} missing 'example'"
 
     @pytest.mark.api
-    def test_builtin_variables_include_time_variables(self, authenticated_client: TestClient):
+    def test_builtin_variables_include_time_variables(
+        self, authenticated_client: TestClient
+    ):
         """Test that time-related variables are included"""
         response = authenticated_client.get("/steps/variables/builtin")
 
@@ -405,7 +463,9 @@ class TestListBuiltinVariables:
         assert "current_date_local" in var_names
 
     @pytest.mark.api
-    def test_builtin_variables_include_context_variables(self, authenticated_client: TestClient):
+    def test_builtin_variables_include_context_variables(
+        self, authenticated_client: TestClient
+    ):
         """Test that context variables are included"""
         response = authenticated_client.get("/steps/variables/builtin")
 
@@ -422,7 +482,9 @@ class TestListBuiltinVariables:
         assert "session_id" in var_names
 
     @pytest.mark.api
-    def test_builtin_variables_include_identifiers(self, authenticated_client: TestClient):
+    def test_builtin_variables_include_identifiers(
+        self, authenticated_client: TestClient
+    ):
         """Test that identifier variables are included"""
         response = authenticated_client.get("/steps/variables/builtin")
 
@@ -444,7 +506,9 @@ class TestListBuiltinVariables:
         valid_categories = {"time", "context", "identifier", "other"}
 
         for var in data["variables"]:
-            assert var["category"] in valid_categories, f"Variable {var['name']} has invalid category: {var['category']}"
+            assert var["category"] in valid_categories, (
+                f"Variable {var['name']} has invalid category: {var['category']}"
+            )
 
     @pytest.mark.api
     def test_builtin_variables_valid_sources(self, authenticated_client: TestClient):
@@ -457,10 +521,14 @@ class TestListBuiltinVariables:
         valid_sources = {"builtin", "context"}
 
         for var in data["variables"]:
-            assert var["source"] in valid_sources, f"Variable {var['name']} has invalid source: {var['source']}"
+            assert var["source"] in valid_sources, (
+                f"Variable {var['name']} has invalid source: {var['source']}"
+            )
 
     @pytest.mark.api
-    def test_builtin_variables_sorted_by_category(self, authenticated_client: TestClient):
+    def test_builtin_variables_sorted_by_category(
+        self, authenticated_client: TestClient
+    ):
         """Test that variables are sorted by category then name"""
         response = authenticated_client.get("/steps/variables/builtin")
 
@@ -471,24 +539,38 @@ class TestListBuiltinVariables:
         category_names = [(v["category"], v["name"]) for v in data["variables"]]
 
         # Check that list is sorted
-        assert category_names == sorted(category_names), "Variables should be sorted by category then name"
+        assert category_names == sorted(category_names), (
+            "Variables should be sorted by category then name"
+        )
 
     @pytest.mark.api
-    def test_builtin_variables_context_source_correct(self, authenticated_client: TestClient):
+    def test_builtin_variables_context_source_correct(
+        self, authenticated_client: TestClient
+    ):
         """Test that context variables have source='context'"""
         response = authenticated_client.get("/steps/variables/builtin")
 
         assert response.status_code == 200
         data = response.json()
 
-        context_vars = ["workflow_id", "user_id", "user_name", "session_id", "execution_id"]
+        context_vars = [
+            "workflow_id",
+            "user_id",
+            "user_name",
+            "session_id",
+            "execution_id",
+        ]
 
         for var in data["variables"]:
             if var["name"] in context_vars:
-                assert var["source"] == "context", f"Variable {var['name']} should have source='context'"
+                assert var["source"] == "context", (
+                    f"Variable {var['name']} should have source='context'"
+                )
 
     @pytest.mark.api
-    def test_builtin_variables_time_source_correct(self, authenticated_client: TestClient):
+    def test_builtin_variables_time_source_correct(
+        self, authenticated_client: TestClient
+    ):
         """Test that time variables have source='builtin'"""
         response = authenticated_client.get("/steps/variables/builtin")
 
@@ -512,4 +594,6 @@ class TestListBuiltinVariables:
 
         for var in data["variables"]:
             if var["name"] in time_vars:
-                assert var["source"] == "builtin", f"Variable {var['name']} should have source='builtin'"
+                assert var["source"] == "builtin", (
+                    f"Variable {var['name']} should have source='builtin'"
+                )

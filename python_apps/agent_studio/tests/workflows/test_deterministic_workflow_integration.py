@@ -12,7 +12,6 @@ import pytest
 import json
 import uuid
 import requests
-from sqlalchemy.orm import Session
 
 # Import the FastAPI app and dependencies
 import sys
@@ -20,9 +19,6 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db.database import get_db
-from db import crud
-from db.schemas import workflows as schemas
 
 # API base URL
 API_BASE_URL = "http://localhost:8005"

@@ -19,11 +19,10 @@ Highly configurable through API parameters with automatic parser selection.
 import os
 import mimetypes
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from datetime import datetime
 
 from steps.base_deterministic_step import (
-    BaseDeterministicStep,
     StepConfig,
     StepResult,
     StepStatus,

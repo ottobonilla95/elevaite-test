@@ -1,6 +1,5 @@
 import pytest
 import uuid
-import json
 from datetime import datetime
 from unittest.mock import Mock, patch
 

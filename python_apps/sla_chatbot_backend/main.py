@@ -1,11 +1,10 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import uvicorn
 import requests
 import base64
 from fastapi.middleware.cors import CORSMiddleware
-from models import EventPayload, InferencePayload
-from typing import List
+from models import InferencePayload
 from openai import OpenAI
 from openai import AzureOpenAI
 import json

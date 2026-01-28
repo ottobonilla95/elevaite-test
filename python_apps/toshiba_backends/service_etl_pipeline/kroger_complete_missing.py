@@ -127,7 +127,7 @@ def main():
     matched = sp_files & qdrant_files
     missing = sorted(list(sp_files - qdrant_files))
 
-    print(f"\n== SUMMARY ==")
+    print("\n== SUMMARY ==")
     print(f"Total SharePoint docs: {len(sp_files)}")
     print(f"Total Qdrant docs    : {len(qdrant_files)}")
     print(f"Matched files        : {len(matched)}")

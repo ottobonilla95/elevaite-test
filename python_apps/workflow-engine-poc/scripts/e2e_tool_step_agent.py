@@ -94,7 +94,9 @@ def execute_workflow(workflow_id: str, message: str) -> Dict[str, Any]:
                 elif "result" in od and od["result"] is not None and od.get("success"):
                     final_output = od
     if final_output is None:
-        final_output = last_completed_output if last_completed_output is not None else results
+        final_output = (
+            last_completed_output if last_completed_output is not None else results
+        )
 
     return {"final_output": final_output, "full_results": results}
 
@@ -107,14 +109,22 @@ def main():
             "step_id": "trigger",
             "step_type": "trigger",
             "name": "Trigger",
-            "config": {"kind": "chat", "need_history": True, "allowed_modalities": ["text"], "max_files": 0},
+            "config": {
+                "kind": "chat",
+                "need_history": True,
+                "allowed_modalities": ["text"],
+                "max_files": 0,
+            },
         },
         {
             "step_id": "agent",
             "step_type": "agent_execution",
             "name": "Generate Formula",
             "dependencies": ["trigger"],
-            "input_mapping": {"current_message": "trigger.current_message", "messages": "trigger.messages"},
+            "input_mapping": {
+                "current_message": "trigger.current_message",
+                "messages": "trigger.messages",
+            },
             "config": {
                 "agent_name": formula_agent_name,
                 "system_prompt": (
@@ -151,4 +161,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

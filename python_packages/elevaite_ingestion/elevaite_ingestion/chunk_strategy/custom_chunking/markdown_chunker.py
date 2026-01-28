@@ -24,7 +24,9 @@ class MarkdownHeaderTextSplitter:
         strip_headers: bool = True,
     ):
         self.return_each_line = return_each_line
-        self.headers_to_split_on = sorted(headers_to_split_on, key=lambda split: len(split[0]), reverse=True)
+        self.headers_to_split_on = sorted(
+            headers_to_split_on, key=lambda split: len(split[0]), reverse=True
+        )
         self.strip_headers = strip_headers
 
     def split_text(self, text: str) -> List[Document]:
@@ -59,10 +61,15 @@ class MarkdownHeaderTextSplitter:
                 continue
 
             for sep, name in self.headers_to_split_on:
-                if stripped_line.startswith(sep) and (len(stripped_line) == len(sep) or stripped_line[len(sep)] == " "):
+                if stripped_line.startswith(sep) and (
+                    len(stripped_line) == len(sep) or stripped_line[len(sep)] == " "
+                ):
                     if name is not None:
                         current_header_level = sep.count("#")
-                        while header_stack and header_stack[-1]["level"] >= current_header_level:
+                        while (
+                            header_stack
+                            and header_stack[-1]["level"] >= current_header_level
+                        ):
                             popped_header = header_stack.pop()
                             if popped_header["name"] in initial_metadata:
                                 initial_metadata.pop(popped_header["name"])
@@ -113,16 +120,25 @@ class MarkdownHeaderTextSplitter:
         return (
             self.aggregate_lines_to_chunks(lines_with_metadata)
             if not self.return_each_line
-            else [Document(page_content=chunk["content"], metadata=chunk["metadata"]) for chunk in lines_with_metadata]
+            else [
+                Document(page_content=chunk["content"], metadata=chunk["metadata"])
+                for chunk in lines_with_metadata
+            ]
         )
 
     def aggregate_lines_to_chunks(self, lines: List[LineType]) -> List[Document]:
         aggregated_chunks: List[LineType] = []
 
         for line in lines:
-            if aggregated_chunks and aggregated_chunks[-1]["metadata"] == line["metadata"]:
+            if (
+                aggregated_chunks
+                and aggregated_chunks[-1]["metadata"] == line["metadata"]
+            ):
                 aggregated_chunks[-1]["content"] += "  \n" + line["content"]
             else:
                 aggregated_chunks.append(line)
 
-        return [Document(page_content=chunk["content"], metadata=chunk["metadata"]) for chunk in aggregated_chunks]
+        return [
+            Document(page_content=chunk["content"], metadata=chunk["metadata"])
+            for chunk in aggregated_chunks
+        ]

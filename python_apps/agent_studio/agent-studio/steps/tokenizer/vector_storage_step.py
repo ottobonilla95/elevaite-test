@@ -12,12 +12,11 @@ Highly configurable through API parameters.
 """
 
 import uuid
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List
 from datetime import datetime
 import time
 
 from steps.base_deterministic_step import (
-    BaseDeterministicStep,
     StepConfig,
     StepResult,
     StepStatus,
@@ -333,7 +332,7 @@ class VectorStorageStep(DataOutputStep):
             else:
                 self._client = chromadb.HttpClient(host=host, port=port)
             
-            self.logger.info(f"Connected to ChromaDB")
+            self.logger.info("Connected to ChromaDB")
             
         except ImportError:
             raise Exception("ChromaDB not installed. Install with: pip install chromadb")

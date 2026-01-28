@@ -1,6 +1,5 @@
 from fastapi import status, HTTPException, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi.encoders import jsonable_encoder
@@ -10,7 +9,7 @@ from uuid import UUID
 from datetime import datetime
 from pydantic import EmailStr
 
-from elevaitelib.schemas import auth as auth_schemas, permission as permission_schemas
+from elevaitelib.schemas import auth as auth_schemas
 
 from elevaitelib.orm.db import models
 from rbac_lib.utils.api_error import ApiError
@@ -28,7 +27,7 @@ def register_user(
         org_id = os.getenv("ORGANIZATION_ID")
         try:
             org_id = UUID(org_id)
-        except Exception as e:
+        except Exception:
             raise Exception(f'organization_id - "{org_id}" - has invalid UUID format')
 
         USER_ALREADY_EXISTS = True

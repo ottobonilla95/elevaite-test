@@ -23,7 +23,6 @@ COPY pyproject.toml uv.lock ./
 
 # Copy workspace package dependencies used by workflow-engine-poc
 COPY python_packages/db-core ./python_packages/db-core
-COPY python_packages/elevaite_ingestion ./python_packages/elevaite_ingestion
 COPY python_packages/fastapi-logger ./python_packages/fastapi-logger
 COPY python_packages/llm-gateway ./python_packages/llm-gateway
 COPY python_packages/rbac-sdk ./python_packages/rbac-sdk
@@ -52,7 +51,6 @@ FROM python:3.11.11-slim-bullseye AS runtime
 # Copy only the app sources needed at runtime (dependencies are in /opt/venv)
 COPY --from=builder /elevaite/python_apps/workflow-engine-poc /elevaite/python_apps/workflow-engine-poc
 COPY --from=builder /elevaite/python_packages/db-core /elevaite/python_packages/db-core
-COPY --from=builder /elevaite/python_packages/elevaite_ingestion /elevaite/python_packages/elevaite_ingestion
 COPY --from=builder /elevaite/python_packages/fastapi-logger /elevaite/python_packages/fastapi-logger
 COPY --from=builder /elevaite/python_packages/llm-gateway /elevaite/python_packages/llm-gateway
 COPY --from=builder /elevaite/python_packages/rbac-sdk /elevaite/python_packages/rbac-sdk

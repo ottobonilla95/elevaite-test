@@ -1,4 +1,8 @@
-from elevaite_ingestion.vectorstore.db import PineconeClient, ChromaClient, QdrantClientWrapper
+from elevaite_ingestion.vectorstore.db import (
+    PineconeClient,
+    ChromaClient,
+    QdrantClientWrapper,
+)
 
 
 class VectorDBFactory:

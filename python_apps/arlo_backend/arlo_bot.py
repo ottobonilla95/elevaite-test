@@ -8,7 +8,6 @@ from arlo_modules.components.retrievers.dsRAG_f import KnowledgeBaseHandler
 from dsrag.knowledge_base import KnowledgeBase
 import os
 import concurrent.futures
-import datetime
 
 Config.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 Config.BING_API_KEY = os.getenv("BING_API_KEY")

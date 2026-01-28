@@ -36,7 +36,7 @@
 #                 # Convert to RGB if the image is not already RGB (e.g., CMYK, grayscale, etc.)
 #                 if pix.colorspace.n != 3:  # not RGB
 #                     pix = fitz.Pixmap(fitz.csRGB, pix)
-                
+
 #                 pix.save(image_path)
 #             except Exception as e:
 #                 print(f"[Warning] Skipping image on page {page_num+1}, index {img_index+1} due to: {e}")
@@ -48,7 +48,6 @@
 #                 "caption": None,
 #                 "matched_by": None
 #             })
-
 
 
 #         # Match captions (heuristic: "Figure" or "Fig.")
@@ -167,18 +166,11 @@
 # print("✅ Images extracted and saved to 'extracted_images.json'")
 
 
-
-
-
-
-
-
-
-
 import fitz
 import os
 import re
 import json
+
 
 def extract_images_with_captions(pdf_path, output_dir, context_window=150):
     os.makedirs(output_dir, exist_ok=True)
@@ -188,16 +180,13 @@ def extract_images_with_captions(pdf_path, output_dir, context_window=150):
 
     for page_num in range(len(doc)):
         page = doc.load_page(page_num)
-        text_blocks = page.get_text("blocks")  
+        text_blocks = page.get_text("blocks")
         image_blocks = page.get_images(full=True)
 
         all_text_blocks = []
-        for (x0, y0, x1, y1, text, *_rest) in text_blocks:
+        for x0, y0, x1, y1, text, *_rest in text_blocks:
             if len(text.strip()) > 15:
-                all_text_blocks.append({
-                    "text": text.strip(),
-                    "bbox": [x0, y0, x1, y1]
-                })
+                all_text_blocks.append({"text": text.strip(), "bbox": [x0, y0, x1, y1]})
 
         captions = []
         figure_pattern = re.compile(r"(Figure|Fig\.?)\s*\d+.*", re.IGNORECASE)
@@ -210,14 +199,18 @@ def extract_images_with_captions(pdf_path, output_dir, context_window=150):
             xref = img[0]
             bbox = fitz.Rect(img[1], img[2], img[3], img[4])
             pix = fitz.Pixmap(doc, xref)
-            image_path = os.path.join(output_dir, f"page_{page_num+1}_img_{img_index+1}.png")
+            image_path = os.path.join(
+                output_dir, f"page_{page_num + 1}_img_{img_index + 1}.png"
+            )
 
             try:
                 if pix.colorspace.n != 3:
                     pix = fitz.Pixmap(fitz.csRGB, pix)
                 pix.save(image_path)
             except Exception as e:
-                print(f"[Warning] Skipping image on page {page_num+1}, index {img_index+1} due to: {e}")
+                print(
+                    f"[Warning] Skipping image on page {page_num + 1}, index {img_index + 1} due to: {e}"
+                )
                 continue
 
             matched_caption = None
@@ -243,21 +236,23 @@ def extract_images_with_captions(pdf_path, output_dir, context_window=150):
                     ):
                         nearby_texts.append(block["text"])
 
-               
                 nearby_texts = sorted(nearby_texts, key=lambda t: t)
                 rich_caption += " " + " ".join(nearby_texts)
 
-            all_images.append({
-                "image_id": f"img_{page_num+1}_{img_index+1}",
-                "img_path": image_path,
-                "caption": matched_caption,
-                "rich_caption": rich_caption.strip(),
-                "filename": pdf_filename,
-                "page_no": page_num + 1,
-                "bounding_box": [bbox.x0, bbox.y0, bbox.x1, bbox.y1]
-            })
+            all_images.append(
+                {
+                    "image_id": f"img_{page_num + 1}_{img_index + 1}",
+                    "img_path": image_path,
+                    "caption": matched_caption,
+                    "rich_caption": rich_caption.strip(),
+                    "filename": pdf_filename,
+                    "page_no": page_num + 1,
+                    "bounding_box": [bbox.x0, bbox.y0, bbox.x1, bbox.y1],
+                }
+            )
 
     return all_images
+
 
 pdf_path = "/Users/dheeraj/Desktop/elevaite/elevaite_ingestion/4820-2Lx5LxPlanningInstallationServiceGuide (2).pdf"
 output_dir = "extracted_images_only"
@@ -268,5 +263,3 @@ with open("extracted_images.json", "w") as f:
     json.dump(images_info, f, indent=2)
 
 print(" Images extracted and saved to 'extracted_images.json'")
-
-

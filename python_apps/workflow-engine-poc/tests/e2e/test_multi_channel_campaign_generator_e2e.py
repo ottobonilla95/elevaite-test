@@ -36,7 +36,9 @@ def _create_workflow(client: TestClient, payload: Dict[str, Any]) -> str:
     return data.get("id") or data.get("workflow_id")
 
 
-def _execute_workflow(client: TestClient, workflow_id: str, body: Dict[str, Any]) -> str:
+def _execute_workflow(
+    client: TestClient, workflow_id: str, body: Dict[str, Any]
+) -> str:
     r = client.post(f"/workflows/{workflow_id}/execute", json=body)
     r.raise_for_status()
     return r.json().get("id") or r.json().get("execution_id")
@@ -56,7 +58,9 @@ def _get_results(client: TestClient, execution_id: str) -> Dict[str, Any]:
 
 @pytest.mark.integration
 @pytest.mark.parametrize("backend", ["local"])
-def test_multi_channel_campaign_generator_workflow_e2e(authenticated_client: TestClient, backend: str):
+def test_multi_channel_campaign_generator_workflow_e2e(
+    authenticated_client: TestClient, backend: str
+):
     """
     E2E test for the Multi-Channel Campaign Generator demo workflow.
 
@@ -104,7 +108,9 @@ def test_multi_channel_campaign_generator_workflow_e2e(authenticated_client: Tes
 
     # Debug output if failed
     if last_status == "failed":
-        print(f"Execution failed. Results: {json.dumps(results, indent=2, default=str)}")
+        print(
+            f"Execution failed. Results: {json.dumps(results, indent=2, default=str)}"
+        )
 
     # Validate execution completed
     assert last_status == "completed", f"Expected completed, got {last_status}"
@@ -116,7 +122,9 @@ def test_multi_channel_campaign_generator_workflow_e2e(authenticated_client: Tes
     assert "Arlo Total Security Bundle" in input_data.get("campaign_brief", "")
 
     # Validate strategist-agent
-    assert "strategist-agent" in step_results, "strategist-agent step should be in results"
+    assert "strategist-agent" in step_results, (
+        "strategist-agent step should be in results"
+    )
     strategist_result = step_results.get("strategist-agent", {})
     strategist_output = strategist_result.get("output_data", {})
     print("\n=== STRATEGIST AGENT OUTPUT ===")
@@ -130,16 +138,22 @@ def test_multi_channel_campaign_generator_workflow_e2e(authenticated_client: Tes
     pprint(prompt_output)
 
     # Validate copywriter-agent
-    assert "copywriter-agent" in step_results, "copywriter-agent step should be in results"
+    assert "copywriter-agent" in step_results, (
+        "copywriter-agent step should be in results"
+    )
     copywriter_result = step_results.get("copywriter-agent", {})
     copywriter_output = copywriter_result.get("output_data", {})
     print("\n=== COPYWRITER AGENT OUTPUT ===")
     pprint(copywriter_output)
 
     # Check copywriter has response or error
-    has_response = copywriter_output.get("success") is True or "response" in copywriter_output
+    has_response = (
+        copywriter_output.get("success") is True or "response" in copywriter_output
+    )
     has_error = "error" in copywriter_output
-    assert has_response or has_error, f"Copywriter should have response or error: {copywriter_output}"
+    assert has_response or has_error, (
+        f"Copywriter should have response or error: {copywriter_output}"
+    )
 
     # If successful, check for expected multi-channel content
     if copywriter_output.get("success"):

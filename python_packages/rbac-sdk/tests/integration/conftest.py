@@ -51,7 +51,12 @@ async def http_client() -> httpx.AsyncClient:
 def create_test_jwt():
     """Factory fixture to create test JWT tokens."""
 
-    def _create_jwt(user_id: str, token_type: str = "api_key", expires_in_minutes: int = 60, **extra_claims) -> str:
+    def _create_jwt(
+        user_id: str,
+        token_type: str = "api_key",
+        expires_in_minutes: int = 60,
+        **extra_claims,
+    ) -> str:
         """
         Create a test JWT token.
 
@@ -67,7 +72,13 @@ def create_test_jwt():
         now = datetime.now(timezone.utc)
         exp = now + timedelta(minutes=expires_in_minutes)
 
-        payload = {"sub": str(user_id), "type": token_type, "exp": exp, "iat": now, **extra_claims}
+        payload = {
+            "sub": str(user_id),
+            "type": token_type,
+            "exp": exp,
+            "iat": now,
+            **extra_claims,
+        }
 
         return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -75,7 +86,9 @@ def create_test_jwt():
 
 
 @pytest.fixture
-async def test_user_active(http_client: httpx.AsyncClient, auth_api_url: str) -> Dict[str, Any]:
+async def test_user_active(
+    http_client: httpx.AsyncClient, auth_api_url: str
+) -> Dict[str, Any]:
     """
     Create an active test user via Auth API and make them a superuser.
 
@@ -88,11 +101,18 @@ async def test_user_active(http_client: httpx.AsyncClient, auth_api_url: str) ->
     email = f"test-active-{timestamp}@example.com"
 
     response = await http_client.post(
-        register_url, json={"email": email, "password": "SecurePass123!", "full_name": "Test Active User"}
+        register_url,
+        json={
+            "email": email,
+            "password": "SecurePass123!",
+            "full_name": "Test Active User",
+        },
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create test user: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create test user: {response.status_code} - {response.text}"
+        )
 
     user_data = response.json()
 
@@ -108,7 +128,9 @@ async def test_user_active(http_client: httpx.AsyncClient, auth_api_url: str) ->
         database="auth",
     )
     try:
-        await conn.execute("UPDATE users SET is_superuser = true WHERE id = $1", user_data["id"])
+        await conn.execute(
+            "UPDATE users SET is_superuser = true WHERE id = $1", user_data["id"]
+        )
     finally:
         await conn.close()
 
@@ -135,7 +157,9 @@ async def test_user_active(http_client: httpx.AsyncClient, auth_api_url: str) ->
 
 
 @pytest.fixture
-async def test_user_with_api_key(http_client: httpx.AsyncClient, auth_api_url: str) -> Dict[str, Any]:
+async def test_user_with_api_key(
+    http_client: httpx.AsyncClient, auth_api_url: str
+) -> Dict[str, Any]:
     """
     Create an active test user with a real API key (type="api_key").
 
@@ -148,11 +172,18 @@ async def test_user_with_api_key(http_client: httpx.AsyncClient, auth_api_url: s
     email = f"test-apikey-{timestamp}@example.com"
 
     response = await http_client.post(
-        register_url, json={"email": email, "password": "SecurePass123!", "full_name": "Test API Key User"}
+        register_url,
+        json={
+            "email": email,
+            "password": "SecurePass123!",
+            "full_name": "Test API Key User",
+        },
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create test user: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create test user: {response.status_code} - {response.text}"
+        )
 
     user_data = response.json()
 
@@ -178,7 +209,9 @@ async def test_user_with_api_key(http_client: httpx.AsyncClient, auth_api_url: s
 
 
 @pytest.fixture
-async def test_user_no_assignments(http_client: httpx.AsyncClient, auth_api_url: str) -> Dict[str, Any]:
+async def test_user_no_assignments(
+    http_client: httpx.AsyncClient, auth_api_url: str
+) -> Dict[str, Any]:
     """
     Create an active test user with NO role assignments.
 
@@ -191,11 +224,18 @@ async def test_user_no_assignments(http_client: httpx.AsyncClient, auth_api_url:
     email = f"test-no-assignments-{timestamp}@example.com"
 
     response = await http_client.post(
-        register_url, json={"email": email, "password": "SecurePass123!", "full_name": "Test No Assignments User"}
+        register_url,
+        json={
+            "email": email,
+            "password": "SecurePass123!",
+            "full_name": "Test No Assignments User",
+        },
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create test user: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create test user: {response.status_code} - {response.text}"
+        )
 
     user_data = response.json()
 
@@ -221,7 +261,9 @@ async def test_user_no_assignments(http_client: httpx.AsyncClient, auth_api_url:
 
 
 @pytest.fixture
-async def test_user_inactive(http_client: httpx.AsyncClient, auth_api_url: str) -> Dict[str, Any]:
+async def test_user_inactive(
+    http_client: httpx.AsyncClient, auth_api_url: str
+) -> Dict[str, Any]:
     """
     Create an inactive test user.
 
@@ -257,7 +299,9 @@ async def test_organization(
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create test organization: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create test organization: {response.status_code} - {response.text}"
+        )
 
     org = response.json()
     return {"id": org["id"], "name": org["name"]}
@@ -265,7 +309,10 @@ async def test_organization(
 
 @pytest.fixture
 async def test_account(
-    http_client: httpx.AsyncClient, auth_api_url: str, test_organization: Dict[str, Any], test_user_active: Dict[str, Any]
+    http_client: httpx.AsyncClient,
+    auth_api_url: str,
+    test_organization: Dict[str, Any],
+    test_user_active: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Create a test account via Auth API.
@@ -275,7 +322,10 @@ async def test_account(
     """
     # Create account via Auth API
     account_url = f"{auth_api_url}/api/rbac/accounts"
-    account_data = {"name": f"Test Account {uuid.uuid4().hex[:8]}", "organization_id": test_organization["id"]}
+    account_data = {
+        "name": f"Test Account {uuid.uuid4().hex[:8]}",
+        "organization_id": test_organization["id"],
+    }
 
     response = await http_client.post(
         account_url,
@@ -284,10 +334,16 @@ async def test_account(
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create test account: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create test account: {response.status_code} - {response.text}"
+        )
 
     account = response.json()
-    return {"id": account["id"], "name": account["name"], "organization_id": account["organization_id"]}
+    return {
+        "id": account["id"],
+        "name": account["name"],
+        "organization_id": account["organization_id"],
+    }
 
 
 @pytest.fixture
@@ -319,7 +375,9 @@ async def test_project(
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create test project: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create test project: {response.status_code} - {response.text}"
+        )
 
     project = response.json()
     return {
@@ -332,7 +390,10 @@ async def test_project(
 
 @pytest.fixture
 async def test_role_assignment(
-    http_client: httpx.AsyncClient, auth_api_url: str, test_user_active: Dict[str, Any], test_project: Dict[str, Any]
+    http_client: httpx.AsyncClient,
+    auth_api_url: str,
+    test_user_active: Dict[str, Any],
+    test_project: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Create a test role assignment.
@@ -343,11 +404,18 @@ async def test_role_assignment(
     Returns:
         Dict with role assignment info
     """
-    return {"user_id": test_user_active["id"], "role": "editor", "resource_type": "project", "resource_id": test_project["id"]}
+    return {
+        "user_id": test_user_active["id"],
+        "role": "editor",
+        "resource_type": "project",
+        "resource_id": test_project["id"],
+    }
 
 
 @pytest.fixture
-async def check_auth_api_available(http_client: httpx.AsyncClient, auth_api_url: str) -> bool:
+async def check_auth_api_available(
+    http_client: httpx.AsyncClient, auth_api_url: str
+) -> bool:
     """
     Check if Auth API is available.
 
@@ -431,7 +499,9 @@ async def test_project_in_account(
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create test project: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create test project: {response.status_code} - {response.text}"
+        )
 
     project = response.json()
     return {
@@ -475,7 +545,9 @@ async def test_viewer_assignment(
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create role assignment: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create role assignment: {response.status_code} - {response.text}"
+        )
 
     return response.json()
 
@@ -508,7 +580,9 @@ async def test_editor_assignment(
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create role assignment: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create role assignment: {response.status_code} - {response.text}"
+        )
 
     return response.json()
 
@@ -541,7 +615,9 @@ async def test_admin_assignment(
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create role assignment: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create role assignment: {response.status_code} - {response.text}"
+        )
 
     return response.json()
 
@@ -574,7 +650,9 @@ async def test_superadmin_assignment(
     )
 
     if response.status_code not in (200, 201):
-        pytest.skip(f"Could not create role assignment: {response.status_code} - {response.text}")
+        pytest.skip(
+            f"Could not create role assignment: {response.status_code} - {response.text}"
+        )
 
     return response.json()
 

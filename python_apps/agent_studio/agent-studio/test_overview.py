@@ -7,7 +7,6 @@ It shows the test structure and can be used to understand what tests are availab
 """
 
 import os
-import sys
 from pathlib import Path
 
 
@@ -60,12 +59,12 @@ def main():
     
     print(f"\n{'=' * 60}")
     print(f"📈 Total test files: {total_tests}")
-    print(f"\n🚀 To run tests, use:")
-    print(f"  python run_tests.py --help")
-    print(f"  python run_tests.py --all")
-    print(f"  python run_tests.py --unit")
-    print(f"  python run_tests.py --workflows")
-    print(f"  python run_tests.py --analytics-unit")
+    print("\n🚀 To run tests, use:")
+    print("  python run_tests.py --help")
+    print("  python run_tests.py --all")
+    print("  python run_tests.py --unit")
+    print("  python run_tests.py --workflows")
+    print("  python run_tests.py --analytics-unit")
 
 
 if __name__ == "__main__":

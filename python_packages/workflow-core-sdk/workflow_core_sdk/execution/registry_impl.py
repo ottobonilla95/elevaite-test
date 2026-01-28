@@ -9,7 +9,7 @@ import uuid
 import importlib
 import asyncio
 import aiohttp
-from typing import Dict, Any, List, Optional, Callable, Union
+from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 import logging
 
@@ -42,7 +42,9 @@ class StepRegistry:
         self.registered_steps: Dict[str, Dict[str, Any]] = {}
         self.step_functions: Dict[str, Callable] = {}
 
-    async def register_step(self, step_config: Dict[str, Any], skip_on_error: bool = False) -> str:
+    async def register_step(
+        self, step_config: Dict[str, Any], skip_on_error: bool = False
+    ) -> str:
         """Register a new step type"""
         step_type = step_config["step_type"]
         step_id = str(uuid.uuid4())
@@ -71,7 +73,9 @@ class StepRegistry:
         # Load function if it's a local execution type
         if step_config["execution_type"] == "local":
             try:
-                await self._load_local_function(step_type, step_config["function_reference"])
+                await self._load_local_function(
+                    step_type, step_config["function_reference"]
+                )
             except Exception as e:
                 if skip_on_error:
                     logger.warning(f"Failed to load step {step_type}, skipping: {e}")
@@ -80,7 +84,9 @@ class StepRegistry:
                 else:
                     raise
 
-        logger.info(f"Registered step type: {step_type} ({step_config['execution_type']})")
+        logger.info(
+            f"Registered step type: {step_type} ({step_config['execution_type']})"
+        )
         return step_id
 
     async def _load_local_function(self, step_type: str, function_reference: str):
@@ -130,13 +136,21 @@ class StepRegistry:
             try:
                 # Execute based on execution type
                 if execution_type == "local":
-                    result = await self._execute_local_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_local_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 elif execution_type == "rpc":
-                    result = await self._execute_rpc_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_rpc_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 elif execution_type == "api":
-                    result = await self._execute_api_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_api_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 elif execution_type == "grpc":
-                    result = await self._execute_grpc_step(step_type, step_config, input_data, execution_context)
+                    result = await self._execute_grpc_step(
+                        step_type, step_config, input_data, execution_context
+                    )
                 else:
                     raise Exception(f"Unknown execution type: {execution_type}")
 
@@ -155,7 +169,10 @@ class StepRegistry:
                     return result
 
                 # If the step returned a dict indicating WAITING, map to a WAITING StepResult
-                if isinstance(result, dict) and str(result.get("status", "")).lower() == "waiting":
+                if (
+                    isinstance(result, dict)
+                    and str(result.get("status", "")).lower() == "waiting"
+                ):
                     return StepResult(
                         step_id=step_id,
                         status=StepStatus.WAITING,
@@ -251,7 +268,9 @@ class StepRegistry:
         # Make RPC call
         timeout = endpoint_config.get("timeout", 30)
         async with aiohttp.ClientSession() as session:
-            async with session.post(rpc_url, json=payload, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+            async with session.post(
+                rpc_url, json=payload, timeout=aiohttp.ClientTimeout(total=timeout)
+            ) as response:
                 if response.status != 200:
                     raise StepExecutionError(f"RPC call failed: {response.status}")
 
@@ -329,7 +348,9 @@ class StepRegistry:
             mod = importlib.import_module(module_path)
             invoker = getattr(mod, func_name)
         except Exception as e:
-            raise StepExecutionError(f"Failed to import gRPC invoker '{invoker_ref}': {e}")
+            raise StepExecutionError(
+                f"Failed to import gRPC invoker '{invoker_ref}': {e}"
+            )
 
         kwargs = {
             "step_config": step_config,
@@ -383,20 +404,34 @@ class StepRegistry:
                         "need_history": {"type": "boolean"},
                         "allowed_modalities": {
                             "type": "array",
-                            "items": {"type": "string", "enum": ["text", "image", "audio"]},
+                            "items": {
+                                "type": "string",
+                                "enum": ["text", "image", "audio"],
+                            },
                         },
                         "max_files": {"type": "integer", "minimum": 0},
                         "per_file_size_mb": {"type": "integer", "minimum": 1},
                         "total_size_mb": {"type": "integer", "minimum": 1},
-                        "allowed_mime_types": {"type": "array", "items": {"type": "string"}},
+                        "allowed_mime_types": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
                         "schedule": {
                             "type": "object",
                             "properties": {
                                 "enabled": {"type": "boolean", "default": False},
-                                "mode": {"type": "string", "enum": ["interval", "cron"], "default": "interval"},
+                                "mode": {
+                                    "type": "string",
+                                    "enum": ["interval", "cron"],
+                                    "default": "interval",
+                                },
                                 "interval_seconds": {"type": "integer", "minimum": 5},
                                 "cron": {"type": "string"},
-                                "backend": {"type": "string", "enum": ["dbos", "local"], "default": "dbos"},
+                                "backend": {
+                                    "type": "string",
+                                    "enum": ["dbos", "local"],
+                                    "default": "dbos",
+                                },
                                 "jitter_seconds": {"type": "integer", "minimum": 0},
                                 "timezone": {"type": "string"},
                             },
@@ -661,7 +696,10 @@ class StepRegistry:
                     "properties": {
                         "tool_name": {"type": "string"},
                         "tool_id": {"type": "string"},
-                        "param_mapping": {"type": "object", "additionalProperties": {"type": "string"}},
+                        "param_mapping": {
+                            "type": "object",
+                            "additionalProperties": {"type": "string"},
+                        },
                         "static_params": {"type": "object"},
                     },
                 },
@@ -679,7 +717,18 @@ class StepRegistry:
                 "parameters_schema": {
                     "type": "object",
                     "properties": {
-                        "kind": {"type": "string", "enum": ["manual", "chat", "webhook", "file", "schedule", "gmail", "slack"]},
+                        "kind": {
+                            "type": "string",
+                            "enum": [
+                                "manual",
+                                "chat",
+                                "webhook",
+                                "file",
+                                "schedule",
+                                "gmail",
+                                "slack",
+                            ],
+                        },
                         "schema": {"type": "object"},
                         "need_history": {"type": "boolean"},
                     },
@@ -709,8 +758,14 @@ class StepRegistry:
                 "parameters_schema": {
                     "type": "object",
                     "properties": {
-                        "mode": {"type": "string", "enum": ["first_available", "wait_all"]},
-                        "combine_mode": {"type": "string", "enum": ["object", "array", "first"]},
+                        "mode": {
+                            "type": "string",
+                            "enum": ["first_available", "wait_all"],
+                        },
+                        "combine_mode": {
+                            "type": "string",
+                            "enum": ["object", "array", "first"],
+                        },
                     },
                 },
             }
@@ -727,8 +782,14 @@ class StepRegistry:
                 "parameters_schema": {
                     "type": "object",
                     "properties": {
-                        "system_prompt": {"type": "string", "description": "System prompt template with {{variable}} syntax"},
-                        "query_template": {"type": "string", "description": "Query template with {{variable}} syntax"},
+                        "system_prompt": {
+                            "type": "string",
+                            "description": "System prompt template with {{variable}} syntax",
+                        },
+                        "query_template": {
+                            "type": "string",
+                            "description": "Query template with {{variable}} syntax",
+                        },
                         "variables": {
                             "type": "array",
                             "items": {

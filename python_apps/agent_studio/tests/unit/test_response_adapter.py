@@ -5,7 +5,6 @@ are properly populated with agent data from the database.
 
 import uuid
 from datetime import datetime
-from typing import Optional
 from sqlmodel import Session, create_engine, SQLModel
 from sqlmodel.pool import StaticPool
 

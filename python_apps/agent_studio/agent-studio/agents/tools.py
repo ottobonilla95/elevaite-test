@@ -8,11 +8,9 @@ from typing import Optional, Dict, Any, List
 from utils import client
 import pickle
 import logging
-from datetime import datetime, timezone
-from google.oauth2.credentials import Credentials
+from datetime import datetime
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 import json
 import re
 
@@ -394,7 +392,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
         else:
             print("   📋 Using hardcoded keyword matching...")
             # FALLBACK: Original hardcoded logic
-            print(f"   Checking scope for keywords...")
+            print("   Checking scope for keywords...")
             print(f"   Scope (lowercase): {scope_lower}")
 
             if "power" in scope_lower:
@@ -541,7 +539,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
             print(f"      {category}: £{amount:.2f}")
 
         # 5. APPLY CATEGORY-SPECIFIC MARKUPS (without regional uplift first)
-        print(f"\n💼 Step 6: Applying category-specific markups...")
+        print("\n💼 Step 6: Applying category-specific markups...")
         markup_rates = calculator.get_markup_rates(is_framework)
         print(f"   Markup rates: {markup_rates}")
         marked_up_costs = {}
@@ -574,7 +572,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
 
         # 7. CALCULATE PRELIMINARIES
         work_subtotal = sum(marked_up_costs.values())
-        print(f"\n📋 Step 7: Calculating preliminaries...")
+        print("\n📋 Step 7: Calculating preliminaries...")
         print(f"   Work subtotal: £{work_subtotal:.2f}")
         print(f"   Project type: {project_type}")
         preliminaries = calculator.calculate_preliminaries(project_type, work_subtotal)
@@ -595,13 +593,13 @@ def calculate_mitie_quote(extracted_data: str) -> str:
 
         # 8. CALCULATE SUBTOTAL AFTER MARKUPS + PRELIMS
         subtotal_after_markups = work_subtotal + preliminaries["amount"]
-        print(f"\n🧮 Step 8: Calculating subtotal after markups + preliminaries...")
+        print("\n🧮 Step 8: Calculating subtotal after markups + preliminaries...")
         print(f"   Work subtotal: £{work_subtotal:.2f}")
         print(f"   Preliminaries: £{preliminaries['amount']:.2f}")
         print(f"   Subtotal after markups: £{subtotal_after_markups:.2f}")
 
         # 8.5. APPLY REGIONAL UPLIFTS (on the subtotal)
-        print(f"\n🌍 Step 8.5: Applying regional uplifts...")
+        print("\n🌍 Step 8.5: Applying regional uplifts...")
         print(f"   Site postcode: {site_postcode}")
         print(f"   Subtotal before regional uplift: £{subtotal_after_markups:.2f}")
 
@@ -617,7 +615,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
         print(f"   Subtotal after regional uplift: £{subtotal_after_regional:.2f}")
 
         # 9. APPLY RISK-BASED CONTINGENCY
-        print(f"\n⚠️ Step 9: Applying risk-based contingency...")
+        print("\n⚠️ Step 9: Applying risk-based contingency...")
 
         if use_llm_selections and selected_items.get("risk_assessment"):
             print("   🤖 Using LLM risk assessment...")
@@ -652,7 +650,7 @@ def calculate_mitie_quote(extracted_data: str) -> str:
 
         # 10. CALCULATE FINAL TOTAL
         final_total = subtotal_after_regional + contingency["final_amount"]
-        print(f"\n💰 Step 10: Final total calculation...")
+        print("\n💰 Step 10: Final total calculation...")
         print(f"   Subtotal after regional uplift: £{subtotal_after_regional:.2f}")
         print(f"   Contingency: £{contingency['final_amount']:.2f}")
         print(f"   FINAL TOTAL: £{final_total:.2f}")
@@ -938,7 +936,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
         else:
             print("   📋 Using hardcoded keyword matching...")
             # FALLBACK: Original hardcoded logic
-            print(f"   Checking scope for keywords...")
+            print("   Checking scope for keywords...")
             print(f"   Scope (lowercase): {scope_lower}")
 
             if "power" in scope_lower:
@@ -1085,7 +1083,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
             print(f"      {category}: £{amount:.2f}")
 
         # 5. APPLY CATEGORY-SPECIFIC MARKUPS (without regional uplift first)
-        print(f"\n💼 Step 6: Applying category-specific markups...")
+        print("\n💼 Step 6: Applying category-specific markups...")
         markup_rates = calculator.get_markup_rates(is_framework)
         print(f"   Markup rates: {markup_rates}")
         marked_up_costs = {}
@@ -1118,7 +1116,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
 
         # 7. CALCULATE PRELIMINARIES
         work_subtotal = sum(marked_up_costs.values())
-        print(f"\n📋 Step 7: Calculating preliminaries...")
+        print("\n📋 Step 7: Calculating preliminaries...")
         print(f"   Work subtotal: £{work_subtotal:.2f}")
         print(f"   Project type: {project_type}")
         preliminaries = calculator.calculate_preliminaries(project_type, work_subtotal)
@@ -1139,13 +1137,13 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
 
         # 8. CALCULATE SUBTOTAL AFTER MARKUPS + PRELIMS
         subtotal_after_markups = work_subtotal + preliminaries["amount"]
-        print(f"\n🧮 Step 8: Calculating subtotal after markups + preliminaries...")
+        print("\n🧮 Step 8: Calculating subtotal after markups + preliminaries...")
         print(f"   Work subtotal: £{work_subtotal:.2f}")
         print(f"   Preliminaries: £{preliminaries['amount']:.2f}")
         print(f"   Subtotal after markups: £{subtotal_after_markups:.2f}")
 
         # 8.5. APPLY REGIONAL UPLIFTS (on the subtotal)
-        print(f"\n🌍 Step 8.5: Applying regional uplifts...")
+        print("\n🌍 Step 8.5: Applying regional uplifts...")
         print(f"   Site postcode: {site_postcode}")
         print(f"   Subtotal before regional uplift: £{subtotal_after_markups:.2f}")
 
@@ -1161,7 +1159,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
         print(f"   Subtotal after regional uplift: £{subtotal_after_regional:.2f}")
 
         # 9. APPLY RISK-BASED CONTINGENCY
-        print(f"\n⚠️ Step 9: Applying risk-based contingency...")
+        print("\n⚠️ Step 9: Applying risk-based contingency...")
 
         if use_llm_selections and selected_items.get("risk_assessment"):
             print("   🤖 Using LLM risk assessment...")
@@ -1196,7 +1194,7 @@ def calculate_mitie_quote_with_metadata(extracted_data: str) -> str:
 
         # 10. CALCULATE FINAL TOTAL
         final_total = subtotal_after_regional + contingency["final_amount"]
-        print(f"\n💰 Step 10: Final total calculation...")
+        print("\n💰 Step 10: Final total calculation...")
         print(f"   Subtotal after regional uplift: £{subtotal_after_regional:.2f}")
         print(f"   Contingency: £{contingency['final_amount']:.2f}")
         print(f"   FINAL TOTAL: £{final_total:.2f}")
@@ -1291,7 +1289,6 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
         import os
         import random
         from datetime import datetime, timedelta
-        from typing import Dict, Any
 
         # Get template ID from environment variables
         MITIE_TEMPLATE_ID = os.getenv("MITIE_TEMPLATE_ID")
@@ -1457,7 +1454,7 @@ def generate_mitie_pdf(extracted_data: str, cost_calculations: str) -> str:
         document_id = result_data.get("document_id")
 
         # Log the URLs for debugging
-        print(f"🔗 MITIE PDF GENERATION COMPLETE:")
+        print("🔗 MITIE PDF GENERATION COMPLETE:")
         print(f"📄 Document URL: {document_url}")
         print(f"📋 PDF Export URL: {pdf_url}")
         print(f"📎 PDF File Link: {pdf_link}")
@@ -1505,7 +1502,6 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
         import os
         import random
         from datetime import datetime, timedelta
-        from typing import Dict, Any
 
         # Get template ID from environment variables
         MITIE_TEMPLATE_ID = os.getenv("MITIE_TEMPLATE_ID")
@@ -1657,7 +1653,7 @@ def generate_mitie_pdf_from_calculated_costs(cost_calculations: str) -> str:
         document_id = result_data.get("document_id")
 
         # Log the URLs for debugging
-        print(f"🔗 MITIE PDF GENERATION COMPLETE:")
+        print("🔗 MITIE PDF GENERATION COMPLETE:")
         print(f"📄 Document URL: {document_url}")
         print(f"📋 PDF Export URL: {pdf_url}")
         print(f"📎 PDF File Link: {pdf_link}")
@@ -1778,7 +1774,7 @@ def _calculate_rule_based_risk(
         reasons = [
             f"Total cost £{total_cost:,.2f} ≤ £15,000",
             f"Duration {duration_numeric} weeks ≤ 10 weeks",
-            f"Standard rooftop complexity",
+            "Standard rooftop complexity",
             f"Contingency {contingency_percentage:.1f}% ≤ 5%",
         ]
 
@@ -2534,7 +2530,7 @@ def media_context_retriever(
                 ctr = (clicks / delivered_impressions) * 100
                 result_text += f"CTR: {ctr:.2f}%\n"
             else:
-                result_text += f"CTR: N/A\n"
+                result_text += "CTR: N/A\n"
 
             result_text += "-" * 50 + "\n"
 
@@ -3979,7 +3975,7 @@ def get_salesforce_accounts() -> str:
                 break
 
         response += f"📊 Total Accounts: {len(accounts)}\n"
-        response += f"🔗 Use Account IDs with other Salesforce tools"
+        response += "🔗 Use Account IDs with other Salesforce tools"
 
         return response
 
@@ -4071,7 +4067,7 @@ def get_salesforce_opportunities() -> str:
                 break
 
         response += f"📊 Total Opportunities: {len(opportunities)}\n"
-        response += f"🔗 Use Opportunity IDs with other Salesforce tools"
+        response += "🔗 Use Opportunity IDs with other Salesforce tools"
 
         return response
 
@@ -4165,11 +4161,11 @@ def get_salesforce_opportunities_by_account(account_id: str) -> str:
             response += f"     Type: {opp_type}\n\n"
 
         # Add summary information
-        response += f"📊 Summary:\n"
+        response += "📊 Summary:\n"
         response += f"   • Total Opportunities: {len(opportunities)}\n"
         response += f"   • Total Pipeline Value: ${total_amount:,.2f}\n"
         response += f"   • Account: {account_name}\n\n"
-        response += f"🔗 Use Opportunity IDs with other Salesforce tools"
+        response += "🔗 Use Opportunity IDs with other Salesforce tools"
 
         return response
 
@@ -4602,7 +4598,7 @@ def query_retriever(query: str, machine_types: Optional[List[str]] = None) -> li
             print("^" * 100)
             segments = response.json()["selected_segments"][:SEGMENT_NUM]
             for i, segment in enumerate(segments):
-                res += "*" * 5 + f"\n\nSegment Begins: " + "\n"  # +"Contextual Header: "
+                res += "*" * 5 + "\n\nSegment Begins: " + "\n"  # +"Contextual Header: "
                 references = ""
                 for j, chunk in enumerate(segment["chunks"]):
                     res += f"Chunk {j}: " + chunk["chunk_text"]
@@ -4719,7 +4715,7 @@ def customer_query_retriever(query: str, collection_id: str) -> list:
             sources = []
             segments = response.json()["selected_segments"][:SEGMENT_NUM]
             for i, segment in enumerate(segments):
-                res += "*" * 5 + f"\n\nSegment Begins: " + "\n"  # +"Contextual Header: "
+                res += "*" * 5 + "\n\nSegment Begins: " + "\n"  # +"Contextual Header: "
                 references = ""
                 for j, chunk in enumerate(segment["chunks"]):
                     res += f"Chunk {j}: " + chunk["chunk_text"]
@@ -4816,7 +4812,6 @@ def vectorizer_conversative_search(
     Returns:
         A formatted string containing retrieved chunks with source metadata.
     """
-    import os
     import json
     from pathlib import Path
 
@@ -5059,7 +5054,7 @@ def document_metadata_search(
             return f"No documents found matching the criteria in collection '{collection_name}'"
 
         # Format results
-        result_text = f"DOCUMENT METADATA SEARCH RESULTS:\n"
+        result_text = "DOCUMENT METADATA SEARCH RESULTS:\n"
         result_text += f"Collection: {collection_name} | Found: {len(points)} documents\n"
         result_text += "=" * 80 + "\n\n"
 

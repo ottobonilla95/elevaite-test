@@ -43,7 +43,10 @@ def generate_answer(query: str, segments: list) -> str:
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You answer based only on the provided context."},
+                {
+                    "role": "system",
+                    "content": "You answer based only on the provided context.",
+                },
                 {"role": "user", "content": prompt},
             ],
             temperature=0.3,

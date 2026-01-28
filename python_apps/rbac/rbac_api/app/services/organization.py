@@ -1,7 +1,7 @@
 from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from typing import List, Optional, cast
+from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 from pprint import pprint

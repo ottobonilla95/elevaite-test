@@ -4,7 +4,17 @@ Agents API router: CRUD for Agents, and Tool bindings
 
 from typing import List, Optional, Dict, Any
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form, Security, Header
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    UploadFile,
+    File,
+    Form,
+    Security,
+    Header,
+)
 from fastapi.security.api_key import APIKeyHeader
 from sqlmodel import Session, select
 
@@ -52,15 +62,21 @@ class ProviderConfig(BaseModel):
 
 
 # Provider-specific configs map to ProviderConfig
-_PROVIDER_CONFIG_MAP: Dict[ProviderType, type[ProviderConfig]] = {pt: ProviderConfig for pt in ProviderType}
+_PROVIDER_CONFIG_MAP: Dict[ProviderType, type[ProviderConfig]] = {
+    pt: ProviderConfig for pt in ProviderType
+}
 
 
-def validate_provider_config(provider_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
+def validate_provider_config(
+    provider_type: str, config: Dict[str, Any]
+) -> Dict[str, Any]:
     """Validate and normalize provider configuration."""
     try:
         pt = ProviderType(provider_type)
     except ValueError:
-        raise HTTPException(status_code=400, detail=f"Unknown provider_type: {provider_type}")
+        raise HTTPException(
+            status_code=400, detail=f"Unknown provider_type: {provider_type}"
+        )
 
     try:
         parsed = ProviderConfig(provider_type=pt, **config)
@@ -76,7 +92,11 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 
 
 # ---------- Agents CRUD ----------
-@router.post("/", response_model=AgentRead, dependencies=[Depends(api_key_or_user_guard("create_agent"))])
+@router.post(
+    "/",
+    response_model=AgentRead,
+    dependencies=[Depends(api_key_or_user_guard("create_agent"))],
+)
 async def create_agent(
     agent: AgentCreate,
     session: Session = Depends(get_db_session),
@@ -88,14 +108,20 @@ async def create_agent(
     account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ):
     agent_data = agent.model_dump()
-    agent_data["provider_config"] = validate_provider_config(agent.provider_type, agent.provider_config or {})
+    agent_data["provider_config"] = validate_provider_config(
+        agent.provider_type, agent.provider_config or {}
+    )
     try:
         return AgentsService.create_agent(session, agent_data)
     except ValueError as ve:
         raise HTTPException(status_code=409, detail=str(ve))
 
 
-@router.get("/", response_model=List[AgentRead], dependencies=[Depends(api_key_or_user_guard("view_agent"))])
+@router.get(
+    "/",
+    response_model=List[AgentRead],
+    dependencies=[Depends(api_key_or_user_guard("view_agent"))],
+)
 async def list_agents(
     session: Session = Depends(get_db_session),
     organization_id: Optional[str] = Query(default=None),
@@ -127,7 +153,11 @@ async def list_agents(
     return agents
 
 
-@router.get("/{agent_id}", response_model=AgentRead, dependencies=[Depends(api_key_or_user_guard("view_agent"))])
+@router.get(
+    "/{agent_id}",
+    response_model=AgentRead,
+    dependencies=[Depends(api_key_or_user_guard("view_agent"))],
+)
 async def get_agent(
     agent_id: str,
     session: Session = Depends(get_db_session),
@@ -144,7 +174,11 @@ async def get_agent(
     return agent
 
 
-@router.patch("/{agent_id}", response_model=AgentRead, dependencies=[Depends(api_key_or_user_guard("edit_agent"))])
+@router.patch(
+    "/{agent_id}",
+    response_model=AgentRead,
+    dependencies=[Depends(api_key_or_user_guard("edit_agent"))],
+)
 async def update_agent(
     agent_id: str,
     payload: AgentUpdate,
@@ -162,7 +196,9 @@ async def update_agent(
         raise HTTPException(status_code=404, detail=str(ve))
 
 
-@router.delete("/{agent_id}", dependencies=[Depends(api_key_or_user_guard("delete_agent"))])
+@router.delete(
+    "/{agent_id}", dependencies=[Depends(api_key_or_user_guard("delete_agent"))]
+)
 async def delete_agent(
     agent_id: str,
     session: Session = Depends(get_db_session),
@@ -181,7 +217,9 @@ async def delete_agent(
 
 # ---------- Agent Tool Bindings ----------
 @router.get(
-    "/{agent_id}/tools", response_model=List[AgentToolBinding], dependencies=[Depends(api_key_or_user_guard("view_agent"))]
+    "/{agent_id}/tools",
+    response_model=List[AgentToolBinding],
+    dependencies=[Depends(api_key_or_user_guard("view_agent"))],
 )
 async def list_agent_tools(
     agent_id: str,
@@ -196,7 +234,11 @@ async def list_agent_tools(
     return AgentsService.list_agent_tools(session, agent_id)
 
 
-@router.post("/{agent_id}/tools", response_model=AgentToolBinding, dependencies=[Depends(api_key_or_user_guard("edit_agent"))])
+@router.post(
+    "/{agent_id}/tools",
+    response_model=AgentToolBinding,
+    dependencies=[Depends(api_key_or_user_guard("edit_agent"))],
+)
 async def attach_tool_to_agent(
     agent_id: str,
     body: AgentToolBindingCreate,
@@ -221,7 +263,11 @@ async def attach_tool_to_agent(
         msg = str(ve)
         if msg == "Agent not found":
             raise HTTPException(status_code=404, detail=msg)
-        elif msg in {"Provide tool_id or local_tool_name", "Agent/binding mismatch", "Local tool not found in registry"}:
+        elif msg in {
+            "Provide tool_id or local_tool_name",
+            "Agent/binding mismatch",
+            "Local tool not found in registry",
+        }:
             raise HTTPException(status_code=400, detail=msg)
         else:
             raise HTTPException(status_code=400, detail=msg)
@@ -245,7 +291,9 @@ async def update_agent_tool_binding(
     account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
 ):
     try:
-        return AgentsService.update_agent_tool_binding(session, agent_id, binding_id, body.model_dump(exclude_unset=True))
+        return AgentsService.update_agent_tool_binding(
+            session, agent_id, binding_id, body.model_dump(exclude_unset=True)
+        )
     except ValueError as ve:
         msg = str(ve)
         if msg in {"Binding not found"}:
@@ -254,7 +302,10 @@ async def update_agent_tool_binding(
             raise HTTPException(status_code=400, detail=msg)
 
 
-@router.delete("/{agent_id}/tools/{binding_id}", dependencies=[Depends(api_key_or_user_guard("edit_agent"))])
+@router.delete(
+    "/{agent_id}/tools/{binding_id}",
+    dependencies=[Depends(api_key_or_user_guard("edit_agent"))],
+)
 async def detach_tool_from_agent(
     agent_id: str,
     binding_id: str,
@@ -333,10 +384,15 @@ async def execute_agent(
         try:
             body = json.loads(payload)
         except Exception:
-            raise HTTPException(status_code=400, detail="Invalid JSON in 'payload' form field")
+            raise HTTPException(
+                status_code=400, detail="Invalid JSON in 'payload' form field"
+            )
     else:
         # JSON request body unsupported in this endpoint signature; require multipart form
-        raise HTTPException(status_code=400, detail="This endpoint expects multipart form with 'payload'.")
+        raise HTTPException(
+            status_code=400,
+            detail="This endpoint expects multipart form with 'payload'.",
+        )
 
     query = body.get("query")
     if not query:
@@ -373,7 +429,9 @@ async def execute_agent(
         context["attachments"] = attachments
 
     # Load system prompt text from Prompt table
-    prompt = session.exec(select(Prompt).where(Prompt.id == db_agent.system_prompt_id)).first()
+    prompt = session.exec(
+        select(Prompt).where(Prompt.id == db_agent.system_prompt_id)
+    ).first()
     system_prompt_text = prompt.prompt if prompt else "You are a helpful assistant."
 
     # Prepare tools (schemas handled by llm-gateway-compatible structure in SimpleAgent)

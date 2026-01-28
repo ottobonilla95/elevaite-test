@@ -7,9 +7,8 @@ This module contains all workflow-related database models using SQLModel.
 import uuid as uuid_module
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import Column, JSON, Text, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlmodel import SQLModel, Field
+from sqlalchemy import Column, JSON, DateTime, func
 from enum import Enum
 
 from .base import get_utc_datetime
@@ -70,11 +69,17 @@ class WorkflowBase(SQLModel):
         description="Tags for categorizing workflows",
     )
 
-    timeout_seconds: Optional[int] = Field(default=None, description="Overall workflow timeout in seconds")
+    timeout_seconds: Optional[int] = Field(
+        default=None, description="Overall workflow timeout in seconds"
+    )
 
-    status: WorkflowStatus = Field(default=WorkflowStatus.DRAFT, description="Current workflow status")
+    status: WorkflowStatus = Field(
+        default=WorkflowStatus.DRAFT, description="Current workflow status"
+    )
 
-    created_by: Optional[str] = Field(default=None, max_length=255, description="User who created the workflow")
+    created_by: Optional[str] = Field(
+        default=None, max_length=255, description="User who created the workflow"
+    )
 
 
 # Database table model
@@ -116,11 +121,17 @@ class Workflow(SQLModel, table=True):
         description="Tags for categorizing workflows",
     )
 
-    timeout_seconds: Optional[int] = Field(default=None, description="Overall workflow timeout in seconds")
+    timeout_seconds: Optional[int] = Field(
+        default=None, description="Overall workflow timeout in seconds"
+    )
 
-    status: WorkflowStatus = Field(default=WorkflowStatus.DRAFT, description="Current workflow status")
+    status: WorkflowStatus = Field(
+        default=WorkflowStatus.DRAFT, description="Current workflow status"
+    )
 
-    created_by: Optional[str] = Field(default=None, max_length=255, description="User who created the workflow")
+    created_by: Optional[str] = Field(
+        default=None, max_length=255, description="User who created the workflow"
+    )
 
     # Timestamps
     created_at: datetime = Field(
@@ -152,9 +163,15 @@ class WorkflowRead(WorkflowBase):
     updated_at: Optional[datetime] = None
 
     # Optional execution summary
-    total_executions: Optional[int] = Field(default=None, description="Total number of executions")
-    successful_executions: Optional[int] = Field(default=None, description="Number of successful executions")
-    last_executed: Optional[datetime] = Field(default=None, description="Last execution timestamp")
+    total_executions: Optional[int] = Field(
+        default=None, description="Total number of executions"
+    )
+    successful_executions: Optional[int] = Field(
+        default=None, description="Number of successful executions"
+    )
+    last_executed: Optional[datetime] = Field(
+        default=None, description="Last execution timestamp"
+    )
 
 
 class WorkflowUpdate(SQLModel):

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
+
 class BaseEmbedder(ABC):
     """Abstract base class for embedding models."""
 

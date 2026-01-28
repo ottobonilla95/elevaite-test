@@ -63,10 +63,10 @@ async def login_superuser() -> str:
 
 async def configure_workflow_engine_policies(token: str):
     """Configure OPA policies for the Workflow Engine with granular actions."""
-    
+
     # Define granular actions for each role
     # Based on GRANULAR_ACTIONS.md
-    
+
     viewer_actions = [
         # Read-only access
         "view_workflow",
@@ -80,7 +80,7 @@ async def configure_workflow_engine_policies(token: str):
         "view_approval",
         "view_message",
     ]
-    
+
     editor_actions = viewer_actions + [
         # Create and edit (but not delete)
         "create_workflow",
@@ -103,7 +103,7 @@ async def configure_workflow_engine_policies(token: str):
         "send_message",
         "upload_file",
     ]
-    
+
     admin_actions = editor_actions + [
         # Full access including delete
         "delete_workflow",
@@ -113,7 +113,7 @@ async def configure_workflow_engine_policies(token: str):
         "delete_mcp_server",
         "delete_prompt",
     ]
-    
+
     policy_data = {
         "service_name": "workflow_engine",
         "resource_type": "project",  # All workflow engine resources belong to projects
@@ -124,17 +124,17 @@ async def configure_workflow_engine_policies(token: str):
             "admin": admin_actions,
         },
     }
-    
+
     print("\n" + "=" * 60)
     print("Configuring Workflow Engine Policies")
     print("=" * 60)
     print(f"\nService: {policy_data['service_name']}")
     print(f"Resource Type: {policy_data['resource_type']}")
-    print(f"\nRole Permissions:")
+    print("\nRole Permissions:")
     print(f"  Viewer: {len(viewer_actions)} actions")
     print(f"  Editor: {len(editor_actions)} actions")
     print(f"  Admin: {len(admin_actions)} actions")
-    
+
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.post(
@@ -145,29 +145,29 @@ async def configure_workflow_engine_policies(token: str):
                     "Content-Type": "application/json",
                 },
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
                 print(f"\n✅ {result['message']}")
                 print(f"   Module: {result.get('module_name', 'N/A')}")
-                
+
                 # Show a preview of the generated policy
-                rego_code = result.get('rego_code', '')
+                rego_code = result.get("rego_code", "")
                 if rego_code:
-                    lines = rego_code.split('\n')
-                    print(f"\n📄 Generated Policy Preview (first 20 lines):")
+                    lines = rego_code.split("\n")
+                    print("\n📄 Generated Policy Preview (first 20 lines):")
                     print("-" * 60)
                     for line in lines[:20]:
                         print(line)
                     if len(lines) > 20:
                         print(f"... ({len(lines) - 20} more lines)")
-                
+
                 return True
             else:
                 print(f"\n❌ Failed to configure policies: {response.status_code}")
                 print(f"   Response: {response.text}")
                 return False
-                
+
         except Exception as e:
             print(f"\n❌ Error configuring policies: {e}")
             return False
@@ -178,24 +178,26 @@ async def verify_policy_uploaded():
     print("\n" + "=" * 60)
     print("Verifying Policy Upload")
     print("=" * 60)
-    
+
     async with httpx.AsyncClient() as client:
         try:
             # Check OPA directly
-            response = await client.get("http://localhost:8181/v1/policies/rbac/workflow_engine")
-            
+            response = await client.get(
+                "http://localhost:8181/v1/policies/rbac/workflow_engine"
+            )
+
             if response.status_code == 200:
                 print("✅ Policy successfully uploaded to OPA")
                 result = response.json()
-                if 'result' in result and 'raw' in result['result']:
-                    rego_code = result['result']['raw']
-                    lines = rego_code.split('\n')
+                if "result" in result and "raw" in result["result"]:
+                    rego_code = result["result"]["raw"]
+                    lines = rego_code.split("\n")
                     print(f"   Policy has {len(lines)} lines")
                 return True
             else:
                 print(f"⚠️  Policy not found in OPA: {response.status_code}")
                 return False
-                
+
         except Exception as e:
             print(f"❌ Error verifying policy: {e}")
             return False
@@ -206,7 +208,7 @@ async def test_policy_decision():
     print("\n" + "=" * 60)
     print("Testing Policy Decision")
     print("=" * 60)
-    
+
     # Test case: viewer trying to view_workflow (should allow)
     test_input = {
         "user": {
@@ -229,32 +231,32 @@ async def test_policy_decision():
         },
         "action": "view_workflow",
     }
-    
+
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
                 "http://localhost:8181/v1/data/rbac/allow",
                 json={"input": test_input},
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
                 allowed = result.get("result", False)
-                
-                print(f"\nTest: Viewer trying to view_workflow")
-                print(f"Expected: True")
+
+                print("\nTest: Viewer trying to view_workflow")
+                print("Expected: True")
                 print(f"Actual: {allowed}")
-                
+
                 if allowed:
                     print("✅ Policy decision is correct!")
                 else:
                     print("❌ Policy decision is incorrect!")
-                
+
                 return allowed
             else:
                 print(f"❌ Error testing policy: {response.status_code}")
                 return False
-                
+
         except Exception as e:
             print(f"❌ Error testing policy: {e}")
             return False
@@ -265,28 +267,28 @@ async def main():
     print("=" * 60)
     print("Workflow Engine - Granular Actions Policy Configuration")
     print("=" * 60)
-    
+
     # Step 1: Get superuser token
     print("\n📝 Step 1: Authenticating as superuser...")
     token = await login_superuser()
     print("✅ Authentication successful")
-    
+
     # Step 2: Configure policies
     print("\n📝 Step 2: Configuring granular action policies...")
     success = await configure_workflow_engine_policies(token)
-    
+
     if not success:
         print("\n❌ Failed to configure policies. Exiting.")
         return
-    
+
     # Step 3: Verify upload
     print("\n📝 Step 3: Verifying policy upload...")
     await verify_policy_uploaded()
-    
+
     # Step 4: Test policy
     print("\n📝 Step 4: Testing policy decision...")
     await test_policy_decision()
-    
+
     # Summary
     print("\n" + "=" * 60)
     print("Configuration Complete!")
@@ -301,4 +303,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

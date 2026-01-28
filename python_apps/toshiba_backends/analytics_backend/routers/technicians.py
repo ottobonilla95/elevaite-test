@@ -1,6 +1,6 @@
 # backend/routers/technicians.py
 from fastapi import APIRouter, HTTPException, Query
-from typing import Optional, List, Dict, Any
+from typing import Optional
 from database import get_db_connection
 import traceback
 

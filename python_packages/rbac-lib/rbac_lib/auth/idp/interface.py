@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from elevaitelib.orm.db.models import User
 
 
 class IDPInterface(ABC):

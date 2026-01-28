@@ -12,8 +12,7 @@ Node Type Discrimination:
 - Backward compatibility: Falls back to checking `agent_type == "tool"` if `node_type` is not present
 """
 
-from typing import Dict, Any, Optional, List, Set
-from uuid import UUID
+from typing import Dict, Any, Optional, Set
 
 
 class RequestAdapter:

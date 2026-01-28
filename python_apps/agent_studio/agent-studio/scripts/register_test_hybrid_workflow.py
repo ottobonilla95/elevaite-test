@@ -8,14 +8,12 @@ all three endpoints (sync, async, streaming) without recreating it each time.
 
 import sys
 import os
-import uuid
-from datetime import datetime
 
 # Add the parent directory to the path so we can import from the agent-studio
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.database import SessionLocal
-from db import crud, models
+from db import crud
 from sqlalchemy.orm import Session
 
 

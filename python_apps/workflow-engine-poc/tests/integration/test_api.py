@@ -10,12 +10,6 @@ import json
 import tempfile
 import pytest
 from pathlib import Path
-from typing import Dict, Any
-
-import httpx
-from fastapi.testclient import TestClient
-
-from workflow_engine_poc.main import app
 
 
 @pytest.mark.unit
@@ -32,12 +26,16 @@ def test_api_endpoints(authenticated_client):
 
     # Root endpoint
     response = client.get("/")
-    print(f"   GET /: {response.status_code} - {response.json().get('message', 'No message')}")
+    print(
+        f"   GET /: {response.status_code} - {response.json().get('message', 'No message')}"
+    )
     assert response.status_code == 200
 
     # Health check
     response = client.get("/health")
-    print(f"   GET /health: {response.status_code} - {response.json().get('status', 'No status')}")
+    print(
+        f"   GET /health: {response.status_code} - {response.json().get('status', 'No status')}"
+    )
     assert response.status_code == 200
 
     # Test step endpoints
@@ -45,7 +43,9 @@ def test_api_endpoints(authenticated_client):
 
     # List steps
     response = client.get("/steps")
-    print(f"   GET /steps: {response.status_code} - {response.json().get('total', 0)} steps")
+    print(
+        f"   GET /steps: {response.status_code} - {response.json().get('total', 0)} steps"
+    )
     assert response.status_code == 200
 
     # Get specific step info
@@ -99,12 +99,16 @@ def test_api_endpoints(authenticated_client):
 
     # Save workflow
     response = client.post("/workflows", json=test_workflow)
-    print(f"   POST /workflows: {response.status_code} - {response.json().get('message', 'No message')}")
+    print(
+        f"   POST /workflows: {response.status_code} - {response.json().get('message', 'No message')}"
+    )
     assert response.status_code == 200
 
     # Get the actual workflow_id from the response (might be different from what we sent)
     created_workflow = response.json()
-    actual_workflow_id = created_workflow.get("workflow_id") or created_workflow.get("id") or workflow_id
+    actual_workflow_id = (
+        created_workflow.get("workflow_id") or created_workflow.get("id") or workflow_id
+    )
     print(f"   Created workflow ID: {actual_workflow_id}")
 
     # Get workflow
@@ -121,7 +125,9 @@ def test_api_endpoints(authenticated_client):
     if isinstance(workflows_data, list):
         workflow_count = len(workflows_data)
     else:
-        workflow_count = workflows_data.get("total", len(workflows_data.get("workflows", [])))
+        workflow_count = workflows_data.get(
+            "total", len(workflows_data.get("workflows", []))
+        )
     print(f"   GET /workflows: {response.status_code} - {workflow_count} workflows")
     assert response.status_code == 200
 
@@ -143,7 +149,9 @@ def test_api_endpoints(authenticated_client):
         "input_data": {"additional_context": "API test execution"},
     }
 
-    response = client.post(f"/workflows/{actual_workflow_id}/execute", json=execution_request)
+    response = client.post(
+        f"/workflows/{actual_workflow_id}/execute", json=execution_request
+    )
     print(f"   POST /workflows/{actual_workflow_id}/execute: {response.status_code}")
     # Note: This might fail if the workflow requires specific configuration
     # For now, we'll just check if the endpoint exists (not 404/405)
@@ -186,7 +194,9 @@ def test_api_endpoints(authenticated_client):
             assert response.status_code == 200
 
             upload_result = response.json()
-            print(f"   Uploaded file: {upload_result.get('filename')} ({upload_result.get('file_size')} bytes)")
+            print(
+                f"   Uploaded file: {upload_result.get('filename')} ({upload_result.get('file_size')} bytes)"
+            )
 
     finally:
         # Clean up temp file
@@ -294,7 +304,9 @@ def test_file_workflow_integration(authenticated_client):
                 "user_id": "file_test_user",
             }
 
-            response = client.post("/workflows/execute-with-file", files=files, data=data)
+            response = client.post(
+                "/workflows/execute-with-file", files=files, data=data
+            )
             print(f"   POST /workflows/execute-with-file: {response.status_code}")
 
             if response.status_code == 200:
@@ -313,7 +325,9 @@ def test_file_workflow_integration(authenticated_client):
                 if status_response.status_code == 200:
                     status = status_response.json()
                     print(f"   Execution status: {status.get('status')}")
-                    print(f"   Completed steps: {len(status.get('completed_steps', []))}")
+                    print(
+                        f"   Completed steps: {len(status.get('completed_steps', []))}"
+                    )
 
                 return True
             else:

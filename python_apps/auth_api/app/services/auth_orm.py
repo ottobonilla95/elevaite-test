@@ -242,7 +242,7 @@ async def authenticate_user(
                                     else:
                                         # If we can't get the data, force it to True
                                         print(
-                                            f"Could not get user data, forcing is_password_temporary=True"
+                                            "Could not get user data, forcing is_password_temporary=True"
                                         )
                                         updated_user.is_password_temporary = True
                                 except Exception as query_error:
@@ -251,7 +251,7 @@ async def authenticate_user(
                                     updated_user.is_password_temporary = True
                             else:
                                 print(
-                                    f"Session is None, forcing is_password_temporary=True"
+                                    "Session is None, forcing is_password_temporary=True"
                                 )
                                 updated_user.is_password_temporary = True
                         except Exception as refresh_error:
@@ -378,7 +378,7 @@ async def authenticate_user(
         x_platform = request.headers.get("x-platform", "").lower() if request else ""
 
         # STRICT: Only mobile if X-Platform header explicitly says so
-        is_mobile = x_platform == 'android' or x_platform == 'ios'
+        is_mobile = x_platform == "android" or x_platform == "ios"
 
         # Skip email MFA only for mobile app with biometric enabled
         skip_email_mfa_for_mobile = is_mobile and user.biometric_mfa_enabled
@@ -389,7 +389,9 @@ async def authenticate_user(
         # Check MFA if enabled (TOTP, SMS, Email, or Biometric on mobile only)
         has_totp_mfa = user.mfa_enabled and user.mfa_secret
         has_sms_mfa = user.sms_mfa_enabled and user.phone_verified
-        has_email_mfa = user.email_mfa_enabled and not skip_email_mfa_for_mobile  # Skip only if mobile + biometric
+        has_email_mfa = (
+            user.email_mfa_enabled and not skip_email_mfa_for_mobile
+        )  # Skip only if mobile + biometric
         has_biometric_mfa = False  # Biometric is optional, never required
 
         logger.info(
@@ -494,7 +496,10 @@ async def authenticate_user(
                 try:
                     # For biometric, totp_code contains WebAuthn assertion
                     from app.services.biometric_mfa import biometric_mfa_service
-                    await biometric_mfa_service.verify_biometric_assertion(user, totp_code, session)
+
+                    await biometric_mfa_service.verify_biometric_assertion(
+                        user, totp_code, session
+                    )
                     mfa_valid = True
                     mfa_method_used = "biometric"
                 except HTTPException:
@@ -903,25 +908,3 @@ async def activate_mfa(session: AsyncSession, user_id: int, totp_code: str) -> b
     await log_user_activity(session, user_id, "mfa_activated")
 
     return True
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -3,7 +3,7 @@ from typing import List
 
 try:
     import cohere
-except Exception as e:  # pragma: no cover
+except Exception:  # pragma: no cover
     cohere = None  # type: ignore
 
 
@@ -14,11 +14,19 @@ def get_embedding(text: str, model: str | None = None) -> List[float]:
     """
     api_key = os.getenv("COHERE_API_KEY")
     if not api_key:
-        raise ValueError("COHERE_API_KEY not found. Please set it in the environment variables.")
+        raise ValueError(
+            "COHERE_API_KEY not found. Please set it in the environment variables."
+        )
     if cohere is None:
-        raise ImportError("cohere package is not installed. Please install cohere to use this provider.")
+        raise ImportError(
+            "cohere package is not installed. Please install cohere to use this provider."
+        )
 
-    client = cohere.ClientV2(api_key=api_key) if hasattr(cohere, "ClientV2") else cohere.Client(api_key)
+    client = (
+        cohere.ClientV2(api_key=api_key)
+        if hasattr(cohere, "ClientV2")
+        else cohere.Client(api_key)
+    )
     model_name = model or os.getenv("COHERE_EMBED_MODEL", "embed-english-v3.0")
 
     try:
@@ -43,4 +51,3 @@ def get_embedding(text: str, model: str | None = None) -> List[float]:
     except Exception as e:  # pragma: no cover
         print(f"Cohere embedding error: {e}")
         raise
-

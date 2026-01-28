@@ -99,7 +99,7 @@ async def disable_sms_mfa(
     logger.info(f"SMS MFA disable request for user {current_user.id}")
 
     try:
-        ensure_at_least_one_mfa(current_user, 'sms')
+        ensure_at_least_one_mfa(current_user, "sms")
         result = await sms_mfa_service.disable_sms_mfa(current_user, db)
         return SMSMFAResponse(message=result["message"], message_id=None)
     except HTTPException:

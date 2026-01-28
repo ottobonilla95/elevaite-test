@@ -159,7 +159,7 @@ class TestLatency:
             p95 = latencies[int(len(latencies) * 0.95)]
             p99 = latencies[int(len(latencies) * 0.99)]
 
-            print(f"\nCache access latency:")
+            print("\nCache access latency:")
             print(f"P50: {p50:.3f}ms")
             print(f"P95: {p95:.3f}ms")
             print(f"P99: {p99:.3f}ms")
@@ -202,7 +202,7 @@ class TestLatency:
             p95 = latencies[int(len(latencies) * 0.95)]
             p99 = latencies[int(len(latencies) * 0.99)]
 
-            print(f"\nAPI call latency:")
+            print("\nAPI call latency:")
             print(f"P50: {p50:.1f}ms")
             print(f"P95: {p95:.1f}ms")
             print(f"P99: {p99:.1f}ms")
@@ -326,7 +326,11 @@ class TestAsyncPerformance:
                 check_access_async(
                     user_id=i,
                     action="view_project",
-                    resource={"type": "project", "id": f"proj{i}", "organization_id": "org1"},
+                    resource={
+                        "type": "project",
+                        "id": f"proj{i}",
+                        "organization_id": "org1",
+                    },
                 )
                 for i in range(1000)
             ]
@@ -342,4 +346,3 @@ class TestAsyncPerformance:
             assert all(r is True for r in results)
             # Should handle at least 1000 requests per second
             assert throughput > 1000
-

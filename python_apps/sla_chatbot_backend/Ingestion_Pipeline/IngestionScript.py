@@ -10,7 +10,6 @@ from pypdf import PdfReader
 from openpyxl import load_workbook
 import pandas as pd
 import numpy as np
-from datetime import timedelta
 from sympy import symbols,sympify
 
 def extract_guardrail_data(file_path: str):
@@ -218,7 +217,6 @@ def count_total_items(df, filename, category):
             return df[df['EOC Captured Impact/Urgency'] == incident_level].shape[0]
     return 0
 
-import math
 
 def populate_comments(df, eoc_file_names, risk_file_names):
     for index, row in df.iterrows():

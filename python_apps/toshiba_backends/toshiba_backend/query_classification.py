@@ -146,7 +146,7 @@ def main():
     # Print summary
     if results:
         query_types = [r['query_type'] for r in results]
-        print(f"\nQuery type distribution:")
+        print("\nQuery type distribution:")
         for qt in set(query_types):
             count = query_types.count(qt)
             print(f"  {qt}: {count}")

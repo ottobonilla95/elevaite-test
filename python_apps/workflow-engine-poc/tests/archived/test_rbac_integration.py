@@ -100,8 +100,10 @@ class TestWorkflowRBAC:
 
     async def test_list_workflows_with_viewer(self, test_user_viewer):
         """Test that viewers can list workflows."""
-        api_key = create_api_key(test_user_viewer["user_id"], test_user_viewer["org_id"])
-        
+        api_key = create_api_key(
+            test_user_viewer["user_id"], test_user_viewer["org_id"]
+        )
+
         headers = {
             "X-elevAIte-apikey": api_key,
             "X-elevAIte-UserId": test_user_viewer["user_id"],
@@ -109,17 +111,21 @@ class TestWorkflowRBAC:
             "X-elevAIte-AccountId": test_user_viewer["account_id"],
             "X-elevAIte-ProjectId": test_user_viewer["project_id"],
         }
-        
+
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers)
+            response = await client.get(
+                f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers
+            )
             # Should succeed (200) or fail with proper RBAC error (403)
             # Note: May fail if user doesn't exist in Auth API
             assert response.status_code in [200, 403, 401]
 
     async def test_create_workflow_denied_for_viewer(self, test_user_viewer):
         """Test that viewers cannot create workflows."""
-        api_key = create_api_key(test_user_viewer["user_id"], test_user_viewer["org_id"])
-        
+        api_key = create_api_key(
+            test_user_viewer["user_id"], test_user_viewer["org_id"]
+        )
+
         headers = {
             "X-elevAIte-apikey": api_key,
             "X-elevAIte-UserId": test_user_viewer["user_id"],
@@ -127,14 +133,14 @@ class TestWorkflowRBAC:
             "X-elevAIte-AccountId": test_user_viewer["account_id"],
             "X-elevAIte-ProjectId": test_user_viewer["project_id"],
         }
-        
+
         workflow_data = {
             "name": "Test Workflow",
             "description": "Test workflow for RBAC",
             "steps": [],
             "connections": [],
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{WORKFLOW_ENGINE_URL}/workflows/",
@@ -152,14 +158,18 @@ class TestExecutionRBAC:
     async def test_get_execution_requires_auth(self):
         """Test that getting execution status requires authentication."""
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{WORKFLOW_ENGINE_URL}/executions/test-exec-id")
+            response = await client.get(
+                f"{WORKFLOW_ENGINE_URL}/executions/test-exec-id"
+            )
             # Should return 403 (forbidden) without auth headers
             assert response.status_code in [401, 403, 400]
 
     async def test_list_executions_with_viewer(self, test_user_viewer):
         """Test that viewers can list executions."""
-        api_key = create_api_key(test_user_viewer["user_id"], test_user_viewer["org_id"])
-        
+        api_key = create_api_key(
+            test_user_viewer["user_id"], test_user_viewer["org_id"]
+        )
+
         headers = {
             "X-elevAIte-apikey": api_key,
             "X-elevAIte-UserId": test_user_viewer["user_id"],
@@ -167,9 +177,11 @@ class TestExecutionRBAC:
             "X-elevAIte-AccountId": test_user_viewer["account_id"],
             "X-elevAIte-ProjectId": test_user_viewer["project_id"],
         }
-        
+
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{WORKFLOW_ENGINE_URL}/executions/", headers=headers)
+            response = await client.get(
+                f"{WORKFLOW_ENGINE_URL}/executions/", headers=headers
+            )
             # Should succeed (200) or fail with proper RBAC error (403)
             assert response.status_code in [200, 403, 401]
 
@@ -187,8 +199,10 @@ class TestAgentRBAC:
 
     async def test_list_agents_with_viewer(self, test_user_viewer):
         """Test that viewers can list agents."""
-        api_key = create_api_key(test_user_viewer["user_id"], test_user_viewer["org_id"])
-        
+        api_key = create_api_key(
+            test_user_viewer["user_id"], test_user_viewer["org_id"]
+        )
+
         headers = {
             "X-elevAIte-apikey": api_key,
             "X-elevAIte-UserId": test_user_viewer["user_id"],
@@ -196,16 +210,20 @@ class TestAgentRBAC:
             "X-elevAIte-AccountId": test_user_viewer["account_id"],
             "X-elevAIte-ProjectId": test_user_viewer["project_id"],
         }
-        
+
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{WORKFLOW_ENGINE_URL}/agents/", headers=headers)
+            response = await client.get(
+                f"{WORKFLOW_ENGINE_URL}/agents/", headers=headers
+            )
             # Should succeed (200) or fail with proper RBAC error (403)
             assert response.status_code in [200, 403, 401]
 
     async def test_create_agent_denied_for_viewer(self, test_user_viewer):
         """Test that viewers cannot create agents."""
-        api_key = create_api_key(test_user_viewer["user_id"], test_user_viewer["org_id"])
-        
+        api_key = create_api_key(
+            test_user_viewer["user_id"], test_user_viewer["org_id"]
+        )
+
         headers = {
             "X-elevAIte-apikey": api_key,
             "X-elevAIte-UserId": test_user_viewer["user_id"],
@@ -213,14 +231,14 @@ class TestAgentRBAC:
             "X-elevAIte-AccountId": test_user_viewer["account_id"],
             "X-elevAIte-ProjectId": test_user_viewer["project_id"],
         }
-        
+
         agent_data = {
             "name": "Test Agent",
             "description": "Test agent for RBAC",
             "provider_type": "openai_textgen",
             "provider_config": {},
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{WORKFLOW_ENGINE_URL}/agents/",
@@ -237,8 +255,10 @@ class TestRBACHeaders:
 
     async def test_missing_project_id_header(self, test_user_viewer):
         """Test that missing project ID header is rejected."""
-        api_key = create_api_key(test_user_viewer["user_id"], test_user_viewer["org_id"])
-        
+        api_key = create_api_key(
+            test_user_viewer["user_id"], test_user_viewer["org_id"]
+        )
+
         headers = {
             "X-elevAIte-apikey": api_key,
             "X-elevAIte-UserId": test_user_viewer["user_id"],
@@ -246,9 +266,11 @@ class TestRBACHeaders:
             "X-elevAIte-AccountId": test_user_viewer["account_id"],
             # Missing ProjectId header
         }
-        
+
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers)
+            response = await client.get(
+                f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers
+            )
             # Should fail with 400 (bad request) or 403 (forbidden)
             assert response.status_code in [400, 403, 401]
 
@@ -260,9 +282,10 @@ class TestRBACHeaders:
             "X-elevAIte-AccountId": TEST_ACCOUNT_ID,
             "X-elevAIte-ProjectId": TEST_PROJECT_ID,
         }
-        
+
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers)
+            response = await client.get(
+                f"{WORKFLOW_ENGINE_URL}/workflows/", headers=headers
+            )
             # Should fail with 401 (unauthorized) or 403 (forbidden)
             assert response.status_code in [401, 403, 400]
-

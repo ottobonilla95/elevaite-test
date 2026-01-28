@@ -44,7 +44,7 @@ try:
             "deployment.environment": os.getenv("ENVIRONMENT", "development"),
         },
     )
-except Exception as e:
+except Exception:
     pass
 
 
@@ -467,7 +467,7 @@ async def get_current_status(uid: str, sid: str):
         print("session_status", session_status)
         if uid not in session_status:
             update_status(uid, "Thinking...")
-            yield f"data: Thinking...\n\n"
+            yield "data: Thinking...\n\n"
 
         last_status = None
         counter = 0

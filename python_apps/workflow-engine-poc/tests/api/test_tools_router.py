@@ -12,7 +12,7 @@ Tests all endpoints for tools, categories, and MCP servers:
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,17 +20,8 @@ from fastapi.testclient import TestClient
 from workflow_engine_poc.main import app
 from workflow_core_sdk.db.models import (
     Tool,
-    ToolCreate,
-    ToolRead,
-    ToolUpdate,
     ToolCategory,
-    ToolCategoryCreate,
-    ToolCategoryRead,
-    ToolCategoryUpdate,
     MCPServer,
-    MCPServerCreate,
-    MCPServerRead,
-    MCPServerUpdate,
 )
 
 client = TestClient(app)
@@ -54,7 +45,10 @@ def sample_tool():
         version="1.0.0",
         tool_type="local",
         execution_type="function",
-        parameters_schema={"type": "object", "properties": {"param1": {"type": "string"}}},
+        parameters_schema={
+            "type": "object",
+            "properties": {"param1": {"type": "string"}},
+        },
         return_schema=None,
         module_path="test.module",
         function_name="test_function",
@@ -129,7 +123,15 @@ class TestListTools:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_list_tools_from_db(self, mock_guard, mock_get_session, mock_get_db_tool, mock_unified, mock_session, sample_tool):
+    def test_list_tools_from_db(
+        self,
+        mock_guard,
+        mock_get_session,
+        mock_get_db_tool,
+        mock_unified,
+        mock_session,
+        sample_tool,
+    ):
         """Test listing tools from database"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -158,7 +160,9 @@ class TestListTools:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_list_tools_from_local(self, mock_guard, mock_get_session, mock_unified, mock_session):
+    def test_list_tools_from_local(
+        self, mock_guard, mock_get_session, mock_unified, mock_session
+    ):
         """Test listing tools from local registry"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -185,7 +189,9 @@ class TestListTools:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_list_tools_with_query_filter(self, mock_guard, mock_get_session, mock_unified, mock_session):
+    def test_list_tools_with_query_filter(
+        self, mock_guard, mock_get_session, mock_unified, mock_session
+    ):
         """Test listing tools with query filter"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -218,7 +224,9 @@ class TestListTools:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_list_tools_pagination(self, mock_guard, mock_get_session, mock_unified, mock_session):
+    def test_list_tools_pagination(
+        self, mock_guard, mock_get_session, mock_unified, mock_session
+    ):
         """Test pagination parameters"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -254,7 +262,9 @@ class TestGetTool:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_get_tool_from_db(self, mock_guard, mock_get_session, mock_get_db, mock_session, sample_tool):
+    def test_get_tool_from_db(
+        self, mock_guard, mock_get_session, mock_get_db, mock_session, sample_tool
+    ):
         """Test getting tool from database (preferred)"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -275,7 +285,9 @@ class TestGetTool:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_get_tool_from_local_fallback(self, mock_guard, mock_get_session, mock_get_db, mock_get_local, mock_session):
+    def test_get_tool_from_local_fallback(
+        self, mock_guard, mock_get_session, mock_get_db, mock_get_local, mock_session
+    ):
         """Test getting tool from local registry when not in DB"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -305,7 +317,9 @@ class TestGetTool:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_get_tool_not_found(self, mock_guard, mock_get_session, mock_get_db, mock_get_local, mock_session):
+    def test_get_tool_not_found(
+        self, mock_guard, mock_get_session, mock_get_db, mock_get_local, mock_session
+    ):
         """Test getting non-existent tool returns 404"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -326,7 +340,9 @@ class TestDBToolCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_create_db_tool_success(self, mock_guard, mock_get_session, mock_create, mock_session, sample_tool):
+    def test_create_db_tool_success(
+        self, mock_guard, mock_get_session, mock_create, mock_session, sample_tool
+    ):
         """Test creating a DB tool"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -352,7 +368,9 @@ class TestDBToolCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_create_db_tool_duplicate(self, mock_guard, mock_get_session, mock_create, mock_session):
+    def test_create_db_tool_duplicate(
+        self, mock_guard, mock_get_session, mock_create, mock_session
+    ):
         """Test creating duplicate tool raises 409"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -374,7 +392,9 @@ class TestDBToolCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_list_db_tools(self, mock_guard, mock_get_session, mock_list, mock_session, sample_tool):
+    def test_list_db_tools(
+        self, mock_guard, mock_get_session, mock_list, mock_session, sample_tool
+    ):
         """Test listing DB tools"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -391,7 +411,9 @@ class TestDBToolCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_get_db_tool_success(self, mock_guard, mock_get_session, mock_get, mock_session, sample_tool):
+    def test_get_db_tool_success(
+        self, mock_guard, mock_get_session, mock_get, mock_session, sample_tool
+    ):
         """Test getting a DB tool by ID"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -408,7 +430,9 @@ class TestDBToolCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_get_db_tool_not_found(self, mock_guard, mock_get_session, mock_get, mock_session):
+    def test_get_db_tool_not_found(
+        self, mock_guard, mock_get_session, mock_get, mock_session
+    ):
         """Test getting non-existent DB tool returns 404"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -424,7 +448,15 @@ class TestDBToolCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_update_db_tool_success(self, mock_guard, mock_get_session, mock_update, mock_get, mock_session, sample_tool):
+    def test_update_db_tool_success(
+        self,
+        mock_guard,
+        mock_get_session,
+        mock_update,
+        mock_get,
+        mock_session,
+        sample_tool,
+    ):
         """Test updating a DB tool"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -447,7 +479,9 @@ class TestDBToolCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_update_db_tool_not_found(self, mock_guard, mock_get_session, mock_update, mock_session):
+    def test_update_db_tool_not_found(
+        self, mock_guard, mock_get_session, mock_update, mock_session
+    ):
         """Test updating non-existent DB tool returns 404"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -463,7 +497,9 @@ class TestDBToolCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_delete_db_tool_success(self, mock_guard, mock_get_session, mock_delete, mock_session):
+    def test_delete_db_tool_success(
+        self, mock_guard, mock_get_session, mock_delete, mock_session
+    ):
         """Test deleting a DB tool"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -479,7 +515,9 @@ class TestDBToolCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_delete_db_tool_not_found(self, mock_guard, mock_get_session, mock_delete, mock_session):
+    def test_delete_db_tool_not_found(
+        self, mock_guard, mock_get_session, mock_delete, mock_session
+    ):
         """Test deleting non-existent DB tool returns 404"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -499,7 +537,9 @@ class TestCategoryCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_create_category_success(self, mock_guard, mock_get_session, mock_create, mock_session, sample_category):
+    def test_create_category_success(
+        self, mock_guard, mock_get_session, mock_create, mock_session, sample_category
+    ):
         """Test creating a category"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -517,7 +557,9 @@ class TestCategoryCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_create_category_duplicate(self, mock_guard, mock_get_session, mock_create, mock_session):
+    def test_create_category_duplicate(
+        self, mock_guard, mock_get_session, mock_create, mock_session
+    ):
         """Test creating duplicate category raises 409"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -533,7 +575,9 @@ class TestCategoryCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_list_categories(self, mock_guard, mock_get_session, mock_list, mock_session, sample_category):
+    def test_list_categories(
+        self, mock_guard, mock_get_session, mock_list, mock_session, sample_category
+    ):
         """Test listing categories"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -550,7 +594,9 @@ class TestCategoryCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_get_category_success(self, mock_guard, mock_get_session, mock_get, mock_session, sample_category):
+    def test_get_category_success(
+        self, mock_guard, mock_get_session, mock_get, mock_session, sample_category
+    ):
         """Test getting a category by ID"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -567,7 +613,9 @@ class TestCategoryCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_get_category_not_found(self, mock_guard, mock_get_session, mock_get, mock_session):
+    def test_get_category_not_found(
+        self, mock_guard, mock_get_session, mock_get, mock_session
+    ):
         """Test getting non-existent category returns 404"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -583,7 +631,15 @@ class TestCategoryCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_update_category_success(self, mock_guard, mock_get_session, mock_update, mock_get, mock_session, sample_category):
+    def test_update_category_success(
+        self,
+        mock_guard,
+        mock_get_session,
+        mock_update,
+        mock_get,
+        mock_session,
+        sample_category,
+    ):
         """Test updating a category"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -605,7 +661,9 @@ class TestCategoryCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_delete_category_success(self, mock_guard, mock_get_session, mock_delete, mock_session):
+    def test_delete_category_success(
+        self, mock_guard, mock_get_session, mock_delete, mock_session
+    ):
         """Test deleting a category"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -626,7 +684,9 @@ class TestMCPServerCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_create_mcp_server_success(self, mock_guard, mock_get_session, mock_create, mock_session, sample_mcp_server):
+    def test_create_mcp_server_success(
+        self, mock_guard, mock_get_session, mock_create, mock_session, sample_mcp_server
+    ):
         """Test creating an MCP server"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -648,7 +708,9 @@ class TestMCPServerCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_list_mcp_servers(self, mock_guard, mock_get_session, mock_list, mock_session, sample_mcp_server):
+    def test_list_mcp_servers(
+        self, mock_guard, mock_get_session, mock_list, mock_session, sample_mcp_server
+    ):
         """Test listing MCP servers"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -665,7 +727,9 @@ class TestMCPServerCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_get_mcp_server_success(self, mock_guard, mock_get_session, mock_get, mock_session, sample_mcp_server):
+    def test_get_mcp_server_success(
+        self, mock_guard, mock_get_session, mock_get, mock_session, sample_mcp_server
+    ):
         """Test getting an MCP server by ID"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -682,7 +746,9 @@ class TestMCPServerCRUD:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_delete_mcp_server_success(self, mock_guard, mock_get_session, mock_delete, mock_session):
+    def test_delete_mcp_server_success(
+        self, mock_guard, mock_get_session, mock_delete, mock_session
+    ):
         """Test deleting an MCP server"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -703,7 +769,9 @@ class TestSyncTools:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_sync_tools_local(self, mock_guard, mock_get_session, mock_sync, mock_session):
+    def test_sync_tools_local(
+        self, mock_guard, mock_get_session, mock_sync, mock_session
+    ):
         """Test syncing local tools to database"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
@@ -721,7 +789,9 @@ class TestSyncTools:
     @patch("workflow_engine_poc.routers.tools.get_db_session")
     @patch("workflow_engine_poc.routers.tools.api_key_or_user_guard")
     @pytest.mark.api
-    def test_sync_tools_unsupported_source(self, mock_guard, mock_get_session, mock_session):
+    def test_sync_tools_unsupported_source(
+        self, mock_guard, mock_get_session, mock_session
+    ):
         """Test syncing with unsupported source returns 400"""
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session

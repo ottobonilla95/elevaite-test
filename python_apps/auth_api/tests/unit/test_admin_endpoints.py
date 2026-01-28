@@ -88,9 +88,7 @@ class TestUpdateUserStatus:
         assert result.reason == "Policy violation"
 
     @pytest.mark.asyncio
-    async def test_cannot_modify_self(
-        self, mock_request, mock_superuser, mock_session
-    ):
+    async def test_cannot_modify_self(self, mock_request, mock_superuser, mock_session):
         """Test that user cannot modify their own status."""
         status_update = UserStatusUpdateRequest(status="suspended")
 
@@ -230,9 +228,7 @@ class TestGetUserSessions:
             expired_session,
         ]
 
-        mock_session.execute = AsyncMock(
-            side_effect=[user_result, sessions_result]
-        )
+        mock_session.execute = AsyncMock(side_effect=[user_result, sessions_result])
 
         result = await get_user_sessions(2, mock_superuser, mock_session)
 
@@ -271,9 +267,7 @@ class TestRevokeUserSessions:
         revoke_result = MagicMock()
         revoke_result.rowcount = 3
 
-        mock_session.execute = AsyncMock(
-            side_effect=[user_result, revoke_result]
-        )
+        mock_session.execute = AsyncMock(side_effect=[user_result, revoke_result])
 
         with patch("app.routers.admin.log_user_activity", new=AsyncMock()):
             result = await revoke_user_sessions(
@@ -298,4 +292,3 @@ class TestRevokeUserSessions:
             await revoke_user_sessions(mock_request, 999, mock_superuser, mock_session)
 
         assert exc_info.value.status_code == 404
-

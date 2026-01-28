@@ -21,15 +21,13 @@ Highly configurable through API parameters with automatic strategy selection.
 """
 
 import sys
-import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from datetime import datetime
 
 # Add path to access existing TextChunker
 sys.path.append("/home/johnbelly/work/elevaite/python_apps/arlo_backend")
 
 from steps.base_deterministic_step import (
-    BaseDeterministicStep,
     StepConfig,
     StepResult,
     StepStatus,
@@ -570,7 +568,7 @@ class TextChunkingStep(TransformationStep):
 
             chunks = text_chunker.fixed_size_chunk(content, chunk_size=chunk_size)
             return chunks
-        except Exception as e:
+        except Exception:
             # Simple fallback implementation
             chunk_size = config.get("chunk_size", 1000)
             chunks = []
@@ -591,7 +589,7 @@ class TextChunkingStep(TransformationStep):
                 content, window_size=chunk_size, overlap=overlap
             )
             return chunks
-        except Exception as e:
+        except Exception:
             # Simple fallback implementation
             chunk_size = config.get("chunk_size", 1000)
             overlap = config.get("overlap", 0.2)
@@ -613,7 +611,7 @@ class TextChunkingStep(TransformationStep):
             text_chunker = self._get_text_chunker()
             chunks = text_chunker.sentence_chunk(content)
             return chunks
-        except Exception as e:
+        except Exception:
             # Simple fallback using basic sentence splitting
             import re
 
@@ -626,7 +624,7 @@ class TextChunkingStep(TransformationStep):
             text_chunker = self._get_text_chunker()
             chunks = text_chunker.paragraph_chunk(content)
             return chunks
-        except Exception as e:
+        except Exception:
             # Simple fallback using paragraph splitting
             paragraphs = content.split("\n\n")
             return [para.strip() for para in paragraphs if para.strip()]

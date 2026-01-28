@@ -11,7 +11,9 @@ import { userSearchHelper } from "../../lib/searchHelpers";
 
 function UserHeader(): JSX.Element {
   const colors = useContext(ColorContext);
-  const [results, setResults] = useState<{ key: string; link: string; label: string }[]>([]);
+  const [results, setResults] = useState<
+    { key: string; link: string; label: string }[]
+  >([]);
 
   function handleSearchInput(input: string): void {
     "use server";
@@ -20,11 +22,22 @@ function UserHeader(): JSX.Element {
   }
 
   return (
-    <header className="welcomeAndSearch" style={{ background: colors.primary, borderColor: colors.borderColor }}>
+    <header
+      className="welcomeAndSearch"
+      style={{
+        background: colors.primary,
+        borderColor: colors.borderColor,
+      }}
+    >
       <span className="welcome" style={{ color: colors.text }}>
         Welcome to elevAIte<span style={{ fontWeight: 700 }}> Mary </span>!
       </span>
-      <Searchbar handleInput={handleSearchInput} isJump results={results} resultsTopOffset="80px" />
+      <Searchbar
+        handleInput={handleSearchInput}
+        isJump
+        results={results}
+        resultsTopOffset="80px"
+      />
     </header>
   );
 }

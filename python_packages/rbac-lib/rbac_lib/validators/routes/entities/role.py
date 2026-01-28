@@ -4,11 +4,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from uuid import UUID
 from pprint import pprint
-from typing import Any
 from rbac_lib.auth.impl import AccessTokenAuthentication
 from rbac_lib.utils.api_error import ApiError
 
-from rbac_lib.utils.deps import get_db
 from elevaitelib.orm.db import models
 from elevaitelib.schemas import (
     api as api_schemas,
@@ -133,7 +131,7 @@ async def validate_get_roles(
             exists().where(
                 and_(
                     models.User_Account.user_id == logged_in_user.id,
-                    models.User_Account.is_admin == True,
+                    models.User_Account.is_admin,
                 )
             )
         ).scalar()

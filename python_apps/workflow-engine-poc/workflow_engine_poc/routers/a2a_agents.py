@@ -47,7 +47,11 @@ def _build_agent_info(agent: A2AAgent):
 
 
 # ---------- A2A Agents CRUD ----------
-@router.post("/", response_model=A2AAgentRead, dependencies=[Depends(api_key_or_user_guard("create_a2a_agent"))])
+@router.post(
+    "/",
+    response_model=A2AAgentRead,
+    dependencies=[Depends(api_key_or_user_guard("create_a2a_agent"))],
+)
 async def create_a2a_agent(
     agent: A2AAgentCreate,
     session: Session = Depends(get_db_session),
@@ -69,7 +73,11 @@ async def create_a2a_agent(
         raise HTTPException(status_code=409, detail=str(ve))
 
 
-@router.get("/", response_model=List[A2AAgentRead], dependencies=[Depends(api_key_or_user_guard("view_a2a_agent"))])
+@router.get(
+    "/",
+    response_model=List[A2AAgentRead],
+    dependencies=[Depends(api_key_or_user_guard("view_a2a_agent"))],
+)
 async def list_a2a_agents(
     session: Session = Depends(get_db_session),
     organization_id: Optional[str] = Query(default=None),
@@ -98,7 +106,11 @@ async def list_a2a_agents(
     return A2AAgentsService.list_agents(session, params)
 
 
-@router.get("/{agent_id}", response_model=A2AAgentRead, dependencies=[Depends(api_key_or_user_guard("view_a2a_agent"))])
+@router.get(
+    "/{agent_id}",
+    response_model=A2AAgentRead,
+    dependencies=[Depends(api_key_or_user_guard("view_a2a_agent"))],
+)
 async def get_a2a_agent(
     agent_id: str,
     session: Session = Depends(get_db_session),
@@ -116,7 +128,11 @@ async def get_a2a_agent(
     return agent
 
 
-@router.patch("/{agent_id}", response_model=A2AAgentRead, dependencies=[Depends(api_key_or_user_guard("update_a2a_agent"))])
+@router.patch(
+    "/{agent_id}",
+    response_model=A2AAgentRead,
+    dependencies=[Depends(api_key_or_user_guard("update_a2a_agent"))],
+)
 async def update_a2a_agent(
     agent_id: str,
     payload: A2AAgentUpdate,
@@ -135,7 +151,9 @@ async def update_a2a_agent(
         raise HTTPException(status_code=404, detail=str(ve))
 
 
-@router.delete("/{agent_id}", dependencies=[Depends(api_key_or_user_guard("delete_a2a_agent"))])
+@router.delete(
+    "/{agent_id}", dependencies=[Depends(api_key_or_user_guard("delete_a2a_agent"))]
+)
 async def delete_a2a_agent(
     agent_id: str,
     session: Session = Depends(get_db_session),
@@ -155,7 +173,9 @@ async def delete_a2a_agent(
 
 # ---------- A2A Agent Card & Health ----------
 @router.post(
-    "/{agent_id}/refresh-card", response_model=A2AAgentRead, dependencies=[Depends(api_key_or_user_guard("update_a2a_agent"))]
+    "/{agent_id}/refresh-card",
+    response_model=A2AAgentRead,
+    dependencies=[Depends(api_key_or_user_guard("update_a2a_agent"))],
 )
 async def refresh_agent_card(
     agent_id: str,
@@ -176,10 +196,14 @@ async def refresh_agent_card(
 
     client_service = A2AClientService()
     try:
-        card = await client_service.get_agent_card(_build_agent_info(agent), force_refresh=True)
+        card = await client_service.get_agent_card(
+            _build_agent_info(agent), force_refresh=True
+        )
         card_dict = card.model_dump()
     except Exception as e:
-        A2AAgentsService.update_health_status(session, agent_id, is_healthy=False, error_message=str(e))
+        A2AAgentsService.update_health_status(
+            session, agent_id, is_healthy=False, error_message=str(e)
+        )
         raise HTTPException(status_code=502, detail=f"Failed to fetch Agent Card: {e}")
 
     updated_agent = A2AAgentsService.update_agent_card(session, agent_id, card_dict)
@@ -188,7 +212,9 @@ async def refresh_agent_card(
 
 
 @router.post(
-    "/{agent_id}/health-check", response_model=A2AAgentRead, dependencies=[Depends(api_key_or_user_guard("view_a2a_agent"))]
+    "/{agent_id}/health-check",
+    response_model=A2AAgentRead,
+    dependencies=[Depends(api_key_or_user_guard("view_a2a_agent"))],
 )
 async def check_agent_health(
     agent_id: str,
@@ -209,9 +235,13 @@ async def check_agent_health(
 
     client_service = A2AClientService()
     try:
-        await client_service.get_agent_card(_build_agent_info(agent), force_refresh=True)
+        await client_service.get_agent_card(
+            _build_agent_info(agent), force_refresh=True
+        )
         is_healthy, error_message = True, None
     except Exception as e:
         is_healthy, error_message = False, str(e)
 
-    return A2AAgentsService.update_health_status(session, agent_id, is_healthy=is_healthy, error_message=error_message)
+    return A2AAgentsService.update_health_status(
+        session, agent_id, is_healthy=is_healthy, error_message=error_message
+    )

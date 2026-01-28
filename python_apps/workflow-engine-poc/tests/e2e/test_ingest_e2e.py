@@ -1,18 +1,21 @@
 import os
 import uuid
 import json
-import tempfile
 import pytest
 
 from fastapi.testclient import TestClient
 from workflow_engine_poc.main import app
 
 
-@pytest.mark.skipif(not os.getenv("OPENAI_API_KEY"), reason="Requires OPENAI_API_KEY for embedding")
+@pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY"), reason="Requires OPENAI_API_KEY for embedding"
+)
 def test_e2e_file_to_qdrant_multipart(tmp_path):
     # Prepare a small text file to upload via multipart
     sample = tmp_path / "sample.txt"
-    sample.write_text("Hello world. This is a small document for embedding and storage.")
+    sample.write_text(
+        "Hello world. This is a small document for embedding and storage."
+    )
 
     # Initialize app state similar to other API tests (ensure steps/DB are ready)
     from workflow_engine_poc.step_registry import StepRegistry
@@ -47,7 +50,12 @@ def test_e2e_file_to_qdrant_multipart(tmp_path):
         "name": "E2E Ingest (multipart)",
         "execution_pattern": "sequential",
         "steps": [
-            {"step_id": "trigger", "step_type": "trigger", "name": "Trigger", "step_order": 1},
+            {
+                "step_id": "trigger",
+                "step_type": "trigger",
+                "name": "Trigger",
+                "step_order": 1,
+            },
             {
                 "step_id": "read",
                 "step_type": "file_reader",
@@ -62,7 +70,11 @@ def test_e2e_file_to_qdrant_multipart(tmp_path):
                 "name": "Chunk Text",
                 "dependencies": ["read"],
                 "step_order": 3,
-                "config": {"strategy": "sliding_window", "chunk_size": 50, "overlap": 10},
+                "config": {
+                    "strategy": "sliding_window",
+                    "chunk_size": 50,
+                    "overlap": 10,
+                },
                 "input_mapping": {"content": "read.content", "parsed": "read.parsed"},
             },
             {
@@ -116,7 +128,9 @@ def test_e2e_file_to_qdrant_multipart(tmp_path):
             ("files", (sample.name, f, "text/plain")),
         ]
         data = {"payload": payload}
-        exec_resp = client.post(f"/workflows/{created_id}/execute/local", files=files, data=data)
+        exec_resp = client.post(
+            f"/workflows/{created_id}/execute/local", files=files, data=data
+        )
 
     assert exec_resp.status_code == 200, exec_resp.text
     result = exec_resp.json()
@@ -128,10 +142,18 @@ def test_e2e_file_to_qdrant_multipart(tmp_path):
     assert read and read.get("success") is True and read.get("content_length", 0) > 0
 
     chunk = step_io.get("chunk")
-    assert chunk and chunk.get("chunk_count", 0) > 0 and len(chunk.get("chunks", [])) == chunk.get("chunk_count")
+    assert (
+        chunk
+        and chunk.get("chunk_count", 0) > 0
+        and len(chunk.get("chunks", [])) == chunk.get("chunk_count")
+    )
 
     embed = step_io.get("embed")
     assert embed and embed.get("embedding_count", 0) == chunk.get("chunk_count")
 
     store = step_io.get("store")
-    assert store and store.get("stored_count", 0) == embed.get("embedding_count") and store.get("storage_type") == "qdrant"
+    assert (
+        store
+        and store.get("stored_count", 0) == embed.get("embedding_count")
+        and store.get("storage_type") == "qdrant"
+    )

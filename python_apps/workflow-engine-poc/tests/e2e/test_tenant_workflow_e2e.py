@@ -71,7 +71,9 @@ def check_server_available():
         with httpx.Client(timeout=2.0) as client:
             response = client.get(f"{BASE_URL}/health")
             if response.status_code not in [200, 404]:
-                pytest.skip(f"Server not reachable at {BASE_URL}: HTTP {response.status_code}")
+                pytest.skip(
+                    f"Server not reachable at {BASE_URL}: HTTP {response.status_code}"
+                )
     except (httpx.ConnectError, httpx.TimeoutException) as e:
         pytest.skip(f"Server not reachable at {BASE_URL}: {e}")
 
@@ -114,7 +116,9 @@ def _setup_test_user_via_db() -> dict[str, Any]:
             )
 
             if register_resp.status_code not in [200, 201]:
-                raise Exception(f"Failed to create user: {register_resp.status_code} {register_resp.text}")
+                raise Exception(
+                    f"Failed to create user: {register_resp.status_code} {register_resp.text}"
+                )
 
             user_data = register_resp.json()
             user_id = user_data["id"]
@@ -130,7 +134,9 @@ def _setup_test_user_via_db() -> dict[str, Any]:
 
         try:
             # Make the user a superuser
-            await conn.execute("UPDATE users SET is_superuser = true WHERE id = $1", user_id)
+            await conn.execute(
+                "UPDATE users SET is_superuser = true WHERE id = $1", user_id
+            )
 
             # Create organization
             org_id = uuid.uuid4()
@@ -224,7 +230,9 @@ def setup_rbac_context():
 
     try:
         _RBAC_CONTEXT = _setup_test_user_via_db()
-        print(f"Created test superuser: {_RBAC_CONTEXT['email']} (ID: {_RBAC_CONTEXT['user_id']})")
+        print(
+            f"Created test superuser: {_RBAC_CONTEXT['email']} (ID: {_RBAC_CONTEXT['user_id']})"
+        )
     except Exception as e:
         print(f"Failed to set up test user ({e}), using fallback context")
         _RBAC_CONTEXT = fallback_context
@@ -290,7 +298,9 @@ def simple_workflow() -> dict[str, Any]:
 class TestTenantWorkflowLifecycle:
     """Test workflow lifecycle with RBAC enforcement."""
 
-    def test_01_tenant_is_configured(self, created_tenant: dict[str, Any], test_tenant_id: str):
+    def test_01_tenant_is_configured(
+        self, created_tenant: dict[str, Any], test_tenant_id: str
+    ):
         """Test that the test tenant is properly configured."""
         assert created_tenant["tenant_id"] == test_tenant_id
         assert created_tenant["is_active"] is True
@@ -302,19 +312,31 @@ class TestTenantWorkflowLifecycle:
         data = response.json()
         assert data["status"] == "healthy"
 
-    def test_03_create_workflow_in_tenant(self, test_tenant_id: str, simple_workflow: dict[str, Any]) -> str:
+    def test_03_create_workflow_in_tenant(
+        self, test_tenant_id: str, simple_workflow: dict[str, Any]
+    ) -> str:
         """Test creating a workflow in the new tenant."""
-        response = _http("POST", "/workflows/", simple_workflow, tenant_id=test_tenant_id)
-        assert response.status_code in [200, 201], f"Failed to create workflow: {response.status_code} {response.text}"
+        response = _http(
+            "POST", "/workflows/", simple_workflow, tenant_id=test_tenant_id
+        )
+        assert response.status_code in [200, 201], (
+            f"Failed to create workflow: {response.status_code} {response.text}"
+        )
         workflow = response.json()
         assert workflow["name"] == simple_workflow["name"]
         return workflow["id"]
 
-    def test_04_execute_workflow_sync(self, test_tenant_id: str, simple_workflow: dict[str, Any]):
+    def test_04_execute_workflow_sync(
+        self, test_tenant_id: str, simple_workflow: dict[str, Any]
+    ):
         """Test executing a workflow synchronously."""
         # Create workflow
-        create_response = _http("POST", "/workflows/", simple_workflow, tenant_id=test_tenant_id)
-        assert create_response.status_code in [200, 201], f"Failed to create: {create_response.text}"
+        create_response = _http(
+            "POST", "/workflows/", simple_workflow, tenant_id=test_tenant_id
+        )
+        assert create_response.status_code in [200, 201], (
+            f"Failed to create: {create_response.text}"
+        )
         workflow_id = create_response.json()["id"]
 
         # Execute workflow synchronously
@@ -322,8 +344,15 @@ class TestTenantWorkflowLifecycle:
             "trigger": {"kind": "chat", "current_message": "test message"},
             "wait": True,
         }
-        exec_response = _http("POST", f"/workflows/{workflow_id}/execute", exec_body, tenant_id=test_tenant_id)
-        assert exec_response.status_code == 200, f"Failed to execute: {exec_response.text}"
+        exec_response = _http(
+            "POST",
+            f"/workflows/{workflow_id}/execute",
+            exec_body,
+            tenant_id=test_tenant_id,
+        )
+        assert exec_response.status_code == 200, (
+            f"Failed to execute: {exec_response.text}"
+        )
 
         execution = exec_response.json()
         assert "id" in execution or "execution_id" in execution
@@ -334,7 +363,9 @@ class TestTenantWorkflowLifecycle:
 class TestStreamingWorkflowExecution:
     """Test streaming workflow execution."""
 
-    async def test_streaming_execution(self, test_tenant_id: str, simple_workflow: dict[str, Any]):
+    async def test_streaming_execution(
+        self, test_tenant_id: str, simple_workflow: dict[str, Any]
+    ):
         """Test executing a workflow with SSE streaming."""
         headers = _get_headers(test_tenant_id)
 
@@ -345,7 +376,9 @@ class TestStreamingWorkflowExecution:
                 json=simple_workflow,
                 headers=headers,
             )
-            assert create_response.status_code in [200, 201], f"Failed to create: {create_response.text}"
+            assert create_response.status_code in [200, 201], (
+                f"Failed to create: {create_response.text}"
+            )
             workflow_id = create_response.json()["id"]
 
             # Start async execution
@@ -358,8 +391,12 @@ class TestStreamingWorkflowExecution:
                 json=exec_body,
                 headers=headers,
             )
-            assert exec_response.status_code == 200, f"Failed to execute: {exec_response.text}"
-            execution_id = exec_response.json().get("id") or exec_response.json().get("execution_id")
+            assert exec_response.status_code == 200, (
+                f"Failed to execute: {exec_response.text}"
+            )
+            execution_id = exec_response.json().get("id") or exec_response.json().get(
+                "execution_id"
+            )
 
             # Stream events
             events = []
@@ -380,7 +417,9 @@ class TestStreamingWorkflowExecution:
                                         event = json.loads(line[6:])
                                         events.append(event)
                                         # Check for completion
-                                        if event.get("type") == "complete" or event.get("data", {}).get("status") in [
+                                        if event.get("type") == "complete" or event.get(
+                                            "data", {}
+                                        ).get("status") in [
                                             "completed",
                                             "failed",
                                         ]:

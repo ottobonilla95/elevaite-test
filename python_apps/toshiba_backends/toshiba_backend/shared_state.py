@@ -1,4 +1,3 @@
-import asyncio
 from typing import List
 
 from database_connection import DatabaseConnection

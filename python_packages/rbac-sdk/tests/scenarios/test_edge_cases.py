@@ -23,7 +23,6 @@ import pytest
 from rbac_sdk.fastapi_helpers import (
     api_key_http_validator,
     api_key_jwt_validator,
-    principal_resolvers,
     resource_builders,
 )
 
@@ -40,7 +39,9 @@ class TestIPv6Addresses:
             mock_post.return_value = mock_response
 
             # IPv6 localhost
-            validator = api_key_http_validator(base_url="http://[::1]:8004", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://[::1]:8004", cache_ttl=0.0
+            )
             request = Mock()
 
             result = validator("test-api-key", request)
@@ -60,7 +61,10 @@ class TestIPv6Addresses:
             mock_post.return_value = mock_response
 
             # Full IPv6 address
-            validator = api_key_http_validator(base_url="http://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:8004", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:8004",
+                cache_ttl=0.0,
+            )
             request = Mock()
 
             result = validator("test-api-key", request)
@@ -78,7 +82,9 @@ class TestBaseURLVariations:
             mock_response.json.return_value = {"user_id": "user123"}
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:8004/", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004/", cache_ttl=0.0
+            )
             request = Mock()
 
             result = validator("test-api-key", request)
@@ -96,7 +102,11 @@ class TestBaseURLVariations:
             mock_response.json.return_value = {"user_id": "user123"}
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:8004/v1/auth", path="/validate", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004/v1/auth",
+                path="/validate",
+                cache_ttl=0.0,
+            )
             request = Mock()
 
             result = validator("test-api-key", request)
@@ -114,7 +124,9 @@ class TestBaseURLVariations:
             mock_response.json.return_value = {"user_id": "user123"}
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:9999", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:9999", cache_ttl=0.0
+            )
             request = Mock()
 
             result = validator("test-api-key", request)
@@ -155,7 +167,9 @@ class TestEnvironmentVariables:
                 mock_response.json.return_value = {"user_id": "user123"}
                 mock_post.return_value = mock_response
 
-                validator = api_key_http_validator(base_url="http://explicit-server:8004", cache_ttl=0.0)
+                validator = api_key_http_validator(
+                    base_url="http://explicit-server:8004", cache_ttl=0.0
+                )
                 request = Mock()
 
                 result = validator("test-api-key", request)
@@ -187,7 +201,9 @@ class TestWhitespaceHandling:
             mock_response.json.return_value = {"user_id": "user123"}
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:8004", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004", cache_ttl=0.0
+            )
             request = Mock()
 
             # API key with whitespace
@@ -207,7 +223,9 @@ class TestWhitespaceHandling:
             mock_response.json.return_value = {"user_id": "user123"}
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="  http://localhost:8004  ", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="  http://localhost:8004  ", cache_ttl=0.0
+            )
             request = Mock()
 
             result = validator("test-api-key", request)
@@ -216,7 +234,9 @@ class TestWhitespaceHandling:
             # Whitespace is preserved (only trailing slash is stripped)
             call_args = mock_post.call_args
             # The URL will have whitespace preserved
-            assert "  http://localhost:8004  /api/auth/validate-apikey" == call_args[0][0]
+            assert (
+                "  http://localhost:8004  /api/auth/validate-apikey" == call_args[0][0]
+            )
 
 
 class TestSpecialCharacters:
@@ -230,7 +250,9 @@ class TestSpecialCharacters:
             mock_response.json.return_value = {"user_id": "user123"}
             mock_post.return_value = mock_response
 
-            validator = api_key_http_validator(base_url="http://localhost:8004", cache_ttl=0.0)
+            validator = api_key_http_validator(
+                base_url="http://localhost:8004", cache_ttl=0.0
+            )
             request = Mock()
 
             # API key with special characters

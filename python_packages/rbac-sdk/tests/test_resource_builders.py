@@ -345,14 +345,14 @@ class TestResourceBuilderSecurityEdgeCases:
         request = Mock()
         request.headers = {
             HDR_PROJECT_ID: "proj-123!@#$%^&*()",
-            HDR_ORG_ID: "org-456<>?:\"{}|",
+            HDR_ORG_ID: 'org-456<>?:"{}|',
         }
 
         builder = resource_builders.project_from_headers()
         resource = builder(request)
 
         assert resource["id"] == "proj-123!@#$%^&*()"
-        assert resource["organization_id"] == "org-456<>?:\"{}|"
+        assert resource["organization_id"] == 'org-456<>?:"{}|'
 
     def test_null_bytes_in_ids(self):
         """Test that null bytes in IDs are handled."""
@@ -454,4 +454,3 @@ class TestResourceBuilderConsistency:
         assert project_resource["type"] == "project"
         assert account_resource["type"] == "account"
         assert org_resource["type"] == "organization"
-

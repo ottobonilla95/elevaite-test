@@ -30,10 +30,14 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         files: Optional[List[str]] = None,
     ) -> TextGenerationResponse:
         if files:
-            raise NotImplementedError("File search is only supported by the OpenAI provider")
+            raise NotImplementedError(
+                "File search is only supported by the OpenAI provider"
+            )
         model_name = model_name or "gemini-1.5-flash"
         temperature = temperature or 0.5
-        max_tokens = max_tokens or 10000  # Higher default to accommodate Gemini 2.5's thinking tokens
+        max_tokens = (
+            max_tokens or 10000
+        )  # Higher default to accommodate Gemini 2.5's thinking tokens
         prompt = prompt or ""
         retries = retries or 5
         config = config or {}
@@ -71,7 +75,9 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
             # thinking_level: "minimal", "low", "medium", "high" (Gemini 3)
             if config.get("thinking_level"):
                 thinking_config_params["thinking_level"] = config["thinking_level"]
-            generation_config.thinking_config = types.ThinkingConfig(**thinking_config_params)
+            generation_config.thinking_config = types.ThinkingConfig(
+                **thinking_config_params
+            )
 
         if gemini_tools:
             generation_config.tools = gemini_tools
@@ -90,13 +96,19 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                 text = m.get("content")
                 if text is None:
                     continue
-                contents.append(types.Content(role=role, parts=[types.Part(text=str(text))]))
+                contents.append(
+                    types.Content(role=role, parts=[types.Part(text=str(text))])
+                )
         else:
             if sys_msg:
                 # sys_msg already set as system_instruction, just add the user prompt
-                contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
+                contents.append(
+                    types.Content(role="user", parts=[types.Part(text=prompt)])
+                )
             else:
-                contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
+                contents.append(
+                    types.Content(role="user", parts=[types.Part(text=prompt)])
+                )
 
         for attempt in range(retries):
             try:
@@ -134,7 +146,10 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                 if hasattr(response, "candidates") and response.candidates:
                     for candidate in response.candidates:
                         if hasattr(candidate, "content") and candidate.content:
-                            if hasattr(candidate.content, "parts") and candidate.content.parts:
+                            if (
+                                hasattr(candidate.content, "parts")
+                                and candidate.content.parts
+                            ):
                                 for part in candidate.content.parts:
                                     # Check if this is a thinking part
                                     if hasattr(part, "thought") and part.thought:
@@ -150,12 +165,20 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
 
                 # Get token counts from usage_metadata (Gemini's response structure)
                 tokens_in = len(prompt.split())  # fallback
-                tokens_out = len(text_content.split()) if text_content else 0  # fallback
+                tokens_out = (
+                    len(text_content.split()) if text_content else 0
+                )  # fallback
                 if hasattr(response, "usage_metadata") and response.usage_metadata:
                     usage = response.usage_metadata
-                    if hasattr(usage, "prompt_token_count") and usage.prompt_token_count:
+                    if (
+                        hasattr(usage, "prompt_token_count")
+                        and usage.prompt_token_count
+                    ):
                         tokens_in = usage.prompt_token_count
-                    if hasattr(usage, "candidates_token_count") and usage.candidates_token_count:
+                    if (
+                        hasattr(usage, "candidates_token_count")
+                        and usage.candidates_token_count
+                    ):
                         tokens_out = usage.candidates_token_count
 
                 return TextGenerationResponse(
@@ -165,20 +188,28 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     latency=latency,
                     tool_calls=tool_calls if tool_calls else None,
                     finish_reason=finish_reason,
-                    thinking_content=thinking_content.strip() if thinking_content else None,
+                    thinking_content=thinking_content.strip()
+                    if thinking_content
+                    else None,
                 )
 
             except Exception as e:
-                logging.warning(f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
+                logging.warning(
+                    f"Attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
+                )
                 if attempt == retries - 1:
-                    raise RuntimeError(f"Text generation failed after {retries} attempts: {e}")
+                    raise RuntimeError(
+                        f"Text generation failed after {retries} attempts: {e}"
+                    )
                 time.sleep((2**attempt) * 0.5)
 
         # This should never be reached due to the exception handling above,
         # but adding for type safety
         raise RuntimeError("Text generation failed: unexpected code path")
 
-    def _convert_tools_to_gemini_format(self, openai_tools: List[Dict[str, Any]]) -> List[Any]:
+    def _convert_tools_to_gemini_format(
+        self, openai_tools: List[Dict[str, Any]]
+    ) -> List[Any]:
         """
         Convert OpenAI-style tool definitions to Gemini format.
 
@@ -213,7 +244,9 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
 
                 # Handle built-in code execution tool
                 elif tool_type == "code_execution":
-                    gemini_tools.append(types.Tool(code_execution=types.ToolCodeExecution()))
+                    gemini_tools.append(
+                        types.Tool(code_execution=types.ToolCodeExecution())
+                    )
                     logging.debug("Added Code Execution built-in tool for Gemini")
 
                 # Handle function tools
@@ -257,7 +290,9 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
     ) -> Iterable[Dict[str, Any]]:
         """Stream text generation using Gemini's streaming API."""
         if files:
-            raise NotImplementedError("File search is only supported by the OpenAI provider")
+            raise NotImplementedError(
+                "File search is only supported by the OpenAI provider"
+            )
 
         model_name = model_name or "gemini-1.5-flash"
         temperature = temperature or 0.5
@@ -284,13 +319,20 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
         contents = []
         if messages and isinstance(messages, list) and len(messages) > 0:
             # Map generic {role, content} messages to Gemini's Content/Part
-            role_map = {"system": "user", "user": "user", "assistant": "model", "tool": "user"}
+            role_map = {
+                "system": "user",
+                "user": "user",
+                "assistant": "model",
+                "tool": "user",
+            }
             for m in messages:
                 role = role_map.get(str(m.get("role", "user")).lower(), "user")
                 text = m.get("content")
                 if text is None:
                     continue
-                contents.append(types.Content(role=role, parts=[types.Part(text=str(text))]))
+                contents.append(
+                    types.Content(role=role, parts=[types.Part(text=str(text))])
+                )
         else:
             if sys_msg:
                 contents.append(
@@ -300,7 +342,9 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     )
                 )
             else:
-                contents.append(types.Content(role="user", parts=[types.Part(text=prompt)]))
+                contents.append(
+                    types.Content(role="user", parts=[types.Part(text=prompt)])
+                )
 
         for attempt in range(retries):
             try:
@@ -321,7 +365,10 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     if hasattr(chunk, "candidates") and chunk.candidates:
                         for candidate in chunk.candidates:
                             if hasattr(candidate, "content") and candidate.content:
-                                if hasattr(candidate.content, "parts") and candidate.content.parts:
+                                if (
+                                    hasattr(candidate.content, "parts")
+                                    and candidate.content.parts
+                                ):
                                     for part in candidate.content.parts:
                                         # Skip thought parts - only stream actual text response
                                         if hasattr(part, "thought") and part.thought:
@@ -332,14 +379,23 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                                             full_text += delta_text
                                             yield {"type": "delta", "text": delta_text}
                                         # Handle function call parts
-                                        if hasattr(part, "function_call") and part.function_call:
+                                        if (
+                                            hasattr(part, "function_call")
+                                            and part.function_call
+                                        ):
                                             func_call = part.function_call
                                             tool_call = {
                                                 "id": f"call_{len(tool_calls_collected)}",
                                                 "type": "function",
                                                 "function": {
-                                                    "name": getattr(func_call, "name", None) or "unknown_function",
-                                                    "arguments": json.dumps(getattr(func_call, "args", {}) or {}),
+                                                    "name": getattr(
+                                                        func_call, "name", None
+                                                    )
+                                                    or "unknown_function",
+                                                    "arguments": json.dumps(
+                                                        getattr(func_call, "args", {})
+                                                        or {}
+                                                    ),
                                                 },
                                             }
                                             tool_calls_collected.append(tool_call)
@@ -369,10 +425,16 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
                         usage = chunk.usage_metadata
                         logging.debug(f"Gemini usage_metadata: {usage}")
-                        if hasattr(usage, "prompt_token_count") and usage.prompt_token_count is not None:
+                        if (
+                            hasattr(usage, "prompt_token_count")
+                            and usage.prompt_token_count is not None
+                        ):
                             tokens_in = usage.prompt_token_count
                             logging.debug(f"Gemini tokens_in from usage: {tokens_in}")
-                        if hasattr(usage, "candidates_token_count") and usage.candidates_token_count is not None:
+                        if (
+                            hasattr(usage, "candidates_token_count")
+                            and usage.candidates_token_count is not None
+                        ):
                             tokens_out = usage.candidates_token_count
                             logging.debug(f"Gemini tokens_out from usage: {tokens_out}")
 
@@ -400,7 +462,10 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                     finish_reason=finish_reason,
                 )
 
-                final_data: Dict[str, Any] = {"type": "final", "response": response.model_dump()}
+                final_data: Dict[str, Any] = {
+                    "type": "final",
+                    "response": response.model_dump(),
+                }
                 if tool_calls_collected:
                     final_data["tool_calls"] = tool_calls_collected
                 if finish_reason:
@@ -410,9 +475,13 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
                 return
 
             except Exception as e:
-                logging.warning(f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying...")
+                logging.warning(
+                    f"Streaming attempt {attempt + 1}/{retries} failed: {e}. Retrying..."
+                )
                 if attempt == retries - 1:
-                    raise RuntimeError(f"Streaming failed after {retries} attempts: {e}")
+                    raise RuntimeError(
+                        f"Streaming failed after {retries} attempts: {e}"
+                    )
                 time.sleep((2**attempt) * 0.5)
 
     def validate_config(self, config: Dict[str, Any]) -> bool:

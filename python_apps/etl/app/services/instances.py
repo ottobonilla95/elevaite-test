@@ -3,16 +3,14 @@ from typing import List
 import elasticsearch
 from elevaitelib.pipelines.service import create_pipelines_for_provider
 from fastapi import HTTPException
-from sqlalchemy.orm import Session, Query
+from sqlalchemy.orm import Session
 from app.util.RedisSingleton import RedisSingleton
 from app.util.ElasticSingleton import ElasticSingleton
 from elevaitelib.util import func as util_func
-from elevaitelib.schemas.application import is_application
 from elevaitelib.schemas.instance import (
     Instance,
     InstanceChartData,
     InstanceCreate,
-    InstancePipelineStepStatus,
     InstancePipelineStepStatusUpdate,
     InstanceStatus,
     InstanceUpdate,
@@ -24,13 +22,10 @@ from elevaitelib.schemas.instance import (
 from elevaitelib.schemas.pipeline import is_pipeline
 from elevaitelib.schemas.configuration import (
     Configuration,
-    PreProcessFormDTO,
-    S3IngestFormDataDTO,
     is_configuration,
 )
 from elevaitelib.orm.crud import (
     pipeline as pipeline_crud,
-    application as application_crud,
     instance as instance_crud,
     configuration as configuration_crud,
 )

@@ -129,7 +129,7 @@ async def update_user_status(
     await log_user_activity(
         session,
         current_user.id,
-        f"admin_changed_user_status",
+        "admin_changed_user_status",
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         details={
@@ -145,7 +145,7 @@ async def update_user_status(
     await log_user_activity(
         session,
         user_id,
-        f"status_changed_by_admin",
+        "status_changed_by_admin",
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         details={
@@ -188,7 +188,9 @@ async def suspend_user(
     Suspended users cannot log in until their account is reactivated.
     """
     status_update = UserStatusUpdateRequest(status="suspended", reason=reason)
-    return await update_user_status(request, user_id, status_update, current_user, session)
+    return await update_user_status(
+        request, user_id, status_update, current_user, session
+    )
 
 
 @router.post("/users/{user_id}/activate")
@@ -206,7 +208,9 @@ async def activate_user(
     Active users can log in normally.
     """
     status_update = UserStatusUpdateRequest(status="active", reason=reason)
-    return await update_user_status(request, user_id, status_update, current_user, session)
+    return await update_user_status(
+        request, user_id, status_update, current_user, session
+    )
 
 
 @router.post("/users/{user_id}/deactivate")
@@ -224,7 +228,9 @@ async def deactivate_user(
     Inactive users cannot log in until their account is reactivated.
     """
     status_update = UserStatusUpdateRequest(status="inactive", reason=reason)
-    return await update_user_status(request, user_id, status_update, current_user, session)
+    return await update_user_status(
+        request, user_id, status_update, current_user, session
+    )
 
 
 # ============================================================================
@@ -261,9 +267,7 @@ async def get_user_sessions(
 
     # Filter active sessions (not expired and is_active=True)
     now = datetime.now(timezone.utc)
-    active_sessions = [
-        s for s in all_sessions if s.is_active and s.expires_at > now
-    ]
+    active_sessions = [s for s in all_sessions if s.is_active and s.expires_at > now]
 
     # Build session info
     session_list = []
@@ -352,4 +356,3 @@ async def revoke_user_sessions(
         "sessions_revoked": revoked_count,
         "message": f"Successfully revoked {revoked_count} session(s)",
     }
-

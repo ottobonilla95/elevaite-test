@@ -26,9 +26,9 @@ def validate_and_log_response(
     """
     Validate the response from the current Vision service and log relevant details.
     """
-    assert isinstance(
-        response, TextGenerationResponse
-    ), "Response must be a TextGenerationResponse instance."
+    assert isinstance(response, TextGenerationResponse), (
+        "Response must be a TextGenerationResponse instance."
+    )
     assert len(response.text) > 0, "Generated text must not be empty."
     assert response.tokens_in > 0, "Input token count must be greater than 0."
     assert response.tokens_out > 0, "Output token count must be greater than 0."

@@ -1,5 +1,5 @@
 from iopexwise_psql.load_database_modified import DatabaseConnector, CaseHistoryLoader
-from typing import Optional, Union
+from typing import Optional
 
 
 def get_opexwise_data(contact_email: Optional[str] = None, case_number: Optional[str] = None):

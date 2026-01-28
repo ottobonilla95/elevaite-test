@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 import uuid
 
-from workflow_core_sdk.steps.ingestion_steps import ingestion_step, _check_job_completion
+from workflow_core_sdk.steps.ingestion_steps import ingestion_step
 from workflow_core_sdk.execution_context import ExecutionContext
 
 
@@ -47,7 +47,9 @@ class TestIngestionStepFirstExecution:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.ingestion_steps.httpx.AsyncClient")
     @patch("workflow_core_sdk.steps.ingestion_steps.stream_manager")
-    async def test_creates_job_successfully(self, mock_stream, mock_http_client, step_config, execution_context):
+    async def test_creates_job_successfully(
+        self, mock_stream, mock_http_client, step_config, execution_context
+    ):
         """Test that first execution creates an ingestion job"""
         # Mock HTTP response
         mock_response = MagicMock()
@@ -86,18 +88,24 @@ class TestIngestionStepFirstExecution:
         assert "config" in request_json
         assert request_json["config"] == step_config["config"]["ingestion_config"]
         assert request_json["metadata"]["tenant_id"] == "org-123"
-        assert request_json["metadata"]["execution_id"] == execution_context.execution_id
+        assert (
+            request_json["metadata"]["execution_id"] == execution_context.execution_id
+        )
         assert request_json["metadata"]["step_id"] == "ingestion-step-1"
         assert "callback_topic" in request_json["metadata"]
 
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.ingestion_steps.httpx.AsyncClient")
     @patch("workflow_core_sdk.steps.ingestion_steps.stream_manager")
-    async def test_handles_job_creation_failure(self, mock_stream, mock_http_client, step_config, execution_context):
+    async def test_handles_job_creation_failure(
+        self, mock_stream, mock_http_client, step_config, execution_context
+    ):
         """Test error handling when job creation fails"""
         # Mock HTTP error
         mock_client_instance = MagicMock()
-        mock_client_instance.post = AsyncMock(side_effect=Exception("Service unavailable"))
+        mock_client_instance.post = AsyncMock(
+            side_effect=Exception("Service unavailable")
+        )
         mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_client_instance.__aexit__ = AsyncMock(return_value=None)
         mock_http_client.return_value = mock_client_instance
@@ -120,7 +128,9 @@ class TestIngestionStepSecondExecution:
 
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.ingestion_steps.httpx.AsyncClient")
-    async def test_checks_job_completion_success(self, mock_http_client, step_config, execution_context):
+    async def test_checks_job_completion_success(
+        self, mock_http_client, step_config, execution_context
+    ):
         """Test that second execution checks job status and returns success"""
         # Set up prior output (job already created)
         execution_context.step_io_data["ingestion-step-1"] = {
@@ -159,7 +169,9 @@ class TestIngestionStepSecondExecution:
 
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.ingestion_steps.httpx.AsyncClient")
-    async def test_checks_job_completion_failure(self, mock_http_client, step_config, execution_context):
+    async def test_checks_job_completion_failure(
+        self, mock_http_client, step_config, execution_context
+    ):
         """Test that second execution handles job failure"""
         # Set up prior output
         execution_context.step_io_data["ingestion-step-1"] = {
@@ -198,7 +210,9 @@ class TestIngestionStepEdgeCases:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.ingestion_steps.httpx.AsyncClient")
     @patch("workflow_core_sdk.steps.ingestion_steps.stream_manager")
-    async def test_missing_ingestion_service_url(self, mock_stream, mock_http_client, step_config, execution_context):
+    async def test_missing_ingestion_service_url(
+        self, mock_stream, mock_http_client, step_config, execution_context
+    ):
         """Test handling when INGESTION_SERVICE_URL is not configured"""
         mock_stream.emit_execution_event = AsyncMock()
         mock_stream.emit_workflow_event = AsyncMock()
@@ -211,7 +225,9 @@ class TestIngestionStepEdgeCases:
 
             mock_client_instance = MagicMock()
             mock_client_instance.post = AsyncMock(return_value=mock_response)
-            mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+            mock_client_instance.__aenter__ = AsyncMock(
+                return_value=mock_client_instance
+            )
             mock_client_instance.__aexit__ = AsyncMock(return_value=None)
             mock_http_client.return_value = mock_client_instance
 
@@ -222,7 +238,9 @@ class TestIngestionStepEdgeCases:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.ingestion_steps.httpx.AsyncClient")
     @patch("workflow_core_sdk.steps.ingestion_steps.stream_manager")
-    async def test_job_status_still_running(self, mock_stream, mock_http_client, step_config, execution_context):
+    async def test_job_status_still_running(
+        self, mock_stream, mock_http_client, step_config, execution_context
+    ):
         """Test checking job status when job is still running"""
         execution_context.step_io_data["ingestion-step-1"] = {
             "ingestion_job_id": "job-123",
@@ -252,7 +270,9 @@ class TestIngestionStepEdgeCases:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.ingestion_steps.httpx.AsyncClient")
     @patch("workflow_core_sdk.steps.ingestion_steps.stream_manager")
-    async def test_http_timeout(self, mock_stream, mock_http_client, step_config, execution_context):
+    async def test_http_timeout(
+        self, mock_stream, mock_http_client, step_config, execution_context
+    ):
         """Test handling of HTTP timeout"""
         mock_stream.emit_execution_event = AsyncMock()
         mock_stream.emit_workflow_event = AsyncMock()
@@ -260,7 +280,9 @@ class TestIngestionStepEdgeCases:
         import httpx
 
         mock_client_instance = MagicMock()
-        mock_client_instance.post = AsyncMock(side_effect=httpx.TimeoutException("Request timed out"))
+        mock_client_instance.post = AsyncMock(
+            side_effect=httpx.TimeoutException("Request timed out")
+        )
         mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_client_instance.__aexit__ = AsyncMock(return_value=None)
         mock_http_client.return_value = mock_client_instance
@@ -274,7 +296,9 @@ class TestIngestionStepEdgeCases:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.ingestion_steps.httpx.AsyncClient")
     @patch("workflow_core_sdk.steps.ingestion_steps.stream_manager")
-    async def test_http_404_error(self, mock_stream, mock_http_client, step_config, execution_context):
+    async def test_http_404_error(
+        self, mock_stream, mock_http_client, step_config, execution_context
+    ):
         """Test handling of 404 error from ingestion service"""
         execution_context.step_io_data["ingestion-step-1"] = {
             "ingestion_job_id": "job-nonexistent",
@@ -286,7 +310,9 @@ class TestIngestionStepEdgeCases:
         mock_response = MagicMock()
         mock_response.status_code = 404
         mock_response.raise_for_status = MagicMock(
-            side_effect=httpx.HTTPStatusError("Not found", request=MagicMock(), response=mock_response)
+            side_effect=httpx.HTTPStatusError(
+                "Not found", request=MagicMock(), response=mock_response
+            )
         )
 
         mock_client_instance = MagicMock()
@@ -303,7 +329,9 @@ class TestIngestionStepEdgeCases:
     @pytest.mark.asyncio
     @patch("workflow_core_sdk.steps.ingestion_steps.httpx.AsyncClient")
     @patch("workflow_core_sdk.steps.ingestion_steps.stream_manager")
-    async def test_missing_tenant_id(self, mock_stream, mock_http_client, execution_context):
+    async def test_missing_tenant_id(
+        self, mock_stream, mock_http_client, execution_context
+    ):
         """Test that tenant_id is optional"""
         step_config = {
             "step_id": "ingestion-step-1",

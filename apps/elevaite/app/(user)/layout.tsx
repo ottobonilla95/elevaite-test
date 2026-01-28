@@ -1,6 +1,7 @@
 import type { SidebarIconObject } from "@repo/ui/components";
 import { ElevaiteIcons } from "@repo/ui/components";
 import type { Metadata } from "next";
+import type { UserAccountMembershipObject } from "../lib/interfaces";
 import AppLayout from "../ui/AppLayout";
 import "./layout.css";
 import { auth } from "../../auth";
@@ -125,10 +126,13 @@ export default async function PageLayout({
   // In production, use real auth
   const session = await auth();
 
-  const isAlcatel = session?.user?.accountMemberships
-    ? session.user.accountMemberships.filter(
+  const accountMemberships = session?.user?.accountMemberships as
+    | UserAccountMembershipObject[]
+    | undefined;
+  const isAlcatel = accountMemberships
+    ? accountMemberships.filter(
         (membership) =>
-          membership.account_id === "ab5eed01-46f1-423d-9da0-093814a898fc"
+          membership.account_id === "ab5eed01-46f1-423d-9da0-093814a898fc",
       ).length > 0
     : false;
 

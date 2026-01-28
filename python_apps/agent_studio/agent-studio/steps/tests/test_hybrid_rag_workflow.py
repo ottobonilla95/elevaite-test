@@ -16,8 +16,6 @@ import json
 import os
 import tempfile
 import requests
-import time
-from datetime import datetime
 from pathlib import Path
 
 # Test document content

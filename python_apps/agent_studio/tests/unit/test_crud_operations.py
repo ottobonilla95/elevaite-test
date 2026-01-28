@@ -1,9 +1,6 @@
-import pytest
 import uuid
-from unittest.mock import Mock
-from sqlalchemy.orm import Session
 
-from db import crud, models, schemas
+from db import crud, schemas
 from db.fixtures import DEFAULT_PROMPTS
 
 

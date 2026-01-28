@@ -10,7 +10,7 @@ from data_classes import SessionObject, MessageObject, QueryClassificationReques
 from utils import convert_messages_to_chat_history
 import dotenv
 import os
-from shared_state import session_status, update_status, get_status, get_sources, update_sources, get_logs, reset_logs, update_logs
+from shared_state import session_status, update_status, get_status, get_sources, update_sources, reset_logs
 import uuid
 from database_connection import ChatRequest
 from pydantic import BaseModel
@@ -24,8 +24,7 @@ import re
 import tools
 from data_classes import SRNumberRequest
 import requests
-from dbos_query_classification_flow import launch_durable_workflow, get_last_completed_step
-import time
+from dbos_query_classification_flow import launch_durable_workflow
 
 if not os.getenv("KUBERNETES_SERVICE_HOST"):
     dotenv.load_dotenv(".env")
@@ -121,7 +120,7 @@ async def get_current_status(uid: str, sid: str):
         print("session_status", session_status)
         if uid not in session_status:
             await update_status(uid, "Processing...")
-            yield f"data: Processing...\n\n"
+            yield "data: Processing...\n\n"
 
         last_status = None
         counter = 0
@@ -298,8 +297,8 @@ async def run(request: Request, background_tasks: BackgroundTasks):
                 else:
                     # Sort sources such that any source that has None_ in it is at the end
                     sources_used.sort(key=lambda x: "None_" in x)
-                    full_response += "\n\n" + f"\n".join(sources_used)
-                    yield "\n\n"+f"\n".join(sources_used)
+                    full_response += "\n\n" + "\n".join(sources_used)
+                    yield "\n\n"+"\n".join(sources_used)
                 # context_log = await get_logs(user_id)
                 # print("LOGS FOR RETRIEVER: ", context_log)
                 # yield context_log

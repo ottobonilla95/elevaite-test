@@ -123,19 +123,37 @@ resource "aws_security_group" "database" {
   name_prefix = "elevaite-dev-db-"
   vpc_id      = module.vpc.vpc_id
 
-  ingress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "elevaite-dev-database"
+  }
+}
+
+# Security group rules (separate resources to avoid replacement)
+resource "aws_security_group_rule" "database_vpc" {
+  type              = "ingress"
+  from_port         = 5432
+  to_port           = 5432
+  protocol          = "tcp"
+  cidr_blocks       = [module.vpc.vpc_cidr_block]
+  description       = "PostgreSQL from VPC"
+  security_group_id = aws_security_group.database.id
+}
+
+resource "aws_security_group_rule" "database_public" {
+  type              = "ingress"
+  from_port         = 5432
+  to_port           = 5432
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  description       = "PostgreSQL from anywhere (dev only - needed for CI/CD)"
+  security_group_id = aws_security_group.database.id
 }
 
 # =============================================================================
@@ -148,16 +166,17 @@ module "database" {
   environment = "dev"
   name        = "elevaite"
 
-  instance_class    = "db.t4g.micro" # Minimum for dev
+  instance_class    = "db.t3.micro" # Changed to force ENI recreation in public subnet
   allocated_storage = 20
   database_name     = "elevaite_dev"
   username          = "elevaite"
   password          = var.db_password
   multi_az          = false # Cost saving for dev
 
-  vpc_id             = module.vpc.vpc_id
-  subnet_ids         = module.vpc.private_subnets
-  security_group_ids = [aws_security_group.database.id]
+  vpc_id              = module.vpc.vpc_id
+  subnet_ids          = module.vpc.public_subnets # ONLY public subnets - force ENI in public subnet
+  security_group_ids  = [aws_security_group.database.id]
+  publicly_accessible = true # Allow GitHub Actions to connect for PR environments
 }
 
 # =============================================================================

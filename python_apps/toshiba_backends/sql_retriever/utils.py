@@ -1,11 +1,10 @@
 import inspect
 from typing import Any, Dict, List, Union, get_type_hints
 import functools
-from typing import Any, Callable
+from typing import Callable
 import os
 import openai
 import dotenv
-import re
 dotenv.load_dotenv(".env")
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 

@@ -1,6 +1,5 @@
 """Tests for the UserActivity model."""
 
-import pytest
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
@@ -47,7 +46,9 @@ class TestUserActivityModel:
         activity = UserActivity(
             user_id=1,
             action="login",
-            timestamp=datetime.now(timezone.utc),  # We need to set this manually in tests
+            timestamp=datetime.now(
+                timezone.utc
+            ),  # We need to set this manually in tests
         )
 
         # Check default values

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from rbac_lib.auth.impl import AccessTokenAuthentication
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, select, exists
+from sqlalchemy import and_, exists
 from sqlalchemy.exc import SQLAlchemyError
 from pprint import pprint
 from typing import Any
@@ -61,7 +61,6 @@ async def validate_patch_account(
 ) -> dict[str, Any]:
     db: Session = request.state.db
     try:
-
         account = (
             db.query(models.Account).filter(models.Account.id == account_id).first()
         )
@@ -78,7 +77,7 @@ async def validate_patch_account(
                 and_(
                     models.User_Account.user_id == logged_in_user.id,
                     models.User_Account.account_id == account_id,
-                    models.User_Account.is_admin == True,
+                    models.User_Account.is_admin,
                 )
             )
         ).scalar()
@@ -228,7 +227,7 @@ async def validate_get_account_user_list(
                     raise ApiError.notfound(
                         f"Project - '{project_id}' - not found in account - '{account_id}'"
                     )
-                if project.parent_project_id != None:
+                if project.parent_project_id is not None:
                     raise ApiError.validationerror(
                         f"Project - '{project_id}' - is not a top-level project under account - '{account_id}'"
                     )
@@ -259,7 +258,7 @@ async def validate_get_account_user_list(
                 raise ApiError.notfound(
                     f"Project - '{project_id}' - not found in account - '{account_id}'"
                 )
-            if project.parent_project_id != None:
+            if project.parent_project_id is not None:
                 raise ApiError.validationerror(
                     f"Project - '{project_id}' - is not a top-level project under account - '{account_id}'"
                 )
