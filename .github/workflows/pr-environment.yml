@@ -236,7 +236,8 @@ jobs:
             --from-literal=POSTGRES_USER=elevaite \
             --from-literal=POSTGRES_PASSWORD=${{ secrets.DEV_DB_PASSWORD }} \
             --from-literal=DATABASE_URL=postgresql+asyncpg://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?ssl=true \
-            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require \
+            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?ssl=true \
+            --from-literal=ALEMBIC_SQLALCHEMY_URL=postgresql://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require \
             --from-literal=RABBITMQ_USER=elevaite \
             --from-literal=RABBITMQ_PASSWORD=${{ secrets.DEV_RABBITMQ_PASSWORD }} \
             --from-literal=RABBITMQ_HOST=${{ steps.terraform.outputs.rabbitmq_host }} \
