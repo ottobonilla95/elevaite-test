@@ -246,10 +246,11 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
-      - name: Deploy with Helm
+      - name: Deploy with Helm (async)
         id: helm_deploy
         continue-on-error: true
         run: |
+          # Deploy without waiting - we'll monitor manually
           helm upgrade --install elevaite-pr-${{ env.PR_NUMBER }} ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
             --values ./helm/elevaite/values-pr.yaml \
@@ -272,64 +273,47 @@ jobs:
             --set workflowEngine.enabled=false \
             --set worker.enabled=false \
             --set ingestion.enabled=false \
-            --wait \
             --timeout 10m
 
-      - name: Debug migration job on failure
-        if: steps.helm_deploy.outcome == 'failure'
+      - name: Monitor and capture migration logs
         run: |
-          echo "=========================================="
-          echo "Migration Job Debug Information"
-          echo "=========================================="
+          echo "Waiting for migration job to appear..."
+          TIMEOUT=120
+          ELAPSED=0
 
-          # Get ALL migration pods (may be deleted by hook policy)
-          echo "All migration pods in namespace:"
-          kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations --sort-by=.metadata.creationTimestamp 2>&1 || echo "No pods found"
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            JOB_STATUS=$(kubectl get job elevaite-pr-${{ env.PR_NUMBER }}-migrations -n ${{ env.NAMESPACE }} -o jsonpath='{.status.conditions[0].type}' 2>/dev/null || echo "NotFound")
 
-          echo ""
-          echo "All jobs in namespace:"
-          kubectl get jobs -n ${{ env.NAMESPACE }} 2>&1
+            if [ "$JOB_STATUS" != "NotFound" ]; then
+              echo "Migration job found! Status: $JOB_STATUS"
 
-          # Try to get logs from ANY migration pod that exists or existed recently
-          POD_NAMES=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
+              # Wait a bit for pod to start
+              sleep 5
 
-          if [ -n "$POD_NAMES" ]; then
-            for POD_NAME in $POD_NAMES; do
-              echo ""
-              echo "=========================================="
-              echo "Pod: $POD_NAME"
-              echo "=========================================="
+              # Get the most recent migration pod
+              POD_NAME=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null || echo "")
 
-              kubectl get pod $POD_NAME -n ${{ env.NAMESPACE }} 2>&1 || echo "Pod not found"
+              if [ -n "$POD_NAME" ]; then
+                echo "=========================================="
+                echo "Migration Pod: $POD_NAME"
+                echo "=========================================="
 
-              echo ""
-              echo "--- Auth API Migration Logs ---"
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c auth-api-migrations --tail=200 2>&1 || \
-                kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c auth-api-migrations --previous --tail=200 2>&1 || \
-                echo "No auth-api logs"
+                # Stream logs (this will block until pod completes or fails)
+                kubectl logs -f $POD_NAME -n ${{ env.NAMESPACE }} -c auth-api-migrations 2>&1 || \
+                  kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c auth-api-migrations --previous 2>&1 || \
+                  echo "Could not get logs"
 
-              echo ""
-              echo "--- Workflow Engine Migration Logs ---"
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c workflow-engine-migrations --tail=200 2>&1 || \
-                kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c workflow-engine-migrations --previous --tail=200 2>&1 || \
-                echo "No workflow-engine logs"
+                break
+              fi
+            fi
 
-              echo ""
-              echo "--- Ingestion Migration Logs ---"
-              kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c ingestion-service-migrations --tail=200 2>&1 || \
-                kubectl logs $POD_NAME -n ${{ env.NAMESPACE }} -c ingestion-service-migrations --previous --tail=200 2>&1 || \
-                echo "No ingestion logs"
-            done
-          else
-            echo "No migration pods found in namespace ${{ env.NAMESPACE }}"
+            sleep 2
+            ELAPSED=$((ELAPSED + 2))
+          done
 
-            # Check recent events
-            echo ""
-            echo "Recent events in namespace:"
-            kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp' | tail -50
+          if [ $ELAPSED -ge $TIMEOUT ]; then
+            echo "Timeout waiting for migration job"
           fi
-
-          exit 1
 
       - name: Check deployment succeeded
         if: steps.helm_deploy.outcome == 'failure'
