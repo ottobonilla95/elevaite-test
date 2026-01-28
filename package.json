@@ -59,7 +59,8 @@
   },
   "packageManager": "npm@10.2.4",
   "workspaces": [
-    "apps/*",
+    "apps/auth",
+    "apps/elevaite",
     "packages/*"
   ],
   "dependencies": {},
