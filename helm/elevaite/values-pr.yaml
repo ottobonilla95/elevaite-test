@@ -16,6 +16,7 @@ authApi:
   replicaCount: 1
   image:
     tag: "pr"  # Set dynamically: pr-${PR_NUMBER}
+    pullPolicy: Always  # Always pull latest image for PR environments
   resources:
     requests:
       cpu: 200m
