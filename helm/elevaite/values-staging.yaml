@@ -9,7 +9,7 @@ global:
   environment: "staging"
 
 # =============================================================================
-# APPLICATION SERVICES
+# APPLICATION SERVICES (Reduced resources for t3.medium nodes)
 # =============================================================================
 authApi:
   replicaCount: 1
@@ -18,7 +18,7 @@ authApi:
     pullPolicy: Always
   resources:
     requests:
-      cpu: 250m
+      cpu: 100m
       memory: 256Mi
     limits:
       cpu: 500m
@@ -36,8 +36,8 @@ workflowEngine:
     pullPolicy: Always
   resources:
     requests:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 200m
+      memory: 384Mi
     limits:
       cpu: 1000m
       memory: 1Gi
@@ -48,20 +48,21 @@ workflowEngine:
   envFromSecrets:
     - elevaite-secrets
 
+# Ingestion disabled - requires Qdrant which is not deployed
 ingestion:
-  replicaCount: 1
-  image:
-    tag: "staging"
-  env:
-    LOG_LEVEL: DEBUG
-    ALLOWED_HOSTS: "*"
-  envFromSecrets:
-    - elevaite-secrets
+  enabled: false
 
 worker:
-  replicaCount: 2
+  replicaCount: 1  # Single worker for staging
   image:
     tag: "staging"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 384Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
   env:
     LOG_LEVEL: DEBUG
   envFromSecrets:
@@ -154,7 +155,7 @@ rabbitmq:
       storageClass: ""  # Use default
     resources:
       requests:
-        cpu: 250m
+        cpu: 100m
         memory: 256Mi
       limits:
         cpu: 500m
