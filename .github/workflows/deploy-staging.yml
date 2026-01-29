@@ -313,46 +313,46 @@ jobs:
           # Database credentials
           kubectl create secret generic elevaite-db-credentials \
             --namespace ${{ env.NAMESPACE }} \
-            --from-literal=POSTGRES_USER=${{ secrets.STAGING_DB_USER }} \
-            --from-literal=POSTGRES_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
+            --from-literal=POSTGRES_USER="${{ secrets.STAGING_DB_USER }}" \
+            --from-literal=POSTGRES_PASSWORD="${{ secrets.STAGING_DB_PASSWORD }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
           # Storage credentials
           kubectl create secret generic elevaite-storage-credentials \
             --namespace ${{ env.NAMESPACE }} \
-            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.STAGING_STORAGE_ACCESS_KEY }} \
-            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.STAGING_STORAGE_SECRET_KEY }} \
+            --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.STAGING_STORAGE_ACCESS_KEY }}" \
+            --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.STAGING_STORAGE_SECRET_KEY }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
           # RabbitMQ credentials
           kubectl create secret generic elevaite-rabbitmq-credentials \
             --namespace ${{ env.NAMESPACE }} \
-            --from-literal=RABBITMQ_USER=elevaite \
-            --from-literal=RABBITMQ_PASSWORD=${{ secrets.STAGING_RABBITMQ_PASSWORD }} \
+            --from-literal=RABBITMQ_USER="elevaite" \
+            --from-literal=RABBITMQ_PASSWORD="${{ secrets.STAGING_RABBITMQ_PASSWORD }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
           # Application secrets
           kubectl create secret generic elevaite-secrets \
             --namespace ${{ env.NAMESPACE }} \
-            --from-literal=JWT_SECRET=${{ secrets.JWT_SECRET }} \
-            --from-literal=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
-            --from-literal=NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET || secrets.JWT_SECRET }} \
-            --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-            --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-            --from-literal=db_host=${{ needs.prepare.outputs.db_host }} \
-            --from-literal=db_port=5432 \
-            --from-literal=db_user=${{ secrets.STAGING_DB_USER }} \
-            --from-literal=db_password=${{ secrets.STAGING_DB_PASSWORD }} \
-            --from-literal=db_name=elevaite_staging \
-            --from-literal=POSTGRES_USER=${{ secrets.STAGING_DB_USER }} \
-            --from-literal=POSTGRES_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
-            --from-literal=DATABASE_URL=postgresql+asyncpg://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_staging?ssl=require \
-            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_staging?ssl=require \
-            --from-literal=ALEMBIC_SQLALCHEMY_URL=postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_staging?sslmode=require \
-            --from-literal=RABBITMQ_USER=elevaite \
-            --from-literal=RABBITMQ_PASSWORD=${{ secrets.STAGING_RABBITMQ_PASSWORD }} \
-            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.STAGING_STORAGE_ACCESS_KEY }} \
-            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.STAGING_STORAGE_SECRET_KEY }} \
+            --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            --from-literal=OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            --from-literal=NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET || secrets.JWT_SECRET }}" \
+            --from-literal=GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+            --from-literal=GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --from-literal=db_host="${{ needs.prepare.outputs.db_host }}" \
+            --from-literal=db_port="5432" \
+            --from-literal=db_user="${{ secrets.STAGING_DB_USER }}" \
+            --from-literal=db_password="${{ secrets.STAGING_DB_PASSWORD }}" \
+            --from-literal=db_name="elevaite_staging" \
+            --from-literal=POSTGRES_USER="${{ secrets.STAGING_DB_USER }}" \
+            --from-literal=POSTGRES_PASSWORD="${{ secrets.STAGING_DB_PASSWORD }}" \
+            --from-literal=DATABASE_URL="postgresql+asyncpg://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_staging?ssl=require" \
+            --from-literal=SQLALCHEMY_DATABASE_URL="postgresql+asyncpg://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_staging?ssl=require" \
+            --from-literal=ALEMBIC_SQLALCHEMY_URL="postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_staging?sslmode=require" \
+            --from-literal=RABBITMQ_USER="elevaite" \
+            --from-literal=RABBITMQ_PASSWORD="${{ secrets.STAGING_RABBITMQ_PASSWORD }}" \
+            --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.STAGING_STORAGE_ACCESS_KEY }}" \
+            --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.STAGING_STORAGE_SECRET_KEY }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Setup Helm
