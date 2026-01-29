@@ -3,6 +3,7 @@
 # Deploys to staging AFTER CI passes on develop branch
 # Builds ALL images (backends + frontends) with staging-specific configuration
 # Cloud-agnostic: Works with AWS/Azure/GCP (configured via secrets)
+# Uses dynamic nip.io URLs based on LoadBalancer IP (no manual URL vars needed)
 # =============================================================================
 
 name: Deploy to Staging
@@ -32,12 +33,11 @@ concurrency:
 env:
   ENVIRONMENT: staging
   NAMESPACE: staging
-  # Cloud provider is set via repository secret CLOUD_PROVIDER
   CLOUD_PROVIDER: ${{ inputs.cloud_provider || vars.CLOUD_PROVIDER || 'aws' }}
 
 jobs:
   # ===========================================================================
-  # Get Image Tag (from CI build or manual input)
+  # Prepare - Get infrastructure info needed for builds
   # ===========================================================================
   prepare:
     # Skip if triggered by workflow_run and CI failed
@@ -45,29 +45,114 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
+    environment: staging
     outputs:
       image_tag: ${{ steps.get-tag.outputs.image_tag }}
+      lb_ip: ${{ steps.lb.outputs.lb_ip }}
+      lb_ip_dashed: ${{ steps.lb.outputs.lb_ip_dashed }}
+      db_host: ${{ steps.terraform.outputs.db_host }}
+      storage_bucket: ${{ steps.terraform.outputs.storage_bucket }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Get image tag
         id: get-tag
         run: |
           if [ -n "${{ inputs.image_tag }}" ]; then
-            # Manual trigger with specific tag
             echo "image_tag=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" == "workflow_run" ]; then
-            # Get SHA from the CI workflow that triggered this
             SHORT_SHA=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
             echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
           else
-            # Manual trigger without tag - use current HEAD
             SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
             echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
           fi
           echo "Using image tag: $(cat $GITHUB_OUTPUT | grep image_tag)"
 
+      # --- Cloud Authentication ---
+      - name: Configure AWS credentials
+        if: ${{ env.CLOUD_PROVIDER == 'aws' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
+
+      - name: Configure kubectl for AWS EKS
+        if: ${{ env.CLOUD_PROVIDER == 'aws' }}
+        run: aws eks update-kubeconfig --name elevaite-staging --region ${{ vars.AWS_REGION || 'us-west-1' }}
+
+      - name: Configure Azure credentials
+        if: ${{ env.CLOUD_PROVIDER == 'azure' }}
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure kubectl for Azure AKS
+        if: ${{ env.CLOUD_PROVIDER == 'azure' }}
+        run: az aks get-credentials --resource-group elevaite-staging --name elevaite-staging
+
+      - name: Configure GCP credentials
+        if: ${{ env.CLOUD_PROVIDER == 'gcp' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Configure kubectl for GCP GKE
+        if: ${{ env.CLOUD_PROVIDER == 'gcp' }}
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: elevaite-staging
+          location: ${{ vars.GCP_REGION || 'us-central1' }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          terraform_wrapper: false
+
+      - name: Get Terraform outputs
+        id: terraform
+        run: |
+          cd terraform/environments/staging/${{ env.CLOUD_PROVIDER }}
+          terraform init
+          DB_HOST_RAW=$(terraform output -raw database_host 2>/dev/null || echo '')
+          DB_HOST_CLEAN=$(echo "$DB_HOST_RAW" | cut -d: -f1)
+          echo "db_host=$DB_HOST_CLEAN" >> $GITHUB_OUTPUT
+          echo "storage_bucket=$(terraform output -raw storage_bucket 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
+
+      - name: Get Load Balancer IP
+        id: lb
+        run: |
+          LB_HOSTNAME=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+          LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+
+          if [[ -n "$LB_HOSTNAME" && -z "$LB_IP" ]]; then
+            LB_IP=$(dig +short "$LB_HOSTNAME" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1) || \
+            LB_IP=$(nslookup "$LB_HOSTNAME" 2>/dev/null | grep -A1 'Name:' | grep 'Address:' | awk '{print $2}' | head -1) || \
+            LB_IP=$(getent hosts "$LB_HOSTNAME" 2>/dev/null | awk '{print $1}' | head -1) || \
+            LB_IP=""
+          fi
+
+          if [[ -z "$LB_IP" ]]; then
+            echo "ERROR: Could not resolve load balancer IP"
+            exit 1
+          fi
+
+          if ! [[ "$LB_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Invalid IP format: $LB_IP"
+            exit 1
+          fi
+
+          LB_IP_DASHED=$(echo "$LB_IP" | tr '.' '-')
+          echo "lb_ip=$LB_IP" >> $GITHUB_OUTPUT
+          echo "lb_ip_dashed=$LB_IP_DASHED" >> $GITHUB_OUTPUT
+          echo "Resolved Load Balancer IP: $LB_IP"
+
   # ===========================================================================
-  # Build ALL Images (backends + frontends with staging-specific URLs)
+  # Build ALL Images (backends + frontends with dynamic staging URLs)
   # ===========================================================================
   build-images:
     needs: prepare
@@ -121,23 +206,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # --- Frontend Images (with staging URLs baked in) ---
+      # --- Frontend Images (with dynamic staging URLs baked in) ---
       - name: Build and push Auth App (Frontend)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: apps/auth/Dockerfile
           push: true
-          build-args: |
-            AUTH_URL=${{ vars.STAGING_AUTH_URL }}
-            AUTH_API_URL=${{ vars.STAGING_AUTH_API_URL }}
-            NEXTAUTH_URL_INTERNAL=${{ vars.STAGING_AUTH_URL }}
-            RBAC_BACKEND_URL=${{ vars.STAGING_AUTH_API_URL }}
           tags: |
             ghcr.io/${{ github.repository }}/elevaite-auth-app:${{ needs.prepare.outputs.image_tag }}
             ghcr.io/${{ github.repository }}/elevaite-auth-app:staging
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            AUTH_URL=https://auth-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            AUTH_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io/api/auth
+            NEXTAUTH_URL_INTERNAL=http://elevaite-auth-app:3005
+            RBAC_BACKEND_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            ELEVAITE_HOMEPAGE=https://staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
 
       - name: Build and push Elevaite App (Frontend)
         uses: docker/build-push-action@v5
@@ -145,30 +231,30 @@ jobs:
           context: .
           file: apps/elevaite/Dockerfile
           push: true
-          build-args: |
-            NEXT_PUBLIC_BACKEND_URL=${{ vars.STAGING_BACKEND_URL }}
-            NEXT_PUBLIC_AUTH_API_URL=${{ vars.STAGING_AUTH_API_URL }}
-            NEXT_PUBLIC_NATIVEAUTH_URL=${{ vars.STAGING_AUTH_API_URL }}
-            NEXT_PUBLIC_MODELS_API_URL=${{ vars.STAGING_BACKEND_URL }}
-            NEXT_PUBLIC_CONTRACTS_API_URL=${{ vars.STAGING_BACKEND_URL }}
-            NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=${{ vars.STAGING_BACKEND_URL }}
           tags: |
             ghcr.io/${{ github.repository }}/elevaite-app:${{ needs.prepare.outputs.image_tag }}
             ghcr.io/${{ github.repository }}/elevaite-app:staging
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_BACKEND_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_AUTH_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io/api/auth
+            NEXT_PUBLIC_NATIVEAUTH_URL=https://auth-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_MODELS_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_CONTRACTS_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            NEXTAUTH_URL_INTERNAL=http://elevaite-auth-app:3005
 
   # ===========================================================================
   # Deploy to Kubernetes (Cloud-Agnostic)
-  # All images from build-images job
   # ===========================================================================
   deploy:
     needs: [prepare, build-images]
     runs-on: ubuntu-latest
     environment:
       name: staging
-      url: ${{ vars.STAGING_AUTH_URL }}
-    
+      url: https://staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -184,8 +270,7 @@ jobs:
 
       - name: Configure kubectl for AWS EKS
         if: ${{ env.CLOUD_PROVIDER == 'aws' }}
-        run: |
-          aws eks update-kubeconfig --name elevaite-staging --region ${{ vars.AWS_REGION || 'us-west-1' }}
+        run: aws eks update-kubeconfig --name elevaite-staging --region ${{ vars.AWS_REGION || 'us-west-1' }}
 
       # --- Azure Authentication ---
       - name: Configure Azure credentials
@@ -196,8 +281,7 @@ jobs:
 
       - name: Configure kubectl for Azure AKS
         if: ${{ env.CLOUD_PROVIDER == 'azure' }}
-        run: |
-          az aks get-credentials --resource-group elevaite-staging --name elevaite-staging
+        run: az aks get-credentials --resource-group elevaite-staging --name elevaite-staging
 
       # --- GCP Authentication ---
       - name: Configure GCP credentials
@@ -213,24 +297,8 @@ jobs:
           cluster_name: elevaite-staging
           location: ${{ vars.GCP_REGION || 'us-central1' }}
 
-      # --- Common Deployment Steps ---
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.6.0
-          terraform_wrapper: false
-
-      - name: Get Terraform outputs
-        id: terraform
-        run: |
-          cd terraform/environments/staging/${{ env.CLOUD_PROVIDER }}
-          terraform init
-          echo "db_host=$(terraform output -raw database_host 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
-          echo "storage_bucket=$(terraform output -raw storage_bucket 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
-
       - name: Create/Update Kubernetes namespace
-        run: |
-          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+        run: kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Create/Update Kubernetes secrets
         run: |
@@ -263,16 +331,7 @@ jobs:
             --from-literal=RABBITMQ_PASSWORD=${{ secrets.STAGING_RABBITMQ_PASSWORD }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          # TODO: Re-enable when ingestion service is ready
-          # Qdrant credentials (for vector database - used by ingestion service)
-          # if [ -n "${{ secrets.STAGING_QDRANT_API_KEY }}" ]; then
-          #   kubectl create secret generic elevaite-qdrant-credentials \
-          #     --namespace ${{ env.NAMESPACE }} \
-          #     --from-literal=QDRANT_API_KEY=${{ secrets.STAGING_QDRANT_API_KEY }} \
-          #     --dry-run=client -o yaml | kubectl apply -f -
-          # fi
-          
-          # Application secrets (API keys, JWT, OAuth, etc.)
+          # Application secrets
           kubectl create secret generic elevaite-secrets \
             --namespace ${{ env.NAMESPACE }} \
             --from-literal=JWT_SECRET=${{ secrets.JWT_SECRET }} \
@@ -280,16 +339,16 @@ jobs:
             --from-literal=NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET || secrets.JWT_SECRET }} \
             --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
             --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-            --from-literal=db_host=${{ steps.terraform.outputs.db_host }} \
+            --from-literal=db_host=${{ needs.prepare.outputs.db_host }} \
             --from-literal=db_port=5432 \
             --from-literal=db_user=${{ secrets.STAGING_DB_USER }} \
             --from-literal=db_password=${{ secrets.STAGING_DB_PASSWORD }} \
             --from-literal=db_name=elevaite_staging \
             --from-literal=POSTGRES_USER=${{ secrets.STAGING_DB_USER }} \
             --from-literal=POSTGRES_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }} \
-            --from-literal=DATABASE_URL=postgresql+asyncpg://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_staging?ssl=require \
-            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_staging?ssl=require \
-            --from-literal=ALEMBIC_SQLALCHEMY_URL=postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_staging?sslmode=require \
+            --from-literal=DATABASE_URL=postgresql+asyncpg://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_staging?ssl=require \
+            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_staging?ssl=require \
+            --from-literal=ALEMBIC_SQLALCHEMY_URL=postgresql://${{ secrets.STAGING_DB_USER }}:${{ secrets.STAGING_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_staging?sslmode=require \
             --from-literal=RABBITMQ_USER=elevaite \
             --from-literal=RABBITMQ_PASSWORD=${{ secrets.STAGING_RABBITMQ_PASSWORD }} \
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.STAGING_STORAGE_ACCESS_KEY }} \
@@ -301,34 +360,8 @@ jobs:
         with:
           version: '3.13.0'
 
-      - name: Validate migration setup
-        run: |
-          echo "=========================================="
-          echo "Database Migration System"
-          echo "=========================================="
-          echo ""
-          echo "✓ Migrations are handled automatically via Helm hooks"
-          echo "✓ A Kubernetes Job runs migrations BEFORE pods start (pre-upgrade, pre-install)"
-          echo "✓ Multi-tenant services (auth-api, workflow-engine) migrate each tenant schema"
-          echo "✓ If migrations fail, deployment is blocked"
-          echo ""
-          echo "Migration files locations:"
-          echo "  - auth-api:        python_apps/auth_api/migrations/versions/"
-          echo "  - workflow-engine: python_apps/workflow-engine-poc/alembic/versions/"
-          echo "  - ingestion:       python_apps/ingestion-service/alembic/versions/"
-          echo ""
-          echo "To manually run migrations (if needed):"
-          echo "  kubectl run migrations-manual --rm -it --restart=Never \\"
-          echo "    --image=ghcr.io/${{ github.repository }}/auth-api:${{ needs.prepare.outputs.image_tag }} \\"
-          echo "    --namespace ${{ env.NAMESPACE }} \\"
-          echo "    --env='DATABASE_URI=<db-url>' \\"
-          echo "    -- bash -c 'cd /elevaite/python_apps/auth_api && ALEMBIC_SCHEMA=auth_default uv run alembic upgrade head'"
-          echo ""
-          echo "Migrations will run automatically during Helm deployment..."
-
       - name: Lint Helm chart
-        run: |
-          helm lint ./helm/elevaite --values ./helm/elevaite/values-staging.yaml
+        run: helm lint ./helm/elevaite --values ./helm/elevaite/values-staging.yaml
 
       - name: Clean up stuck Helm release
         run: |
@@ -346,7 +379,15 @@ jobs:
 
       - name: Deploy with Helm
         run: |
-          echo "Deploying with image tag: ${{ needs.prepare.outputs.image_tag }}"
+          API_HOST="api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+          AUTH_HOST="auth-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+          APP_HOST="staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+
+          echo "Deploying with hosts:"
+          echo "  App: $APP_HOST"
+          echo "  Auth: $AUTH_HOST"
+          echo "  API: $API_HOST"
+
           helm upgrade --install elevaite ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
             --values ./helm/elevaite/values-staging.yaml \
@@ -359,8 +400,28 @@ jobs:
             --set worker.image.tag=${{ needs.prepare.outputs.image_tag }} \
             --set frontend.auth.image.tag=${{ needs.prepare.outputs.image_tag }} \
             --set frontend.elevaite.image.tag=${{ needs.prepare.outputs.image_tag }} \
-            --set postgresql.host=${{ steps.terraform.outputs.db_host }} \
-            --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
+            --set postgresql.host=${{ needs.prepare.outputs.db_host }} \
+            --set objectStorage.bucket=${{ needs.prepare.outputs.storage_bucket }} \
+            --set ingress.enabled=true \
+            --set ingress.api.host=$API_HOST \
+            --set ingress.authApp.enabled=true \
+            --set ingress.authApp.host=$AUTH_HOST \
+            --set ingress.mainApp.enabled=true \
+            --set ingress.mainApp.host=$APP_HOST \
+            --set ingress.tls[0].secretName=elevaite-staging-tls \
+            --set ingress.tls[0].hosts[0]=$API_HOST \
+            --set ingress.tls[0].hosts[1]=$AUTH_HOST \
+            --set ingress.tls[0].hosts[2]=$APP_HOST \
+            --set "ingress.annotations.cert-manager\\.io/cluster-issuer=letsencrypt-staging" \
+            --set frontend.auth.nextAuthUrl=https://$AUTH_HOST \
+            --set frontend.auth.publicAuthApiUrl=https://$API_HOST/api/auth \
+            --set frontend.auth.env.NEXTAUTH_URL_INTERNAL=http://elevaite-auth-app:3005 \
+            --set frontend.auth.env.ELEVAITE_HOMEPAGE=https://$APP_HOST \
+            --set frontend.elevaite.nextAuthUrl=https://$AUTH_HOST \
+            --set frontend.elevaite.publicAuthApiUrl=https://$API_HOST/api/auth \
+            --set frontend.elevaite.publicWorkflowApiUrl=https://$API_HOST \
+            --set frontend.elevaite.env.NEXTAUTH_URL_INTERNAL=http://elevaite-auth-app:3005 \
+            --set frontend.elevaite.env.BACKEND_URL=https://$API_HOST \
             --wait \
             --timeout 10m
 
@@ -368,19 +429,21 @@ jobs:
         run: |
           kubectl rollout status deployment/elevaite-auth-api -n ${{ env.NAMESPACE }} --timeout=5m
           kubectl rollout status deployment/elevaite-workflow-engine -n ${{ env.NAMESPACE }} --timeout=5m
-          # TODO: Re-enable when ingestion service is ready
-          # kubectl rollout status deployment/elevaite-ingestion -n ${{ env.NAMESPACE }} --timeout=5m
           kubectl rollout status deployment/elevaite-auth-app -n ${{ env.NAMESPACE }} --timeout=5m
           kubectl rollout status deployment/elevaite-elevaite-app -n ${{ env.NAMESPACE }} --timeout=5m
 
-      - name: Run smoke tests
+      - name: Show deployment info
         run: |
-          sleep 30
-          INGRESS_IP=$(kubectl get ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' || \
-                       kubectl get ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}')
-          echo "Testing endpoint: $INGRESS_IP"
-          # Health check (adjust domain as needed)
-          curl -sf "http://$INGRESS_IP/health" || echo "Health check pending (DNS may need time)"
+          echo "=========================================="
+          echo "Staging Deployment Complete"
+          echo "=========================================="
+          echo ""
+          echo "URLs:"
+          echo "  App:  https://staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+          echo "  Auth: https://auth-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+          echo "  API:  https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+          echo ""
+          echo "Image tag: ${{ needs.prepare.outputs.image_tag }}"
 
   # ===========================================================================
   # Notify
@@ -389,7 +452,7 @@ jobs:
     needs: [prepare, build-images, deploy]
     runs-on: ubuntu-latest
     if: always()
-    
+
     steps:
       - name: Notify Slack
         if: vars.SLACK_WEBHOOK_URL != ''
@@ -397,6 +460,6 @@ jobs:
         with:
           status: ${{ needs.deploy.result }}
           fields: repo,message,commit,author,action,eventName,ref,workflow
-          text: "Staging deployment to ${{ env.CLOUD_PROVIDER }} completed"
+          text: "Staging deployment completed - https://staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
         env:
           SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
