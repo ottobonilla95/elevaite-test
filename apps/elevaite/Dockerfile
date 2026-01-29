@@ -19,6 +19,11 @@ WORKDIR /app
 COPY .gitignore .gitignore
 COPY --from=builder /app/out/json/ .
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+
+# Turbo prune corrupts packageManager field (known bug: https://github.com/vercel/turborepo/issues)
+# This fixes "yarn@npm@10.2.4" -> "npm@10.2.4"
+RUN sed -i 's/"packageManager": "yarn@npm@/"packageManager": "npm@/g' package.json
+
 RUN npm cache clear --force
 RUN npm ci
 
