@@ -444,8 +444,14 @@ jobs:
 
     steps:
       - name: Notify Google Chat
-        if: secrets.GOOGLE_CHAT_WEBHOOK_URL != ''
+        env:
+          GOOGLE_CHAT_WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
         run: |
+          if [ -z "$GOOGLE_CHAT_WEBHOOK_URL" ]; then
+            echo "GOOGLE_CHAT_WEBHOOK_URL not set, skipping notification"
+            exit 0
+          fi
+
           if [ "${{ needs.deploy.result }}" == "success" ]; then
             STATUS="✅ Success"
             COLOR="#34A853"
@@ -454,7 +460,7 @@ jobs:
             COLOR="#EA4335"
           fi
 
-          curl -X POST "${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}" \
+          curl -X POST "$GOOGLE_CHAT_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d '{
               "cardsV2": [{
