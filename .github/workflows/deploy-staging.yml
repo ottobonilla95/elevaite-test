@@ -411,7 +411,7 @@ jobs:
           helm upgrade --install elevaite ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
             --values ./helm/elevaite/values-staging.yaml \
-            --atomic \
+            --cleanup-on-fail \
             --set global.imageRegistry=ghcr.io/${{ github.repository }} \
             --set global.environment=staging \
             --set global.imagePullSecrets[0].name=ghcr-pull-secret \
