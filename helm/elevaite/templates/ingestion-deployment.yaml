@@ -7,6 +7,7 @@ metadata:
     {{- include "elevaite.labels" . | nindent 4 }}
     app.kubernetes.io/component: ingestion
 spec:
+  revisionHistoryLimit: 2
   replicas: {{ .Values.ingestion.replicaCount }}
   selector:
     matchLabels:

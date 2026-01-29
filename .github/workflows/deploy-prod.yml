@@ -363,6 +363,14 @@ jobs:
             helm rollback $RELEASE_NAME -n ${{ env.NAMESPACE }} || true
           fi
 
+      - name: Clean up old replicasets
+        run: |
+          echo "Cleaning up old replicasets with 0 replicas..."
+          kubectl delete rs -n ${{ env.NAMESPACE }} --field-selector=status.replicas=0 --ignore-not-found=true || true
+
+          echo "Cleaning up any crashed/failed pods..."
+          kubectl delete pods -n ${{ env.NAMESPACE }} --field-selector=status.phase=Failed --ignore-not-found=true || true
+
       - name: Deploy with Helm (includes migrations)
         run: |
           API_HOST="api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io"
@@ -380,6 +388,7 @@ jobs:
           helm upgrade --install elevaite ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
             --values ./helm/elevaite/values-production.yaml \
+            --atomic \
             --set global.imageRegistry=ghcr.io/${{ github.repository }} \
             --set global.environment=production \
             --set global.imagePullSecrets[0].name=ghcr-pull-secret \

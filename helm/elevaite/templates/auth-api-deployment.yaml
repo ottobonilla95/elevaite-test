@@ -7,6 +7,7 @@ metadata:
     {{- include "elevaite.labels" . | nindent 4 }}
     app.kubernetes.io/component: auth-api
 spec:
+  revisionHistoryLimit: 2
   replicas: {{ .Values.authApi.replicaCount }}
   selector:
     matchLabels:

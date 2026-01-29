@@ -16,6 +16,7 @@ metadata:
     {{- include "elevaite.labels" . | nindent 4 }}
     app.kubernetes.io/component: auth-app
 spec:
+  revisionHistoryLimit: 2
   replicas: {{ .Values.frontend.auth.replicaCount }}
   selector:
     matchLabels:
@@ -149,6 +150,7 @@ metadata:
     {{- include "elevaite.labels" . | nindent 4 }}
     app.kubernetes.io/component: elevaite-app
 spec:
+  revisionHistoryLimit: 2
   replicas: {{ .Values.frontend.elevaite.replicaCount }}
   selector:
     matchLabels:

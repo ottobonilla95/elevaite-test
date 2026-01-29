@@ -389,6 +389,14 @@ jobs:
           kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations || true
           kubectl delete pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations --ignore-not-found=true
 
+      - name: Clean up old replicasets
+        run: |
+          echo "Cleaning up old replicasets with 0 replicas..."
+          kubectl delete rs -n ${{ env.NAMESPACE }} --field-selector=status.replicas=0 --ignore-not-found=true || true
+
+          echo "Cleaning up any crashed/failed pods..."
+          kubectl delete pods -n ${{ env.NAMESPACE }} --field-selector=status.phase=Failed --ignore-not-found=true || true
+
       - name: Deploy with Helm
         run: |
           API_HOST="api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
@@ -403,6 +411,7 @@ jobs:
           helm upgrade --install elevaite ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
             --values ./helm/elevaite/values-staging.yaml \
+            --atomic \
             --set global.imageRegistry=ghcr.io/${{ github.repository }} \
             --set global.environment=staging \
             --set global.imagePullSecrets[0].name=ghcr-pull-secret \
