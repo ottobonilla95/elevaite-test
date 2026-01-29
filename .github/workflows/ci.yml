@@ -358,121 +358,11 @@ jobs:
           echo "✓ No duplicate migration revisions found"
 
   # ============================================================
-  # BUILD AND PUSH DOCKER IMAGES
-  # Single source of truth - all environments use these images
-  # Runs on PRs and pushes so all deployments can use them
-  # ============================================================
-  build-and-push:
-    needs: [changes, python, python-tests, frontend]
-    if: |
-      always() &&
-      (needs.python.result == 'success' || needs.python.result == 'skipped') &&
-      (needs.python-tests.result == 'success' || needs.python-tests.result == 'skipped') &&
-      (needs.frontend.result == 'success' || needs.frontend.result == 'skipped')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      image_tag: ${{ steps.meta.outputs.image_tag }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Free up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-          sudo docker system prune -af --volumes
-          df -h
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate image metadata
-        id: meta
-        run: |
-          # Use PR head SHA for PRs, otherwise use HEAD
-          # This ensures PR environments can find the images CI builds
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            SHORT_SHA=$(echo "${{ github.event.pull_request.head.sha }}" | cut -c1-7)
-          else
-            SHORT_SHA=$(git rev-parse --short HEAD)
-          fi
-          echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "Image tag: ${SHORT_SHA}"
-
-      # Backend images: Build and push - these work with runtime env vars
-      - name: Build and push Auth API
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: python_apps/auth_api/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-auth-api:${{ steps.meta.outputs.image_tag }}
-            ghcr.io/${{ github.repository }}/elevaite-auth-api:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Workflow Engine
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: python_apps/workflow-engine-poc/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:${{ steps.meta.outputs.image_tag }}
-            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # Frontend images: NOT pushed from CI
-      # Next.js bakes NEXT_PUBLIC_* vars at build time, so each environment
-      # (staging/prod/PR) must build its own frontend images with correct URLs
-      # CI just validates the build works with placeholder values
-      - name: Validate Auth App build (Frontend)
-        run: |
-          echo "Frontend images are built per-environment (staging/prod/PR)"
-          echo "CI only validates the Dockerfile syntax and base layers"
-          docker build \
-            --build-arg AUTH_URL=http://placeholder.local \
-            --build-arg AUTH_API_URL=http://placeholder.local \
-            --build-arg NEXTAUTH_URL_INTERNAL=http://placeholder.local \
-            --build-arg RBAC_BACKEND_URL=http://placeholder.local \
-            --build-arg ELEVAITE_HOMEPAGE=http://placeholder.local \
-            -f apps/auth/Dockerfile \
-            --target installer \
-            -t auth-app-validate:ci \
-            .
-
-      - name: Validate Elevaite App build (Frontend)
-        run: |
-          docker build \
-            --build-arg NEXT_PUBLIC_BACKEND_URL=http://placeholder.local \
-            --build-arg NEXT_PUBLIC_AUTH_API_URL=http://placeholder.local \
-            --build-arg NEXT_PUBLIC_NATIVEAUTH_URL=http://placeholder.local \
-            --build-arg NEXT_PUBLIC_MODELS_API_URL=http://placeholder.local \
-            --build-arg NEXT_PUBLIC_CONTRACTS_API_URL=http://placeholder.local \
-            --build-arg NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=http://placeholder.local \
-            --build-arg NEXTAUTH_URL_INTERNAL=http://placeholder.local \
-            -f apps/elevaite/Dockerfile \
-            --target installer \
-            -t elevaite-app-validate:ci \
-            .
-
-  # ============================================================
   # CI STATUS CHECK
   # Required status check for branch protection
   # ============================================================
   ci-status:
-    needs: [pr-title, frontend, python, python-tests, migration-validation, build-and-push]
+    needs: [pr-title, frontend, python, python-tests, migration-validation]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -482,8 +372,7 @@ jobs:
              [[ "${{ needs.frontend.result }}" == "failure" ]] || \
              [[ "${{ needs.python.result }}" == "failure" ]] || \
              [[ "${{ needs.python-tests.result }}" == "failure" ]] || \
-             [[ "${{ needs.migration-validation.result }}" == "failure" ]] || \
-             [[ "${{ needs.build-and-push.result }}" == "failure" ]]; then
+             [[ "${{ needs.migration-validation.result }}" == "failure" ]]; then
             echo "CI failed"
             exit 1
           fi

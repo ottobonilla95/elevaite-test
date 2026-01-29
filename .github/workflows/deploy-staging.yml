@@ -1,7 +1,7 @@
 # =============================================================================
 # Staging Deployment Workflow
 # Deploys to staging AFTER CI passes on develop branch
-# Backend images from CI, frontend images built here with staging URLs
+# Builds ALL images (backends + frontends) with staging-specific configuration
 # Cloud-agnostic: Works with AWS/Azure/GCP (configured via secrets)
 # =============================================================================
 
@@ -67,9 +67,9 @@ jobs:
           echo "Using image tag: $(cat $GITHUB_OUTPUT | grep image_tag)"
 
   # ===========================================================================
-  # Build Frontend Images (with staging-specific URLs baked in)
+  # Build ALL Images (backends + frontends with staging-specific URLs)
   # ===========================================================================
-  build-frontend:
+  build-images:
     needs: prepare
     runs-on: ubuntu-latest
     permissions:
@@ -96,6 +96,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # --- Backend Images ---
+      - name: Build and push Auth API
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: python_apps/auth_api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/elevaite-auth-api:${{ needs.prepare.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-auth-api:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Workflow Engine
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: python_apps/workflow-engine-poc/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:${{ needs.prepare.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- Frontend Images (with staging URLs baked in) ---
       - name: Build and push Auth App (Frontend)
         uses: docker/build-push-action@v5
         with:
@@ -134,10 +160,10 @@ jobs:
 
   # ===========================================================================
   # Deploy to Kubernetes (Cloud-Agnostic)
-  # Backend images from CI, frontend images from build-frontend job
+  # All images from build-images job
   # ===========================================================================
   deploy:
-    needs: [prepare, build-frontend]
+    needs: [prepare, build-images]
     runs-on: ubuntu-latest
     environment: staging
     
@@ -343,7 +369,7 @@ jobs:
   # Notify
   # ===========================================================================
   notify:
-    needs: [prepare, build-frontend, deploy]
+    needs: [prepare, build-images, deploy]
     runs-on: ubuntu-latest
     if: always()
     
