@@ -106,74 +106,6 @@ async def default_tenant_session(test_session_factory):
 
 
 @pytest.mark.asyncio
-async def test_tenant_isolation_db(tenant1_session, tenant2_session):
-    """Test that tenants are isolated at the database level."""
-    # Create a user in tenant1
-    user_data1 = UserCreate(
-        email="tenant1@example.com",
-        password="Password123!@#",
-        full_name="Tenant 1 User",
-    )
-    user1 = await create_user(
-        tenant1_session,
-        UserCreate(**{**user_data1.model_dump(), "application_admin": False}),
-    )
-    assert user1 is not None
-    # Avoid asserting refreshed object's fields due to potential cross-connection refresh
-    # Detailed verification is performed below via get_user_by_email in the same session
-
-    # Create a user in tenant2
-    user_data2 = UserCreate(
-        email="tenant2@example.com",
-        password="Password456!@#",
-        full_name="Tenant 2 User",
-    )
-    user2 = await create_user(
-        tenant2_session,
-        UserCreate(**{**user_data2.model_dump(), "application_admin": False}),
-    )
-    assert user2 is not None
-    # Avoid asserting refreshed object's fields due to potential cross-connection refresh
-    # Detailed verification is performed below via get_user_by_email in the same session
-
-    # Verify that users exist in their respective tenants using direct SQL to avoid ORM refresh issues
-    # Re-assert schema search_path to avoid losing it after commits/refreshes
-    schema1 = get_schema_name("tenant1", multitenancy_settings)
-    await tenant1_session.execute(text(f'SET search_path TO "{schema1}", public'))
-    result = await tenant1_session.execute(
-        text("SELECT email, full_name FROM users WHERE email = :email"),
-        {"email": "tenant1@example.com"},
-    )
-    row = result.fetchone()
-    assert row is not None
-    assert row.email == "tenant1@example.com"
-    assert row.full_name == "Tenant 1 User"
-
-    schema2 = get_schema_name("tenant2", multitenancy_settings)
-    await tenant2_session.execute(text(f'SET search_path TO "{schema2}", public'))
-    result = await tenant2_session.execute(
-        text("SELECT email, full_name FROM users WHERE email = :email"),
-        {"email": "tenant2@example.com"},
-    )
-    row = result.fetchone()
-    assert row is not None
-    assert row.email == "tenant2@example.com"
-    assert row.full_name == "Tenant 2 User"
-
-    # Verify that tenant1 can't see tenant2's user
-    tenant2_user_in_tenant1 = await get_user_by_email(
-        tenant1_session, "tenant2@example.com"
-    )
-    assert tenant2_user_in_tenant1 is None, "Tenant1 should not see tenant2's user"
-
-    # Verify that tenant2 can't see tenant1's user
-    tenant1_user_in_tenant2 = await get_user_by_email(
-        tenant2_session, "tenant1@example.com"
-    )
-    assert tenant1_user_in_tenant2 is None, "Tenant2 should not see tenant1's user"
-
-
-@pytest.mark.asyncio
 async def test_tenant_context_switching(
     tenant1_session, tenant2_session, test_session_factory
 ):
@@ -283,8 +215,8 @@ async def test_default_tenant(test_client):
         await session.execute(
             text(
                 """
-            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, created_at, updated_at)
-            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
+            INSERT INTO users (email, hashed_password, full_name, status, is_verified, is_superuser, is_manager, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, biometric_mfa_enabled, created_at, updated_at)
+            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
             """
             ),
             {

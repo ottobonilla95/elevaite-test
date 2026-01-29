@@ -1,6 +1,7 @@
 # =============================================================================
 # PR Environment Workflow
 # Creates/destroys ephemeral environments for pull requests
+# Builds ALL images (backends + frontends) with PR-specific configuration
 # Cloud-agnostic: Works with AWS/Azure/GCP
 # Database-per-PR pattern with shared managed infrastructure
 # =============================================================================
@@ -31,29 +32,52 @@ permissions:
   contents: read
   packages: write
   pull-requests: write
+  checks: read
 
 jobs:
   # ===========================================================================
-  # Create/Update PR Environment
+  # Wait for CI to pass before deploying
   # ===========================================================================
-  deploy:
+  wait-for-ci:
+    if: github.event_name == 'workflow_dispatch' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI checks to pass
+        uses: fountainhead/action-wait-for-check@v1.1.0
+        id: wait-for-ci
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: ci-status
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          timeoutSeconds: 900
+          intervalSeconds: 30
+
+      - name: Fail if CI did not pass
+        if: steps.wait-for-ci.outputs.conclusion != 'success'
+        run: |
+          echo "CI checks did not pass. Conclusion: ${{ steps.wait-for-ci.outputs.conclusion }}"
+          exit 1
+
+  # ===========================================================================
+  # Prepare - Get infrastructure info needed for builds
+  # ===========================================================================
+  prepare:
+    needs: wait-for-ci
     if: github.event_name == 'workflow_dispatch' || github.event.action != 'closed'
     runs-on: ubuntu-latest
     environment: development
+    outputs:
+      lb_ip: ${{ steps.lb.outputs.lb_ip }}
+      lb_ip_dashed: ${{ steps.lb.outputs.lb_ip_dashed }}
+      db_host: ${{ steps.terraform.outputs.db_host }}
+      rabbitmq_host: ${{ steps.terraform.outputs.rabbitmq_host }}
+      storage_bucket: ${{ steps.terraform.outputs.storage_bucket }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-
-      # --- Cloud Authentication (based on CLOUD_PROVIDER) ---
+      # --- Cloud Authentication ---
       - name: Configure AWS credentials
         if: ${{ env.CLOUD_PROVIDER == 'aws' }}
         uses: aws-actions/configure-aws-credentials@v4
@@ -89,20 +113,6 @@ jobs:
           cluster_name: elevaite-dev
           location: ${{ vars.GCP_REGION || 'us-central1' }}
 
-      - name: Verify kubectl configuration
-        run: |
-          echo "Checking kubectl configuration..."
-          kubectl config current-context || echo "No kubectl context configured"
-          kubectl cluster-info || echo "Cannot connect to cluster"
-          kubectl version --client
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -115,56 +125,55 @@ jobs:
           cd terraform/environments/dev/${{ env.CLOUD_PROVIDER }}
           terraform init
           DB_HOST_RAW=$(terraform output -raw database_host)
-          # Strip port if present in hostname
           DB_HOST_CLEAN=$(echo "$DB_HOST_RAW" | cut -d: -f1)
           echo "db_host=$DB_HOST_CLEAN" >> $GITHUB_OUTPUT
           echo "rabbitmq_host=$(terraform output -raw rabbitmq_host)" >> $GITHUB_OUTPUT
           echo "storage_bucket=$(terraform output -raw storage_bucket)" >> $GITHUB_OUTPUT
 
-      - name: Create PR Database
-        if: steps.terraform.outputs.db_host != ''
-        env:
-          DB_HOST: ${{ steps.terraform.outputs.db_host }}
-          DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
-          DB_USER: elevaite
-          DB_ADMIN_DATABASE: elevaite_dev
+      - name: Get Load Balancer IP
+        id: lb
         run: |
-          # Install psql
-          sudo apt-get update && sudo apt-get install -y postgresql-client
+          LB_HOSTNAME=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+          LB_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
 
-          # Create database for this PR (DB_HOST already cleaned by Terraform step)
-          PGPASSWORD="$DB_PASSWORD" psql \
-            -h "$DB_HOST" \
-            -p 5432 \
-            -U "$DB_USER" \
-            -d "$DB_ADMIN_DATABASE" \
-            -c "CREATE DATABASE pr_${{ env.PR_NUMBER }};" || echo "Database may already exist"
+          if [[ -n "$LB_HOSTNAME" && -z "$LB_IP" ]]; then
+            LB_IP=$(dig +short "$LB_HOSTNAME" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1) || \
+            LB_IP=$(nslookup "$LB_HOSTNAME" 2>/dev/null | grep -A1 'Name:' | grep 'Address:' | awk '{print $2}' | head -1) || \
+            LB_IP=$(getent hosts "$LB_HOSTNAME" 2>/dev/null | awk '{print $1}' | head -1) || \
+            LB_IP=""
+          fi
 
-          # Create auth_default schema for auth-api (multi-tenant)
-          PGPASSWORD="$DB_PASSWORD" psql \
-            -h "$DB_HOST" \
-            -p 5432 \
-            -U "$DB_USER" \
-            -d "pr_${{ env.PR_NUMBER }}" \
-            -c "CREATE SCHEMA IF NOT EXISTS auth_default;"
+          if [[ -z "$LB_IP" ]]; then
+            echo "ERROR: Could not resolve load balancer IP"
+            exit 1
+          fi
 
-          # Run migrations for workflow-engine
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
-          export SQLALCHEMY_DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?ssl=require"
-          export ALEMBIC_SQLALCHEMY_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
+          if ! [[ "$LB_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Invalid IP format: $LB_IP"
+            exit 1
+          fi
 
-          cd python_apps/workflow-engine-poc
-          uv sync
-          uv run alembic upgrade head
+          LB_IP_DASHED=$(echo "$LB_IP" | tr '.' '-')
+          echo "lb_ip=$LB_IP" >> $GITHUB_OUTPUT
+          echo "lb_ip_dashed=$LB_IP_DASHED" >> $GITHUB_OUTPUT
+          echo "Resolved Load Balancer IP: $LB_IP"
 
-          # Run migrations for auth-api (schema-per-tenant)
-          cd ../auth_api
-          uv sync
-          ALEMBIC_SCHEMA=auth_default uv run alembic upgrade head
+  # ===========================================================================
+  # Build ALL Images (backends + frontends with PR-specific URLs)
+  # ===========================================================================
+  build-images:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Free up disk space
         run: |
-          # Remove unnecessary files to free up space for Docker builds
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
           sudo docker system prune -af --volumes
           df -h
@@ -172,6 +181,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Backend Images ---
       - name: Build and push Auth API
         uses: docker/build-push-action@v5
         with:
@@ -192,16 +209,131 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # TODO: Re-enable ingestion service when ready
-      # - name: Build and push Ingestion Service
-      #   uses: docker/build-push-action@v5
-      #   with:
-      #     context: .
-      #     file: python_apps/ingestion-service/Dockerfile
-      #     push: true
-      #     tags: ghcr.io/${{ github.repository }}/elevaite-ingestion:pr-${{ env.PR_NUMBER }}
-      #     cache-from: type=gha
-      #     cache-to: type=gha,mode=max
+      # --- Frontend Images (with PR-specific URLs baked in) ---
+      - name: Build and push Auth App (Frontend)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/auth/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/elevaite-auth-app:pr-${{ env.PR_NUMBER }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            AUTH_URL=https://auth-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            AUTH_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io/api/auth
+            NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005
+            RBAC_BACKEND_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            ELEVAITE_HOMEPAGE=https://pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+
+      - name: Build and push Elevaite App (Frontend)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/elevaite/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/elevaite-app:pr-${{ env.PR_NUMBER }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_BACKEND_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_AUTH_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io/api/auth
+            NEXT_PUBLIC_NATIVEAUTH_URL=https://auth-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_MODELS_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_CONTRACTS_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
+            NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005
+
+  # ===========================================================================
+  # Deploy to Kubernetes
+  # ===========================================================================
+  deploy:
+    needs: [prepare, build-images]
+    runs-on: ubuntu-latest
+    environment: development
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      # --- Cloud Authentication ---
+      - name: Configure AWS credentials
+        if: ${{ env.CLOUD_PROVIDER == 'aws' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
+
+      - name: Configure kubectl for AWS
+        if: ${{ env.CLOUD_PROVIDER == 'aws' }}
+        run: aws eks update-kubeconfig --name elevaite-dev --region ${{ vars.AWS_REGION || 'us-west-1' }}
+
+      - name: Configure Azure credentials
+        if: ${{ env.CLOUD_PROVIDER == 'azure' }}
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure kubectl for Azure
+        if: ${{ env.CLOUD_PROVIDER == 'azure' }}
+        run: az aks get-credentials --resource-group elevaite-dev --name elevaite-dev
+
+      - name: Configure GCP credentials
+        if: ${{ env.CLOUD_PROVIDER == 'gcp' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Configure kubectl for GCP
+        if: ${{ env.CLOUD_PROVIDER == 'gcp' }}
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: elevaite-dev
+          location: ${{ vars.GCP_REGION || 'us-central1' }}
+
+      - name: Create PR Database
+        env:
+          DB_HOST: ${{ needs.prepare.outputs.db_host }}
+          DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+          DB_USER: elevaite
+          DB_ADMIN_DATABASE: elevaite_dev
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+
+          PGPASSWORD="$DB_PASSWORD" psql \
+            -h "$DB_HOST" \
+            -p 5432 \
+            -U "$DB_USER" \
+            -d "$DB_ADMIN_DATABASE" \
+            -c "CREATE DATABASE pr_${{ env.PR_NUMBER }};" || echo "Database may already exist"
+
+          PGPASSWORD="$DB_PASSWORD" psql \
+            -h "$DB_HOST" \
+            -p 5432 \
+            -U "$DB_USER" \
+            -d "pr_${{ env.PR_NUMBER }}" \
+            -c "CREATE SCHEMA IF NOT EXISTS auth_default;"
+
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
+          export SQLALCHEMY_DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?ssl=require"
+          export ALEMBIC_SQLALCHEMY_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require"
+
+          cd python_apps/workflow-engine-poc
+          uv sync
+          uv run alembic upgrade head
+
+          cd ../auth_api
+          uv sync
+          ALEMBIC_SCHEMA=auth_default uv run alembic upgrade head
 
       - name: Create Kubernetes namespace
         run: |
@@ -209,7 +341,6 @@ jobs:
 
       - name: Create Kubernetes secrets
         run: |
-          # Create Docker registry secret for pulling images from GHCR
           kubectl create secret docker-registry ghcr-pull-secret \
             --namespace ${{ env.NAMESPACE }} \
             --docker-server=ghcr.io \
@@ -223,7 +354,6 @@ jobs:
             --from-literal=POSTGRES_PASSWORD=${{ secrets.DEV_DB_PASSWORD }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          # Internal RabbitMQ uses hardcoded credentials (elevaite/elevaite)
           kubectl create secret generic elevaite-rabbitmq-credentials \
             --namespace ${{ env.NAMESPACE }} \
             --from-literal=RABBITMQ_USER=elevaite \
@@ -236,29 +366,32 @@ jobs:
             --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_STORAGE_SECRET_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          # Qdrant credentials (optional - for vector database)
-          if [ -n "${{ secrets.DEV_QDRANT_API_KEY }}" ]; then
-            kubectl create secret generic elevaite-qdrant-credentials \
-              --namespace ${{ env.NAMESPACE }} \
-              --from-literal=QDRANT_API_KEY=${{ secrets.DEV_QDRANT_API_KEY }} \
-              --dry-run=client -o yaml | kubectl apply -f -
-          fi
+          # TODO: Re-enable when ingestion service is ready
+          # Qdrant credentials (for vector database - used by ingestion service)
+          # if [ -n "${{ secrets.DEV_QDRANT_API_KEY }}" ]; then
+          #   kubectl create secret generic elevaite-qdrant-credentials \
+          #     --namespace ${{ env.NAMESPACE }} \
+          #     --from-literal=QDRANT_API_KEY=${{ secrets.DEV_QDRANT_API_KEY }} \
+          #     --dry-run=client -o yaml | kubectl apply -f -
+          # fi
 
-          # Application secrets (API keys, JWT, database, etc.)
           kubectl create secret generic elevaite-secrets \
             --namespace ${{ env.NAMESPACE }} \
             --from-literal=JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            --from-literal=NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }} \
+            --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+            --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
             --from-literal=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
-            --from-literal=db_host=${{ steps.terraform.outputs.db_host }} \
+            --from-literal=db_host=${{ needs.prepare.outputs.db_host }} \
             --from-literal=db_port=5432 \
             --from-literal=db_user=elevaite \
             --from-literal=db_password=${{ secrets.DEV_DB_PASSWORD }} \
             --from-literal=db_name=pr_${{ env.PR_NUMBER }} \
             --from-literal=POSTGRES_USER=elevaite \
             --from-literal=POSTGRES_PASSWORD=${{ secrets.DEV_DB_PASSWORD }} \
-            --from-literal=DATABASE_URL=postgresql+asyncpg://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?ssl=require \
-            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?ssl=require \
-            --from-literal=ALEMBIC_SQLALCHEMY_URL=postgresql://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require \
+            --from-literal=DATABASE_URL=postgresql+asyncpg://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?ssl=require \
+            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?ssl=require \
+            --from-literal=ALEMBIC_SQLALCHEMY_URL=postgresql://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require \
             --from-literal=RABBITMQ_USER=elevaite \
             --from-literal=RABBITMQ_PASSWORD=elevaite \
             --from-literal=RABBITMQ_HOST=elevaite-pr-${{ env.PR_NUMBER }}-rabbitmq \
@@ -269,29 +402,77 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
+      - name: Clean up stuck Helm release
+        run: |
+          RELEASE_NAME="elevaite-pr-${{ env.PR_NUMBER }}"
+          RELEASE_STATUS=$(helm status $RELEASE_NAME -n ${{ env.NAMESPACE }} 2>/dev/null | grep STATUS || echo "not found")
+          echo "Release status: $RELEASE_STATUS"
+
+          if echo "$RELEASE_STATUS" | grep -q "pending-install"; then
+            echo "Found stuck pending-install, deleting release..."
+            helm uninstall $RELEASE_NAME -n ${{ env.NAMESPACE }} --wait || true
+          elif echo "$RELEASE_STATUS" | grep -qE "(pending-upgrade|pending-rollback)"; then
+            echo "Found stuck release, rolling back..."
+            helm rollback $RELEASE_NAME -n ${{ env.NAMESPACE }} || true
+          fi
+
       - name: Deploy with Helm
         run: |
+          API_HOST="api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+          AUTH_HOST="auth-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+          APP_HOST="pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+
+          echo "Deploying with hosts:"
+          echo "  App: $APP_HOST"
+          echo "  Auth: $AUTH_HOST"
+          echo "  API: $API_HOST"
+
+          IMAGE_TAG="pr-${{ env.PR_NUMBER }}"
+          echo "Image tag: $IMAGE_TAG"
+
           helm upgrade --install elevaite-pr-${{ env.PR_NUMBER }} ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
             --values ./helm/elevaite/values-pr.yaml \
             --set global.imageRegistry=ghcr.io/${{ github.repository }} \
             --set global.environment=pr \
             --set global.imagePullSecrets[0].name=ghcr-pull-secret \
-            --set authApi.image.tag=pr-${{ env.PR_NUMBER }} \
-            --set workflowEngine.image.tag=pr-${{ env.PR_NUMBER }} \
+            --set authApi.image.tag=$IMAGE_TAG \
+            --set workflowEngine.image.tag=$IMAGE_TAG \
             --set ingestion.enabled=false \
-            --set worker.image.tag=pr-${{ env.PR_NUMBER }} \
-            --set postgresql.host=${{ steps.terraform.outputs.db_host }} \
+            --set worker.image.tag=$IMAGE_TAG \
+            --set postgresql.host=${{ needs.prepare.outputs.db_host }} \
             --set postgresql.database=pr_${{ env.PR_NUMBER }} \
             --set rabbitmq.internal.enabled=true \
             --set rabbitmq.vhost=/ \
-            --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
+            --set objectStorage.bucket=${{ needs.prepare.outputs.storage_bucket }} \
             --set migrations.enabled=false \
-            --set frontend.auth.enabled=false \
-            --set frontend.elevaite.enabled=false \
-            --set ingress.enabled=false \
+            --set frontend.auth.enabled=true \
+            --set frontend.auth.image.tag=$IMAGE_TAG \
+            --set frontend.elevaite.enabled=true \
+            --set frontend.elevaite.image.tag=$IMAGE_TAG \
+            --set ingress.enabled=true \
+            --set ingress.api.host=$API_HOST \
+            --set ingress.authApp.enabled=true \
+            --set ingress.authApp.host=$AUTH_HOST \
+            --set ingress.mainApp.enabled=true \
+            --set ingress.mainApp.host=$APP_HOST \
+            --set ingress.tls[0].secretName=elevaite-pr-${{ env.PR_NUMBER }}-tls \
+            --set ingress.tls[0].hosts[0]=$API_HOST \
+            --set ingress.tls[0].hosts[1]=$AUTH_HOST \
+            --set ingress.tls[0].hosts[2]=$APP_HOST \
+            --set "ingress.annotations.cert-manager\\.io/cluster-issuer=letsencrypt-staging" \
+            --set frontend.auth.nextAuthUrl=https://$AUTH_HOST \
+            --set frontend.auth.publicAuthApiUrl=https://$API_HOST/api/auth \
+            --set frontend.auth.env.NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005 \
+            --set frontend.auth.env.ELEVAITE_HOMEPAGE=https://$APP_HOST \
+            --set frontend.elevaite.nextAuthUrl=https://$AUTH_HOST \
+            --set frontend.elevaite.publicAuthApiUrl=https://$API_HOST/api/auth \
+            --set frontend.elevaite.publicWorkflowApiUrl=https://$API_HOST \
+            --set frontend.elevaite.env.NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005 \
+            --set frontend.elevaite.env.BACKEND_URL=https://$API_HOST \
             --wait \
-            --timeout 10m
+            --timeout 15m \
+            --rollback-on-failure
 
       - name: Show deployment status
         if: always()
@@ -310,11 +491,16 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const lbIpDashed = '${{ needs.prepare.outputs.lb_ip_dashed }}';
+            const prNumber = '${{ env.PR_NUMBER }}';
+            const appHost = `pr-${prNumber}.${lbIpDashed}.nip.io`;
+            const authHost = `auth-pr-${prNumber}.${lbIpDashed}.nip.io`;
+            const apiHost = `api-pr-${prNumber}.${lbIpDashed}.nip.io`;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 🚀 PR Environment Deployed\n\n**Cloud:** ${{ env.CLOUD_PROVIDER }}\n**Database:** \`pr_${{ env.PR_NUMBER }}\`\n**Namespace:** \`${{ env.NAMESPACE }}\`\n\n---\n*This environment will be automatically destroyed when the PR is closed.*`
+              body: `## 🚀 PR Environment Deployed\n\n**🔗 App:** https://${appHost}\n**🔐 Auth:** https://${authHost}\n**⚙️ API:** https://${apiHost}\n\n**Cloud:** ${{ env.CLOUD_PROVIDER }}\n**Database:** \`pr_${prNumber}\`\n**Namespace:** \`${{ env.NAMESPACE }}\`\n\n---\n*This environment will be automatically destroyed when the PR is closed.*`
             })
 
   # ===========================================================================
@@ -377,7 +563,6 @@ jobs:
           cd terraform/environments/dev/${{ env.CLOUD_PROVIDER }}
           terraform init
           DB_HOST_RAW=$(terraform output -raw database_host)
-          # Strip port if present in hostname
           DB_HOST_CLEAN=$(echo "$DB_HOST_RAW" | cut -d: -f1)
           echo "db_host=$DB_HOST_CLEAN" >> $GITHUB_OUTPUT
 
@@ -401,7 +586,6 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y postgresql-client
 
-          # Terminate connections (DB_HOST already cleaned by Terraform step)
           PGPASSWORD="$DB_PASSWORD" psql \
             -h "$DB_HOST" \
             -p 5432 \
@@ -409,7 +593,6 @@ jobs:
             -d "$DB_ADMIN_DATABASE" \
             -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'pr_${{ env.PR_NUMBER }}';" || true
 
-          # Drop database
           PGPASSWORD="$DB_PASSWORD" psql \
             -h "$DB_HOST" \
             -p 5432 \

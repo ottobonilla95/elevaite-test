@@ -1,14 +1,19 @@
 # =============================================================================
 # Production Deployment Workflow
-# Deploys to production on push to main branch
+# Deploys to production AFTER CI passes on main branch
+# Builds ALL images (backends + frontends) with production-specific configuration
 # Cloud-agnostic: Works with AWS/Azure/GCP (configured via secrets)
 # =============================================================================
 
 name: Deploy to Production
 
 on:
-  push:
+  # Trigger after CI workflow completes successfully on main
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
+  # Allow manual trigger for emergency deploys
   workflow_dispatch:
     inputs:
       confirm:
@@ -17,6 +22,10 @@ on:
         default: ''
       cloud_provider:
         description: 'Cloud provider (aws/azure/gcp)'
+        required: false
+        default: ''
+      image_tag:
+        description: 'Image tag to deploy (defaults to latest commit SHA)'
         required: false
         default: ''
 
@@ -31,10 +40,17 @@ env:
 
 jobs:
   # ===========================================================================
-  # Validate (Manual trigger requires confirmation)
+  # Validate and Prepare (Manual trigger requires confirmation, CI must pass)
   # ===========================================================================
-  validate:
+  prepare:
+    # Skip if triggered by workflow_run and CI failed
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.get-tag.outputs.image_tag }}
+
     steps:
       - name: Validate deployment confirmation
         if: github.event_name == 'workflow_dispatch'
@@ -45,19 +61,33 @@ jobs:
           fi
           echo "✅ Production deployment confirmed"
 
+      - name: Get image tag
+        id: get-tag
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            # Manual trigger with specific tag
+            echo "image_tag=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "workflow_run" ]; then
+            # Get SHA from the CI workflow that triggered this
+            SHORT_SHA=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
+            echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          else
+            # Manual trigger without tag - use current HEAD
+            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          fi
+          echo "Using image tag: $(cat $GITHUB_OUTPUT | grep image_tag)"
+
   # ===========================================================================
-  # Build and Push Docker Images
+  # Build ALL Images (backends + frontends with production-specific URLs)
   # ===========================================================================
-  build:
-    needs: validate
+  build-images:
+    needs: prepare
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    
-    outputs:
-      image_tag: ${{ steps.meta.outputs.version }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -78,12 +108,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate image metadata
-        id: meta
-        run: |
-          VERSION=$(git describe --tags --always)
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
+      # --- Backend Images ---
       - name: Build and push Auth API
         uses: docker/build-push-action@v5
         with:
@@ -91,8 +116,8 @@ jobs:
           file: python_apps/auth_api/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/elevaite-auth-api:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/elevaite-auth-api:latest
+            ghcr.io/${{ github.repository }}/elevaite-auth-api:${{ needs.prepare.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-auth-api:production
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -103,24 +128,12 @@ jobs:
           file: python_apps/workflow-engine-poc/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:latest
+            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:${{ needs.prepare.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:production
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # TODO: Re-enable ingestion service when ready
-      # - name: Build and push Ingestion Service
-      #   uses: docker/build-push-action@v5
-      #   with:
-      #     context: .
-      #     file: python_apps/ingestion-service/Dockerfile
-      #     push: true
-      #     tags: |
-      #       ghcr.io/${{ github.repository }}/elevaite-ingestion:${{ steps.meta.outputs.version }}
-      #       ghcr.io/${{ github.repository }}/elevaite-ingestion:latest
-      #     cache-from: type=gha
-      #     cache-to: type=gha,mode=max
-
+      # --- Frontend Images (with production URLs baked in) ---
       - name: Build and push Auth App (Frontend)
         uses: docker/build-push-action@v5
         with:
@@ -133,8 +146,8 @@ jobs:
             NEXTAUTH_URL_INTERNAL=${{ vars.PROD_AUTH_URL }}
             RBAC_BACKEND_URL=${{ vars.PROD_AUTH_API_URL }}
           tags: |
-            ghcr.io/${{ github.repository }}/elevaite-auth-app:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/elevaite-auth-app:latest
+            ghcr.io/${{ github.repository }}/elevaite-auth-app:${{ needs.prepare.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-auth-app:production
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -152,19 +165,22 @@ jobs:
             NEXT_PUBLIC_CONTRACTS_API_URL=${{ vars.PROD_BACKEND_URL }}
             NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=${{ vars.PROD_BACKEND_URL }}
           tags: |
-            ghcr.io/${{ github.repository }}/elevaite-app:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ github.repository }}/elevaite-app:latest
+            ghcr.io/${{ github.repository }}/elevaite-app:${{ needs.prepare.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-app:production
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   # ===========================================================================
   # Deploy to Kubernetes (Cloud-Agnostic)
+  # All images from build-images job
   # ===========================================================================
   deploy:
-    needs: build
+    needs: [prepare, build-images]
     runs-on: ubuntu-latest
-    environment: production
-    
+    environment:
+      name: production
+      url: ${{ vars.PROD_AUTH_URL }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -257,14 +273,15 @@ jobs:
             --from-literal=RABBITMQ_PASSWORD=${{ secrets.PROD_RABBITMQ_PASSWORD }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          # Qdrant credentials (optional - for vector database)
-          if [ -n "${{ secrets.PROD_QDRANT_API_KEY }}" ]; then
-            kubectl create secret generic elevaite-qdrant-credentials \
-              --namespace ${{ env.NAMESPACE }} \
-              --from-literal=QDRANT_API_KEY=${{ secrets.PROD_QDRANT_API_KEY }} \
-              --dry-run=client -o yaml | kubectl apply -f -
-          fi
-          
+          # TODO: Re-enable when ingestion service is ready
+          # Qdrant credentials (for vector database - used by ingestion service)
+          # if [ -n "${{ secrets.PROD_QDRANT_API_KEY }}" ]; then
+          #   kubectl create secret generic elevaite-qdrant-credentials \
+          #     --namespace ${{ env.NAMESPACE }} \
+          #     --from-literal=QDRANT_API_KEY=${{ secrets.PROD_QDRANT_API_KEY }} \
+          #     --dry-run=client -o yaml | kubectl apply -f -
+          # fi
+
           # Application secrets (API keys, JWT, OAuth, etc.)
           kubectl create secret generic elevaite-secrets \
             --namespace ${{ env.NAMESPACE }} \
@@ -302,7 +319,7 @@ jobs:
           echo "Database migrations will run via Helm init containers"
           # Optionally run migrations directly:
           # kubectl run migrations --rm -it --restart=Never \
-          #   --image=ghcr.io/${{ github.repository }}/workflow-engine:${{ needs.build.outputs.image_tag }} \
+          #   --image=ghcr.io/${{ github.repository }}/workflow-engine:${{ needs.prepare.outputs.image_tag }} \
           #   --namespace ${{ env.NAMESPACE }} \
           #   --env="DATABASE_URL=postgresql://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite" \
           #   -- alembic upgrade head
@@ -311,25 +328,40 @@ jobs:
         run: |
           helm lint ./helm/elevaite --values ./helm/elevaite/values-production.yaml
 
+      - name: Clean up stuck Helm release
+        run: |
+          RELEASE_NAME="elevaite"
+          RELEASE_STATUS=$(helm status $RELEASE_NAME -n ${{ env.NAMESPACE }} 2>/dev/null | grep STATUS || echo "not found")
+          echo "Release status: $RELEASE_STATUS"
+
+          if echo "$RELEASE_STATUS" | grep -q "pending-install"; then
+            echo "Found stuck pending-install, deleting release..."
+            helm uninstall $RELEASE_NAME -n ${{ env.NAMESPACE }} --wait || true
+          elif echo "$RELEASE_STATUS" | grep -qE "(pending-upgrade|pending-rollback)"; then
+            echo "Found stuck release, rolling back..."
+            helm rollback $RELEASE_NAME -n ${{ env.NAMESPACE }} || true
+          fi
+
       - name: Deploy with Helm (atomic - auto-rollback on failure)
         run: |
+          echo "Deploying with image tag: ${{ needs.prepare.outputs.image_tag }}"
           helm upgrade --install elevaite ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
             --values ./helm/elevaite/values-production.yaml \
             --set global.imageRegistry=ghcr.io/${{ github.repository }} \
             --set global.environment=production \
             --set global.imagePullSecrets[0].name=ghcr-pull-secret \
-            --set authApi.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set workflowEngine.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set authApi.image.tag=${{ needs.prepare.outputs.image_tag }} \
+            --set workflowEngine.image.tag=${{ needs.prepare.outputs.image_tag }} \
             --set ingestion.enabled=false \
-            --set worker.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set frontend.auth.image.tag=${{ needs.build.outputs.image_tag }} \
-            --set frontend.elevaite.image.tag=${{ needs.build.outputs.image_tag }} \
+            --set worker.image.tag=${{ needs.prepare.outputs.image_tag }} \
+            --set frontend.auth.image.tag=${{ needs.prepare.outputs.image_tag }} \
+            --set frontend.elevaite.image.tag=${{ needs.prepare.outputs.image_tag }} \
             --set postgresql.host=${{ steps.terraform.outputs.db_host }} \
             --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
             --wait \
             --timeout 15m \
-            --atomic
+            --rollback-on-failure
 
       - name: Verify deployment
         run: |
@@ -349,9 +381,9 @@ jobs:
   # Post-deployment
   # ===========================================================================
   post-deploy:
-    needs: [build, deploy]
+    needs: [prepare, build-images, deploy]
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -370,13 +402,13 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
 
   # ===========================================================================
-  # Rollback (Automatic on failure due to --atomic flag)
+  # Rollback (Automatic on failure due to --rollback-on-failure flag)
   # ===========================================================================
   notify-failure:
     if: failure()
-    needs: [build, deploy]
+    needs: [prepare, build-images, deploy]
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Notify rollback
         if: vars.SLACK_WEBHOOK_URL != ''

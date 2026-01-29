@@ -38,11 +38,19 @@ variable "environment" {
 variable "domain_name" {
   description = "Domain name (e.g., elevaite.ai)"
   type        = string
+  default     = ""
 }
 
 variable "dns_zone_id" {
-  description = "Route53 Zone ID for external-dns"
+  description = "Route53 Zone ID for external-dns (optional if external_dns_enabled is false)"
   type        = string
+  default     = ""
+}
+
+variable "external_dns_enabled" {
+  description = "Whether to deploy external-dns (set to false for nip.io-based environments)"
+  type        = bool
+  default     = false
 }
 
 variable "letsencrypt_email" {
@@ -111,6 +119,8 @@ resource "kubernetes_namespace" "cert_manager" {
 }
 
 resource "kubernetes_namespace" "external_dns" {
+  count = var.external_dns_enabled ? 1 : 0
+
   metadata {
     name = "external-dns"
   }
@@ -143,6 +153,8 @@ resource "helm_release" "prometheus_operator_crds" {
 data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "external_dns_assume_role" {
+  count = var.external_dns_enabled ? 1 : 0
+
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
@@ -166,6 +178,8 @@ data "aws_iam_policy_document" "external_dns_assume_role" {
 }
 
 data "aws_iam_policy_document" "external_dns" {
+  count = var.external_dns_enabled ? 1 : 0
+
   statement {
     actions = [
       "route53:ChangeResourceRecordSets",
@@ -184,8 +198,10 @@ data "aws_iam_policy_document" "external_dns" {
 }
 
 resource "aws_iam_role" "external_dns" {
+  count = var.external_dns_enabled ? 1 : 0
+
   name               = "external-dns-${var.environment}"
-  assume_role_policy = data.aws_iam_policy_document.external_dns_assume_role.json
+  assume_role_policy = data.aws_iam_policy_document.external_dns_assume_role[0].json
 
   tags = {
     Name        = "external-dns-${var.environment}"
@@ -195,9 +211,11 @@ resource "aws_iam_role" "external_dns" {
 }
 
 resource "aws_iam_role_policy" "external_dns" {
+  count = var.external_dns_enabled ? 1 : 0
+
   name   = "external-dns-policy"
-  role   = aws_iam_role.external_dns.id
-  policy = data.aws_iam_policy_document.external_dns.json
+  role   = aws_iam_role.external_dns[0].id
+  policy = data.aws_iam_policy_document.external_dns[0].json
 }
 
 # =============================================================================
@@ -324,14 +342,17 @@ resource "kubectl_manifest" "letsencrypt_prod" {
 
 # =============================================================================
 # EXTERNAL-DNS (Automatic DNS Record Creation)
+# Only deployed when external_dns_enabled is true (not needed for nip.io)
 # =============================================================================
 
 resource "helm_release" "external_dns" {
+  count = var.external_dns_enabled ? 1 : 0
+
   name       = "external-dns"
   repository = "https://kubernetes-sigs.github.io/external-dns"
   chart      = "external-dns"
   version    = "1.15.0"
-  namespace  = kubernetes_namespace.external_dns.metadata[0].name
+  namespace  = kubernetes_namespace.external_dns[0].metadata[0].name
 
   values = [
     yamlencode({
@@ -353,7 +374,7 @@ resource "helm_release" "external_dns" {
       serviceAccount = {
         create = true
         annotations = {
-          "eks.amazonaws.com/role-arn" = aws_iam_role.external_dns.arn
+          "eks.amazonaws.com/role-arn" = aws_iam_role.external_dns[0].arn
         }
       }
     })
@@ -512,8 +533,8 @@ output "cluster_issuers" {
 }
 
 output "external_dns_role_arn" {
-  description = "IAM role ARN for external-dns"
-  value       = aws_iam_role.external_dns.arn
+  description = "IAM role ARN for external-dns (empty if external-dns is disabled)"
+  value       = var.external_dns_enabled ? aws_iam_role.external_dns[0].arn : ""
 }
 
 output "qdrant_host" {

@@ -1,6 +1,5 @@
 """Test fixtures for the authentication API."""
 
-import asyncio
 import uuid
 from datetime import datetime, timezone
 from typing import AsyncGenerator, Dict
@@ -46,17 +45,6 @@ except ValueError:
 TEST_DATABASE_URL = _derive_test_db_url(base_db_url)
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for each test case.
-
-    This is a session-scoped fixture to match our test_engine fixture.
-    """
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
     """Create a test engine for the database."""
@@ -67,14 +55,17 @@ async def test_engine():
     async with engine.begin() as conn:
         # Enable uuid-ossp extension for UUID generation
         await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
-        await conn.run_sync(Base.metadata.drop_all)
+        # Drop all tables with CASCADE to handle foreign key constraints
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(text(f'DROP TABLE IF EXISTS "{table.name}" CASCADE'))
         await conn.run_sync(Base.metadata.create_all)
 
     yield engine
 
-    # Clean up
+    # Clean up - drop all tables with CASCADE
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(text(f'DROP TABLE IF EXISTS "{table.name}" CASCADE'))
 
 
 @pytest_asyncio.fixture(scope="session")

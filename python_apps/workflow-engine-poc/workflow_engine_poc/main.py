@@ -122,12 +122,16 @@ async def lifespan(app: FastAPI):
     app.state.tool_registry = tool_registry
     logger.info("✅ Tool registry initialized (SDK)")
 
-    # Initialize queue service for async workflow execution
-    logger.info("Initializing queue service...")
-    queue_service = await get_queue_service()
-    await queue_service.connect()
-    app.state.queue_service = queue_service
-    logger.info("✅ Queue service initialized")
+    # Initialize queue service for async workflow execution (skip in test mode)
+    if os.getenv("SKIP_EXTERNAL_SERVICES") != "true" and os.getenv("TESTING") != "true":
+        logger.info("Initializing queue service...")
+        queue_service = await get_queue_service()
+        await queue_service.connect()
+        app.state.queue_service = queue_service
+        logger.info("✅ Queue service initialized")
+    else:
+        logger.info("⏭️  Queue service skipped (test mode)")
+        app.state.queue_service = None
 
     # DBOS executor - skipped (using simple queue pattern)
     logger.info("⏭️  DBOS executor skipped (using RabbitMQ queue pattern)")

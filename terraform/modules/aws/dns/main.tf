@@ -69,6 +69,17 @@ resource "aws_route53_zone" "dev" {
   )
 }
 
+# NS delegation from main zone to dev zone
+# This allows dev.elevaite.ai to be resolved via the dev zone's nameservers
+resource "aws_route53_record" "dev_ns_delegation" {
+  count   = var.environment == "dev" ? 1 : 0
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "dev.${var.domain_name}"
+  type    = "NS"
+  ttl     = 300
+  records = aws_route53_zone.dev[0].name_servers
+}
+
 # =============================================================================
 # OUTPUTS
 # =============================================================================

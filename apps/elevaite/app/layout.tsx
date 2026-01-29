@@ -1,3 +1,4 @@
+// ElevAIte Main Application Layout
 import { Inter } from "next/font/google";
 import "./layout.scss";
 import Providers from "./ui/Providers";

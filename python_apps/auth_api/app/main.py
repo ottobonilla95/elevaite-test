@@ -1,3 +1,4 @@
+# ElevAIte Authentication API
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request

@@ -1,6 +1,6 @@
 import { Card, CardHolder } from "@repo/ui/components";
-import type { UserAccountMembershipObject } from "@repo/ui/types";
 import Link from "next/link";
+import type { UserAccountMembershipObject } from "../../lib/interfaces";
 import { getApplicationsDashboard } from "../../../dummydata";
 import "./page.scss";
 import { auth } from "../../../auth";
@@ -9,7 +9,7 @@ export default async function Page(): Promise<JSX.Element> {
   const session = await auth();
   const applications = getApplicationsDashboard(
     process.env.NODE_ENV,
-    session?.user?.accountMemberships as
+    session?.user.accountMemberships as
       | UserAccountMembershipObject[]
       | undefined,
   );

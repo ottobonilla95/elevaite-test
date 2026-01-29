@@ -19,6 +19,11 @@ WORKDIR /app
 COPY .gitignore .gitignore
 COPY --from=builder /app/out/json/ .
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+
+# Turbo prune corrupts packageManager field (known bug: https://github.com/vercel/turborepo/issues)
+# This fixes "yarn@npm@10.2.4" -> "npm@10.2.4"
+RUN sed -i 's/"packageManager": "yarn@npm@/"packageManager": "npm@/g' package.json
+
 RUN npm ci
 
 # Add build args for auth app vars (baked at build time)
@@ -26,6 +31,7 @@ ARG AUTH_URL
 ARG AUTH_API_URL
 ARG NEXTAUTH_URL_INTERNAL
 ARG RBAC_BACKEND_URL
+ARG ELEVAITE_HOMEPAGE
 
 # Build the project
 COPY --from=builder /app/out/full/ .

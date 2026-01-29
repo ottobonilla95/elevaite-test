@@ -91,19 +91,55 @@ ingress:
   className: nginx
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-staging
-  hosts:
-    - host: pr-${PR_NUMBER}.dev.elevaite.ai  # Set dynamically
-      paths:
-        - path: /api/auth
-          pathType: Prefix
-          service: auth-api
-        - path: /
-          pathType: Prefix
-          service: workflow-engine
-  tls:
-    - secretName: elevaite-pr-${PR_NUMBER}-tls
-      hosts:
-        - pr-${PR_NUMBER}.dev.elevaite.ai
+  api:
+    host: api-pr.nip.io  # Set dynamically via --set ingress.api.host
+    paths:
+      - path: /api/auth
+        pathType: Prefix
+        service: auth-api
+      - path: /
+        pathType: Prefix
+        service: workflow-engine
+  authApp:
+    enabled: true
+    host: auth-pr.nip.io  # Set dynamically
+  mainApp:
+    enabled: true
+    host: pr.nip.io  # Set dynamically
+  tls: []
+
+# =============================================================================
+# FRONTEND APPS
+# =============================================================================
+frontend:
+  auth:
+    enabled: true
+    replicaCount: 1
+    image:
+      tag: "pr"
+      pullPolicy: Always
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+    env: {}  # Set dynamically
+  elevaite:
+    enabled: true
+    replicaCount: 1
+    image:
+      tag: "pr"
+      pullPolicy: Always
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+    env: {}  # Set dynamically
 
 # =============================================================================
 # EXTERNAL SERVICES (Shared Dev Infrastructure)

@@ -76,6 +76,17 @@ resource "azurerm_dns_zone" "dev" {
   )
 }
 
+# NS delegation from main zone to dev zone
+# This allows dev.elevaite.ai to be resolved via the dev zone's nameservers
+resource "azurerm_dns_ns_record" "dev_ns_delegation" {
+  count               = var.environment == "dev" ? 1 : 0
+  name                = "dev"
+  zone_name           = azurerm_dns_zone.main.name
+  resource_group_name = var.resource_group_name
+  ttl                 = 300
+  records             = azurerm_dns_zone.dev[0].name_servers
+}
+
 # =============================================================================
 # OUTPUTS
 # =============================================================================

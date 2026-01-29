@@ -84,8 +84,8 @@ async def test_tenant_isolation_db(test_db_setup):
         await session.execute(
             text(
                 f"""
-            INSERT INTO "{schema_name}".users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, created_at, updated_at)
-            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
+            INSERT INTO "{schema_name}".users (email, hashed_password, full_name, status, is_verified, is_superuser, is_manager, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, biometric_mfa_enabled, created_at, updated_at)
+            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
             """
             ),
             {
@@ -146,8 +146,8 @@ async def test_tenant_isolation_db(test_db_setup):
         await session.execute(
             text(
                 f"""
-            INSERT INTO "{schema_name}".users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, created_at, updated_at)
-            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
+            INSERT INTO "{schema_name}".users (email, hashed_password, full_name, status, is_verified, is_superuser, is_manager, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, biometric_mfa_enabled, created_at, updated_at)
+            VALUES (:email, :password, :full_name, 'active', TRUE, FALSE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
             """
             ),
             {
@@ -373,8 +373,8 @@ async def test_cross_tenant_token_invalid(test_client: AsyncClient, test_session
     await session.execute(
         text(
             f"""
-        INSERT INTO "{schema_name}".users (email, hashed_password, full_name, status, is_verified, is_superuser, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, created_at, updated_at)
-        VALUES (:email, :password, :full_name, 'pending', FALSE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
+        INSERT INTO "{schema_name}".users (email, hashed_password, full_name, status, is_verified, is_superuser, is_manager, mfa_enabled, failed_login_attempts, is_password_temporary, application_admin, sms_mfa_enabled, phone_verified, email_mfa_enabled, biometric_mfa_enabled, created_at, updated_at)
+        VALUES (:email, :password, :full_name, 'pending', FALSE, FALSE, FALSE, FALSE, 0, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, NOW(), NOW())
         """
         ),
         {
