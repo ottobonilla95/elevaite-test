@@ -161,27 +161,6 @@ Object Storage bucket name
 {{- end }}
 
 {{/*
-Qdrant host
-Uses internal service if internal.enabled, otherwise external managed service
-*/}}
-{{- define "elevaite.qdrantHost" -}}
-{{- if .Values.qdrant.internal.enabled -}}
-{{- printf "%s-qdrant" (include "elevaite.fullname" .) -}}
-{{- else if .Values.qdrant.enabled -}}
-{{- required "qdrant.host is required when qdrant.enabled is true" .Values.qdrant.host -}}
-{{- else -}}
-{{- "" -}}
-{{- end -}}
-{{- end }}
-
-{{/*
-Qdrant port
-*/}}
-{{- define "elevaite.qdrantPort" -}}
-{{- .Values.qdrant.port | default 6333 -}}
-{{- end }}
-
-{{/*
 Environment name from global config
 */}}
 {{- define "elevaite.environment" -}}

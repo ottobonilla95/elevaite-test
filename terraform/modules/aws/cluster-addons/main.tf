@@ -85,6 +85,13 @@ variable "qdrant_api_key" {
   description = "Qdrant API key for authentication"
   type        = string
   sensitive   = true
+  default     = ""
+}
+
+variable "qdrant_enabled" {
+  description = "Enable Qdrant vector database. Disable if ingestion service is not used."
+  type        = bool
+  default     = false
 }
 
 # =============================================================================
@@ -387,21 +394,25 @@ resource "helm_release" "external_dns" {
 }
 
 # =============================================================================
-# QDRANT (Vector Database)
+# QDRANT (Vector Database) - Disabled by default since ingestion service is not deployed
 # =============================================================================
 
 resource "kubernetes_namespace" "qdrant" {
+  count = var.qdrant_enabled ? 1 : 0
+
   metadata {
     name = "qdrant"
   }
 }
 
 resource "helm_release" "qdrant" {
+  count = var.qdrant_enabled ? 1 : 0
+
   name       = "qdrant"
   repository = "https://qdrant.github.io/qdrant-helm"
   chart      = "qdrant"
   version    = "0.10.1"
-  namespace  = kubernetes_namespace.qdrant.metadata[0].name
+  namespace  = kubernetes_namespace.qdrant[0].metadata[0].name
 
   values = [
     yamlencode({
@@ -538,13 +549,13 @@ output "external_dns_role_arn" {
 }
 
 output "qdrant_host" {
-  description = "Qdrant service host"
-  value       = "qdrant.${kubernetes_namespace.qdrant.metadata[0].name}.svc.cluster.local"
+  description = "Qdrant service host (empty if disabled)"
+  value       = var.qdrant_enabled ? "qdrant.${kubernetes_namespace.qdrant[0].metadata[0].name}.svc.cluster.local" : ""
 }
 
 output "qdrant_port" {
   description = "Qdrant service port"
-  value       = 6333
+  value       = var.qdrant_enabled ? 6333 : 0
 }
 
 output "rabbitmq_host" {

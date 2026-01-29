@@ -184,10 +184,6 @@ objectStorage:
   # Files are stored under prefix: pr-${PR_NUMBER}/
   existingSecret: "elevaite-storage-credentials"
 
-# Qdrant - Disabled for PR environments
-qdrant:
-  enabled: false
-
 # =============================================================================
 # MIGRATIONS (Single tenant for PR envs)
 # =============================================================================

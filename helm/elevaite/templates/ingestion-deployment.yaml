@@ -111,23 +111,7 @@ spec:
                   key: AWS_SECRET_ACCESS_KEY
                   optional: true
             {{- end }}
-            
-            # Qdrant (optional)
-            {{- if .Values.qdrant.enabled }}
-            - name: QDRANT_HOST
-              value: {{ include "elevaite.qdrantHost" . | quote }}
-            - name: QDRANT_PORT
-              value: {{ include "elevaite.qdrantPort" . | quote }}
-            {{- if .Values.qdrant.existingSecret }}
-            - name: QDRANT_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.qdrant.existingSecret }}
-                  key: QDRANT_API_KEY
-                  optional: true
-            {{- end }}
-            {{- end }}
-            
+
             # Internal services
             - name: WORKFLOW_ENGINE_URL
               value: http://{{ include "elevaite.fullname" . }}-workflow-engine:8006

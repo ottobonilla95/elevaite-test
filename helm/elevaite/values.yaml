@@ -391,48 +391,6 @@ objectStorage:
   existingSecret: "elevaite-storage-credentials"
 
 # =============================================================================
-# QDRANT (Vector Database)
-# =============================================================================
-# Can run internally in K8s or use external managed service
-qdrant:
-  # External mode (Qdrant Cloud, etc.)
-  enabled: false
-  host: ""
-  port: 6333
-  # Use gRPC for better performance
-  grpcPort: 6334
-  # Secret containing API key
-  # Secret should have key: QDRANT_API_KEY
-  existingSecret: "elevaite-qdrant-credentials"
-
-  # Internal mode (runs in K8s)
-  internal:
-    enabled: false
-    replicaCount: 1
-
-    image:
-      repository: qdrant/qdrant
-      tag: v1.12.1
-      pullPolicy: IfNotPresent
-
-    service:
-      type: ClusterIP
-
-    persistence:
-      size: 10Gi
-      storageClass: ""  # Use default storage class
-
-    resources:
-      requests:
-        cpu: 250m
-        memory: 512Mi
-      limits:
-        cpu: 1000m
-        memory: 2Gi
-
-    env: {}
-
-# =============================================================================
 # SERVICE ACCOUNT
 # =============================================================================
 serviceAccount:

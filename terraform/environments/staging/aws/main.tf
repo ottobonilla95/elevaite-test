@@ -263,6 +263,9 @@ module "cluster_addons" {
   oidc_provider          = module.kubernetes.oidc_provider
   rabbitmq_password      = var.rabbitmq_password
   rabbitmq_erlang_cookie = var.rabbitmq_erlang_cookie != "" ? var.rabbitmq_erlang_cookie : random_password.rabbitmq_cookie.result
+
+  # Qdrant disabled - ingestion service not deployed
+  qdrant_enabled         = false
   qdrant_api_key         = var.qdrant_api_key
 
   depends_on = [module.kubernetes]
