@@ -15,6 +15,7 @@ authApi:
   replicaCount: 1
   image:
     tag: "staging"
+    pullPolicy: Always
   resources:
     requests:
       cpu: 250m
@@ -25,12 +26,14 @@ authApi:
   env:
     LOG_LEVEL: DEBUG
     ALLOWED_HOSTS: "*"
-  envFromSecrets: []
+  envFromSecrets:
+    - elevaite-secrets
 
 workflowEngine:
   replicaCount: 1
   image:
     tag: "staging"
+    pullPolicy: Always
   resources:
     requests:
       cpu: 500m
@@ -41,6 +44,9 @@ workflowEngine:
   env:
     LOG_LEVEL: DEBUG
     SCHEDULER_POLL_SECONDS: "5"
+    ALLOWED_HOSTS: "*"
+  envFromSecrets:
+    - elevaite-secrets
 
 ingestion:
   replicaCount: 1
@@ -48,11 +54,18 @@ ingestion:
     tag: "staging"
   env:
     LOG_LEVEL: DEBUG
+    ALLOWED_HOSTS: "*"
+  envFromSecrets:
+    - elevaite-secrets
 
 worker:
   replicaCount: 2
   image:
     tag: "staging"
+  env:
+    LOG_LEVEL: DEBUG
+  envFromSecrets:
+    - elevaite-secrets
   autoscaling:
     enabled: false
 
@@ -78,6 +91,39 @@ ingress:
     - secretName: elevaite-staging-tls
       hosts:
         - api-staging.elevaite.ai
+
+# =============================================================================
+# FRONTEND APPS
+# =============================================================================
+frontend:
+  auth:
+    enabled: true
+    replicaCount: 1
+    image:
+      tag: "staging"
+      pullPolicy: Always
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    env: {}
+  elevaite:
+    enabled: true
+    replicaCount: 1
+    image:
+      tag: "staging"
+      pullPolicy: Always
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    env: {}
 
 # =============================================================================
 # EXTERNAL SERVICES (Managed by Terraform)
@@ -113,6 +159,9 @@ rabbitmq:
       limits:
         cpu: 500m
         memory: 512Mi
+  port: 5672
+  vhost: "/"
+  existingSecret: "elevaite-rabbitmq-credentials"
 
 # Object Storage - S3 / GCS / Azure Blob
 objectStorage:

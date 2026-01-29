@@ -14,7 +14,8 @@ global:
 authApi:
   replicaCount: 1  # Single replica for cost savings
   image:
-    tag: "latest"  # Or pinned version
+    tag: "production"
+    pullPolicy: Always
   resources:
     requests:
       cpu: 500m
@@ -26,12 +27,14 @@ authApi:
     LOG_LEVEL: INFO
     DEBUG: "0"
     ALLOWED_HOSTS: "*"
-  envFromSecrets: []
+  envFromSecrets:
+    - elevaite-secrets
 
 workflowEngine:
   replicaCount: 1  # Single replica for cost savings
   image:
-    tag: "latest"
+    tag: "production"
+    pullPolicy: Always
   resources:
     requests:
       cpu: 1000m
@@ -42,11 +45,14 @@ workflowEngine:
   env:
     LOG_LEVEL: INFO
     SCHEDULER_POLL_SECONDS: "3"
+    ALLOWED_HOSTS: "*"
+  envFromSecrets:
+    - elevaite-secrets
 
 ingestion:
   replicaCount: 1  # Single replica for cost savings
   image:
-    tag: "latest"
+    tag: "production"
   resources:
     requests:
       cpu: 500m
@@ -56,11 +62,14 @@ ingestion:
       memory: 1Gi
   env:
     LOG_LEVEL: INFO
+    ALLOWED_HOSTS: "*"
+  envFromSecrets:
+    - elevaite-secrets
 
 worker:
   replicaCount: 2  # Reduced workers for cost savings
   image:
-    tag: "latest"
+    tag: "production"
   resources:
     requests:
       cpu: 1000m
@@ -68,6 +77,10 @@ worker:
     limits:
       cpu: 2000m
       memory: 2Gi
+  env:
+    LOG_LEVEL: INFO
+  envFromSecrets:
+    - elevaite-secrets
   autoscaling:
     enabled: false  # Disabled for cost savings
     minReplicas: 2
@@ -99,6 +112,39 @@ ingress:
     - secretName: elevaite-prod-tls
       hosts:
         - api.elevaite.ai
+
+# =============================================================================
+# FRONTEND APPS
+# =============================================================================
+frontend:
+  auth:
+    enabled: true
+    replicaCount: 1
+    image:
+      tag: "production"
+      pullPolicy: Always
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    env: {}
+  elevaite:
+    enabled: true
+    replicaCount: 1
+    image:
+      tag: "production"
+      pullPolicy: Always
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    env: {}
 
 # =============================================================================
 # EXTERNAL SERVICES (Managed by Terraform)
@@ -133,6 +179,9 @@ rabbitmq:
       limits:
         cpu: 1000m
         memory: 1Gi
+  port: 5672
+  vhost: "/"
+  existingSecret: "elevaite-rabbitmq-credentials"
 
 # Object Storage - S3 / GCS / Azure Blob
 objectStorage:
