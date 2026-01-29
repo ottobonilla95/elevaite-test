@@ -454,6 +454,50 @@ jobs:
     if: always()
 
     steps:
+      - name: Notify Google Chat
+        if: secrets.GOOGLE_CHAT_WEBHOOK_URL != ''
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            STATUS="✅ Success"
+            COLOR="#34A853"
+          else
+            STATUS="❌ Failed"
+            COLOR="#EA4335"
+          fi
+
+          curl -X POST "${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "cardsV2": [{
+                "cardId": "staging-deploy",
+                "card": {
+                  "header": {
+                    "title": "Staging Deployment",
+                    "subtitle": "'"$STATUS"'",
+                    "imageUrl": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                  },
+                  "sections": [{
+                    "widgets": [
+                      {"decoratedText": {"topLabel": "Environment", "text": "staging"}},
+                      {"decoratedText": {"topLabel": "Image Tag", "text": "${{ needs.prepare.outputs.image_tag }}"}},
+                      {"decoratedText": {"topLabel": "Triggered By", "text": "${{ github.actor }}"}},
+                      {"decoratedText": {"topLabel": "Commit", "text": "${{ github.sha }}"}}
+                    ]
+                  },
+                  {
+                    "widgets": [{
+                      "buttonList": {
+                        "buttons": [
+                          {"text": "Open App", "onClick": {"openLink": {"url": "https://staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"}}},
+                          {"text": "View Run", "onClick": {"openLink": {"url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}}}
+                        ]
+                      }
+                    }]
+                  }]
+                }
+              }]
+            }'
+
       - name: Notify Slack
         if: vars.SLACK_WEBHOOK_URL != ''
         uses: 8398a7/action-slack@v3
