@@ -64,6 +64,7 @@ jobs:
     needs: wait-for-ci
     if: github.event_name == 'workflow_dispatch' || github.event.action != 'closed'
     runs-on: ubuntu-latest
+    environment: development
     outputs:
       lb_ip: ${{ steps.lb.outputs.lb_ip }}
       lb_ip_dashed: ${{ steps.lb.outputs.lb_ip_dashed }}
