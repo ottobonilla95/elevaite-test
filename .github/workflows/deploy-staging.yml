@@ -261,13 +261,14 @@ jobs:
             --from-literal=RABBITMQ_PASSWORD=${{ secrets.STAGING_RABBITMQ_PASSWORD }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          # Qdrant credentials (optional - for vector database)
-          if [ -n "${{ secrets.STAGING_QDRANT_API_KEY }}" ]; then
-            kubectl create secret generic elevaite-qdrant-credentials \
-              --namespace ${{ env.NAMESPACE }} \
-              --from-literal=QDRANT_API_KEY=${{ secrets.STAGING_QDRANT_API_KEY }} \
-              --dry-run=client -o yaml | kubectl apply -f -
-          fi
+          # TODO: Re-enable when ingestion service is ready
+          # Qdrant credentials (for vector database - used by ingestion service)
+          # if [ -n "${{ secrets.STAGING_QDRANT_API_KEY }}" ]; then
+          #   kubectl create secret generic elevaite-qdrant-credentials \
+          #     --namespace ${{ env.NAMESPACE }} \
+          #     --from-literal=QDRANT_API_KEY=${{ secrets.STAGING_QDRANT_API_KEY }} \
+          #     --dry-run=client -o yaml | kubectl apply -f -
+          # fi
           
           # Application secrets (API keys, JWT, OAuth, etc.)
           kubectl create secret generic elevaite-secrets \

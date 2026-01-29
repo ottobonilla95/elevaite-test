@@ -366,12 +366,14 @@ jobs:
             --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_STORAGE_SECRET_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          if [ -n "${{ secrets.DEV_QDRANT_API_KEY }}" ]; then
-            kubectl create secret generic elevaite-qdrant-credentials \
-              --namespace ${{ env.NAMESPACE }} \
-              --from-literal=QDRANT_API_KEY=${{ secrets.DEV_QDRANT_API_KEY }} \
-              --dry-run=client -o yaml | kubectl apply -f -
-          fi
+          # TODO: Re-enable when ingestion service is ready
+          # Qdrant credentials (for vector database - used by ingestion service)
+          # if [ -n "${{ secrets.DEV_QDRANT_API_KEY }}" ]; then
+          #   kubectl create secret generic elevaite-qdrant-credentials \
+          #     --namespace ${{ env.NAMESPACE }} \
+          #     --from-literal=QDRANT_API_KEY=${{ secrets.DEV_QDRANT_API_KEY }} \
+          #     --dry-run=client -o yaml | kubectl apply -f -
+          # fi
 
           kubectl create secret generic elevaite-secrets \
             --namespace ${{ env.NAMESPACE }} \
