@@ -33,10 +33,34 @@ spec:
             - sh
             - -c
             - |
-              echo "Waiting for PostgreSQL to be ready..."
+              set -e
+              echo "=========================================="
+              echo "Waiting for PostgreSQL"
+              echo "=========================================="
+              echo "Host: ${db_host}"
+              echo "Port: ${db_port}"
+              echo "User: ${db_user}"
+              echo ""
+
+              if [ -z "${db_host}" ]; then
+                echo "ERROR: db_host is empty!"
+                exit 1
+              fi
+
+              MAX_RETRIES=30
+              RETRY_COUNT=0
+
               until pg_isready -h ${db_host} -p ${db_port} -U ${db_user}; do
-                echo "PostgreSQL is unavailable - sleeping"
-                sleep 2
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+                  echo "ERROR: PostgreSQL not ready after $MAX_RETRIES attempts"
+                  echo "Trying to get more info..."
+                  nslookup ${db_host} || echo "DNS lookup failed"
+                  nc -zv ${db_host} ${db_port} 2>&1 || echo "Port check failed"
+                  exit 1
+                fi
+                echo "PostgreSQL unavailable (attempt $RETRY_COUNT/$MAX_RETRIES) - sleeping 5s"
+                sleep 5
               done
               echo "PostgreSQL is ready!"
           envFrom:
