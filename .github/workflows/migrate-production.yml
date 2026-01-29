@@ -1,0 +1,190 @@
+# =============================================================================
+# Production Database Migrations (Manual Trigger Only)
+# Runs database migrations against production with explicit confirmation
+# =============================================================================
+
+name: Migrate Production Database
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "migrate" to confirm production migration'
+        required: true
+        default: ''
+      dry_run:
+        description: 'Dry run (show pending migrations without applying)'
+        required: false
+        type: boolean
+        default: true
+      tenants:
+        description: 'Tenants to migrate (comma-separated, or "all")'
+        required: false
+        default: 'all'
+
+env:
+  CLOUD_PROVIDER: ${{ vars.CLOUD_PROVIDER || 'aws' }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      tenants: ${{ steps.parse.outputs.tenants }}
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "migrate" ]; then
+            echo "❌ Migration not confirmed. Please type 'migrate' to confirm."
+            echo ""
+            echo "This workflow runs database migrations against PRODUCTION."
+            echo "Make sure you have:"
+            echo "  1. Tested migrations in staging first"
+            echo "  2. Reviewed the migration files"
+            echo "  3. Backed up the database if needed"
+            exit 1
+          fi
+          echo "✅ Migration confirmed"
+
+      - name: Parse tenants
+        id: parse
+        run: |
+          TENANTS="${{ github.event.inputs.tenants }}"
+          if [ "$TENANTS" == "all" ]; then
+            TENANTS="default,toshiba,iopex"
+          fi
+          echo "tenants=$TENANTS" >> $GITHUB_OUTPUT
+          echo "Will migrate tenants: $TENANTS"
+
+  migrate:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- AWS Authentication ---
+      - name: Configure AWS credentials
+        if: ${{ env.CLOUD_PROVIDER == 'aws' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
+
+      - name: Configure kubectl for AWS EKS
+        if: ${{ env.CLOUD_PROVIDER == 'aws' }}
+        run: aws eks update-kubeconfig --name elevaite-production --region ${{ vars.AWS_REGION || 'us-west-1' }}
+
+      # --- Azure Authentication ---
+      - name: Configure Azure credentials
+        if: ${{ env.CLOUD_PROVIDER == 'azure' }}
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure kubectl for Azure AKS
+        if: ${{ env.CLOUD_PROVIDER == 'azure' }}
+        run: az aks get-credentials --resource-group elevaite-production --name elevaite-production
+
+      # --- GCP Authentication ---
+      - name: Configure GCP credentials
+        if: ${{ env.CLOUD_PROVIDER == 'gcp' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Configure kubectl for GCP GKE
+        if: ${{ env.CLOUD_PROVIDER == 'gcp' }}
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: elevaite-production
+          location: ${{ vars.GCP_REGION || 'us-central1' }}
+
+      - name: Show pending migrations (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "=========================================="
+          echo "DRY RUN - Showing pending migrations"
+          echo "=========================================="
+
+          # Get a running auth-api pod
+          POD=$(kubectl get pods -n production -l app.kubernetes.io/component=auth-api -o jsonpath='{.items[0].metadata.name}')
+
+          if [ -z "$POD" ]; then
+            echo "❌ No auth-api pod found. Is the application deployed?"
+            exit 1
+          fi
+
+          echo "Using pod: $POD"
+          echo ""
+
+          # Show current migration state
+          kubectl exec -n production $POD -- bash -c "cd /elevaite/python_apps/auth_api && uv run alembic current" || true
+
+          echo ""
+          echo "Pending migrations:"
+          kubectl exec -n production $POD -- bash -c "cd /elevaite/python_apps/auth_api && uv run alembic history -v" | head -50
+
+          echo ""
+          echo "=========================================="
+          echo "DRY RUN COMPLETE - No changes made"
+          echo "=========================================="
+          echo ""
+          echo "To apply migrations, re-run this workflow with dry_run=false"
+
+      - name: Run migrations
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          echo "=========================================="
+          echo "Running Production Migrations"
+          echo "=========================================="
+
+          # Get a running auth-api pod
+          POD=$(kubectl get pods -n production -l app.kubernetes.io/component=auth-api -o jsonpath='{.items[0].metadata.name}')
+
+          if [ -z "$POD" ]; then
+            echo "❌ No auth-api pod found. Is the application deployed?"
+            exit 1
+          fi
+
+          echo "Using pod: $POD"
+          echo "Tenants: ${{ needs.validate.outputs.tenants }}"
+          echo ""
+
+          # Parse tenants and run migrations for each
+          IFS=',' read -ra TENANT_ARRAY <<< "${{ needs.validate.outputs.tenants }}"
+
+          for tenant in "${TENANT_ARRAY[@]}"; do
+            tenant=$(echo "$tenant" | xargs)  # trim whitespace
+            schema="auth_${tenant}"
+
+            echo "=========================================="
+            echo "Migrating schema: $schema"
+            echo "=========================================="
+
+            kubectl exec -n production $POD -- bash -c "cd /elevaite/python_apps/auth_api && ALEMBIC_SCHEMA=$schema uv run alembic upgrade head"
+
+            if [ $? -eq 0 ]; then
+              echo "✅ $schema migration completed"
+            else
+              echo "❌ $schema migration FAILED"
+              exit 1
+            fi
+            echo ""
+          done
+
+          echo "=========================================="
+          echo "✅ All migrations completed successfully"
+          echo "=========================================="
+
+      - name: Summary
+        run: |
+          echo "## Migration Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** production" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run:** ${{ github.event.inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tenants:** ${{ needs.validate.outputs.tenants }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
