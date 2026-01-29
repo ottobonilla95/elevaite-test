@@ -1,20 +1,23 @@
 # =============================================================================
 # Production Deployment Workflow
 # Deploys to production AFTER CI passes on main branch
-# Builds ALL images (backends + frontends) with production-specific configuration
-# Cloud-agnostic: Works with AWS/Azure/GCP (configured via secrets)
-# Uses dynamic nip.io URLs based on LoadBalancer IP (no manual URL vars needed)
+#
+# WORKFLOW:
+#   1. Build images (no approval needed - doesn't affect prod)
+#   2. ⏸️ PAUSE for approval (GitHub Environment protection)
+#   3. Run migrations + Deploy
+#
+# SETUP REQUIRED:
+#   Go to: Repo Settings → Environments → production → Add required reviewers
 # =============================================================================
 
 name: Deploy to Production
 
 on:
-  # Trigger after CI workflow completes successfully on main
   workflow_run:
     workflows: ["CI"]
     types: [completed]
     branches: [main]
-  # Allow manual trigger for emergency deploys
   workflow_dispatch:
     inputs:
       confirm:
@@ -41,21 +44,15 @@ env:
 
 jobs:
   # ===========================================================================
-  # Prepare - Get infrastructure info needed for builds
+  # Get Image Tag
   # ===========================================================================
   prepare:
-    # Skip if triggered by workflow_run and CI failed
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
-    environment: production
     outputs:
       image_tag: ${{ steps.get-tag.outputs.image_tag }}
-      lb_ip: ${{ steps.lb.outputs.lb_ip }}
-      lb_ip_dashed: ${{ steps.lb.outputs.lb_ip_dashed }}
-      db_host: ${{ steps.terraform.outputs.db_host }}
-      storage_bucket: ${{ steps.terraform.outputs.storage_bucket }}
 
     steps:
       - name: Validate deployment confirmation
@@ -66,9 +63,6 @@ jobs:
             exit 1
           fi
           echo "✅ Production deployment confirmed"
-
-      - name: Checkout code
-        uses: actions/checkout@v4
 
       - name: Get image tag
         id: get-tag
@@ -83,6 +77,103 @@ jobs:
             echo "image_tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
           fi
           echo "Using image tag: $(cat $GITHUB_OUTPUT | grep image_tag)"
+
+  # ===========================================================================
+  # Build Images (no approval needed - doesn't affect production)
+  # ===========================================================================
+  build-images:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo docker system prune -af --volumes
+          df -h
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Auth API
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: python_apps/auth_api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/elevaite-auth-api:${{ needs.prepare.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-auth-api:production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Workflow Engine
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: python_apps/workflow-engine-poc/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:${{ needs.prepare.outputs.image_tag }}
+            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary - Images Built
+        run: |
+          echo "## ✅ Images Built Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** ${{ needs.prepare.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⏸️ **Waiting for approval to deploy to production...**" >> $GITHUB_STEP_SUMMARY
+
+  # ===========================================================================
+  # ⏸️ APPROVAL GATE - Requires reviewer approval to proceed
+  # Configure in: Repo Settings → Environments → production → Required reviewers
+  # ===========================================================================
+  approve:
+    needs: [prepare, build-images]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://prod.${{ needs.deploy.outputs.lb_ip_dashed }}.nip.io
+
+    steps:
+      - name: Approval received
+        run: |
+          echo "=========================================="
+          echo "✅ Production deployment approved"
+          echo "=========================================="
+          echo ""
+          echo "Approved by: ${{ github.actor }}"
+          echo "Image tag: ${{ needs.prepare.outputs.image_tag }}"
+          echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+  # ===========================================================================
+  # Deploy (runs after approval)
+  # ===========================================================================
+  deploy:
+    needs: [prepare, build-images, approve]
+    runs-on: ubuntu-latest
+    outputs:
+      lb_ip_dashed: ${{ steps.lb.outputs.lb_ip_dashed }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       # --- Cloud Authentication ---
       - name: Configure AWS credentials
@@ -154,168 +245,54 @@ jobs:
             exit 1
           fi
 
-          if ! [[ "$LB_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "ERROR: Invalid IP format: $LB_IP"
-            exit 1
-          fi
-
           LB_IP_DASHED=$(echo "$LB_IP" | tr '.' '-')
           echo "lb_ip=$LB_IP" >> $GITHUB_OUTPUT
           echo "lb_ip_dashed=$LB_IP_DASHED" >> $GITHUB_OUTPUT
           echo "Resolved Load Balancer IP: $LB_IP"
 
-  # ===========================================================================
-  # Build ALL Images (backends + frontends with dynamic production URLs)
-  # ===========================================================================
-  build-images:
-    needs: prepare
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Free up disk space
+      - name: Build Frontend Images (with dynamic URLs)
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-          sudo docker system prune -af --volumes
-          df -h
+          # Build frontend images with production URLs baked in
+          echo "Building frontend images with dynamic URLs..."
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+          # Login to GHCR
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          # Auth App
+          docker build \
+            --build-arg AUTH_URL=https://auth-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io \
+            --build-arg AUTH_API_URL=https://api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io/api/auth \
+            --build-arg NEXTAUTH_URL_INTERNAL=http://elevaite-auth-app:3005 \
+            --build-arg RBAC_BACKEND_URL=https://api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io \
+            --build-arg ELEVAITE_HOMEPAGE=https://prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io \
+            -f apps/auth/Dockerfile \
+            -t ghcr.io/${{ github.repository }}/elevaite-auth-app:${{ needs.prepare.outputs.image_tag }} \
+            -t ghcr.io/${{ github.repository }}/elevaite-auth-app:production \
+            .
+          docker push ghcr.io/${{ github.repository }}/elevaite-auth-app:${{ needs.prepare.outputs.image_tag }}
+          docker push ghcr.io/${{ github.repository }}/elevaite-auth-app:production
 
-      # --- Backend Images ---
-      - name: Build and push Auth API
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: python_apps/auth_api/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-auth-api:${{ needs.prepare.outputs.image_tag }}
-            ghcr.io/${{ github.repository }}/elevaite-auth-api:production
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Workflow Engine
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: python_apps/workflow-engine-poc/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:${{ needs.prepare.outputs.image_tag }}
-            ghcr.io/${{ github.repository }}/elevaite-workflow-engine:production
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # --- Frontend Images (with dynamic production URLs baked in) ---
-      - name: Build and push Auth App (Frontend)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/auth/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-auth-app:${{ needs.prepare.outputs.image_tag }}
-            ghcr.io/${{ github.repository }}/elevaite-auth-app:production
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            AUTH_URL=https://auth-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            AUTH_API_URL=https://api-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io/api/auth
-            NEXTAUTH_URL_INTERNAL=http://elevaite-auth-app:3005
-            RBAC_BACKEND_URL=https://api-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            ELEVAITE_HOMEPAGE=https://prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-
-      - name: Build and push Elevaite App (Frontend)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/elevaite/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/elevaite-app:${{ needs.prepare.outputs.image_tag }}
-            ghcr.io/${{ github.repository }}/elevaite-app:production
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            NEXT_PUBLIC_BACKEND_URL=https://api-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            NEXT_PUBLIC_AUTH_API_URL=https://api-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io/api/auth
-            NEXT_PUBLIC_NATIVEAUTH_URL=https://auth-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            NEXT_PUBLIC_MODELS_API_URL=https://api-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            NEXT_PUBLIC_CONTRACTS_API_URL=https://api-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=https://api-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            NEXTAUTH_URL_INTERNAL=http://elevaite-auth-app:3005
-
-  # ===========================================================================
-  # Deploy to Kubernetes (Cloud-Agnostic)
-  # ===========================================================================
-  deploy:
-    needs: [prepare, build-images]
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # --- AWS Authentication ---
-      - name: Configure AWS credentials
-        if: ${{ env.CLOUD_PROVIDER == 'aws' }}
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION || 'us-west-1' }}
-
-      - name: Configure kubectl for AWS EKS
-        if: ${{ env.CLOUD_PROVIDER == 'aws' }}
-        run: aws eks update-kubeconfig --name elevaite-production --region ${{ vars.AWS_REGION || 'us-west-1' }}
-
-      # --- Azure Authentication ---
-      - name: Configure Azure credentials
-        if: ${{ env.CLOUD_PROVIDER == 'azure' }}
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Configure kubectl for Azure AKS
-        if: ${{ env.CLOUD_PROVIDER == 'azure' }}
-        run: az aks get-credentials --resource-group elevaite-production --name elevaite-production
-
-      # --- GCP Authentication ---
-      - name: Configure GCP credentials
-        if: ${{ env.CLOUD_PROVIDER == 'gcp' }}
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-
-      - name: Configure kubectl for GCP GKE
-        if: ${{ env.CLOUD_PROVIDER == 'gcp' }}
-        uses: google-github-actions/get-gke-credentials@v2
-        with:
-          cluster_name: elevaite-production
-          location: ${{ vars.GCP_REGION || 'us-central1' }}
+          # Elevaite App
+          docker build \
+            --build-arg NEXT_PUBLIC_BACKEND_URL=https://api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io \
+            --build-arg NEXT_PUBLIC_AUTH_API_URL=https://api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io/api/auth \
+            --build-arg NEXT_PUBLIC_NATIVEAUTH_URL=https://auth-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io \
+            --build-arg NEXT_PUBLIC_MODELS_API_URL=https://api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io \
+            --build-arg NEXT_PUBLIC_CONTRACTS_API_URL=https://api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io \
+            --build-arg NEXT_PUBLIC_CONTRACTS_IOPEX_API_URL=https://api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io \
+            --build-arg NEXTAUTH_URL_INTERNAL=http://elevaite-auth-app:3005 \
+            -f apps/elevaite/Dockerfile \
+            -t ghcr.io/${{ github.repository }}/elevaite-app:${{ needs.prepare.outputs.image_tag }} \
+            -t ghcr.io/${{ github.repository }}/elevaite-app:production \
+            .
+          docker push ghcr.io/${{ github.repository }}/elevaite-app:${{ needs.prepare.outputs.image_tag }}
+          docker push ghcr.io/${{ github.repository }}/elevaite-app:production
 
       - name: Create/Update Kubernetes namespace
         run: kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Create/Update Kubernetes secrets
         run: |
-          # Create Docker registry secret for pulling images from GHCR
           kubectl create secret docker-registry ghcr-pull-secret \
             --namespace ${{ env.NAMESPACE }} \
             --docker-server=ghcr.io \
@@ -323,28 +300,24 @@ jobs:
             --docker-password=${{ secrets.GITHUB_TOKEN }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          # Database credentials
           kubectl create secret generic elevaite-db-credentials \
             --namespace ${{ env.NAMESPACE }} \
             --from-literal=POSTGRES_USER=${{ secrets.PROD_DB_USER }} \
             --from-literal=POSTGRES_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          # Storage credentials
           kubectl create secret generic elevaite-storage-credentials \
             --namespace ${{ env.NAMESPACE }} \
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.PROD_STORAGE_ACCESS_KEY }} \
             --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_STORAGE_SECRET_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          # RabbitMQ credentials
           kubectl create secret generic elevaite-rabbitmq-credentials \
             --namespace ${{ env.NAMESPACE }} \
             --from-literal=RABBITMQ_USER=elevaite \
             --from-literal=RABBITMQ_PASSWORD=${{ secrets.PROD_RABBITMQ_PASSWORD }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-          # Application secrets
           kubectl create secret generic elevaite-secrets \
             --namespace ${{ env.NAMESPACE }} \
             --from-literal=JWT_SECRET=${{ secrets.JWT_SECRET }} \
@@ -352,16 +325,16 @@ jobs:
             --from-literal=NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET || secrets.JWT_SECRET }} \
             --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
             --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-            --from-literal=db_host=${{ needs.prepare.outputs.db_host }} \
+            --from-literal=db_host=${{ steps.terraform.outputs.db_host }} \
             --from-literal=db_port=5432 \
             --from-literal=db_user=${{ secrets.PROD_DB_USER }} \
             --from-literal=db_password=${{ secrets.PROD_DB_PASSWORD }} \
             --from-literal=db_name=elevaite_production \
             --from-literal=POSTGRES_USER=${{ secrets.PROD_DB_USER }} \
             --from-literal=POSTGRES_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} \
-            --from-literal=DATABASE_URL=postgresql+asyncpg://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_production?ssl=require \
-            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_production?ssl=require \
-            --from-literal=ALEMBIC_SQLALCHEMY_URL=postgresql://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/elevaite_production?sslmode=require \
+            --from-literal=DATABASE_URL=postgresql+asyncpg://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?ssl=require \
+            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?ssl=require \
+            --from-literal=ALEMBIC_SQLALCHEMY_URL=postgresql://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?sslmode=require \
             --from-literal=RABBITMQ_USER=elevaite \
             --from-literal=RABBITMQ_PASSWORD=${{ secrets.PROD_RABBITMQ_PASSWORD }} \
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.PROD_STORAGE_ACCESS_KEY }} \
@@ -390,16 +363,19 @@ jobs:
             helm rollback $RELEASE_NAME -n ${{ env.NAMESPACE }} || true
           fi
 
-      - name: Deploy with Helm
+      - name: Deploy with Helm (includes migrations)
         run: |
-          API_HOST="api-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
-          AUTH_HOST="auth-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
-          APP_HOST="prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+          API_HOST="api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io"
+          AUTH_HOST="auth-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io"
+          APP_HOST="prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io"
 
-          echo "Deploying with hosts:"
-          echo "  App: $APP_HOST"
-          echo "  Auth: $AUTH_HOST"
-          echo "  API: $API_HOST"
+          echo "=========================================="
+          echo "Deploying to Production"
+          echo "=========================================="
+          echo "App:  https://$APP_HOST"
+          echo "Auth: https://$AUTH_HOST"
+          echo "API:  https://$API_HOST"
+          echo "=========================================="
 
           helm upgrade --install elevaite ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
@@ -413,8 +389,8 @@ jobs:
             --set worker.image.tag=${{ needs.prepare.outputs.image_tag }} \
             --set frontend.auth.image.tag=${{ needs.prepare.outputs.image_tag }} \
             --set frontend.elevaite.image.tag=${{ needs.prepare.outputs.image_tag }} \
-            --set postgresql.host=${{ needs.prepare.outputs.db_host }} \
-            --set objectStorage.bucket=${{ needs.prepare.outputs.storage_bucket }} \
+            --set postgresql.host=${{ steps.terraform.outputs.db_host }} \
+            --set objectStorage.bucket=${{ steps.terraform.outputs.storage_bucket }} \
             --set ingress.enabled=true \
             --set ingress.api.host=$API_HOST \
             --set ingress.authApp.enabled=true \
@@ -447,65 +423,32 @@ jobs:
 
       - name: Show deployment info
         run: |
-          echo "=========================================="
-          echo "Production Deployment Complete"
-          echo "=========================================="
-          echo ""
-          echo "URLs:"
-          echo "  App:  https://prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
-          echo "  Auth: https://auth-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
-          echo "  API:  https://api-prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
-          echo ""
-          echo "Image tag: ${{ needs.prepare.outputs.image_tag }}"
+          echo "## 🚀 Production Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URLs:**" >> $GITHUB_STEP_SUMMARY
+          echo "- App: https://prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io" >> $GITHUB_STEP_SUMMARY
+          echo "- Auth: https://auth-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io" >> $GITHUB_STEP_SUMMARY
+          echo "- API: https://api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image tag:** ${{ needs.prepare.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Approved by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================================================
-  # Post-deployment
+  # Notify
   # ===========================================================================
-  post-deploy:
-    needs: [prepare, build-images, deploy]
+  notify:
+    needs: [prepare, build-images, approve, deploy]
     runs-on: ubuntu-latest
+    if: always()
 
     steps:
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          generate_release_notes: true
-
       - name: Notify Slack
         if: vars.SLACK_WEBHOOK_URL != ''
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ needs.deploy.result }}
           fields: repo,message,commit,author,action,eventName,ref,workflow
-          text: "Production deployment completed - https://prod.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
-        env:
-          SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
-
-  # ===========================================================================
-  # Notify failure
-  # ===========================================================================
-  notify-failure:
-    if: failure()
-    needs: [prepare, build-images, deploy]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Notify rollback
-        if: vars.SLACK_WEBHOOK_URL != ''
-        uses: 8398a7/action-slack@v3
-        with:
-          status: custom
-          custom_payload: |
-            {
-              "text": "Production deployment failed!",
-              "attachments": [{
-                "color": "danger",
-                "fields": [
-                  {"title": "Cloud", "value": "${{ env.CLOUD_PROVIDER }}", "short": true},
-                  {"title": "Commit", "value": "${{ github.sha }}", "short": true}
-                ]
-              }]
-            }
+          text: "Production deployment completed - https://prod.${{ needs.deploy.outputs.lb_ip_dashed }}.nip.io"
         env:
           SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
