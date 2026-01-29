@@ -207,6 +207,18 @@ qdrant:
         memory: 2Gi
 
 # =============================================================================
+# MIGRATIONS (Runs after approval gate in deploy workflow)
+# =============================================================================
+migrations:
+  enabled: true
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 300
+  tenants:
+    - default
+    - toshiba
+    - iopex
+
+# =============================================================================
 # SERVICE ACCOUNT
 # =============================================================================
 serviceAccount:
