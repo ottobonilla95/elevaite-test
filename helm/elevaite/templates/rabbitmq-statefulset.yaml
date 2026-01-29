@@ -39,9 +39,15 @@ spec:
               protocol: TCP
           env:
             - name: RABBITMQ_DEFAULT_USER
-              value: {{ .Values.rabbitmq.internal.auth.username | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.rabbitmq.existingSecret | default "elevaite-rabbitmq-credentials" }}
+                  key: RABBITMQ_USER
             - name: RABBITMQ_DEFAULT_PASS
-              value: {{ .Values.rabbitmq.internal.auth.password | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.rabbitmq.existingSecret | default "elevaite-rabbitmq-credentials" }}
+                  key: RABBITMQ_PASSWORD
             - name: RABBITMQ_ERLANG_COOKIE
               value: {{ .Values.rabbitmq.internal.auth.erlangCookie | quote }}
             {{- range $key, $value := .Values.rabbitmq.internal.env }}
