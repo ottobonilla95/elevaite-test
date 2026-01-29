@@ -525,6 +525,10 @@ jobs:
             COLOR="#EA4335"
           fi
 
+          APP_URL="https://staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+          AUTH_URL="https://auth-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+          API_URL="https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
+
           curl -X POST "$GOOGLE_CHAT_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d '{
@@ -545,10 +549,19 @@ jobs:
                     ]
                   },
                   {
+                    "header": "URLs",
+                    "widgets": [
+                      {"decoratedText": {"topLabel": "App", "text": "'"$APP_URL"'"}},
+                      {"decoratedText": {"topLabel": "Auth", "text": "'"$AUTH_URL"'"}},
+                      {"decoratedText": {"topLabel": "API", "text": "'"$API_URL"'"}}
+                    ]
+                  },
+                  {
                     "widgets": [{
                       "buttonList": {
                         "buttons": [
-                          {"text": "Open App", "onClick": {"openLink": {"url": "https://staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"}}},
+                          {"text": "Open App", "onClick": {"openLink": {"url": "'"$APP_URL"'"}}},
+                          {"text": "Open Auth", "onClick": {"openLink": {"url": "'"$AUTH_URL"'"}}},
                           {"text": "View Run", "onClick": {"openLink": {"url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}}}
                         ]
                       }
