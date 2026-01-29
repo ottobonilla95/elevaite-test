@@ -177,7 +177,9 @@ jobs:
   deploy:
     needs: [prepare, build-images]
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      url: ${{ vars.PROD_AUTH_URL }}
 
     steps:
       - name: Checkout code

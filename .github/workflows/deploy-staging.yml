@@ -165,7 +165,9 @@ jobs:
   deploy:
     needs: [prepare, build-images]
     runs-on: ubuntu-latest
-    environment: staging
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_AUTH_URL }}
     
     steps:
       - name: Checkout code
