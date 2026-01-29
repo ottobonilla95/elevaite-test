@@ -405,7 +405,10 @@ jobs:
           RELEASE_STATUS=$(helm status $RELEASE_NAME -n ${{ env.NAMESPACE }} 2>/dev/null | grep STATUS || echo "not found")
           echo "Release status: $RELEASE_STATUS"
 
-          if echo "$RELEASE_STATUS" | grep -qE "(pending-install|pending-upgrade|pending-rollback)"; then
+          if echo "$RELEASE_STATUS" | grep -q "pending-install"; then
+            echo "Found stuck pending-install, deleting release..."
+            helm uninstall $RELEASE_NAME -n ${{ env.NAMESPACE }} --wait || true
+          elif echo "$RELEASE_STATUS" | grep -qE "(pending-upgrade|pending-rollback)"; then
             echo "Found stuck release, rolling back..."
             helm rollback $RELEASE_NAME -n ${{ env.NAMESPACE }} || true
           fi
