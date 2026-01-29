@@ -19,10 +19,6 @@ WORKDIR /app
 COPY .gitignore .gitignore
 COPY --from=builder /app/out/json/ .
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
-
-# Fix turbo prune bug that corrupts packageManager field
-RUN sed -i 's/"packageManager": "yarn@npm@/"packageManager": "npm@/g' package.json
-
 RUN npm cache clear --force
 RUN npm ci
 
