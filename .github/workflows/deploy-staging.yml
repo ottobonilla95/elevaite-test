@@ -307,7 +307,7 @@ jobs:
             --namespace ${{ env.NAMESPACE }} \
             --docker-server=ghcr.io \
             --docker-username=${{ github.actor }} \
-            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+            --docker-password=${{ secrets.GHCR_PAT }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
           # Database credentials
@@ -377,6 +377,18 @@ jobs:
             helm rollback $RELEASE_NAME -n ${{ env.NAMESPACE }} || true
           fi
 
+      - name: Clean up stuck migration jobs
+        run: |
+          echo "Checking for existing migration jobs..."
+          kubectl get jobs -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations || true
+
+          echo "Deleting any stuck migration jobs..."
+          kubectl delete jobs -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations --ignore-not-found=true
+
+          echo "Checking for leftover migration pods..."
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations || true
+          kubectl delete pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations --ignore-not-found=true
+
       - name: Deploy with Helm
         run: |
           API_HOST="api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io"
@@ -424,6 +436,39 @@ jobs:
             --set frontend.elevaite.env.BACKEND_URL=https://$API_HOST \
             --wait \
             --timeout 10m
+
+      - name: Debug migration failure
+        if: failure()
+        run: |
+          echo "=========================================="
+          echo "DEBUG: Migration/Deployment Failure"
+          echo "=========================================="
+
+          echo ""
+          echo "=== Migration Jobs ==="
+          kubectl get jobs -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations -o wide || true
+
+          echo ""
+          echo "=== Migration Pods ==="
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations -o wide || true
+
+          echo ""
+          echo "=== Pod Events ==="
+          kubectl get events -n ${{ env.NAMESPACE }} --sort-by='.lastTimestamp' | tail -30 || true
+
+          echo ""
+          echo "=== Migration Pod Logs ==="
+          for pod in $(kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations -o jsonpath='{.items[*].metadata.name}'); do
+            echo "--- Logs for $pod ---"
+            kubectl logs $pod -n ${{ env.NAMESPACE }} --all-containers=true || true
+          done
+
+          echo ""
+          echo "=== Migration Pod Description ==="
+          for pod in $(kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations -o jsonpath='{.items[*].metadata.name}'); do
+            echo "--- Description for $pod ---"
+            kubectl describe pod $pod -n ${{ env.NAMESPACE }} || true
+          done
 
       - name: Verify deployment
         run: |

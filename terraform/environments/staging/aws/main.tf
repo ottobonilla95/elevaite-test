@@ -286,6 +286,11 @@ module "monitoring" {
   slack_webhook_url      = var.slack_webhook_url
   retention_days         = 15 # 15 days for staging
 
+  # Disable Loki and Alertmanager for staging to save pod capacity
+  # t3.medium nodes only support 17 pods each
+  loki_enabled         = false
+  alertmanager_enabled = false
+
   depends_on = [module.cluster_addons]
 }
 

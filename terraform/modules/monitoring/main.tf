@@ -101,6 +101,12 @@ variable "alertmanager_enabled" {
   default     = true
 }
 
+variable "loki_enabled" {
+  description = "Enable Loki log aggregation (and Promtail). Disable for small clusters to save pod capacity."
+  type        = bool
+  default     = true
+}
+
 variable "project_name" {
   description = "Project name for labeling"
   type        = string
@@ -195,6 +201,7 @@ resource "helm_release" "prometheus_stack" {
 
       # Alertmanager
       alertmanager = {
+        enabled = var.alertmanager_enabled
         alertmanagerSpec = {
           storage = {
             volumeClaimTemplate = {
@@ -349,6 +356,8 @@ resource "helm_release" "prometheus_stack" {
 # =============================================================================
 
 resource "helm_release" "loki" {
+  count = var.loki_enabled ? 1 : 0
+
   name       = "loki"
   repository = "https://grafana.github.io/helm-charts"
   chart      = "loki"
@@ -437,6 +446,8 @@ resource "helm_release" "loki" {
 # =============================================================================
 
 resource "helm_release" "promtail" {
+  count = var.loki_enabled ? 1 : 0
+
   name       = "promtail"
   repository = "https://grafana.github.io/helm-charts"
   chart      = "promtail"
