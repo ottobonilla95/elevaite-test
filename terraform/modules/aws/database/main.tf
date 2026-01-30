@@ -141,7 +141,7 @@ resource "aws_db_instance" "postgres" {
   backup_retention_period = var.backup_retention_days
   backup_window           = "03:00-04:00"
   maintenance_window      = "Mon:04:00-Mon:05:00"
-  apply_immediately       = var.environment == "dev" ? true : false # Apply changes immediately in dev
+  apply_immediately       = true # Always apply changes immediately (especially password changes)
 
   storage_encrypted = true
   storage_type      = "gp3"

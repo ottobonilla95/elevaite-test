@@ -18,11 +18,11 @@ authApi:
     pullPolicy: Always
   resources:
     requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
       cpu: 500m
       memory: 512Mi
-    limits:
-      cpu: 1000m
-      memory: 1Gi
   env:
     LOG_LEVEL: INFO
     DEBUG: "0"
@@ -37,11 +37,11 @@ workflowEngine:
     pullPolicy: Always
   resources:
     requests:
+      cpu: 200m
+      memory: 384Mi
+    limits:
       cpu: 1000m
       memory: 1Gi
-    limits:
-      cpu: 2000m
-      memory: 2Gi
   env:
     LOG_LEVEL: INFO
     SCHEDULER_POLL_SECONDS: "3"
@@ -49,34 +49,21 @@ workflowEngine:
   envFromSecrets:
     - elevaite-secrets
 
+# Ingestion disabled - requires Qdrant which is not deployed
 ingestion:
-  replicaCount: 1  # Single replica for cost savings
-  image:
-    tag: "production"
-  resources:
-    requests:
-      cpu: 500m
-      memory: 512Mi
-    limits:
-      cpu: 1000m
-      memory: 1Gi
-  env:
-    LOG_LEVEL: INFO
-    ALLOWED_HOSTS: "*"
-  envFromSecrets:
-    - elevaite-secrets
+  enabled: false
 
 worker:
-  replicaCount: 2  # Reduced workers for cost savings
+  replicaCount: 1  # Single worker to match staging
   image:
     tag: "production"
   resources:
     requests:
+      cpu: 200m
+      memory: 384Mi
+    limits:
       cpu: 1000m
       memory: 1Gi
-    limits:
-      cpu: 2000m
-      memory: 2Gi
   env:
     LOG_LEVEL: INFO
   envFromSecrets:
@@ -125,11 +112,11 @@ frontend:
       pullPolicy: Always
     resources:
       requests:
-        cpu: 200m
-        memory: 256Mi
+        cpu: 100m
+        memory: 128Mi
       limits:
         cpu: 500m
-        memory: 512Mi
+        memory: 256Mi
     env: {}
   elevaite:
     enabled: true
@@ -139,11 +126,11 @@ frontend:
       pullPolicy: Always
     resources:
       requests:
-        cpu: 200m
-        memory: 256Mi
+        cpu: 100m
+        memory: 128Mi
       limits:
         cpu: 500m
-        memory: 512Mi
+        memory: 256Mi
     env: {}
 
 # =============================================================================
@@ -160,25 +147,12 @@ postgresql:
   sslMode: "require"
   existingSecret: "elevaite-db-credentials"
 
-# RabbitMQ - Internal K8s deployment
+# RabbitMQ - Use Terraform-managed RabbitMQ (deployed to rabbitmq namespace)
+# The internal deployment is disabled to avoid duplication
 rabbitmq:
   internal:
-    enabled: true
-    replicaCount: 1
-    auth:
-      username: elevaite
-      password: "production-rabbitmq-password"  # Override in secrets
-      erlangCookie: "production-erlang-cookie"  # Override in secrets
-    persistence:
-      size: 16Gi
-      storageClass: ""  # Use default
-    resources:
-      requests:
-        cpu: 500m
-        memory: 512Mi
-      limits:
-        cpu: 1000m
-        memory: 1Gi
+    enabled: false  # Use Terraform-managed RabbitMQ instead
+  host: "rabbitmq.rabbitmq.svc.cluster.local"  # Terraform-managed RabbitMQ
   port: 5672
   vhost: "/"
   existingSecret: "elevaite-rabbitmq-credentials"
@@ -199,8 +173,6 @@ migrations:
   ttlSecondsAfterFinished: 300
   tenants:
     - default
-    - toshiba
-    - iopex
 
 # =============================================================================
 # SERVICE ACCOUNT
@@ -211,14 +183,6 @@ serviceAccount:
   # AWS example:
   # annotations:
   #   eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/elevaite-prod-role
-
-# =============================================================================
-# POD SETTINGS (Production hardening)
-# =============================================================================
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  fsGroup: 1000
 
 affinity:
   podAntiAffinity:
