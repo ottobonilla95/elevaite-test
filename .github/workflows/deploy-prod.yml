@@ -168,6 +168,9 @@ jobs:
   deploy:
     needs: [prepare, build-images, approve]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     outputs:
       lb_ip_dashed: ${{ steps.lb.outputs.lb_ip_dashed }}
 
