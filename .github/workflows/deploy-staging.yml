@@ -251,6 +251,9 @@ jobs:
   deploy:
     needs: [prepare, build-images]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     environment:
       name: staging
       url: https://staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io

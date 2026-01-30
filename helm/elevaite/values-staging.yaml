@@ -141,25 +141,12 @@ postgresql:
   sslMode: "require"
   existingSecret: "elevaite-db-credentials"
 
-# RabbitMQ - Internal K8s deployment
+# RabbitMQ - Use Terraform-managed RabbitMQ (deployed to rabbitmq namespace)
+# The internal deployment is disabled to avoid duplication
 rabbitmq:
   internal:
-    enabled: true
-    replicaCount: 1
-    auth:
-      username: elevaite
-      password: "staging-rabbitmq-password"  # Override in secrets
-      erlangCookie: "staging-erlang-cookie"  # Override in secrets
-    persistence:
-      size: 8Gi
-      storageClass: ""  # Use default
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
+    enabled: false  # Use Terraform-managed RabbitMQ instead
+  host: "rabbitmq.rabbitmq.svc.cluster.local"  # Terraform-managed RabbitMQ
   port: 5672
   vhost: "/"
   existingSecret: "elevaite-rabbitmq-credentials"
