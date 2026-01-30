@@ -374,6 +374,18 @@ jobs:
           echo "Cleaning up any crashed/failed pods..."
           kubectl delete pods -n ${{ env.NAMESPACE }} --field-selector=status.phase=Failed --ignore-not-found=true || true
 
+      - name: Clean up stuck migration jobs
+        run: |
+          echo "Checking for existing migration jobs..."
+          kubectl get jobs -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations || true
+
+          echo "Deleting any stuck migration jobs..."
+          kubectl delete jobs -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations --ignore-not-found=true
+
+          echo "Checking for leftover migration pods..."
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations || true
+          kubectl delete pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=migrations --ignore-not-found=true
+
       - name: Deploy with Helm (includes migrations)
         run: |
           API_HOST="api-prod.${{ steps.lb.outputs.lb_ip_dashed }}.nip.io"
