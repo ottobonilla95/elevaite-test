@@ -79,6 +79,8 @@ spec:
               echo "Connecting to: ${db_host}:${db_port} as ${db_user}"
 
               # Connect to postgres database (always exists) and create our database
+              # Use SSL for managed databases (RDS, Cloud SQL, etc.)
+              export PGSSLMODE=require
               PGPASSWORD="${db_password}" psql -h "${db_host}" -p "${db_port}" -U "${db_user}" -d postgres \
                 -c "SELECT 1 FROM pg_database WHERE datname = '${db_name}';" | grep -q 1 || \
                 PGPASSWORD="${db_password}" psql -h "${db_host}" -p "${db_port}" -U "${db_user}" -d postgres \
@@ -98,6 +100,8 @@ spec:
               echo "=========================================="
               echo "Creating tenant schemas in database: ${db_name}"
               echo "=========================================="
+              # Use SSL for managed databases (RDS, Cloud SQL, etc.)
+              export PGSSLMODE=require
               {{- range .Values.migrations.tenants }}
               echo "Creating schema: auth_{{ . }}"
               PGPASSWORD="${db_password}" psql -h "${db_host}" -p "${db_port}" -U "${db_user}" -d "${db_name}" \

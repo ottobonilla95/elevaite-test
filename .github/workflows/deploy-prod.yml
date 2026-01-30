@@ -302,43 +302,43 @@ jobs:
 
           kubectl create secret generic elevaite-db-credentials \
             --namespace ${{ env.NAMESPACE }} \
-            --from-literal=POSTGRES_USER=${{ secrets.PROD_DB_USER }} \
-            --from-literal=POSTGRES_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} \
+            --from-literal=POSTGRES_USER="${{ secrets.PROD_DB_USER }}" \
+            --from-literal=POSTGRES_PASSWORD="${{ secrets.PROD_DB_PASSWORD }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl create secret generic elevaite-storage-credentials \
             --namespace ${{ env.NAMESPACE }} \
-            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.PROD_STORAGE_ACCESS_KEY }} \
-            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_STORAGE_SECRET_KEY }} \
+            --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.PROD_STORAGE_ACCESS_KEY }}" \
+            --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.PROD_STORAGE_SECRET_KEY }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl create secret generic elevaite-rabbitmq-credentials \
             --namespace ${{ env.NAMESPACE }} \
-            --from-literal=RABBITMQ_USER=elevaite \
-            --from-literal=RABBITMQ_PASSWORD=${{ secrets.PROD_RABBITMQ_PASSWORD }} \
+            --from-literal=RABBITMQ_USER="elevaite" \
+            --from-literal=RABBITMQ_PASSWORD="${{ secrets.PROD_RABBITMQ_PASSWORD }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl create secret generic elevaite-secrets \
             --namespace ${{ env.NAMESPACE }} \
-            --from-literal=JWT_SECRET=${{ secrets.JWT_SECRET }} \
-            --from-literal=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
-            --from-literal=NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET || secrets.JWT_SECRET }} \
-            --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-            --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-            --from-literal=db_host=${{ steps.terraform.outputs.db_host }} \
-            --from-literal=db_port=5432 \
-            --from-literal=db_user=${{ secrets.PROD_DB_USER }} \
-            --from-literal=db_password=${{ secrets.PROD_DB_PASSWORD }} \
-            --from-literal=db_name=elevaite_production \
-            --from-literal=POSTGRES_USER=${{ secrets.PROD_DB_USER }} \
-            --from-literal=POSTGRES_PASSWORD=${{ secrets.PROD_DB_PASSWORD }} \
-            --from-literal=DATABASE_URL=postgresql+asyncpg://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?ssl=require \
-            --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?ssl=require \
-            --from-literal=ALEMBIC_SQLALCHEMY_URL=postgresql://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?sslmode=require \
-            --from-literal=RABBITMQ_USER=elevaite \
-            --from-literal=RABBITMQ_PASSWORD=${{ secrets.PROD_RABBITMQ_PASSWORD }} \
-            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.PROD_STORAGE_ACCESS_KEY }} \
-            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_STORAGE_SECRET_KEY }} \
+            --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            --from-literal=OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            --from-literal=NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET || secrets.JWT_SECRET }}" \
+            --from-literal=GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+            --from-literal=GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --from-literal=db_host="${{ steps.terraform.outputs.db_host }}" \
+            --from-literal=db_port="5432" \
+            --from-literal=db_user="${{ secrets.PROD_DB_USER }}" \
+            --from-literal=db_password="${{ secrets.PROD_DB_PASSWORD }}" \
+            --from-literal=db_name="elevaite_production" \
+            --from-literal=POSTGRES_USER="${{ secrets.PROD_DB_USER }}" \
+            --from-literal=POSTGRES_PASSWORD="${{ secrets.PROD_DB_PASSWORD }}" \
+            --from-literal=DATABASE_URL="postgresql+asyncpg://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?ssl=require" \
+            --from-literal=SQLALCHEMY_DATABASE_URL="postgresql+asyncpg://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?ssl=require" \
+            --from-literal=ALEMBIC_SQLALCHEMY_URL="postgresql://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ steps.terraform.outputs.db_host }}:5432/elevaite_production?sslmode=require" \
+            --from-literal=RABBITMQ_USER="elevaite" \
+            --from-literal=RABBITMQ_PASSWORD="${{ secrets.PROD_RABBITMQ_PASSWORD }}" \
+            --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.PROD_STORAGE_ACCESS_KEY }}" \
+            --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.PROD_STORAGE_SECRET_KEY }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Setup Helm
