@@ -356,8 +356,8 @@ jobs:
 
           kubectl create secret generic elevaite-rabbitmq-credentials \
             --namespace ${{ env.NAMESPACE }} \
-            --from-literal=RABBITMQ_USER=elevaite \
-            --from-literal=RABBITMQ_PASSWORD=elevaite \
+            --from-literal=RABBITMQ_USER="elevaite" \
+            --from-literal=RABBITMQ_PASSWORD="${{ secrets.DEV_RABBITMQ_PASSWORD }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl create secret generic elevaite-storage-credentials \
@@ -392,9 +392,9 @@ jobs:
             --from-literal=DATABASE_URL=postgresql+asyncpg://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?ssl=require \
             --from-literal=SQLALCHEMY_DATABASE_URL=postgresql+asyncpg://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?ssl=require \
             --from-literal=ALEMBIC_SQLALCHEMY_URL=postgresql://elevaite:${{ secrets.DEV_DB_PASSWORD }}@${{ needs.prepare.outputs.db_host }}:5432/pr_${{ env.PR_NUMBER }}?sslmode=require \
-            --from-literal=RABBITMQ_USER=elevaite \
-            --from-literal=RABBITMQ_PASSWORD=elevaite \
-            --from-literal=RABBITMQ_HOST=elevaite-pr-${{ env.PR_NUMBER }}-rabbitmq \
+            --from-literal=RABBITMQ_USER="elevaite" \
+            --from-literal=RABBITMQ_PASSWORD="${{ secrets.DEV_RABBITMQ_PASSWORD }}" \
+            --from-literal=RABBITMQ_HOST="rabbitmq.rabbitmq.svc.cluster.local" \
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.DEV_STORAGE_ACCESS_KEY }} \
             --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_STORAGE_SECRET_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
@@ -442,7 +442,8 @@ jobs:
             --set worker.image.tag=$IMAGE_TAG \
             --set postgresql.host=${{ needs.prepare.outputs.db_host }} \
             --set postgresql.database=pr_${{ env.PR_NUMBER }} \
-            --set rabbitmq.internal.enabled=true \
+            --set rabbitmq.internal.enabled=false \
+            --set rabbitmq.host=rabbitmq.rabbitmq.svc.cluster.local \
             --set rabbitmq.vhost=/ \
             --set objectStorage.bucket=${{ needs.prepare.outputs.storage_bucket }} \
             --set migrations.enabled=false \

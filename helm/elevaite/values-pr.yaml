@@ -154,24 +154,12 @@ postgresql:
   sslMode: "require"
   existingSecret: "elevaite-db-credentials"
 
-# RabbitMQ - Internal instance per PR namespace
+# RabbitMQ - Use Terraform-managed RabbitMQ (deployed to rabbitmq namespace)
+# Shared across all PR environments to save resources
 rabbitmq:
   internal:
-    enabled: true
-    replicaCount: 1
-    auth:
-      username: elevaite
-      password: elevaite
-      erlangCookie: elevaite-secret-cookie
-    persistence:
-      size: 1Gi
-    resources:
-      requests:
-        cpu: 50m
-        memory: 128Mi
-      limits:
-        cpu: 250m
-        memory: 512Mi
+    enabled: false  # Use Terraform-managed RabbitMQ instead
+  host: "rabbitmq.rabbitmq.svc.cluster.local"  # Terraform-managed RabbitMQ
   port: 5672
   vhost: "/"
   existingSecret: "elevaite-rabbitmq-credentials"
