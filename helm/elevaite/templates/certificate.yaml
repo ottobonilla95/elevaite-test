@@ -1,0 +1,28 @@
+{{- if and .Values.ingress.enabled .Values.ingress.tls }}
+{{- $clusterIssuer := index .Values.ingress.annotations "cert-manager.io/cluster-issuer" }}
+{{- if $clusterIssuer }}
+# =============================================================================
+# TLS CERTIFICATE
+# Explicitly define certificate with ALL hostnames to ensure cert-manager
+# issues a single certificate covering all ingress hosts.
+# =============================================================================
+{{- range .Values.ingress.tls }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .secretName }}
+  labels:
+    {{- include "elevaite.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ .secretName }}
+  issuerRef:
+    name: {{ $clusterIssuer }}
+    kind: ClusterIssuer
+    group: cert-manager.io
+  dnsNames:
+    {{- range .hosts }}
+    - {{ . | quote }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
