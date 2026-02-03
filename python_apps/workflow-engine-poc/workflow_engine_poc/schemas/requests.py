@@ -5,9 +5,16 @@ These models define the structure of request bodies for endpoints that don't
 have corresponding models in the SDK.
 """
 
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional, Union
+from pydantic import BaseModel, Field, model_validator
 import uuid as uuid_module
+
+from workflow_core_sdk.schemas.inline_tools import (
+    InlineToolDefinition,
+    UserFunctionDefinition,
+    WebSearchToolConfig,
+    CodeExecutionToolConfig,
+)
 
 
 # ============================================================================
@@ -16,7 +23,16 @@ import uuid as uuid_module
 
 
 class AgentToolBindingCreate(BaseModel):
-    """Request model for attaching a tool to an agent"""
+    """Request model for attaching a tool to an agent.
+
+    There are three ways to attach a tool:
+    1. By tool_id: Reference an existing tool in the database
+    2. By local_tool_name: Reference a tool from the local registry
+    3. By inline_definition: Provide a full tool definition inline
+
+    For inline definitions, the definition is stored in override_parameters
+    and a placeholder tool_id is used for the database FK.
+    """
 
     tool_id: Optional[str] = Field(
         default=None,
@@ -26,6 +42,12 @@ class AgentToolBindingCreate(BaseModel):
         default=None,
         description="Name of a local tool to attach (alternative to tool_id)",
     )
+    inline_definition: Optional[
+        Union[UserFunctionDefinition, WebSearchToolConfig, CodeExecutionToolConfig]
+    ] = Field(
+        default=None,
+        description="Full inline tool definition (alternative to tool_id/local_tool_name)",
+    )
     override_parameters: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Tool-specific parameter overrides for this agent",
@@ -34,6 +56,24 @@ class AgentToolBindingCreate(BaseModel):
         default=True,
         description="Whether this tool binding is enabled",
     )
+
+    @model_validator(mode="after")
+    def validate_tool_source(self) -> "AgentToolBindingCreate":
+        """Ensure exactly one tool source is provided."""
+        sources = [
+            self.tool_id is not None,
+            self.local_tool_name is not None,
+            self.inline_definition is not None,
+        ]
+        if sum(sources) == 0:
+            raise ValueError(
+                "Must provide one of: tool_id, local_tool_name, or inline_definition"
+            )
+        if sum(sources) > 1:
+            raise ValueError(
+                "Provide only one of: tool_id, local_tool_name, or inline_definition"
+            )
+        return self
 
 
 class AgentToolBindingUpdate(BaseModel):

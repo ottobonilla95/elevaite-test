@@ -40,6 +40,21 @@ class WorkflowsService:
         return wf
 
     @staticmethod
+    def save_workflow(
+        session: Session, workflow_id: str, workflow_data: Dict[str, Any]
+    ) -> Workflow:
+        """Save (create or update) a workflow and return the ORM entity.
+
+        Uses upsert semantics - creates if not exists, updates if exists.
+        """
+        db = DatabaseService()
+        db.save_workflow(session, workflow_id, workflow_data)
+        wf = db.get_workflow_entity(session, workflow_id)
+        if not wf:
+            raise RuntimeError("Failed to retrieve saved workflow entity")
+        return wf
+
+    @staticmethod
     def delete_workflow(session: Session, workflow_id: str) -> bool:
         db = DatabaseService()
         return db.delete_workflow(session, workflow_id)

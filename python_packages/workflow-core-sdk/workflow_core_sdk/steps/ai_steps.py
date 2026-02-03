@@ -58,7 +58,10 @@ def load_agent_db_tool_schemas(
     - Looks up the agent by UUID or name
     - Resolves AgentToolBinding rows, joins Tool rows
     - Converts Tool.parameters_schema to OpenAI tool schema
+    - Handles inline definitions stored in override_parameters['_inline_definition']
     """
+    from workflow_core_sdk.schemas.inline_tools import PLACEHOLDER_TOOL_IDS
+
     try:
         session = get_db_session()
     except Exception:
@@ -88,33 +91,142 @@ def load_agent_db_tool_schemas(
                 DBAgentToolBinding.agent_id == agent_obj.id
             )
         ).all()
-        tool_ids = [b.tool_id for b in bindings]
-        if not tool_ids:
+        if not bindings:
             return []
-        db_tools = session.exec(select(DBTool).where(DBTool.id.in_(tool_ids))).all()  # type: ignore[attr-defined]
 
         schemas: List[Dict[str, Any]] = []
-        for t in db_tools:
-            # Convert DB Tool into OpenAI-style function schema
-            params = t.parameters_schema or {"type": "object", "properties": {}}
-            schemas.append(
-                {
-                    "type": "function",
-                    "function": {
-                        "name": t.name,
-                        "description": t.description or f"Tool {t.name}",
-                        "parameters": params
-                        if isinstance(params, dict)
-                        else {"type": "object", "properties": {}},
-                    },
-                }
-            )
+        placeholder_tool_id_set = set(PLACEHOLDER_TOOL_IDS.values())
+
+        # Separate inline vs regular bindings
+        regular_tool_ids = []
+        for binding in bindings:
+            override_params = binding.override_parameters or {}
+            inline_def = override_params.get("_inline_definition")
+
+            if inline_def and str(binding.tool_id) in placeholder_tool_id_set:
+                # Handle inline definition
+                schema = _build_inline_tool_schema(inline_def)
+                if schema:
+                    schemas.append(schema)
+            else:
+                regular_tool_ids.append(binding.tool_id)
+
+        # Fetch regular DB tools
+        if regular_tool_ids:
+            db_tools = session.exec(
+                select(DBTool).where(DBTool.id.in_(regular_tool_ids))
+            ).all()  # type: ignore[attr-defined]
+            for t in db_tools:
+                # Convert DB Tool into OpenAI-style function schema
+                params = t.parameters_schema or {"type": "object", "properties": {}}
+                schemas.append(
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": t.name,
+                            "description": t.description or f"Tool {t.name}",
+                            "parameters": params
+                            if isinstance(params, dict)
+                            else {"type": "object", "properties": {}},
+                        },
+                    }
+                )
         return schemas
     except Exception as e:
         logger.warning(
             f"Failed to load DB tools for agent {agent_id or agent_name}: {e}"
         )
         return []
+
+
+def _build_inline_tool_schema(inline_def: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Build OpenAI-compatible tool schema from an inline definition.
+
+    Args:
+        inline_def: The inline definition dict (from override_parameters['_inline_definition'])
+
+    Returns:
+        OpenAI tool schema dict, or None if invalid
+    """
+    inline_type = inline_def.get("type")
+
+    if inline_type == "user_function":
+        # User-provided function
+        name = inline_def.get("name")
+        description = inline_def.get("description", f"Function {name}")
+        parameters_schema = inline_def.get(
+            "parameters_schema",
+            {
+                "type": "object",
+                "properties": {},
+            },
+        )
+
+        if not name:
+            logger.warning("Inline user_function missing 'name'")
+            return None
+
+        schema = {
+            "type": "function",
+            "function": {
+                "name": name,
+                "description": description,
+                "parameters": parameters_schema,
+            },
+            # Attach metadata for executor creation
+            "_inline_user_function": {
+                "code": inline_def.get("code", ""),
+                "timeout_seconds": inline_def.get("timeout_seconds", 30),
+                "memory_mb": inline_def.get("memory_mb", 256),
+            },
+        }
+        return schema
+
+    elif inline_type == "web_search":
+        # Web search tool - this is a provider-side tool
+        # Build a schema that the agent can use, but execution is handled by provider
+        schema = {
+            "type": "function",
+            "function": {
+                "name": "web_search",
+                "description": "Search the web for information",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The search query",
+                        },
+                    },
+                    "required": ["query"],
+                },
+            },
+            # Attach config for provider-side handling
+            "_inline_web_search": {
+                "search_context_size": inline_def.get("search_context_size", "medium"),
+                "user_location": inline_def.get("user_location"),
+                "allowed_domains": inline_def.get("allowed_domains"),
+                "blocked_domains": inline_def.get("blocked_domains"),
+            },
+        }
+        return schema
+
+    elif inline_type == "code_execution":
+        # Code execution tool - agent writes code at runtime
+        # This is converted to a built-in tool type that providers handle
+        schema = {
+            "type": "code_execution",
+            # Attach config for execution limits
+            "_inline_code_execution": {
+                "timeout_seconds": inline_def.get("timeout_seconds", 30),
+                "memory_mb": inline_def.get("memory_mb", 256),
+            },
+        }
+        return schema
+
+    else:
+        logger.warning(f"Unknown inline definition type: {inline_type}")
+        return None
 
 
 # -------- Helper: resolve tool schemas by names from local registry and DB --------
@@ -548,7 +660,13 @@ class AgentStep:
         Each tool schema gets an 'executor' key with a sync callable that wraps
         the async _execute_tool_call method. The provider calls these executors
         during its internal tool loop.
+
+        For inline user functions (marked with '_inline_user_function' metadata),
+        a specialized executor is created that sends the user's code to the
+        Code Execution Service.
         """
+        from workflow_core_sdk.tools.user_function_executor import execute_user_function
+
         if not tools:
             return None
 
@@ -559,37 +677,87 @@ class AgentStep:
             tool_name = func_info.get("name") if isinstance(func_info, dict) else None
 
             if tool_name:
-                # Create a sync executor that wraps the async _execute_tool_call
-                # This runs inside the provider's thread (via asyncio.to_thread)
-                def make_executor(name: str, ctx: Optional[Dict[str, Any]]):
-                    def executor(**kwargs) -> Any:
-                        # Create a mock tool call object for _execute_tool_call
-                        class MockToolCall:
-                            def __init__(self, n: str, args: Dict[str, Any]):
-                                self.id = str(uuid.uuid4())
-                                self.name = n
-                                self.arguments = args
+                # Check for inline user function metadata
+                inline_user_func = tool.get("_inline_user_function")
 
-                        tc = MockToolCall(name, kwargs)
-                        # Run the async method in a new event loop (we're in a thread)
-                        result = asyncio.run(self._execute_tool_call(tc, context=ctx))
-                        # Return just the result value for the provider
-                        if isinstance(result, dict):
-                            if result.get("success", False):
-                                return result.get("result")
-                            else:
-                                raise RuntimeError(
-                                    result.get("error", "Tool execution failed")
-                                )
-                        return result
+                if inline_user_func:
+                    # Create executor for inline user function
+                    tool_copy["executor"] = self._make_user_function_executor(
+                        tool_name,
+                        inline_user_func.get("code", ""),
+                        inline_user_func.get("timeout_seconds", 30),
+                        inline_user_func.get("memory_mb", 256),
+                    )
+                    # Remove metadata from tool copy (not needed by provider)
+                    tool_copy.pop("_inline_user_function", None)
+                else:
+                    # Create standard executor that wraps _execute_tool_call
+                    tool_copy["executor"] = self._make_standard_executor(
+                        tool_name, context
+                    )
 
-                    return executor
-
-                tool_copy["executor"] = make_executor(tool_name, context)
+                # Remove web search metadata if present (not needed by provider)
+                tool_copy.pop("_inline_web_search", None)
 
             tools_with_executors.append(tool_copy)
 
         return tools_with_executors
+
+    def _make_standard_executor(self, name: str, ctx: Optional[Dict[str, Any]]):
+        """Create a standard executor that wraps _execute_tool_call."""
+
+        def executor(**kwargs) -> Any:
+            # Create a mock tool call object for _execute_tool_call
+            class MockToolCall:
+                def __init__(self, n: str, args: Dict[str, Any]):
+                    self.id = str(uuid.uuid4())
+                    self.name = n
+                    self.arguments = args
+
+            tc = MockToolCall(name, kwargs)
+            # Run the async method in a new event loop (we're in a thread)
+            result = asyncio.run(self._execute_tool_call(tc, context=ctx))
+            # Return just the result value for the provider
+            if isinstance(result, dict):
+                if result.get("success", False):
+                    return result.get("result")
+                else:
+                    raise RuntimeError(result.get("error", "Tool execution failed"))
+            return result
+
+        return executor
+
+    def _make_user_function_executor(
+        self,
+        function_name: str,
+        code: str,
+        timeout_seconds: int,
+        memory_mb: int,
+    ):
+        """Create an executor for inline user functions.
+
+        This executor sends the user's code to the Code Execution Service
+        with the agent's tool call arguments injected.
+        """
+        from workflow_core_sdk.tools.user_function_executor import execute_user_function
+
+        def executor(**kwargs) -> Any:
+            result = execute_user_function(
+                code=code,
+                function_name=function_name,
+                arguments=kwargs,
+                timeout_seconds=timeout_seconds,
+                memory_mb=memory_mb,
+            )
+            # Parse JSON result if possible
+            try:
+                import json
+
+                return json.loads(result)
+            except (json.JSONDecodeError, TypeError):
+                return result
+
+        return executor
 
     async def _execute_with_llm(
         self, query: str, context: Optional[Dict[str, Any]] = None

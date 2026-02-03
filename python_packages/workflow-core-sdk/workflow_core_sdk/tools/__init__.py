@@ -18,6 +18,7 @@ from .basic_tools import (
     get_tool_schema,
     get_tools_by_category,
 )
+from .user_function_executor import execute_user_function
 
 __all__ = [
     "function_schema",
@@ -30,4 +31,5 @@ __all__ = [
     "get_tool_by_name",
     "get_tool_schema",
     "get_tools_by_category",
+    "execute_user_function",
 ]

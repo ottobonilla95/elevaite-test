@@ -622,6 +622,108 @@ export interface IngestionStepOutput {
 }
 
 // =============================================================================
+// Inline Tool Definitions
+// =============================================================================
+
+/**
+ * Code execution tool configuration (Code Interpreter).
+ * Enables the agent to write and execute its own Python code at runtime.
+ *
+ * Note: This is different from UserFunctionDefinition where the USER provides
+ * the code upfront. Here, the AGENT writes the code dynamically.
+ */
+export interface CodeExecutionToolConfig {
+  type: "code_execution";
+  timeout_seconds?: number; // Execution timeout (1-60s, default: 30)
+  memory_mb?: number; // Memory limit (64-512MB, default: 256)
+}
+
+/**
+ * User-provided function definition for inline execution.
+ * The function code runs in a sandboxed environment via the Code Execution Service.
+ *
+ * Note: This is different from CodeExecutionToolConfig where the AGENT writes
+ * the code. Here, the USER provides the code upfront.
+ */
+export interface UserFunctionDefinition {
+  type: "user_function";
+  name: string; // Function name (must match the `def` in code)
+  description: string; // What the function does (shown to LLM)
+  parameters_schema: Record<string, unknown>; // JSON Schema for function parameters
+  code: string; // Python function implementation
+  timeout_seconds?: number; // Execution timeout (1-60s, default: 30)
+  memory_mb?: number; // Memory limit (64-512MB, default: 256)
+}
+
+/**
+ * User location for web search (optional geo-targeting).
+ */
+export interface WebSearchUserLocation {
+  country?: string; // ISO 3166-1 alpha-2 country code (e.g., "US", "GB")
+  region?: string; // Region/state code
+  city?: string; // City name
+  timezone?: string; // IANA timezone (e.g., "America/Los_Angeles")
+}
+
+/**
+ * Web search tool configuration.
+ * Configures the built-in web search capabilities.
+ *
+ * Provider Support:
+ * - OpenAI: search_context_size ✓, user_location ✓
+ * - Gemini: Uses GoogleSearch (no config options, will log warning if provided)
+ */
+export interface WebSearchToolConfig {
+  type: "web_search";
+  search_context_size?: "low" | "medium" | "high"; // OpenAI only (default: "medium")
+  user_location?: WebSearchUserLocation; // OpenAI only - geo-targeted results
+  allowed_domains?: string[]; // Reserved for future use
+  blocked_domains?: string[]; // Reserved for future use
+}
+
+/**
+ * Union type for all inline tool definitions.
+ *
+ * The 'type' field discriminates between:
+ * - 'user_function': User provides code upfront
+ * - 'web_search': Web search with optional config
+ * - 'code_execution': Agent writes code at runtime (Code Interpreter)
+ */
+export type InlineToolDefinition =
+  | UserFunctionDefinition
+  | WebSearchToolConfig
+  | CodeExecutionToolConfig;
+
+/**
+ * Request to attach a tool to an agent.
+ *
+ * Exactly ONE of the following must be provided:
+ * - tool_id: Reference a tool by its database UUID
+ * - local_tool_name: Reference a local tool by name (syncs to DB if needed)
+ * - inline_definition: Provide full tool definition inline
+ */
+export interface AgentToolBindingRequest {
+  tool_id?: string; // UUID - reference existing tool in database
+  local_tool_name?: string; // Reference local tool by name
+  inline_definition?: InlineToolDefinition; // Provide full tool definition inline
+  is_active?: boolean; // Whether this binding is enabled (default: true)
+  override_parameters?: Record<string, unknown>; // Tool-specific parameter overrides
+}
+
+/**
+ * Response from attaching a tool to an agent.
+ */
+export interface AgentToolBindingResponse {
+  id: string; // Binding UUID
+  agent_id: string; // Agent UUID
+  tool_id: string; // Tool UUID (or placeholder for inline tools)
+  override_parameters: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+// =============================================================================
 // Union Types for Step Configurations
 // =============================================================================
 

@@ -208,25 +208,49 @@ class WorkflowEngine:
         return execution_context
 
     async def _execute_sequential(self, execution_context: ExecutionContext):
-        """Execute steps sequentially based on step_order"""
+        """Execute steps sequentially respecting dependencies and step order.
 
-        # Sort steps by step_order (handle None values)
-        # StepBase doesn't have step_order, so we use position or index order
-        steps = list(execution_context.steps_config)
+        Uses a loop that continues until all steps are complete or no progress can be made.
+        This ensures that steps with unsatisfied dependencies are retried after their
+        dependencies have been executed.
+        """
+        # Build step order map for sorting (use step_order if available, else index)
+        step_order_map: Dict[str, int] = {}
+        for idx, step in enumerate(execution_context.steps_config):
+            step_id = step.step_id
+            # Try to get step_order from config, fall back to index
+            step_order = getattr(step, "step_order", None)
+            if step_order is None and hasattr(step, "config"):
+                step_order = (
+                    step.config.get("step_order")
+                    if isinstance(step.config, dict)
+                    else None
+                )
+            step_order_map[step_id] = step_order if step_order is not None else idx
 
-        for step_config in steps:
+        while not execution_context.is_execution_complete():
             if execution_context.status != ExecutionStatus.RUNNING:
                 break
 
-            step_id = step_config.step_id
+            # Get ready steps and sort by step order for sequential execution
+            ready_steps = execution_context.get_ready_steps()
+            ready_steps.sort(key=lambda sid: step_order_map.get(sid, float("inf")))
 
-            # Check if dependencies are satisfied
-            if not execution_context.can_execute_step(step_id):
-                logger.warning(f"Skipping step {step_id} - dependencies not satisfied")
-                continue
+            if not ready_steps:
+                # No steps ready - check if we're stuck
+                if execution_context.pending_steps:
+                    logger.error("Workflow stuck - no steps ready but steps pending")
+                    execution_context.fail_execution(
+                        "Workflow stuck - circular dependencies or missing steps"
+                    )
+                break
 
-            # Execute step
-            await self._execute_single_step(execution_context, step_config)
+            # Execute only the first ready step (sequential execution)
+            step_id = ready_steps[0]
+            step_config = execution_context.get_step_config(step_id)
+
+            if step_config:
+                await self._execute_single_step(execution_context, step_config)
 
     async def _execute_parallel(self, execution_context: ExecutionContext):
         """Execute steps in parallel where possible, respecting dependencies"""

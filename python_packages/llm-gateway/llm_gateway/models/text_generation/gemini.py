@@ -288,6 +288,25 @@ class GeminiTextGenerationProvider(BaseTextGenerationProvider):
 
                 # Handle built-in web search tool
                 if tool_type in ("web_search", "google_search"):
+                    # Note: Gemini's GoogleSearch() doesn't accept configuration options
+                    # like search_context_size, user_location, allowed_domains, blocked_domains
+                    # Log a warning if any unsupported options are provided
+                    unsupported_options = [
+                        opt
+                        for opt in [
+                            "search_context_size",
+                            "user_location",
+                            "allowed_domains",
+                            "blocked_domains",
+                        ]
+                        if opt in tool
+                    ]
+                    if unsupported_options:
+                        logging.warning(
+                            f"Gemini GoogleSearch does not support these options "
+                            f"(they will be ignored): {unsupported_options}"
+                        )
+
                     gemini_tools.append(types.Tool(google_search=types.GoogleSearch()))
                     logging.debug("Added Google Search built-in tool for Gemini")
 

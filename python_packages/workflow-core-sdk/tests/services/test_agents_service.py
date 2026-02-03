@@ -364,13 +364,15 @@ class TestAgentToolBindings:
             )
 
     def test_attach_tool_to_agent_no_tool_specified(self, mock_session, sample_agent):
-        """Test attaching a tool without providing tool_id or local_tool_name"""
+        """Test attaching a tool without providing tool_id, local_tool_name, or inline_definition"""
         # Mock agent lookup
         mock_result = MagicMock()
         mock_result.first.return_value = sample_agent
         mock_session.exec.return_value = mock_result
 
-        with pytest.raises(ValueError, match="Provide tool_id or local_tool_name"):
+        with pytest.raises(
+            ValueError, match="Provide tool_id, local_tool_name, or inline_definition"
+        ):
             AgentsService.attach_tool_to_agent(mock_session, str(sample_agent.id))
 
     def test_attach_tool_to_agent_agent_not_found(self, mock_session):
@@ -488,3 +490,451 @@ class TestAgentToolBindings:
                 wrong_agent_id,
                 str(sample_tool_binding.id),
             )
+
+
+class TestInlineToolDefinitions:
+    """Tests for inline tool definition support"""
+
+    def test_attach_user_function_inline_definition(self, mock_session, sample_agent):
+        """Test attaching a user function via inline definition"""
+        from workflow_core_sdk.schemas.inline_tools import (
+            UserFunctionDefinition,
+            PLACEHOLDER_TOOL_IDS,
+        )
+
+        # Mock agent lookup
+        mock_result = MagicMock()
+        mock_result.first.return_value = sample_agent
+        mock_session.exec.return_value = mock_result
+
+        # Mock add/commit/refresh
+        mock_session.add.return_value = None
+        mock_session.commit.return_value = None
+        mock_session.refresh.return_value = None
+
+        # Create inline user function definition
+        inline_def = UserFunctionDefinition(
+            name="calculate_discount",
+            description="Calculate discount for a product",
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "price": {"type": "number"},
+                    "discount_percent": {"type": "number"},
+                },
+                "required": ["price", "discount_percent"],
+            },
+            code="def calculate_discount(price, discount_percent):\n    return price * (1 - discount_percent / 100)",
+            timeout_seconds=30,
+            memory_mb=256,
+        )
+
+        binding = AgentsService.attach_tool_to_agent(
+            mock_session,
+            str(sample_agent.id),
+            inline_definition=inline_def,
+            is_active=True,
+        )
+
+        assert binding is not None
+        # Should use placeholder tool_id for user_function
+        assert str(binding.tool_id) == PLACEHOLDER_TOOL_IDS["user_function"]
+        # Should store inline definition in override_parameters
+        assert "_inline_definition" in binding.override_parameters
+        assert (
+            binding.override_parameters["_inline_definition"]["type"] == "user_function"
+        )
+        assert (
+            binding.override_parameters["_inline_definition"]["name"]
+            == "calculate_discount"
+        )
+        assert (
+            binding.override_parameters["_inline_definition"]["code"] == inline_def.code
+        )
+        mock_session.add.assert_called_once()
+        mock_session.commit.assert_called_once()
+
+    def test_attach_web_search_inline_definition(self, mock_session, sample_agent):
+        """Test attaching a web search tool via inline definition"""
+        from workflow_core_sdk.schemas.inline_tools import (
+            WebSearchToolConfig,
+            WebSearchUserLocation,
+            PLACEHOLDER_TOOL_IDS,
+        )
+
+        # Mock agent lookup
+        mock_result = MagicMock()
+        mock_result.first.return_value = sample_agent
+        mock_session.exec.return_value = mock_result
+
+        # Mock add/commit/refresh
+        mock_session.add.return_value = None
+        mock_session.commit.return_value = None
+        mock_session.refresh.return_value = None
+
+        # Create inline web search definition
+        inline_def = WebSearchToolConfig(
+            search_context_size="high",
+            user_location=WebSearchUserLocation(
+                country="US",
+                region="California",
+                city="San Francisco",
+            ),
+            allowed_domains=["docs.python.org", "stackoverflow.com"],
+        )
+
+        binding = AgentsService.attach_tool_to_agent(
+            mock_session,
+            str(sample_agent.id),
+            inline_definition=inline_def,
+            is_active=True,
+        )
+
+        assert binding is not None
+        # Should use placeholder tool_id for web_search
+        assert str(binding.tool_id) == PLACEHOLDER_TOOL_IDS["web_search"]
+        # Should store inline definition in override_parameters
+        assert "_inline_definition" in binding.override_parameters
+        assert binding.override_parameters["_inline_definition"]["type"] == "web_search"
+        assert (
+            binding.override_parameters["_inline_definition"]["search_context_size"]
+            == "high"
+        )
+        assert binding.override_parameters["_inline_definition"]["allowed_domains"] == [
+            "docs.python.org",
+            "stackoverflow.com",
+        ]
+        mock_session.add.assert_called_once()
+        mock_session.commit.assert_called_once()
+
+    def test_attach_inline_definition_preserves_override_parameters(
+        self, mock_session, sample_agent
+    ):
+        """Test that inline definition merges with existing override_parameters"""
+        from workflow_core_sdk.schemas.inline_tools import UserFunctionDefinition
+
+        # Mock agent lookup
+        mock_result = MagicMock()
+        mock_result.first.return_value = sample_agent
+        mock_session.exec.return_value = mock_result
+
+        # Mock add/commit/refresh
+        mock_session.add.return_value = None
+        mock_session.commit.return_value = None
+        mock_session.refresh.return_value = None
+
+        inline_def = UserFunctionDefinition(
+            name="my_func",
+            description="My function",
+            parameters_schema={"type": "object", "properties": {}},
+            code="def my_func(): return 42",
+        )
+
+        # Pass additional override_parameters
+        binding = AgentsService.attach_tool_to_agent(
+            mock_session,
+            str(sample_agent.id),
+            inline_definition=inline_def,
+            override_parameters={"custom_param": "custom_value"},
+            is_active=True,
+        )
+
+        assert binding is not None
+        # Should have both the inline definition and custom param
+        assert "_inline_definition" in binding.override_parameters
+        assert binding.override_parameters["custom_param"] == "custom_value"
+
+
+class TestBuildInlineToolSchema:
+    """Tests for _build_inline_tool_schema function"""
+
+    def test_build_user_function_schema(self):
+        """Test building OpenAI schema from user function inline definition"""
+        from workflow_core_sdk.steps.ai_steps import _build_inline_tool_schema
+
+        inline_def = {
+            "type": "user_function",
+            "name": "calculate_tax",
+            "description": "Calculate tax for an amount",
+            "parameters_schema": {
+                "type": "object",
+                "properties": {
+                    "amount": {"type": "number", "description": "The amount"},
+                    "rate": {"type": "number", "description": "Tax rate as decimal"},
+                },
+                "required": ["amount", "rate"],
+            },
+            "code": "def calculate_tax(amount, rate):\n    return amount * rate",
+            "timeout_seconds": 15,
+            "memory_mb": 128,
+        }
+
+        schema = _build_inline_tool_schema(inline_def)
+
+        assert schema is not None
+        assert schema["type"] == "function"
+        assert schema["function"]["name"] == "calculate_tax"
+        assert schema["function"]["description"] == "Calculate tax for an amount"
+        assert (
+            schema["function"]["parameters"]["properties"]["amount"]["type"] == "number"
+        )
+        # Should have metadata for executor
+        assert "_inline_user_function" in schema
+        assert schema["_inline_user_function"]["code"] == inline_def["code"]
+        assert schema["_inline_user_function"]["timeout_seconds"] == 15
+        assert schema["_inline_user_function"]["memory_mb"] == 128
+
+    def test_build_user_function_schema_defaults(self):
+        """Test that user function schema uses defaults for optional fields"""
+        from workflow_core_sdk.steps.ai_steps import _build_inline_tool_schema
+
+        inline_def = {
+            "type": "user_function",
+            "name": "simple_func",
+            "code": "def simple_func(): return 42",
+        }
+
+        schema = _build_inline_tool_schema(inline_def)
+
+        assert schema is not None
+        assert schema["function"]["name"] == "simple_func"
+        # Should use default description
+        assert schema["function"]["description"] == "Function simple_func"
+        # Should use default parameters schema
+        assert schema["function"]["parameters"]["type"] == "object"
+        # Should use default timeout and memory
+        assert schema["_inline_user_function"]["timeout_seconds"] == 30
+        assert schema["_inline_user_function"]["memory_mb"] == 256
+
+    def test_build_user_function_schema_missing_name(self):
+        """Test that user function schema returns None if name is missing"""
+        from workflow_core_sdk.steps.ai_steps import _build_inline_tool_schema
+
+        inline_def = {
+            "type": "user_function",
+            "code": "def unnamed(): pass",
+        }
+
+        schema = _build_inline_tool_schema(inline_def)
+
+        assert schema is None
+
+    def test_build_web_search_schema(self):
+        """Test building OpenAI schema from web search inline definition"""
+        from workflow_core_sdk.steps.ai_steps import _build_inline_tool_schema
+
+        inline_def = {
+            "type": "web_search",
+            "search_context_size": "high",
+            "user_location": {
+                "country": "US",
+                "region": "California",
+                "city": "San Francisco",
+            },
+            "allowed_domains": ["docs.python.org"],
+            "blocked_domains": ["spam.com"],
+        }
+
+        schema = _build_inline_tool_schema(inline_def)
+
+        assert schema is not None
+        assert schema["type"] == "function"
+        assert schema["function"]["name"] == "web_search"
+        assert schema["function"]["description"] == "Search the web for information"
+        assert "query" in schema["function"]["parameters"]["properties"]
+        # Should have config for provider-side handling
+        assert "_inline_web_search" in schema
+        assert schema["_inline_web_search"]["search_context_size"] == "high"
+        assert schema["_inline_web_search"]["allowed_domains"] == ["docs.python.org"]
+        assert schema["_inline_web_search"]["blocked_domains"] == ["spam.com"]
+        assert schema["_inline_web_search"]["user_location"]["country"] == "US"
+
+    def test_build_web_search_schema_defaults(self):
+        """Test that web search schema uses defaults for optional fields"""
+        from workflow_core_sdk.steps.ai_steps import _build_inline_tool_schema
+
+        inline_def = {
+            "type": "web_search",
+        }
+
+        schema = _build_inline_tool_schema(inline_def)
+
+        assert schema is not None
+        assert schema["_inline_web_search"]["search_context_size"] == "medium"
+        assert schema["_inline_web_search"]["user_location"] is None
+        assert schema["_inline_web_search"]["allowed_domains"] is None
+
+    def test_build_unknown_type_returns_none(self):
+        """Test that unknown inline definition type returns None"""
+        from workflow_core_sdk.steps.ai_steps import _build_inline_tool_schema
+
+        inline_def = {
+            "type": "unknown_tool_type",
+            "name": "something",
+        }
+
+        schema = _build_inline_tool_schema(inline_def)
+
+        assert schema is None
+
+
+class TestExecuteUserFunction:
+    """Tests for execute_user_function"""
+
+    @patch("workflow_core_sdk.tools.user_function_executor.requests.post")
+    def test_execute_user_function_success(self, mock_post):
+        """Test successful user function execution"""
+        from workflow_core_sdk.tools.user_function_executor import execute_user_function
+
+        # Mock successful response from code execution service
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "success": True,
+            "stdout": '{"result": 42}',
+            "stderr": "",
+            "execution_time_ms": 50,
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = execute_user_function(
+            code="def my_func(x): return {'result': x * 2}",
+            function_name="my_func",
+            arguments={"x": 21},
+            timeout_seconds=30,
+            memory_mb=256,
+        )
+
+        assert result == '{"result": 42}'
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        assert call_args[1]["json"]["language"] == "python"
+        assert "my_func" in call_args[1]["json"]["code"]
+
+    @patch("workflow_core_sdk.tools.user_function_executor.requests.post")
+    def test_execute_user_function_with_error_in_code(self, mock_post):
+        """Test user function that raises an exception"""
+        from workflow_core_sdk.tools.user_function_executor import execute_user_function
+
+        # Mock response with error from user code
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "success": True,
+            "stdout": '{"error": "division by zero", "type": "ZeroDivisionError"}',
+            "stderr": "",
+            "execution_time_ms": 10,
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = execute_user_function(
+            code="def bad_func(x): return 1/0",
+            function_name="bad_func",
+            arguments={"x": 0},
+        )
+
+        assert "Function error: division by zero" in result
+
+    @patch("workflow_core_sdk.tools.user_function_executor.requests.post")
+    def test_execute_user_function_execution_failure(self, mock_post):
+        """Test handling of execution service failure"""
+        from workflow_core_sdk.tools.user_function_executor import execute_user_function
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "success": False,
+            "error": "Syntax error in code",
+            "stderr": "SyntaxError: invalid syntax",
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = execute_user_function(
+            code="def broken(: pass",  # Invalid syntax
+            function_name="broken",
+            arguments={},
+        )
+
+        assert "Execution failed" in result
+        assert "Syntax error" in result
+
+    @patch("workflow_core_sdk.tools.user_function_executor.requests.post")
+    def test_execute_user_function_timeout(self, mock_post):
+        """Test handling of timeout"""
+        from workflow_core_sdk.tools.user_function_executor import execute_user_function
+        import requests
+
+        mock_post.side_effect = requests.exceptions.Timeout()
+
+        result = execute_user_function(
+            code="def slow(): import time; time.sleep(100)",
+            function_name="slow",
+            arguments={},
+            timeout_seconds=5,
+        )
+
+        assert "timed out" in result.lower()
+
+    @patch("workflow_core_sdk.tools.user_function_executor.requests.post")
+    def test_execute_user_function_connection_error(self, mock_post):
+        """Test handling of connection error to code execution service"""
+        from workflow_core_sdk.tools.user_function_executor import execute_user_function
+        import requests
+
+        mock_post.side_effect = requests.exceptions.ConnectionError(
+            "Connection refused"
+        )
+
+        result = execute_user_function(
+            code="def func(): pass",
+            function_name="func",
+            arguments={},
+        )
+
+        assert "Could not connect to code execution service" in result
+
+    def test_execute_user_function_clamps_timeout(self):
+        """Test that timeout is clamped to valid range"""
+        from workflow_core_sdk.tools.user_function_executor import execute_user_function
+
+        with patch(
+            "workflow_core_sdk.tools.user_function_executor.requests.post"
+        ) as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"success": True, "stdout": "ok"}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            # Test with timeout > 60 (should be clamped to 60)
+            execute_user_function(
+                code="def f(): pass",
+                function_name="f",
+                arguments={},
+                timeout_seconds=120,
+            )
+
+            call_args = mock_post.call_args
+            assert call_args[1]["json"]["timeout_seconds"] == 60
+
+    def test_execute_user_function_clamps_memory(self):
+        """Test that memory is clamped to valid range"""
+        from workflow_core_sdk.tools.user_function_executor import execute_user_function
+
+        with patch(
+            "workflow_core_sdk.tools.user_function_executor.requests.post"
+        ) as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"success": True, "stdout": "ok"}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            # Test with memory > 512 (should be clamped to 512)
+            execute_user_function(
+                code="def f(): pass",
+                function_name="f",
+                arguments={},
+                memory_mb=1024,
+            )
+
+            call_args = mock_post.call_args
+            assert call_args[1]["json"]["memory_mb"] == 512

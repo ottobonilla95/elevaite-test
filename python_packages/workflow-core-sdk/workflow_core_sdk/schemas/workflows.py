@@ -152,6 +152,11 @@ class StepBase(BaseModel):
     parameters: Dict[str, Any] = Field(default_factory=dict)
     config: Dict[str, Any] = Field(default_factory=dict)
 
+    # Execution order for sequential workflows (lower values execute first)
+    step_order: Optional[int] = Field(
+        default=None, description="Execution order for sequential workflows"
+    )
+
     # Execution control fields
     critical: bool = Field(
         default=True, description="If True, step failure fails the entire workflow"

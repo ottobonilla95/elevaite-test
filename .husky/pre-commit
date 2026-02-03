@@ -2,20 +2,23 @@
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 
 # Check if uv is available
-if ! command -v uv &> /dev/null; then
-  echo ""
-  echo "❌ ERROR: uv is not installed"
-  echo ""
-  echo "uv is required for development. Install it:"
-  echo ""
-  echo "  macOS:   brew install uv"
-  echo "  Windows: winget install astral-sh.uv"
-  echo "  Linux:   curl -LsSf https://astral.sh/uv/install.sh | sh"
-  echo ""
-  echo "Then run: uv sync"
-  echo ""
-  exit 1
-fi
+# Note: Commented out because $HOME expansion can fail in git hook environment.
+# The .venv checks below will catch setup issues, and uv commands will fail
+# with a clear error if uv isn't installed.
+# if ! command -v uv &> /dev/null; then
+#   echo ""
+#   echo "❌ ERROR: uv is not installed"
+#   echo ""
+#   echo "uv is required for development. Install it:"
+#   echo ""
+#   echo "  macOS:   brew install uv"
+#   echo "  Windows: winget install astral-sh.uv"
+#   echo "  Linux:   curl -LsSf https://astral.sh/uv/install.sh | sh"
+#   echo ""
+#   echo "Then run: uv sync"
+#   echo ""
+#   exit 1
+# fi
 
 # Check if .venv exists, if not run uv sync with dev dependencies
 if [ ! -d ".venv" ]; then

@@ -16,9 +16,13 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Pattern to match {{variable_name}} placeholders
-VARIABLE_PATTERN = re.compile(r"\{\{(\s*[\w\.]+\s*)\}\}")
+# Includes \w (word chars), dots (for nested access), and hyphens (for UUIDs in step IDs)
+VARIABLE_PATTERN = re.compile(r"\{\{(\s*[\w\.\-]+\s*)\}\}")
 
 
 def get_builtin_variables() -> Dict[str, Callable[[], Any]]:
@@ -67,10 +71,12 @@ def resolve_variable(
         The resolved value as a string, or None if not found
     """
     var_name = var_name.strip()
+    logger.debug(f"Resolving variable: {var_name}")
 
     # Check custom variables first (highest priority)
     if custom_variables and var_name in custom_variables:
         value = custom_variables[var_name]
+        logger.debug(f"Found in custom_variables: {var_name} = {value}")
         return str(value) if value is not None else None
 
     # Check for dot notation (e.g., "step_id.field_name" or "step_id.data.nested.field")
@@ -78,10 +84,15 @@ def resolve_variable(
         parts = var_name.split(".")
         step_id = parts[0]
         field_path = parts[1:]  # Remaining parts form the nested path
+        logger.debug(f"Dot notation: step_id={step_id}, field_path={field_path}")
 
         # Try to get from execution context step_io_data
         if hasattr(execution_context, "step_io_data"):
+            logger.debug(
+                f"step_io_data keys: {list(execution_context.step_io_data.keys()) if execution_context.step_io_data else 'None'}"
+            )
             step_data = execution_context.step_io_data.get(step_id, {})
+            logger.debug(f"step_data for {step_id}: {step_data}")
             if isinstance(step_data, dict):
                 # Traverse nested path
                 value = step_data
@@ -91,8 +102,11 @@ def resolve_variable(
                     else:
                         value = None
                         break
+                logger.debug(f"Resolved value for {var_name}: {value}")
                 if value is not None:
                     return str(value)
+        else:
+            logger.debug("execution_context has no step_io_data attribute")
 
     # Check execution context for special variables (before built-in fallback)
     if execution_context:

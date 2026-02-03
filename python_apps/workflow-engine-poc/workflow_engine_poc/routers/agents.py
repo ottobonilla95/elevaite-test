@@ -256,6 +256,7 @@ async def attach_tool_to_agent(
             agent_id,
             tool_id=body.tool_id,
             local_tool_name=body.local_tool_name,
+            inline_definition=body.inline_definition,
             override_parameters=body.override_parameters or {},
             is_active=body.is_active,
         )
@@ -264,7 +265,7 @@ async def attach_tool_to_agent(
         if msg == "Agent not found":
             raise HTTPException(status_code=404, detail=msg)
         elif msg in {
-            "Provide tool_id or local_tool_name",
+            "Provide tool_id, local_tool_name, or inline_definition",
             "Agent/binding mismatch",
             "Local tool not found in registry",
         }:

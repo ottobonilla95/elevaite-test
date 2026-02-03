@@ -692,3 +692,35 @@ async def get_workflow_by_id(
     except Exception as e:
         logger.error(f"Failed to get workflow {workflow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put(
+    "/{workflow_id}",
+    response_model=WorkflowRead,
+    dependencies=[Depends(api_key_or_user_guard("update_workflow"))],
+)
+async def update_workflow(
+    workflow_id: str,
+    workflow_data: WorkflowConfig,
+    session: Session = Depends(get_db_session),
+    # RBAC headers for Swagger UI testing
+    api_key: Optional[str] = Security(api_key_header),
+    user_id: Optional[str] = Header(default=None, alias=HDR_USER_ID),
+    org_id: Optional[str] = Header(default=None, alias=HDR_ORG_ID),
+    project_id: Optional[str] = Header(default=None, alias=HDR_PROJECT_ID),
+    account_id: Optional[str] = Header(default=None, alias=HDR_ACCOUNT_ID),
+) -> WorkflowRead:
+    """Update a workflow by ID (creates if not exists).
+
+    Uses PUT semantics - idempotent create or replace.
+    Request body schema: WorkflowConfig
+    """
+    try:
+        workflow_obj = WorkflowsService.save_workflow(
+            session, workflow_id, workflow_data.model_dump()
+        )
+        return workflow_obj  # type: ignore[return-value]
+
+    except Exception as e:
+        logger.error(f"Failed to update workflow {workflow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

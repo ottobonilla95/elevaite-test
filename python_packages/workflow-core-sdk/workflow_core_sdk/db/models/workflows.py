@@ -156,11 +156,25 @@ class WorkflowCreate(WorkflowBase):
 
 
 class WorkflowRead(WorkflowBase):
-    """Schema for reading workflow data"""
+    """Schema for reading workflow data.
+
+    Flattens configuration.steps and configuration.connections to top-level
+    fields for frontend compatibility with WorkflowConfig interface.
+    """
 
     id: uuid_module.UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    # Flattened from configuration for frontend compatibility
+    steps: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Workflow steps (extracted from configuration)",
+    )
+    connections: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Step connections for UI (extracted from configuration)",
+    )
 
     # Optional execution summary
     total_executions: Optional[int] = Field(
@@ -172,6 +186,40 @@ class WorkflowRead(WorkflowBase):
     last_executed: Optional[datetime] = Field(
         default=None, description="Last execution timestamp"
     )
+
+    @classmethod
+    def model_validate(cls, obj: Any, **kwargs: Any) -> "WorkflowRead":
+        """Override model_validate to extract steps/connections from configuration."""
+        # Handle ORM objects (Workflow entity)
+        if hasattr(obj, "__dict__") and not isinstance(obj, dict):
+            data = {}
+            for key in [
+                "id",
+                "name",
+                "description",
+                "version",
+                "execution_pattern",
+                "configuration",
+                "global_config",
+                "tags",
+                "timeout_seconds",
+                "status",
+                "created_by",
+                "created_at",
+                "updated_at",
+            ]:
+                if hasattr(obj, key):
+                    data[key] = getattr(obj, key)
+        else:
+            data = dict(obj) if obj else {}
+
+        # Extract steps and connections from configuration
+        config = data.get("configuration", {}) or {}
+        if isinstance(config, dict):
+            data["steps"] = config.get("steps", [])
+            data["connections"] = config.get("connections", [])
+
+        return super().model_validate(data, **kwargs)
 
 
 class WorkflowUpdate(SQLModel):

@@ -46,11 +46,97 @@ interface ToolCreateRequest {
   examples?: Array<Record<string, any>>;
 }
 
+// ============================================================================
+// INLINE TOOL DEFINITION TYPES
+// ============================================================================
+
+/**
+ * Code execution tool configuration (Code Interpreter).
+ * Enables the agent to write and execute its own Python code at runtime.
+ *
+ * Note: This is different from UserFunctionDefinition where the USER provides
+ * the code upfront. Here, the AGENT writes the code dynamically.
+ */
+interface CodeExecutionToolConfig {
+  type: "code_execution";
+  timeout_seconds?: number; // Execution timeout (1-60s, default: 30)
+  memory_mb?: number; // Memory limit (64-512MB, default: 256)
+}
+
+/**
+ * User-provided function definition for inline execution.
+ * The function code runs in a sandboxed environment via the Code Execution Service.
+ *
+ * Note: This is different from CodeExecutionToolConfig where the AGENT writes
+ * the code. Here, the USER provides the code upfront.
+ */
+interface UserFunctionDefinition {
+  type: "user_function";
+  name: string; // Function name (must match the `def` in code)
+  description: string; // What the function does (shown to LLM)
+  parameters_schema: Record<string, any>; // JSON Schema for function parameters
+  code: string; // Python function implementation
+  timeout_seconds?: number; // Execution timeout (1-60s, default: 30)
+  memory_mb?: number; // Memory limit (64-512MB, default: 256)
+}
+
+/**
+ * User location for web search (optional geo-targeting).
+ */
+interface WebSearchUserLocation {
+  country?: string; // ISO 3166-1 alpha-2 country code (e.g., "US", "GB")
+  region?: string; // Region/state code
+  city?: string; // City name
+}
+
+/**
+ * Web search tool configuration.
+ * Configures the built-in web search capabilities.
+ *
+ * Provider Support:
+ * - OpenAI: search_context_size ✓, user_location ✓
+ * - Gemini: Uses GoogleSearch (no config options, will log warning if provided)
+ */
+interface WebSearchToolConfig {
+  type: "web_search";
+  search_context_size?: "low" | "medium" | "high"; // OpenAI only (default: "medium")
+  user_location?: WebSearchUserLocation; // OpenAI only - geo-targeted results
+  allowed_domains?: string[]; // Reserved for future use
+  blocked_domains?: string[]; // Reserved for future use
+}
+
+/**
+ * Union type for all inline tool definitions.
+ * Use this when attaching tools to agents without referencing the tool registry.
+ *
+ * The 'type' field discriminates between:
+ * - 'user_function': User provides code upfront
+ * - 'web_search': Web search with optional config
+ * - 'code_execution': Agent writes code at runtime (Code Interpreter)
+ */
+type InlineToolDefinition =
+  | UserFunctionDefinition
+  | WebSearchToolConfig
+  | CodeExecutionToolConfig;
+
+// ============================================================================
+// AGENT TOOL BINDING
+// ============================================================================
+
+/**
+ * Request to attach a tool to an agent.
+ *
+ * Exactly ONE of the following must be provided:
+ * - tool_id: Reference a tool by its database UUID
+ * - local_tool_name: Reference a local tool by name (syncs to DB if needed)
+ * - inline_definition: Provide full tool definition inline (for user functions or web search config)
+ */
 interface AgentToolBindingRequest {
-  local_tool_name?: string;
-  tool_id?: string; // UUID - use either this or local_tool_name
-  is_active?: boolean;
-  override_parameters?: Record<string, any>;
+  tool_id?: string; // UUID - reference existing tool in database
+  local_tool_name?: string; // Reference local tool by name
+  inline_definition?: InlineToolDefinition; // Provide full tool definition inline
+  is_active?: boolean; // Whether this binding is enabled (default: true)
+  override_parameters?: Record<string, any>; // Tool-specific parameter overrides
 }
 
 interface WorkflowCreateRequest {
@@ -188,15 +274,79 @@ const createCustomToolRequest: ToolCreateRequest = {
 // STEP 4: ATTACH TOOLS TO AGENTS (Optional)
 // ============================================================================
 
-// Attach web_search tool to Analysis Agent
+// Option A: Attach existing local tool by name
 const attachWebSearchToAnalysisAgent: AgentToolBindingRequest = {
   local_tool_name: "web_search",
   is_active: true,
   override_parameters: {}
 };
 
+// Option B: Attach web search with custom configuration (inline definition)
+const attachWebSearchWithConfig: AgentToolBindingRequest = {
+  inline_definition: {
+    type: "web_search",
+    search_context_size: "high",
+    user_location: {
+      country: "US",
+      region: "CA",
+      city: "San Francisco"
+    },
+    allowed_domains: ["docs.python.org", "stackoverflow.com", "github.com"],
+    blocked_domains: ["pinterest.com"]
+  },
+  is_active: true
+};
+
+// Option C: Attach user-defined function (inline definition)
+const attachUserFunction: AgentToolBindingRequest = {
+  inline_definition: {
+    type: "user_function",
+    name: "calculate_discount",
+    description: "Calculate the discounted price for a product given the original price and discount percentage",
+    parameters_schema: {
+      type: "object",
+      properties: {
+        price: {
+          type: "number",
+          description: "The original price of the product"
+        },
+        discount_percent: {
+          type: "number",
+          description: "The discount percentage (0-100)"
+        }
+      },
+      required: ["price", "discount_percent"]
+    },
+    code: `def calculate_discount(price: float, discount_percent: float) -> dict:
+    """Calculate discounted price."""
+    if discount_percent < 0 or discount_percent > 100:
+        return {"error": "Discount must be between 0 and 100"}
+    discounted_price = price * (1 - discount_percent / 100)
+    savings = price - discounted_price
+    return {
+        "original_price": price,
+        "discount_percent": discount_percent,
+        "discounted_price": round(discounted_price, 2),
+        "savings": round(savings, 2)
+    }`,
+    timeout_seconds: 10,
+    memory_mb: 128
+  },
+  is_active: true
+};
+
+// Option D: Attach code execution tool (Code Interpreter - agent writes code)
+const attachCodeExecution: AgentToolBindingRequest = {
+  inline_definition: {
+    type: "code_execution",
+    timeout_seconds: 30,
+    memory_mb: 256
+  },
+  is_active: true
+};
+
 // POST to: /api/agents/{analysis_agent_id}/tools
-// Body: attachWebSearchToAnalysisAgent
+// Body: attachWebSearchToAnalysisAgent, attachWebSearchWithConfig, attachUserFunction, or attachCodeExecution
 
 // ============================================================================
 // STEP 5: CREATE WORKFLOW
@@ -218,7 +368,7 @@ const createWorkflowRequest: WorkflowCreateRequest = {
           kind: "webhook"
         }
       },
-      
+
       // Step 2: First Agent - Analysis
       {
         step_id: "agent_analysis",
@@ -233,7 +383,7 @@ const createWorkflowRequest: WorkflowCreateRequest = {
         },
         depends_on: ["trigger_1"]
       },
-      
+
       // Step 3: Tool Execution - Web Search
       {
         step_id: "tool_search",
@@ -247,7 +397,7 @@ const createWorkflowRequest: WorkflowCreateRequest = {
         },
         depends_on: ["agent_analysis"]
       },
-      
+
       // Step 4: Second Agent - Summary
       {
         step_id: "agent_summary",
@@ -335,7 +485,23 @@ export {
   createSummaryAgentRequest,
   createCustomToolRequest,
   attachWebSearchToAnalysisAgent,
+  attachWebSearchWithConfig,
+  attachUserFunction,
+  attachCodeExecution,
   createWorkflowRequest,
   executeWorkflowRequest
+};
+
+export type {
+  AgentCreateRequest,
+  ToolCreateRequest,
+  AgentToolBindingRequest,
+  UserFunctionDefinition,
+  WebSearchToolConfig,
+  WebSearchUserLocation,
+  CodeExecutionToolConfig,
+  InlineToolDefinition,
+  WorkflowCreateRequest,
+  WorkflowExecuteRequest
 };
 

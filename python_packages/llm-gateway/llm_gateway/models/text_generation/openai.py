@@ -184,12 +184,27 @@ class OpenAITextGenerationProvider(BaseTextGenerationProvider):
                     else:
                         # Already in Responses API format
                         responses_tools.append(tool)
+                elif tool.get("type") == "web_search":
+                    # Convert web_search to web_search_preview with configuration
+                    web_search_tool: Dict[str, Any] = {"type": "web_search_preview"}
+
+                    # Pass through configuration options if present
+                    if "search_context_size" in tool:
+                        web_search_tool["search_context_size"] = tool[
+                            "search_context_size"
+                        ]
+                    if "user_location" in tool:
+                        web_search_tool["user_location"] = tool["user_location"]
+
+                    responses_tools.append(web_search_tool)
+                    logging.debug(
+                        f"Added web_search_preview tool with config: {web_search_tool}"
+                    )
                 elif tool.get("type") in (
                     "file_search",
-                    "web_search",
                     "code_interpreter",
                 ):
-                    # Built-in tools
+                    # Built-in tools (pass through as-is)
                     responses_tools.append(tool)
                 elif tool.get("type") == "code_execution":
                     # Convert code_execution to a function tool that we handle ourselves

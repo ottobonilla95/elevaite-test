@@ -61,6 +61,7 @@
   "workspaces": [
     "apps/auth",
     "apps/elevaite",
+    "apps/command_agent_version_2",
     "packages/*"
   ],
   "dependencies": {},

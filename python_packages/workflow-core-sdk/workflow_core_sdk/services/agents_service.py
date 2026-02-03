@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from uuid import UUID
 
 from sqlmodel import Session, select
 
 from ..db.models import Agent, AgentUpdate, AgentToolBinding
 from ..tools.registry import tool_registry
+from ..schemas.inline_tools import (
+    UserFunctionDefinition,
+    WebSearchToolConfig,
+    CodeExecutionToolConfig,
+    PLACEHOLDER_TOOL_IDS,
+)
 
 
 @dataclass
@@ -102,15 +108,45 @@ class AgentsService:
         *,
         tool_id: Optional[str] = None,
         local_tool_name: Optional[str] = None,
+        inline_definition: Optional[
+            Union[UserFunctionDefinition, WebSearchToolConfig, CodeExecutionToolConfig]
+        ] = None,
         override_parameters: Optional[Dict[str, Any]] = None,
         is_active: bool = True,
     ) -> AgentToolBinding:
+        """Attach a tool to an agent.
+
+        There are three ways to attach a tool:
+        1. By tool_id: Reference an existing tool in the database
+        2. By local_tool_name: Reference a tool from the local registry
+        3. By inline_definition: Provide a full tool definition inline
+
+        For inline definitions, the definition is stored in override_parameters
+        with a special '_inline_definition' key, and a placeholder tool_id is used.
+        """
         db_agent = session.exec(select(Agent).where(Agent.id == UUID(agent_id))).first()
         if not db_agent:
             raise ValueError("Agent not found")
 
         resolved_tool_id: Optional[str] = tool_id
-        if not resolved_tool_id and local_tool_name:
+        final_override_params = dict(override_parameters or {})
+
+        # Handle inline definition
+        if inline_definition is not None:
+            # Get placeholder tool ID based on inline definition type
+            inline_type = inline_definition.type
+            placeholder_id = PLACEHOLDER_TOOL_IDS.get(inline_type)
+            if not placeholder_id:
+                raise ValueError(f"Unknown inline definition type: {inline_type}")
+
+            resolved_tool_id = placeholder_id
+
+            # Store the inline definition in override_parameters
+            # Use model_dump() to serialize Pydantic model to dict
+            final_override_params["_inline_definition"] = inline_definition.model_dump()
+
+        # Handle local tool name lookup
+        elif not resolved_tool_id and local_tool_name:
             synced_id = tool_registry.sync_local_tool_by_name(
                 session, str(local_tool_name)
             )
@@ -119,12 +155,12 @@ class AgentsService:
             resolved_tool_id = str(synced_id)
 
         if not resolved_tool_id:
-            raise ValueError("Provide tool_id or local_tool_name")
+            raise ValueError("Provide tool_id, local_tool_name, or inline_definition")
 
         binding = AgentToolBinding(
             agent_id=db_agent.id,
             tool_id=UUID(resolved_tool_id),
-            override_parameters=override_parameters or {},
+            override_parameters=final_override_params,
             is_active=bool(is_active),
             organization_id=db_agent.organization_id,
             created_by=db_agent.created_by,

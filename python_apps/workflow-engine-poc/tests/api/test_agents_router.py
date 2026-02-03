@@ -521,25 +521,34 @@ class TestAttachToolToAgent:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"]
 
-    @patch("workflow_engine_poc.routers.agents.AgentsService.attach_tool_to_agent")
     @patch("workflow_engine_poc.routers.agents.get_db_session")
     @patch("workflow_engine_poc.routers.agents.api_key_or_user_guard")
     @pytest.mark.api
     def test_attach_tool_missing_identifier(
-        self, mock_guard, mock_get_session, mock_attach, mock_session
+        self, mock_guard, mock_get_session, mock_session
     ):
-        """Test attaching a tool without tool_id or local_tool_name"""
+        """Test attaching a tool without tool_id, local_tool_name, or inline_definition.
+
+        This validation now happens at the Pydantic schema level (model_validator),
+        so we get a 422 Unprocessable Entity instead of 400 Bad Request.
+        """
         mock_guard.return_value = lambda: "user-123"
         mock_get_session.return_value = mock_session
-        mock_attach.side_effect = ValueError("Provide tool_id or local_tool_name")
 
         agent_id = uuid.uuid4()
         payload = {"override_parameters": {}}
 
         response = client.post(f"/agents/{agent_id}/tools", json=payload)
 
-        assert response.status_code == 400
-        assert "Provide tool_id or local_tool_name" in response.json()["detail"]
+        # Pydantic validation returns 422 for schema validation errors
+        assert response.status_code == 422
+        # Check that the error message mentions the required fields
+        response_text = str(response.json())
+        assert (
+            "tool_id" in response_text
+            or "local_tool_name" in response_text
+            or "inline_definition" in response_text
+        )
 
 
 @pytest.mark.api
