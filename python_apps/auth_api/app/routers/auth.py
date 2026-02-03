@@ -585,7 +585,7 @@ async def login(
             )
         elif (
             http_exc.status_code == status.HTTP_400_BAD_REQUEST
-            and "MFA code required" in http_exc.detail
+            and "code required" in http_exc.detail
         ):
             # Handle multiple MFA methods
             user = await get_user_by_email(session, login_data.email)
@@ -640,6 +640,17 @@ async def login(
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="MFA code required - choose your preferred method",
+                        headers=headers,
+                    )
+                elif len(available_methods) == 1:
+                    # Single MFA method
+                    method = available_methods[0]
+                    headers["X-MFA-Type"] = method
+                    headers["X-MFA-Methods"] = method
+
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"{method} code required",
                         headers=headers,
                     )
             elif "SMS code required" in http_exc.detail:
@@ -1156,7 +1167,12 @@ async def forgot_password(
             "message": "If your email is registered, you will receive a password reset email"
         }
 
-    # Generate a new secure password
+    # Generate a reset token for token-based reset flow
+    import secrets
+
+    reset_token = secrets.token_urlsafe(32)
+
+    # Also generate a temporary password as fallback
     from app.core.password_utils import generate_secure_password
 
     new_password = generate_secure_password()
@@ -1168,20 +1184,33 @@ async def forgot_password(
         .values(
             temporary_hashed_password=get_password_hash(new_password),
             temporary_password_expiry=expiry_time,
-            password_reset_token=None,
-            password_reset_expires=None,
+            password_reset_token=reset_token,
+            password_reset_expires=expiry_time,
         )
     )
     await session.execute(stmt)
 
     await session.commit()
 
-    # Send password reset email with the new password
-    from app.services.email_service import send_password_reset_email_with_new_password
+    # LOG THE RESET URL FOR DEMO/TESTING (remove in production when email works)
+    reset_url = f"{settings.FRONTEND_URI}/reset-password?token={reset_token}"
+    logger.info("=" * 60)
+    logger.info("🔑 PASSWORD RESET URL (for testing - email not configured)")
+    logger.info(f"📧 Email: {user.email}")
+    logger.info(f"🔗 URL: {reset_url}")
+    logger.info("=" * 60)
+    print("=" * 60)
+    print("🔑 PASSWORD RESET URL (for testing - email not configured)")
+    print(f"📧 Email: {user.email}")
+    print(f"🔗 URL: {reset_url}")
+    print("=" * 60)
+
+    # Send password reset email with the new password (will fail silently if SMTP not configured)
+    from app.services.email_service import send_password_reset_email
 
     # Extract name from full_name or use empty string
     name = user.full_name.split()[0] if user.full_name else ""
-    await send_password_reset_email_with_new_password(user.email, name, new_password)
+    await send_password_reset_email(user.email, name, reset_token)
 
     # Log activity
     # Get the user ID safely - CRITICAL: Don't access user attributes that might trigger a database query
@@ -1210,9 +1239,15 @@ async def forgot_password(
         print(f"Error logging password reset activity: {e}")
         # Continue even if we couldn't log the activity
 
-    return {
+    # In debug mode, return the reset URL for easy testing
+    response = {
         "message": "If your email is registered, you will receive a password reset email"
     }
+    if settings.DEBUG:
+        response["reset_url"] = reset_url
+        response["debug_note"] = "This URL is only shown in debug mode"
+
+    return response
 
 
 @router.post("/reset-password")

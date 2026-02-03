@@ -35,6 +35,8 @@ COPY python_apps/ingestion-service ./python_apps/ingestion-service
 
 # Install Python dependencies for the ingestion service (uv will create/manage the virtualenv)
 WORKDIR /elevaite/python_apps/ingestion-service
+# Increase timeout for slow networks during dependency downloads
+ENV UV_HTTP_TIMEOUT=120
 # Use non-frozen sync so the container build does not depend on a fully-updated lockfile
 RUN uv sync --no-dev
 

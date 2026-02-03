@@ -19,6 +19,9 @@ COPY ./python_packages/fastapi-logger ./python_packages/fastapi-logger
 COPY ./python_apps/auth_api ./python_apps/auth_api
 COPY ./pyproject.toml ./
 
+# Increase timeout for slow networks during dependency downloads
+ENV UV_HTTP_TIMEOUT=120
+
 RUN uv venv --python 3.11.11
 
 ENV VIRTUAL_ENV=/elevaite/.venv \

@@ -1,0 +1,276 @@
+// Forgot Password Page - Split-screen layout matching Figma design
+
+.forgot-password-container {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  padding: 24px;
+  display: flex;
+  gap: 10px;
+
+  .left-panel {
+    flex: 1;
+    background-color: #ffffff;
+    border: 1px solid #e2e8ed;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+
+    @media (max-width: 768px) {
+      padding: 16px;
+    }
+
+    .logo-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+
+      svg {
+        width: 85px;
+        height: 27px;
+      }
+    }
+
+    .form-content {
+      width: 100%;
+      max-width: 480px;
+      padding: 0 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 29px;
+
+      @media (max-width: 768px) {
+        padding: 0 16px;
+      }
+    }
+
+    .copyright {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #939393;
+      text-align: center;
+
+      a {
+        color: #ff681f;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  .right-panel {
+    flex: 1;
+    background-color: #ff681f;
+    border-radius: 16px;
+
+    @media (max-width: 1024px) {
+      display: none;
+    }
+  }
+}
+
+// Heading styles
+.forgot-heading {
+  text-align: center;
+  padding: 0 48px;
+
+  @media (max-width: 768px) {
+    padding: 0;
+  }
+
+  h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 40px;
+    color: #212124;
+    margin: 0 0 4px 0;
+  }
+
+  p {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    color: #939393;
+    margin: 0;
+  }
+}
+
+// Form styles
+.forgot-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: #111729;
+    }
+
+    .input-wrapper {
+      position: relative;
+      width: 100%;
+      height: 40px;
+      background-color: #ffffff;
+      border: 1px solid #e2e8ed;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      gap: 8px;
+      overflow: hidden;
+
+      &:focus-within {
+        border-color: #ff681f;
+      }
+
+      .input-icon {
+        flex-shrink: 0;
+        color: #939393;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 17px;
+        height: 17px;
+      }
+
+      .divider {
+        width: 1px;
+        height: 100%;
+        background-color: #e2e8ed;
+        flex-shrink: 0;
+      }
+
+      input {
+        flex: 1;
+        border: none;
+        outline: none;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 14px;
+        color: #212124;
+        background: transparent;
+        min-width: 0;
+
+        &::placeholder {
+          color: #939393;
+        }
+      }
+    }
+
+    .error-message {
+      font-size: 12px;
+      color: #ef4444;
+      margin: 0;
+    }
+  }
+
+  .submit-btn {
+    width: 100%;
+    height: 40px;
+    padding: 8px 24px;
+    background-color: #ff681f;
+    border: none;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #e55d1b;
+    }
+
+    &:disabled {
+      background-color: #e2e8ed;
+      color: #939393;
+      cursor: not-allowed;
+    }
+  }
+
+  .form-error {
+    font-size: 14px;
+    color: #ef4444;
+    text-align: center;
+    margin: 0;
+  }
+}
+
+// Back to sign in link
+.back-to-signin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  p {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #212124;
+    margin: 0;
+  }
+
+  a {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ff681f;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Resend success message
+.resend-success {
+  font-size: 14px;
+  color: #22c55e;
+  text-align: center;
+  margin: 0;
+}
+
+// Debug URL box (only shown in dev mode)
+.debug-url-box {
+  background-color: #fef3c7;
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+
+  p {
+    margin: 0 0 8px 0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: #92400e;
+  }
+
+  a {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: #ff681f;
+    word-break: break-all;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

@@ -38,8 +38,13 @@ export default function DevReset(): JSX.Element {
     setIsSubmitting(true);
 
     try {
-      await resetPassword(newPassword);
-      setIsSuccess(true);
+      // Dev-only: use a mock token for testing
+      const result = await resetPassword("dev-mock-token", newPassword);
+      if (result.success) {
+        setIsSuccess(true);
+      } else {
+        setError(result.error || "Failed to reset password. Please try again.");
+      }
     } catch (err) {
       setError("Failed to reset password. Please try again.");
     } finally {

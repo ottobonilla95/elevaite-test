@@ -1,0 +1,246 @@
+.mfa-page-container {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  padding: 24px;
+  display: flex;
+  gap: 10px;
+
+  .left-panel {
+    flex: 1;
+    background-color: #ffffff;
+    border: 1px solid #e2e8ed;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+
+    .logo-container {
+      width: 100%;
+
+      svg {
+        width: 85px;
+        height: 27px;
+      }
+    }
+
+    .form-content {
+      width: 100%;
+      max-width: 480px;
+      padding: 0 48px;
+
+      @media (max-width: 768px) {
+        padding: 0 16px;
+      }
+    }
+
+    .copyright {
+      font-size: 13px;
+      font-weight: 500;
+
+      .gray {
+        color: #939393;
+      }
+
+      a {
+        color: #ff681f;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  .right-panel {
+    flex: 1;
+    background-color: #ff681f;
+    border-radius: 16px;
+
+    @media (max-width: 1024px) {
+      display: none;
+    }
+  }
+}
+
+.mfa-heading {
+  text-align: center;
+
+  h1 {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 40px;
+    color: #212124;
+    margin: 0;
+  }
+
+  p {
+    font-size: 14px;
+    font-weight: 500;
+    color: #939393;
+    margin: 4px 0 0 0;
+  }
+}
+
+.mfa-code-input {
+  margin-top: 32px;
+
+  .code-inputs {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+
+    @media (max-width: 480px) {
+      gap: 8px;
+    }
+
+    input {
+      width: 56px;
+      height: 64px;
+      background: #ffffff;
+      border: 2px solid #ff681f;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 32px;
+      font-weight: 600;
+      color: #212124;
+      text-align: center;
+      outline: none;
+      padding: 0;
+      caret-color: #ff681f;
+
+      @media (max-width: 480px) {
+        width: 44px;
+        height: 52px;
+        font-size: 24px;
+      }
+
+      &:focus {
+        border-color: #ff681f;
+        box-shadow: 0 0 0 3px rgba(255, 104, 31, 0.2);
+      }
+
+      &.error {
+        border-color: #ef4444;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      // Hide spinner arrows for number inputs
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      &[type=number] {
+        -moz-appearance: textfield;
+      }
+    }
+  }
+
+  .error-message {
+    color: #ef4444;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 8px;
+  }
+}
+
+.mfa-verify-btn {
+  margin-top: 32px;
+
+  button {
+    width: 100%;
+    padding: 12px 40px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.active {
+      background-color: #ff681f;
+      color: #ffffff;
+
+      &:hover {
+        background-color: #e55d1b;
+      }
+    }
+
+    &.disabled {
+      background-color: #e2e8ed;
+      color: #939393;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.mfa-success-message {
+  color: #22c55e;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 16px;
+}
+
+.mfa-help-links {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+
+  .resend-text {
+    font-size: 14px;
+
+    .bold {
+      font-weight: 700;
+      color: #212124;
+    }
+
+    .gray {
+      color: #939393;
+      margin-left: 8px;
+    }
+
+    button {
+      background: none;
+      border: none;
+      color: #ff681f;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      margin-left: 8px;
+
+      &:hover {
+        text-decoration: underline;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .try-another {
+    background: none;
+    border: none;
+    color: #ff681f;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    padding: 0;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

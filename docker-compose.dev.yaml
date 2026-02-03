@@ -101,6 +101,8 @@ services:
       DEBUG: "1"
       LOG_LEVEL: DEBUG
       CORS_ORIGINS: "http://localhost:3005,http://localhost:3001"
+      # Frontend URL for password reset links
+      FRONTEND_URL: "http://localhost:3005"
       # OPA disabled for local dev - all authorization checks will pass
       OPA_ENABLED: "false"
       # Allow requests from Docker service names (workflow-engine, worker call auth-api internally)

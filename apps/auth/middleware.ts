@@ -5,7 +5,17 @@ export const config = {
   matcher: ["/((?!api|_next/static|_next/image|dev-reset|.*\\.png$).*)"],
 };
 
+// MFA routes that should be accessible without full authentication
+const MFA_ROUTES = ["/mfa", "/mfa-verify"];
+
 export default auth((req) => {
+  const { pathname } = req.nextUrl;
+
+  // Allow MFA routes without authentication (user is in the middle of MFA flow)
+  if (MFA_ROUTES.some((route) => pathname.startsWith(route))) {
+    return;
+  }
+
   // Check if the user needs to reset their password
   if (
     req.auth?.user &&
@@ -13,7 +23,7 @@ export default auth((req) => {
     req.auth.user.needsPasswordReset === true
   ) {
     // If the user is already on the reset-password page, allow them to proceed
-    if (req.nextUrl.pathname === "/reset-password") {
+    if (pathname === "/reset-password") {
       return;
     }
 

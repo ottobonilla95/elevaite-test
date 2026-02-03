@@ -1,31 +1,19 @@
-// Login Page - Split-screen layout matching Figma design
-// NOTE: Login page has INVERTED backgrounds compared to other auth pages
-// Page background: WHITE, Panels: GRAY
+// Sign Up Page - Split-screen layout matching login page design
+// Uses same structure as login page
 
-// Design tokens
-$background: #f8fafc;
-$background-2: #ffffff;
-$stroke: #e2e8ed;
-$orange: #ff681f;
-$black: #212124;
-$grey: #939393;
-$label-color: #111729;
-$text-grey: #5f5f61;
-
-.login-page-container {
+.signup-page-container {
   min-height: 100vh;
-  width: 100vw;
-  background-color: $background-2;
+  background-color: #ffffff;
   padding: 24px;
   display: flex;
   gap: 10px;
-  overflow-y: auto;
 
   .left-column {
     flex: 1 0 0;
     display: flex;
     flex-direction: column;
     gap: 16px;
+    min-height: calc(100vh - 48px);
     min-width: 0;
 
     @media (max-width: 1024px) {
@@ -34,77 +22,69 @@ $text-grey: #5f5f61;
     }
   }
 
-  // Main panel with form (GRAY background for login page)
+  // Main panel with form (GRAY background)
   .main-panel {
     flex: 1;
-    background-color: $background;
-    border: 1px solid $stroke;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8ed;
     border-radius: 36px;
-    padding: 48px 24px 24px; // More top padding per Figma
+    padding: 24px;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    min-height: 600px; // Minimum height to prevent excessive compression
-  }
 
-  // Logo section - centered (logo image includes tagline)
-  .logo-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 29px; // 29px gap to heading per Figma
+    .logo-container {
+      width: 100%;
+      display: flex;
+      align-items: flex-start;
 
-    // Lock logo size so it doesn't scale in prod
-    span,
-    img {
-      width: 190px;
-      height: 84px;
+      svg {
+        width: 85px;
+        height: 27px;
+      }
     }
-  }
 
-  .form-wrapper {
-    width: 100%;
-    max-width: 480px;
-    padding: 0 48px;
-    display: flex;
-    flex-direction: column;
-    gap: 36px; // 36px gap between major sections per Figma
-    margin-bottom: auto; // Push copyright to bottom
+    .form-wrapper {
+      width: 100%;
+      max-width: 520px;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
 
-    @media (max-width: 768px) {
-      padding: 0 16px;
+      @media (max-width: 768px) {
+        padding: 0 16px;
+      }
     }
-  }
 
-  .copyright {
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    color: $grey;
-    text-align: center;
-    margin-top: 48px; // Space above copyright
-    flex-shrink: 0;
+    .copyright {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #939393;
+      text-align: center;
 
-    a {
-      color: $orange;
-      text-decoration: none;
+      a {
+        color: #ff681f;
+        text-decoration: none;
 
-      &:hover {
-        text-decoration: underline;
+        &:hover {
+          text-decoration: underline;
+        }
       }
     }
   }
 
-  // Sign up CTA card (separate from main panel - GRAY for login page)
-  .signup-cta-card {
-    background-color: $background;
-    border: 1px solid $stroke;
+  // Login CTA card (for "Already have account?")
+  .login-cta-card {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8ed;
     border-radius: 36px;
     padding: 24px 48px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-shrink: 0;
 
     .cta-text {
       flex: 1;
@@ -115,11 +95,11 @@ $text-grey: #5f5f61;
         font-size: 14px;
         font-weight: 500;
         line-height: 20px;
-        color: $black;
+        color: #212124;
         margin: 0;
 
         &.orange-text {
-          color: $orange;
+          color: #ff681f;
         }
       }
     }
@@ -127,7 +107,7 @@ $text-grey: #5f5f61;
     .cta-button {
       width: 60px;
       height: 60px;
-      border: 2px solid $orange;
+      border: 2px solid #ff681f;
       border-radius: 30px;
       background: transparent;
       display: flex;
@@ -138,27 +118,28 @@ $text-grey: #5f5f61;
       flex-shrink: 0;
 
       svg {
-        color: $orange;
+        color: #ff681f;
         width: 24px;
         height: 24px;
       }
 
       &:hover {
-        background-color: $orange;
+        background-color: #ff681f;
 
         svg {
-          color: $background-2;
+          color: #ffffff;
         }
       }
     }
   }
 
-  // Right panel (container with rounded corners)
+  // Right panel (orange)
   .right-panel {
     flex: 1 0 0;
+    background-color: #ff681f;
+    border-radius: 36px;
     min-width: 0;
     align-self: stretch;
-    border-radius: 36px;
     overflow: hidden;
     position: relative;
 
@@ -178,26 +159,49 @@ $text-grey: #5f5f61;
   }
 }
 
-// Heading styles - centered
-.login-heading {
+// Heading styles
+.signup-heading {
   text-align: center;
+
+  h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 40px;
+    color: #212124;
+    margin: 0 0 8px 0;
+  }
 
   p {
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 500;
     line-height: 20px;
-    color: $black; // BLACK per Figma
+    color: #939393;
     margin: 0;
   }
 }
 
 // Form styles
-.login-form {
+.signup-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
+
+  .name-row {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+
+    .input-group {
+      flex: 1;
+    }
+
+    @media (max-width: 480px) {
+      flex-direction: column;
+    }
+  }
 
   .input-group {
     display: flex;
@@ -208,15 +212,15 @@ $text-grey: #5f5f61;
       font-family: 'DM Sans', sans-serif;
       font-size: 12px;
       font-weight: 500;
-      color: $label-color;
+      color: #111729;
     }
 
     .input-wrapper {
       position: relative;
       width: 100%;
       height: 40px;
-      background-color: $background-2;
-      border: 1px solid $stroke;
+      background-color: #ffffff;
+      border: 1px solid #e2e8ed;
       border-radius: 8px;
       display: flex;
       align-items: center;
@@ -225,12 +229,12 @@ $text-grey: #5f5f61;
       overflow: hidden;
 
       &:focus-within {
-        border-color: $orange;
+        border-color: #ff681f;
       }
 
       .input-icon {
         flex-shrink: 0;
-        color: $grey;
+        color: #939393;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -241,7 +245,7 @@ $text-grey: #5f5f61;
       .divider {
         width: 1px;
         height: 100%;
-        background-color: $stroke;
+        background-color: #e2e8ed;
         flex-shrink: 0;
       }
 
@@ -251,12 +255,12 @@ $text-grey: #5f5f61;
         outline: none;
         font-family: 'DM Sans', sans-serif;
         font-size: 14px;
-        color: $black;
+        color: #212124;
         background: transparent;
         min-width: 0;
 
         &::placeholder {
-          color: $grey;
+          color: #939393;
         }
       }
 
@@ -265,7 +269,7 @@ $text-grey: #5f5f61;
         background: none;
         border: none;
         cursor: pointer;
-        color: $grey;
+        color: #939393;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -274,7 +278,7 @@ $text-grey: #5f5f61;
         height: 17px;
 
         &:hover {
-          color: $black;
+          color: #212124;
         }
       }
     }
@@ -286,63 +290,23 @@ $text-grey: #5f5f61;
     }
   }
 
-  .auth-options {
+  .password-requirements {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 4px;
 
-    .remember-me {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-
-      input[type='checkbox'] {
-        appearance: none;
-        -webkit-appearance: none;
-        width: 17px;
-        height: 17px;
-        border: 1.5px solid $grey;
-        border-radius: 3px;
-        cursor: pointer;
-        position: relative;
-        background-color: transparent;
-
-        &:checked {
-          background-color: $orange;
-          border-color: $orange;
-
-          &::after {
-            content: '';
-            position: absolute;
-            left: 5px;
-            top: 2px;
-            width: 4px;
-            height: 8px;
-            border: solid white;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
-          }
-        }
-      }
-
-      span {
-        font-family: 'Inter', sans-serif;
-        font-size: 14px;
-        font-weight: 500;
-        color: $grey;
-      }
-    }
-
-    .forgot-password {
+    span {
       font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      font-weight: 500;
-      color: $orange;
-      text-decoration: none;
+      font-size: 11px;
+      transition: color 0.2s ease;
 
-      &:hover {
-        text-decoration: underline;
+      &.valid {
+        color: #22c55e;
+      }
+
+      &.invalid {
+        color: #939393;
       }
     }
   }
@@ -351,23 +315,24 @@ $text-grey: #5f5f61;
     width: 100%;
     height: 40px;
     padding: 8px 24px;
-    background-color: $orange;
+    background-color: #ff681f;
     border: none;
     border-radius: 6px;
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: $background-2;
+    color: #ffffff;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    margin-top: 8px;
 
     &:hover {
-      background-color: darken($orange, 8%);
+      background-color: #e55d1b;
     }
 
     &:disabled {
-      background-color: $stroke;
-      color: $grey;
+      background-color: #e2e8ed;
+      color: #939393;
       cursor: not-allowed;
     }
   }
@@ -377,19 +342,16 @@ $text-grey: #5f5f61;
     color: #ef4444;
     text-align: center;
     margin: 0;
-
-    &.success {
-      color: #22c55e;
-    }
   }
 }
 
-// Divider and social section
+// Divider and social section (match login spacing)
 .social-section {
   display: flex;
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  margin-bottom: 24px;
 }
 
 .login-divider {
@@ -401,14 +363,14 @@ $text-grey: #5f5f61;
   .line {
     flex: 1;
     height: 1px;
-    background-color: $stroke;
+    background-color: #e2e8ed;
   }
 
   span {
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: $grey;
+    color: #939393;
     white-space: nowrap;
   }
 }
@@ -424,13 +386,13 @@ $text-grey: #5f5f61;
     width: 100%;
     height: 40px;
     padding: 6px 24px;
-    background-color: $background-2;
-    border: 1px solid $stroke;
+    background-color: #ffffff;
+    border: 1px solid #e2e8ed;
     border-radius: 6px;
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: $text-grey;
+    color: #5f5f61;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -440,8 +402,8 @@ $text-grey: #5f5f61;
     box-shadow: 0px 1px 1px 0px rgba(0, 0, 0, 0.04);
 
     &:hover {
-      border-color: $grey;
-      background-color: $background;
+      border-color: #939393;
+      background-color: #f8fafc;
     }
 
     &:disabled {
@@ -457,28 +419,57 @@ $text-grey: #5f5f61;
   }
 }
 
-// Responsive adjustments
-@media (max-width: 1024px) {
-  .login-page-container {
-    .main-panel {
-      min-height: auto;
-      padding: 36px 24px 24px;
+// Success state
+.success-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+
+  .success-icon {
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 40px;
+    color: #212124;
+    margin: 0;
+  }
+
+  p {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 22px;
+    color: #939393;
+    margin: 0;
+    max-width: 400px;
+
+    strong {
+      color: #212124;
     }
   }
-}
 
-@media (max-width: 640px) {
-  .login-page-container {
-    padding: 16px;
+  .back-to-login-btn {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 12px 32px;
+    background-color: #ff681f;
+    border: none;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
 
-    .signup-cta-card {
-      padding: 16px 24px;
-      flex-direction: column;
-      gap: 16px;
-
-      .cta-text {
-        text-align: center;
-      }
+    &:hover {
+      background-color: #e55d1b;
     }
   }
 }

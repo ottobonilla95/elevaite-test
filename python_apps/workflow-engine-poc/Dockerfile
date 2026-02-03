@@ -34,6 +34,9 @@ COPY python_apps/workflow-engine-poc ./python_apps/workflow-engine-poc
 # Install dependencies using uv in the workflow-engine-poc directory
 WORKDIR /elevaite/python_apps/workflow-engine-poc
 
+# Increase timeout for slow networks during dependency downloads
+ENV UV_HTTP_TIMEOUT=120
+
 # Install dependencies using uv (this will create .venv automatically)
 RUN uv sync --frozen --no-dev
 # Copy the created venv to a stable location outside the source tree to avoid bind-mount masking

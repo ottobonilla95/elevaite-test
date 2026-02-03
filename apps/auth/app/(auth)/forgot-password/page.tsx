@@ -1,92 +1,243 @@
-import { AuthFluff, ElevaiteIcons } from "@repo/ui/components";
+"use client";
+import type { JSX, FormEvent } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
-import type { JSX } from "react";
-import "../login/page.scss";
+import Image from "next/image";
+import "./page.scss";
+
+// Mail icon
+function MailIcon(): JSX.Element {
+  return (
+    <svg
+      width="17"
+      height="14"
+      viewBox="0 0 20 17"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        fill="currentColor"
+        d="M18 .5H2C.9.5.01 1.4.01 2.5L0 14.5c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-12c0-1.1-.9-2-2-2Zm0 4-8 5-8-5v-2l8 5 8-5v2Z"
+      />
+    </svg>
+  );
+}
 
 function ForgotPassword(): JSX.Element {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [debugResetUrl, setDebugResetUrl] = useState<string | null>(null);
+
+  const callForgotPasswordApi = useCallback(
+    async (emailAddress: string): Promise<void> => {
+      const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
+      if (!AUTH_API_URL) {
+        throw new Error("Server configuration error");
+      }
+
+      const response = await fetch(`${AUTH_API_URL}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: emailAddress }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send reset link");
+      }
+
+      const data = (await response.json()) as { reset_url?: string };
+
+      // If debug mode returned a reset URL, show it
+      if (data.reset_url) {
+        setDebugResetUrl(data.reset_url);
+        // Also log to console for easy copying
+        console.log("=".repeat(60));
+        console.log("🔑 DEBUG: Password Reset URL");
+        console.log(data.reset_url);
+        console.log("=".repeat(60));
+      }
+    },
+    [],
+  );
+
+  const handleSubmit = useCallback(
+    async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+      e.preventDefault();
+      setIsLoading(true);
+      setError(null);
+      setDebugResetUrl(null);
+
+      try {
+        await callForgotPasswordApi(email);
+        setIsSubmitted(true);
+      } catch {
+        setError("Failed to send reset link. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [email, callForgotPasswordApi],
+  );
+
+  const handleResend = useCallback(async (): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    setResendSuccess(false);
+    setDebugResetUrl(null);
+
+    try {
+      await callForgotPasswordApi(email);
+      setResendSuccess(true);
+      setTimeout(() => {
+        setResendSuccess(false);
+      }, 3000);
+    } catch {
+      setError("Failed to resend link. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [email, callForgotPasswordApi]);
+
+  const handleFormSubmit = (e: FormEvent<HTMLFormElement>): void => {
+    handleSubmit(e).catch(() => {
+      setError("Something went wrong. Please try again.");
+      setIsLoading(false);
+    });
+  };
+
+  const handleResendClick = (): void => {
+    handleResend().catch(() => {
+      setError("Failed to resend link. Please try again.");
+      setIsLoading(false);
+    });
+  };
+
   return (
-    <div className="login-page-container">
-      <div className="auth-fluff-container">
-        <div />
-        <div className="center-block">
-          <div className="center-header">
-            <ElevaiteIcons.SVGNavbarLogo />
-            <span>Elevate your business by AI.</span>
-          </div>
-          <div className="auth-fluff-content">
-            <AuthFluff mode={1} />
-          </div>
+    <div className="forgot-password-container">
+      <div className="left-panel">
+        <div className="logo-container">
+          <Image
+            src="/images/logos/logo.png"
+            alt="ElevAIte"
+            width={85}
+            height={27}
+            priority
+          />
         </div>
-        <div className="version">
-          <span>Version 2.0</span>
-        </div>
-      </div>
 
-      <div className="login-form-container">
-        <div />
-
-        <div className="center-block">
-          <div className="title">
-            <span className="main">Forgot Password</span>
-            <span className="ui-w-full ui-max-w-xl ui-text-center">
-              Enter the email address you used when you joined and we&apos;ll
-              send you instructions to reset your password.
-              <br />
-              <br />
-              For security reasons, we do NOT store your password. So rest
-              assured that we will never send your password via email.
-            </span>
-          </div>
-
-          <div className="forgot-password-form ui-w-full ui-max-w-xl">
-            <form className="ui-flex ui-flex-col ui-items-start ui-gap-3 ui-font-inter ui-w-full">
-              <div className="ui-relative ui-w-full">
-                <input
-                  type="email"
-                  id="email"
-                  placeholder="Email Address"
-                  className="ui-w-full ui-py-[13px] ui-px-5 ui-bg-[#161616] ui-rounded-lg ui-border-none ui-outline-none"
-                />
+        <div className="form-content">
+          {isSubmitted ? (
+            // Success state - Check your email
+            <>
+              <div className="forgot-heading">
+                <h1>Check your email</h1>
+                <p>
+                  We have sent a password recover instructions to your email.
+                </p>
               </div>
 
-              <div className="ui-h-16" />
+              {/* Debug URL display - only shown when backend returns it */}
+              {debugResetUrl ? (
+                <div className="debug-url-box">
+                  <p>
+                    <strong>🔧 Debug Mode - Reset URL:</strong>
+                  </p>
+                  <a
+                    href={debugResetUrl}
+                    style={{ wordBreak: "break-all", color: "#ff681f" }}
+                  >
+                    {debugResetUrl}
+                  </a>
+                </div>
+              ) : null}
 
-              <div className="ui-w-full ui-flex ui-justify-end">
+              <div className="forgot-form">
+                {resendSuccess ? (
+                  <p className="resend-success">Link sent successfully!</p>
+                ) : null}
+
+                {error ? <p className="form-error">{error}</p> : null}
+
                 <button
-                  className="ui-py-2 ui-px-5 ui-bg-orange-500 ui-rounded-lg ui-w-32 ui-text-xs ui-font-medium"
-                  type="submit"
+                  type="button"
+                  className="submit-btn"
+                  onClick={handleResendClick}
+                  disabled={isLoading}
                 >
-                  Reset Password
+                  {isLoading ? "Sending..." : "Resend link"}
                 </button>
               </div>
-
-              <div className="ui-flex ui-justify-start ui-w-full ui-mt-4">
-                <span className="ui-text-sm ui-text-gray-400">
-                  Remember your password?{" "}
-                  <Link
-                    href="/login"
-                    className="ui-text-[#E75F33] hover:ui-underline"
-                  >
-                    Sign in
-                  </Link>
-                </span>
+            </>
+          ) : (
+            // Form state
+            <>
+              <div className="forgot-heading">
+                <h1>Forgot Password</h1>
+                <p>
+                  Enter the email associated with your account and we will send
+                  an email with instructions to reset your password.
+                </p>
               </div>
-            </form>
-          </div>
+
+              <form className="forgot-form" onSubmit={handleFormSubmit}>
+                <div className="input-group">
+                  <label htmlFor="email">Email Address*</label>
+                  <div className="input-wrapper">
+                    <span className="input-icon">
+                      <MailIcon />
+                    </span>
+                    <div className="divider" />
+                    <input
+                      id="email"
+                      type="email"
+                      placeholder="john.smith@gmail.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                      }}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+                {error ? <p className="form-error">{error}</p> : null}
+
+                <button
+                  type="submit"
+                  className="submit-btn"
+                  disabled={isLoading || !email}
+                >
+                  {isLoading ? "Sending..." : "Send Link"}
+                </button>
+              </form>
+
+              <div className="back-to-signin">
+                <p>Remember your password?</p>
+                <Link href="/login">Sign In</Link>
+              </div>
+            </>
+          )}
         </div>
 
-        <div className="copyright">
-          <span>Copyright 2023-2025</span>
-          <span>•</span>
+        <p className="copyright">
+          Copyright 2023 -{" "}
           <a
-            target="_blank"
             href="https://www.iopex.com/"
+            target="_blank"
             rel="noopener noreferrer"
           >
             iOPEX Technologies
           </a>
-        </div>
+        </p>
       </div>
+
+      <div className="right-panel" />
     </div>
   );
 }

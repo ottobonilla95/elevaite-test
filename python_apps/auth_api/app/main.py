@@ -13,6 +13,13 @@ from fastapi_logger import ElevaiteLogger
 from app.routers import auth
 from app.routers import user
 from app.routers import biometric
+from app.routers import dev
+from app.routers import sms_mfa
+from app.routers import email_mfa
+from app.routers import authz
+from app.routers import rbac
+from app.routers import policies
+from app.routers import admin
 from app.core.config import settings
 from app.db.tenant_db import initialize_db
 from app.core.logging import attach_logger_to_app, logger
@@ -120,35 +127,13 @@ app.add_middleware(NoCacheMiddleware)
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(user.router, prefix="/api/user", tags=["user"])
 app.include_router(biometric.router, prefix="/api")
-# Include SMS MFA router
-from app.routers import sms_mfa
-
 app.include_router(sms_mfa.router, prefix="/api/sms-mfa", tags=["sms-mfa"])
-
-# Include Email MFA router
-from app.routers import email_mfa
-
 app.include_router(email_mfa.router, prefix="/api/email-mfa", tags=["email-mfa"])
-
-# Include Authorization (authz) router
-from app.routers import authz
-
 app.include_router(authz.router, prefix="/api/authz", tags=["authz"])
-
-# Include RBAC management router
-from app.routers import rbac
-
 app.include_router(rbac.router, prefix="/api/rbac", tags=["rbac"])
-
-# Include Policy management router
-from app.routers import policies
-
 app.include_router(policies.router, prefix="/api", tags=["policies"])
-
-# Include Admin router
-from app.routers import admin
-
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(dev.router, prefix="/api/dev", tags=["dev"])
 
 
 @app.get("/api/health", tags=["health"])

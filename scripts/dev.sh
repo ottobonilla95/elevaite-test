@@ -12,9 +12,13 @@ echo "                    🚀 ELEVAITE LOCAL DEVELOPMENT"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
+# Clean up any stale containers from previous runs
+echo "🧹 Cleaning up stale containers..."
+docker-compose -f docker-compose.dev.yaml rm -f -s 2>/dev/null || true
+
 # Start infrastructure first
 echo "📦 Starting infrastructure (PostgreSQL, Qdrant, RabbitMQ, MinIO)..."
-docker-compose -f docker-compose.dev.yaml up -d postgres qdrant rabbitmq minio 2>&1 | grep -v "Found orphan containers" || true
+docker-compose -f docker-compose.dev.yaml up -d --force-recreate postgres qdrant rabbitmq minio 2>&1 | grep -v "Found orphan containers" || true
 
 # Wait for infra with live feedback
 echo ""
@@ -113,7 +117,7 @@ fi
 
 echo "🔧 Starting backend services (auth-api, workflow-engine, ingestion)..."
 echo ""
-docker-compose -f docker-compose.dev.yaml up -d auth-api workflow-engine ingestion 2>&1 | grep -v "Found orphan containers" || true
+docker-compose -f docker-compose.dev.yaml up -d --force-recreate auth-api workflow-engine ingestion 2>&1 | grep -v "Found orphan containers" || true
 echo ""
 
 # Check backend health with timeout and live logs

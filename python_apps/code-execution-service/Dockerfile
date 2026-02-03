@@ -86,6 +86,8 @@ COPY python_apps/code-execution-service ./python_apps/code-execution-service
 
 # Install Python dependencies for the service
 WORKDIR /elevaite/python_apps/code-execution-service
+# Increase timeout for slow networks during dependency downloads
+ENV UV_HTTP_TIMEOUT=120
 RUN uv sync --no-dev
 
 # Copy nsjail configuration

@@ -430,12 +430,17 @@ jobs:
           IMAGE_TAG="pr-${{ env.PR_NUMBER }}"
           echo "Image tag: $IMAGE_TAG"
 
+          # Use commit SHA to force pod restarts on new deployments
+          COMMIT_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "Commit SHA: $COMMIT_SHA"
+
           helm upgrade --install elevaite-pr-${{ env.PR_NUMBER }} ./helm/elevaite \
             --namespace ${{ env.NAMESPACE }} \
             --values ./helm/elevaite/values-pr.yaml \
             --set global.imageRegistry=ghcr.io/${{ github.repository }} \
             --set global.environment=pr \
             --set global.imagePullSecrets[0].name=ghcr-pull-secret \
+            --set podAnnotations.deployed-commit=$COMMIT_SHA \
             --set authApi.image.tag=$IMAGE_TAG \
             --set workflowEngine.image.tag=$IMAGE_TAG \
             --set ingestion.enabled=false \
