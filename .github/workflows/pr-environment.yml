@@ -466,7 +466,6 @@ jobs:
             --set ingress.tls[0].hosts[0]=$API_HOST \
             --set ingress.tls[0].hosts[1]=$AUTH_HOST \
             --set ingress.tls[0].hosts[2]=$APP_HOST \
-            --set "ingress.annotations.cert-manager\\.io/cluster-issuer=letsencrypt-prod" \
             --set frontend.auth.nextAuthUrl=https://$AUTH_HOST \
             --set frontend.auth.publicAuthApiUrl=https://$API_HOST/api/auth \
             --set frontend.auth.env.NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005 \
