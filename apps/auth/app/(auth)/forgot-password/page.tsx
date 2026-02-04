@@ -3,25 +3,10 @@ import type { JSX, FormEvent } from "react";
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { MailIcon } from "../../components/icons";
+import { Copyright } from "../../components/Copyright";
+import { OrangePanel } from "../../components/OrangePanel";
 import "./page.scss";
-
-// Mail icon
-function MailIcon(): JSX.Element {
-  return (
-    <svg
-      width="17"
-      height="14"
-      viewBox="0 0 20 17"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        fill="currentColor"
-        d="M18 .5H2C.9.5.01 1.4.01 2.5L0 14.5c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-12c0-1.1-.9-2-2-2Zm0 4-8 5-8-5v-2l8 5 8-5v2Z"
-      />
-    </svg>
-  );
-}
 
 function ForgotPassword(): JSX.Element {
   const [email, setEmail] = useState("");
@@ -225,19 +210,10 @@ function ForgotPassword(): JSX.Element {
           )}
         </div>
 
-        <p className="copyright">
-          Copyright 2023 -{" "}
-          <a
-            href="https://www.iopex.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            iOPEX Technologies
-          </a>
-        </p>
+        <Copyright />
       </div>
 
-      <div className="right-panel" />
+      <OrangePanel />
     </div>
   );
 }

@@ -53,11 +53,13 @@ async def authenticate_user(
             - user: The authenticated user or None if authentication failed
             - password_change_required: True if the user needs to change their password
     """
-    print(f"Authenticating user: {email}")
+    print(f"[DEBUG] Authenticating user: {email}")
+    logger.info(f"[DEBUG] Authenticating user: {email}")
 
     # Check if session is None
     if session is None:
         print(f"WARNING: Session is None in authenticate_user for user {email}")
+        logger.error(f"WARNING: Session is None in authenticate_user for user {email}")
         return None, False
 
     # Check for test credentials that should trigger password reset flow
@@ -297,7 +299,16 @@ async def authenticate_user(
 
         # If we get here, check the regular password
         try:
-            if not verify_password(password, user.hashed_password):
+            logger.info(f"[DEBUG] Verifying password for user: {email}")
+            logger.info(
+                f"[DEBUG] User has hashed_password: {user.hashed_password[:50]}..."
+            )
+            logger.info(
+                f"[DEBUG] User status: {user.status}, is_password_temporary: {user.is_password_temporary}"
+            )
+            password_valid = verify_password(password, user.hashed_password)
+            logger.info(f"[DEBUG] Password verification result: {password_valid}")
+            if not password_valid:
                 logger.warning(
                     f"Password verification failed for user: {email}. "
                     f"Current failed attempts: {user.failed_login_attempts}"
@@ -623,39 +634,40 @@ async def create_user(session: AsyncSession, user_data: UserCreate) -> User:
     # Make sure to make this the last line before return if re-enabling
     # await send_verification_email(new_user.email, name, str(verification_token))
 
-    # Send welcome email with temporary password instead of verification email
-    from app.services.email_service import send_welcome_email_with_temp_password
-    from datetime import datetime, timezone, timedelta
+    # Send welcome email with temporary password only if password was auto-generated
+    if is_password_temporary:
+        from app.services.email_service import send_welcome_email_with_temp_password
+        from datetime import datetime, timezone, timedelta
 
-    # Extract name from full_name or use empty string
-    name = new_user.full_name.split()[0] if new_user.full_name else ""
+        # Extract name from full_name or use empty string
+        name = new_user.full_name.split()[0] if new_user.full_name else ""
 
-    # Set up temporary password fields and send welcome email
-    # Update user with temporary password fields
-    temp_password_hash = get_password_hash(password)
-    temp_password_expiry = datetime.now(timezone.utc) + timedelta(hours=48)
+        # Set up temporary password fields and send welcome email
+        # Update user with temporary password fields
+        temp_password_hash = get_password_hash(password)
+        temp_password_expiry = datetime.now(timezone.utc) + timedelta(hours=48)
 
-    # Update the user with temporary password fields
-    from sqlalchemy import update
+        # Update the user with temporary password fields
+        from sqlalchemy import update
 
-    update_stmt = (
-        update(User)
-        .where(User.id == new_user.id)
-        .values(
-            temporary_hashed_password=temp_password_hash,
-            temporary_password_expiry=temp_password_expiry,
-            is_password_temporary=True,
+        update_stmt = (
+            update(User)
+            .where(User.id == new_user.id)
+            .values(
+                temporary_hashed_password=temp_password_hash,
+                temporary_password_expiry=temp_password_expiry,
+                is_password_temporary=True,
+            )
         )
-    )
-    await session.execute(update_stmt)
-    await session.commit()
+        await session.execute(update_stmt)
+        await session.commit()
 
-    # Send welcome email with temporary password
-    try:
-        await send_welcome_email_with_temp_password(new_user.email, name, password)
-        print(f"Welcome email with temporary password sent to {new_user.email}")
-    except Exception as e:
-        print(f"Error sending welcome email to {new_user.email}: {e}")
+        # Send welcome email with temporary password
+        try:
+            await send_welcome_email_with_temp_password(new_user.email, name, password)
+            print(f"Welcome email with temporary password sent to {new_user.email}")
+        except Exception as e:
+            print(f"Error sending welcome email to {new_user.email}: {e}")
 
     return new_user
 

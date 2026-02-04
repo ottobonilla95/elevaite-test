@@ -5,128 +5,18 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
+import {
+  MailIcon,
+  LockIcon,
+  EyeIcon,
+  EyeOffIcon,
+  UserIcon,
+  SsoIcon,
+  ArrowRightIcon,
+} from "../../components/icons";
+import { Copyright } from "../../components/Copyright";
+import { VideoPanel } from "../../components/VideoPanel";
 import "./page.scss";
-
-// Icons
-function MailIcon(): JSX.Element {
-  return (
-    <svg
-      width="17"
-      height="14"
-      viewBox="0 0 20 17"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        fill="currentColor"
-        d="M18 .5H2C.9.5.01 1.4.01 2.5L0 14.5c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-12c0-1.1-.9-2-2-2Zm0 4-8 5-8-5v-2l8 5 8-5v2Z"
-      />
-    </svg>
-  );
-}
-
-function LockIcon(): JSX.Element {
-  return (
-    <svg
-      width="14"
-      height="17"
-      viewBox="0 0 18 22"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        fill="currentColor"
-        d="M15 7.5h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1h2v-1a6 6 0 1 1 12 0v1Zm-2 0v-1a4 4 0 1 0-8 0v1h8Zm-5 6v2h2v-2H8Zm-4 0v2h2v-2H4Zm8 0v2h2v-2h-2Z"
-      />
-    </svg>
-  );
-}
-
-function UserIcon(): JSX.Element {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        fill="currentColor"
-        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-      />
-    </svg>
-  );
-}
-
-function EyeOffIcon(): JSX.Element {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 11 8 11 8a13.16 13.16 0 0 1-1.67 2.68" />
-      <path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 8 11 8a9.74 9.74 0 0 0 5.39-1.61" />
-      <line x1="2" y1="2" x2="22" y2="22" />
-    </svg>
-  );
-}
-
-function EyeIcon(): JSX.Element {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon(): JSX.Element {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}
-
-function SsoIcon(): JSX.Element {
-  return (
-    <svg
-      width="12"
-      height="16"
-      viewBox="0 0 18 22"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        fill="currentColor"
-        d="M15 7.5h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1h2v-1a6 6 0 1 1 12 0v1Zm-2 0v-1a4 4 0 1 0-8 0v1h8Zm-5 6v2h2v-2H8Zm-4 0v2h2v-2H4Zm8 0v2h2v-2h-2Z"
-      />
-    </svg>
-  );
-}
 
 // Password validation requirements
 interface PasswordValidation {
@@ -323,16 +213,7 @@ function SignUp(): JSX.Element {
               </div>
             </div>
 
-            <p className="copyright">
-              Copyright 2023 -{" "}
-              <a
-                href="https://www.iopex.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                iOPEX Technologies
-              </a>
-            </p>
+            <Copyright />
           </div>
 
           <div className="login-cta-card">
@@ -348,11 +229,7 @@ function SignUp(): JSX.Element {
           </div>
         </div>
 
-        <div className="right-panel">
-          <video className="arrows-video" autoPlay loop muted playsInline>
-            <source src="/arrows.mp4" type="video/mp4" />
-          </video>
-        </div>
+        <VideoPanel />
       </div>
     );
   }

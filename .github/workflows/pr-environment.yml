@@ -221,7 +221,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             AUTH_URL=https://auth-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            AUTH_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io/api/auth
+            AUTH_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
             NEXTAUTH_URL_INTERNAL=http://elevaite-pr-${{ env.PR_NUMBER }}-auth-app:3005
             RBAC_BACKEND_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
             ELEVAITE_HOMEPAGE=https://pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
@@ -237,7 +237,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             NEXT_PUBLIC_BACKEND_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            NEXT_PUBLIC_AUTH_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io/api/auth
+            NEXT_PUBLIC_AUTH_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
             NEXT_PUBLIC_NATIVEAUTH_URL=https://auth-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
             NEXT_PUBLIC_MODELS_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
             NEXT_PUBLIC_CONTRACTS_API_URL=https://api-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
@@ -375,9 +375,13 @@ jobs:
           #     --dry-run=client -o yaml | kubectl apply -f -
           # fi
 
+          # Delete existing secret to ensure clean recreation with all fields
+          kubectl delete secret elevaite-secrets --namespace ${{ env.NAMESPACE }} --ignore-not-found=true
+
           kubectl create secret generic elevaite-secrets \
             --namespace ${{ env.NAMESPACE }} \
             --from-literal=JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            --from-literal=SECRET_KEY=${{ secrets.JWT_SECRET }} \
             --from-literal=NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }} \
             --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
             --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
@@ -397,6 +401,14 @@ jobs:
             --from-literal=RABBITMQ_HOST="rabbitmq.rabbitmq.svc.cluster.local" \
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.DEV_STORAGE_ACCESS_KEY }} \
             --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_STORAGE_SECRET_KEY }} \
+            --from-literal=SMTP_HOST="${{ secrets.DEV_SMTP_HOST }}" \
+            --from-literal=SMTP_PORT="${{ secrets.DEV_SMTP_PORT }}" \
+            --from-literal=SMTP_USER="${{ secrets.DEV_SMTP_USER }}" \
+            --from-literal=SMTP_PASSWORD="${{ secrets.DEV_SMTP_PASSWORD }}" \
+            --from-literal=SMTP_TLS="True" \
+            --from-literal=EMAILS_FROM_EMAIL="${{ secrets.DEV_EMAILS_FROM_EMAIL }}" \
+            --from-literal=EMAILS_FROM_NAME="${{ secrets.DEV_EMAILS_FROM_NAME }}" \
+            --from-literal=CORS_ORIGINS="https://auth-pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io,https://pr-${{ env.PR_NUMBER }}.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Setup Helm

@@ -23,7 +23,7 @@ authApi:
       memory: 512Mi
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 1Gi
   env:
     LOG_LEVEL: DEBUG
     ALLOWED_HOSTS: "*"
@@ -90,7 +90,7 @@ ingress:
   enabled: true
   className: nginx
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-staging
+    cert-manager.io/cluster-issuer: letsencrypt-prod
   api:
     host: api-pr.nip.io  # Set dynamically via --set ingress.api.host
     paths:

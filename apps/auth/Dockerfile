@@ -33,6 +33,10 @@ ARG NEXTAUTH_URL_INTERNAL
 ARG RBAC_BACKEND_URL
 ARG ELEVAITE_HOMEPAGE
 
+# Convert build args to NEXT_PUBLIC_ env vars for browser access
+ENV NEXT_PUBLIC_AUTH_API_URL=$AUTH_API_URL
+ENV NEXT_PUBLIC_ELEVAITE_HOMEPAGE=$ELEVAITE_HOMEPAGE
+
 # Build the project
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json

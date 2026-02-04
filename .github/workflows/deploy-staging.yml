@@ -220,7 +220,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             AUTH_URL=https://auth-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            AUTH_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io/api/auth
+            AUTH_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
             NEXTAUTH_URL_INTERNAL=http://elevaite-auth-app:3005
             RBAC_BACKEND_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
             ELEVAITE_HOMEPAGE=https://staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
@@ -238,7 +238,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             NEXT_PUBLIC_BACKEND_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
-            NEXT_PUBLIC_AUTH_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io/api/auth
+            NEXT_PUBLIC_AUTH_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
             NEXT_PUBLIC_NATIVEAUTH_URL=https://auth-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
             NEXT_PUBLIC_MODELS_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
             NEXT_PUBLIC_CONTRACTS_API_URL=https://api-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io
@@ -335,9 +335,13 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
           # Application secrets
+          # Delete existing secret to ensure clean recreation with all fields
+          kubectl delete secret elevaite-secrets --namespace ${{ env.NAMESPACE }} --ignore-not-found=true
+
           kubectl create secret generic elevaite-secrets \
             --namespace ${{ env.NAMESPACE }} \
             --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            --from-literal=SECRET_KEY="${{ secrets.JWT_SECRET }}" \
             --from-literal=OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
             --from-literal=NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET || secrets.JWT_SECRET }}" \
             --from-literal=GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
@@ -356,6 +360,14 @@ jobs:
             --from-literal=RABBITMQ_PASSWORD="${{ secrets.STAGING_RABBITMQ_PASSWORD }}" \
             --from-literal=AWS_ACCESS_KEY_ID="${{ secrets.STAGING_STORAGE_ACCESS_KEY }}" \
             --from-literal=AWS_SECRET_ACCESS_KEY="${{ secrets.STAGING_STORAGE_SECRET_KEY }}" \
+            --from-literal=SMTP_HOST="${{ secrets.STAGING_SMTP_HOST }}" \
+            --from-literal=SMTP_PORT="${{ secrets.STAGING_SMTP_PORT }}" \
+            --from-literal=SMTP_USER="${{ secrets.STAGING_SMTP_USER }}" \
+            --from-literal=SMTP_PASSWORD="${{ secrets.STAGING_SMTP_PASSWORD }}" \
+            --from-literal=SMTP_TLS="True" \
+            --from-literal=EMAILS_FROM_EMAIL="${{ secrets.STAGING_EMAILS_FROM_EMAIL }}" \
+            --from-literal=EMAILS_FROM_NAME="${{ secrets.STAGING_EMAILS_FROM_NAME }}" \
+            --from-literal=CORS_ORIGINS="https://auth-staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io,https://staging.${{ needs.prepare.outputs.lb_ip_dashed }}.nip.io" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Setup Helm

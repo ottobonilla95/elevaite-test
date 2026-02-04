@@ -1,68 +1,15 @@
 "use client";
-import { ElevaiteIcons } from "@repo/ui/components";
 import type { JSX } from "react";
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { sendSmsCode } from "../../lib/mfaActions";
+import { QrCodeIcon, SmsIcon, CheckIcon } from "../../components/icons";
+import { Copyright } from "../../components/Copyright";
+import { OrangePanel } from "../../components/OrangePanel";
 import "./page.scss";
 
 type MfaMethod = "TOTP" | "SMS";
-
-function QrCodeIcon(): JSX.Element {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="3" width="7" height="7" />
-      <rect x="14" y="3" width="7" height="7" />
-      <rect x="14" y="14" width="7" height="7" />
-      <rect x="3" y="14" width="7" height="7" />
-    </svg>
-  );
-}
-
-function SmsIcon(): JSX.Element {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      <line x1="8" y1="9" x2="16" y2="9" />
-      <line x1="8" y1="13" x2="14" y2="13" />
-    </svg>
-  );
-}
-
-function CheckIcon(): JSX.Element {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
 
 function MfaMethodSelectionContent(): JSX.Element {
   const router = useRouter();
@@ -140,7 +87,13 @@ function MfaMethodSelectionContent(): JSX.Element {
       <div className="mfa-page-container">
         <div className="left-panel">
           <div className="logo-container">
-            <ElevaiteIcons.SVGNavbarLogo />
+            <Image
+              src="/images/logos/logo.png"
+              alt="ElevAIte"
+              width={85}
+              height={27}
+              priority
+            />
           </div>
 
           <div className="form-content">
@@ -162,19 +115,10 @@ function MfaMethodSelectionContent(): JSX.Element {
             </div>
           </div>
 
-          <p className="copyright">
-            <span className="gray">Copyright 2023 - </span>
-            <a
-              href="https://www.iopex.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              iOPEX Technologies
-            </a>
-          </p>
+          <Copyright />
         </div>
 
-        <div className="right-panel" />
+        <OrangePanel />
       </div>
     );
   }
@@ -183,7 +127,13 @@ function MfaMethodSelectionContent(): JSX.Element {
     <div className="mfa-page-container">
       <div className="left-panel">
         <div className="logo-container">
-          <ElevaiteIcons.SVGNavbarLogo />
+          <Image
+            src="/images/logos/logo.png"
+            alt="ElevAIte"
+            width={85}
+            height={27}
+            priority
+          />
         </div>
 
         <div className="form-content">
@@ -269,19 +219,10 @@ function MfaMethodSelectionContent(): JSX.Element {
           </div>
         </div>
 
-        <p className="copyright">
-          <span className="gray">Copyright 2023 - </span>
-          <a
-            href="https://www.iopex.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            iOPEX Technologies
-          </a>
-        </p>
+        <Copyright />
       </div>
 
-      <div className="right-panel" />
+      <OrangePanel />
     </div>
   );
 }

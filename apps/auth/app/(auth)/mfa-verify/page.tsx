@@ -1,14 +1,16 @@
 "use client";
-import { ElevaiteIcons } from "@repo/ui/components";
 import type { JSX, KeyboardEvent, ClipboardEvent, ChangeEvent } from "react";
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { signIn } from "next-auth/react";
 import {
   verifyTotpCode,
   verifySmsCode,
   sendSmsCode,
 } from "../../lib/mfaActions";
+import { Copyright } from "../../components/Copyright";
+import { OrangePanel } from "../../components/OrangePanel";
 import "./page.scss";
 
 type MfaMethod = "TOTP" | "SMS";
@@ -208,7 +210,13 @@ function MfaVerificationContent(): JSX.Element {
     <div className="mfa-page-container">
       <div className="left-panel">
         <div className="logo-container">
-          <ElevaiteIcons.SVGNavbarLogo />
+          <Image
+            src="/images/logos/logo.png"
+            alt="ElevAIte"
+            width={85}
+            height={27}
+            priority
+          />
         </div>
 
         <div className="form-content">
@@ -292,19 +300,10 @@ function MfaVerificationContent(): JSX.Element {
           </div>
         </div>
 
-        <p className="copyright">
-          <span className="gray">Copyright 2023 - </span>
-          <a
-            href="https://www.iopex.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            iOPEX Technologies
-          </a>
-        </p>
+        <Copyright />
       </div>
 
-      <div className="right-panel" />
+      <OrangePanel />
     </div>
   );
 }

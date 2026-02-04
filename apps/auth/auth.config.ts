@@ -70,6 +70,15 @@ export const authConfig = {
         return true;
       }
 
+      // Check if password change is required
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access -- Custom user property
+      const passwordChangeRequired = (auth?.user as any)?.passwordChangeRequired;
+
+      // Redirect to reset-password if password change is required
+      if (isLoggedIn && passwordChangeRequired && nextUrl.pathname !== "/reset-password") {
+        return Response.redirect(new URL("/reset-password", nextUrl));
+      }
+
       // Redirect authenticated users to homepage
       if (isLoggedIn) {
         return Response.redirect(new URL(ELEVAITE_HOMEPAGE, nextUrl));
