@@ -1,5 +1,6 @@
 "use client";
 
+import { CommonButton } from "@repo/ui/components";
 import type { JSX } from "react";
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -123,15 +124,15 @@ function ResetPasswordContent(): JSX.Element {
                   </p>
                 </div>
                 <div className="form-fields">
-                  <button
+                  <CommonButton
+                    overrideClass
                     className="submit-button"
                     onClick={() => {
                       window.location.href = "/forgot-password";
                     }}
-                    type="button"
                   >
                     Request New Reset Link
-                  </button>
+                  </CommonButton>
                 </div>
               </div>
             </div>
@@ -168,13 +169,13 @@ function ResetPasswordContent(): JSX.Element {
                   <p>Log into your account with your new password.</p>
                 </div>
                 <div className="form-fields">
-                  <button
+                  <CommonButton
+                    overrideClass
                     className="submit-button"
                     onClick={handleSignIn}
-                    type="button"
                   >
                     Sign in
-                  </button>
+                  </CommonButton>
                 </div>
               </div>
             </div>
@@ -234,8 +235,8 @@ function ResetPasswordContent(): JSX.Element {
                       placeholder=""
                       required
                     />
-                    <button
-                      type="button"
+                    <CommonButton
+                      overrideClass
                       className="eye-button"
                       onClick={() => {
                         setShowPassword(!showPassword);
@@ -245,7 +246,7 @@ function ResetPasswordContent(): JSX.Element {
                       }
                     >
                       <EyeOffIcon />
-                    </button>
+                    </CommonButton>
                   </div>
                   <span className="hint">Must be at least 8 characters.</span>
                 </div>
@@ -268,8 +269,8 @@ function ResetPasswordContent(): JSX.Element {
                       placeholder=""
                       required
                     />
-                    <button
-                      type="button"
+                    <CommonButton
+                      overrideClass
                       className="eye-button"
                       onClick={() => {
                         setShowConfirmPassword(!showConfirmPassword);
@@ -279,19 +280,19 @@ function ResetPasswordContent(): JSX.Element {
                       }
                     >
                       <EyeOffIcon />
-                    </button>
+                    </CommonButton>
                   </div>
                   {error ? <span className="error-text">{error}</span> : null}
                 </div>
 
-                <button
+                <CommonButton
+                  overrideClass
                   className="submit-button"
                   onClick={handleResetPassword}
                   disabled={isSubmitting}
-                  type="button"
                 >
                   {isSubmitting ? "Resetting..." : "Confirm Password Change"}
-                </button>
+                </CommonButton>
               </div>
             </div>
           </div>

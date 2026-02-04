@@ -1,5 +1,5 @@
 "use client";
-import { GoogleColorIcon } from "@repo/ui/components";
+import { GoogleColorIcon, CommonButton } from "@repo/ui/components";
 import type { JSX, FormEvent } from "react";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -338,8 +338,8 @@ function SignUp(): JSX.Element {
                     required
                     disabled={isLoading}
                   />
-                  <button
-                    type="button"
+                  <CommonButton
+                    overrideClass
                     className="toggle-password"
                     onClick={() => {
                       setShowPassword(!showPassword);
@@ -349,7 +349,7 @@ function SignUp(): JSX.Element {
                     }
                   >
                     {showPassword ? <EyeIcon /> : <EyeOffIcon />}
-                  </button>
+                  </CommonButton>
                 </div>
                 {password.length > 0 && (
                   <div className="password-requirements">
@@ -410,8 +410,8 @@ function SignUp(): JSX.Element {
                     required
                     disabled={isLoading}
                   />
-                  <button
-                    type="button"
+                  <CommonButton
+                    overrideClass
                     className="toggle-password"
                     onClick={() => {
                       setShowConfirmPassword(!showConfirmPassword);
@@ -421,7 +421,7 @@ function SignUp(): JSX.Element {
                     }
                   >
                     {showConfirmPassword ? <EyeIcon /> : <EyeOffIcon />}
-                  </button>
+                  </CommonButton>
                 </div>
                 {confirmPassword.length > 0 && password !== confirmPassword && (
                   <p className="error-message">Passwords do not match</p>
@@ -430,9 +430,14 @@ function SignUp(): JSX.Element {
 
               {error ? <p className="credentials-error">{error}</p> : null}
 
-              <button type="submit" className="submit-btn" disabled={isLoading}>
+              <CommonButton
+                overrideClass
+                className="submit-btn"
+                type="submit"
+                disabled={isLoading}
+              >
                 {isLoading ? "Creating account..." : "Sign Up"}
-              </button>
+              </CommonButton>
             </form>
 
             <div className="social-section">
@@ -443,23 +448,23 @@ function SignUp(): JSX.Element {
               </div>
 
               <div className="social-buttons">
-                <button
-                  type="button"
+                <CommonButton
+                  overrideClass
                   className="social-btn"
                   onClick={handleGoogleClick}
                   disabled={isLoading}
                 >
                   <GoogleColorIcon />
                   Sign up with Google
-                </button>
-                <button
-                  type="button"
+                </CommonButton>
+                <CommonButton
+                  overrideClass
                   className="social-btn"
                   disabled={isLoading}
                 >
                   <SsoIcon />
                   Sign up with SSO
-                </button>
+                </CommonButton>
               </div>
             </div>
           </div>

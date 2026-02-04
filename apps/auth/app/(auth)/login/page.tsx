@@ -1,5 +1,5 @@
 "use client";
-import { GoogleColorIcon } from "@repo/ui/components";
+import { GoogleColorIcon, CommonButton } from "@repo/ui/components";
 import type { JSX, FormEvent } from "react";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -191,8 +191,8 @@ function Login(): JSX.Element {
                     required
                     disabled={isLoading}
                   />
-                  <button
-                    type="button"
+                  <CommonButton
+                    overrideClass
                     className="toggle-password"
                     onClick={() => {
                       setShowPassword(!showPassword);
@@ -202,7 +202,7 @@ function Login(): JSX.Element {
                     }
                   >
                     {showPassword ? <EyeIcon /> : <EyeOffIcon />}
-                  </button>
+                  </CommonButton>
                 </div>
               </div>
 
@@ -225,9 +225,14 @@ function Login(): JSX.Element {
 
               {error ? <p className="credentials-error">{error}</p> : null}
 
-              <button type="submit" className="submit-btn" disabled={isLoading}>
+              <CommonButton
+                overrideClass
+                className="submit-btn"
+                type="submit"
+                disabled={isLoading}
+              >
                 {isLoading ? "Signing in..." : "Sign In"}
-              </button>
+              </CommonButton>
             </form>
 
             <div className="social-section">
@@ -238,23 +243,23 @@ function Login(): JSX.Element {
               </div>
 
               <div className="social-buttons">
-                <button
-                  type="button"
+                <CommonButton
+                  overrideClass
                   className="social-btn"
                   onClick={handleGoogleClick}
                   disabled={isLoading}
                 >
                   <GoogleColorIcon />
                   Sign in with Google
-                </button>
-                <button
-                  type="button"
+                </CommonButton>
+                <CommonButton
+                  overrideClass
                   className="social-btn"
                   disabled={isLoading}
                 >
                   <SsoIcon />
                   Sign in with SSO
-                </button>
+                </CommonButton>
               </div>
             </div>
           </div>

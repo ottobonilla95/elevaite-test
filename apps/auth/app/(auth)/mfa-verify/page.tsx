@@ -1,4 +1,5 @@
 "use client";
+import { CommonButton } from "@repo/ui/components";
 import type { JSX, KeyboardEvent, ClipboardEvent, ChangeEvent } from "react";
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -261,8 +262,8 @@ function MfaVerificationContent(): JSX.Element {
           ) : null}
 
           <div className="mfa-verify-btn">
-            <button
-              type="button"
+            <CommonButton
+              overrideClass
               className={
                 code.length === 6 && !isLoading ? "active" : "disabled"
               }
@@ -270,7 +271,7 @@ function MfaVerificationContent(): JSX.Element {
               disabled={code.length !== 6 || isLoading}
             >
               {isLoading ? "Verifying..." : "Verify"}
-            </button>
+            </CommonButton>
           </div>
 
           <div className="mfa-help-links">
@@ -279,24 +280,24 @@ function MfaVerificationContent(): JSX.Element {
                 Didn&apos;t receive a sign-in request?
               </span>
               {method === "SMS" ? (
-                <button
-                  type="button"
+                <CommonButton
+                  overrideClass
                   onClick={handleResendClick}
                   disabled={isResending}
                 >
                   {isResending ? "Sending..." : "Resend request."}
-                </button>
+                </CommonButton>
               ) : (
                 <span className="gray">Check your authenticator app.</span>
               )}
             </p>
-            <button
-              type="button"
+            <CommonButton
+              overrideClass
               className="try-another"
               onClick={handleBackClick}
             >
               Try another method
-            </button>
+            </CommonButton>
           </div>
         </div>
 

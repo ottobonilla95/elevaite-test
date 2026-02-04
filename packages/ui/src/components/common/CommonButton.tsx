@@ -1,8 +1,7 @@
 import React, { type ButtonHTMLAttributes, type MutableRefObject } from "react";
 import "./CommonButton.scss";
 
-export interface CommonButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface CommonButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   theme?: "light" | "dark";
   noBackground?: boolean;
   overrideClass?: boolean;
@@ -18,6 +17,7 @@ export function CommonButton({
   theme,
   passedRef,
   onMiddleClick,
+  type = "button",
   ...props
 }: CommonButtonProps): React.ReactElement<CommonButtonProps> {
   function check(event: React.MouseEvent<HTMLButtonElement>): void {
@@ -29,6 +29,7 @@ export function CommonButton({
   return (
     <button
       ref={passedRef}
+      type={type}
       {...props}
       className={[
         "common-button",
@@ -39,7 +40,6 @@ export function CommonButton({
       ]
         .filter(Boolean)
         .join(" ")}
-      type="button"
       onMouseUp={check}
     >
       {props.children}

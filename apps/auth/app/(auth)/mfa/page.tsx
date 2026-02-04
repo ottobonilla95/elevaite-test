@@ -1,4 +1,5 @@
 "use client";
+import { CommonButton } from "@repo/ui/components";
 import type { JSX } from "react";
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -103,15 +104,15 @@ function MfaMethodSelectionContent(): JSX.Element {
             </div>
 
             <div className="mfa-continue-btn">
-              <button
-                type="button"
+              <CommonButton
+                overrideClass
                 className="active"
                 onClick={() => {
                   router.push("/login");
                 }}
               >
                 Back to Login
-              </button>
+              </CommonButton>
             </div>
           </div>
 
@@ -146,8 +147,8 @@ function MfaMethodSelectionContent(): JSX.Element {
 
           <div className="mfa-method-cards">
             {availableMethods.includes("TOTP") && (
-              <button
-                type="button"
+              <CommonButton
+                overrideClass
                 className={`mfa-method-card ${selectedMethod === "TOTP" ? "selected" : ""}`}
                 onClick={() => {
                   setSelectedMethod("TOTP");
@@ -169,12 +170,12 @@ function MfaMethodSelectionContent(): JSX.Element {
                     <CheckIcon />
                   </div>
                 )}
-              </button>
+              </CommonButton>
             )}
 
             {availableMethods.includes("SMS") && (
-              <button
-                type="button"
+              <CommonButton
+                overrideClass
                 className={`mfa-method-card ${selectedMethod === "SMS" ? "selected" : ""}`}
                 onClick={() => {
                   setSelectedMethod("SMS");
@@ -195,27 +196,27 @@ function MfaMethodSelectionContent(): JSX.Element {
                     <CheckIcon />
                   </div>
                 )}
-              </button>
+              </CommonButton>
             )}
           </div>
 
           {error ? <p className="mfa-error">{error}</p> : null}
 
           <div className="mfa-continue-btn">
-            <button
-              type="button"
+            <CommonButton
+              overrideClass
               className={selectedMethod && !isLoading ? "active" : "disabled"}
               onClick={handleContinueClick}
               disabled={!selectedMethod || isLoading}
             >
               {isLoading ? "Please wait..." : "Continue"}
-            </button>
+            </CommonButton>
           </div>
 
           <div className="mfa-back-link">
-            <button type="button" onClick={handleBackToLogin}>
+            <CommonButton overrideClass onClick={handleBackToLogin}>
               Back to login
-            </button>
+            </CommonButton>
           </div>
         </div>
 

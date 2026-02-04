@@ -1,4 +1,5 @@
 "use client";
+import { CommonButton } from "@repo/ui/components";
 import type { JSX, FormEvent } from "react";
 import { useState, useCallback } from "react";
 import Link from "next/link";
@@ -148,14 +149,14 @@ function ForgotPassword(): JSX.Element {
 
                 {error ? <p className="form-error">{error}</p> : null}
 
-                <button
-                  type="button"
+                <CommonButton
+                  overrideClass
                   className="submit-btn"
                   onClick={handleResendClick}
                   disabled={isLoading}
                 >
                   {isLoading ? "Sending..." : "Resend link"}
-                </button>
+                </CommonButton>
               </div>
             </>
           ) : (
@@ -193,13 +194,14 @@ function ForgotPassword(): JSX.Element {
 
                 {error ? <p className="form-error">{error}</p> : null}
 
-                <button
-                  type="submit"
+                <CommonButton
+                  overrideClass
                   className="submit-btn"
+                  type="submit"
                   disabled={isLoading || !email}
                 >
                   {isLoading ? "Sending..." : "Send Link"}
-                </button>
+                </CommonButton>
               </form>
 
               <div className="back-to-signin">
